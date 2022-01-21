@@ -1,4 +1,4 @@
-# Copyright 2021 Universität Tübingen, DKFZ and EMBL
+# Copyright 2021 - 2022 Universität Tübingen, DKFZ and EMBL
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,12 +15,11 @@
 
 """Test the messaging API (pubsub)"""
 
-from datetime import datetime
 
+from ghga_message_schemas import schemas
 from ghga_service_chassis_lib.utils import exec_with_timeout
 
-from drs3.models import DrsObjectInternal
-from drs3.pubsub import publish_stage_request, schemas, subscribe_file_staged
+from drs3.pubsub import publish_stage_request, subscribe_file_staged
 
 from ..fixtures import (  # noqa: F401
     FILES,
@@ -36,20 +35,14 @@ def test_publish_stage_request(amqp_fixture):  # noqa: F811
 
     config = get_config(sources=[amqp_fixture.config])
 
-    drs_object = DrsObjectInternal(
-        id=FILES["in_registry_not_in_storage"].id,
-        file_id=FILES["in_registry_not_in_storage"].file_id,
-        registration_date=datetime.now(),
-        md5_checksum=FILES["in_registry_not_in_storage"].file_info.md5_checksum,
-        size=FILES["in_registry_not_in_storage"].file_info.size,
-    )
+    drs_object = FILES["in_registry_not_in_storage"].file_info
 
     # initialize downstream test service that will receive
     # messages from this service:
 
     downstream_subscriber = amqp_fixture.get_test_subscriber(
         topic_name=config.topic_name_stage_request,
-        message_schema=schemas.STAGE_REQUEST,
+        message_schema=schemas.SCHEMAS["non_staged_file_requested"],
     )
 
     # Call publish function
@@ -70,7 +63,7 @@ def test_subscribe_file_staged(psql_fixture, s3_fixture, amqp_fixture):  # noqa:
     # initialize upstream and downstream test services that will publish or receive
     upstream_publisher = amqp_fixture.get_test_publisher(
         topic_name=config.topic_name_file_staged,
-        message_schema=schemas.FILE_STAGED,
+        message_schema=schemas.SCHEMAS["file_staged_for_download"],
     )
 
     # publish a stage request:

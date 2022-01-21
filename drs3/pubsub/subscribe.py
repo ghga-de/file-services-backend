@@ -1,4 +1,4 @@
-# Copyright 2021 Universität Tübingen, DKFZ and EMBL
+# Copyright 2021 - 2022 Universität Tübingen, DKFZ and EMBL
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,14 +17,15 @@
 Subscriptions to async topics
 """
 
+
 from pathlib import Path
 
+from ghga_message_schemas import schemas
 from ghga_service_chassis_lib.pubsub import AmqpTopic
 
 from ..config import CONFIG, Config
 from ..core import handle_registered_file, handle_staged_file
-from ..models import DrsObjectInitial
-from . import schemas
+from ..models import DrsObjectBase
 from .publish import publish_drs_object_registered
 
 HERE = Path(__file__).parent.resolve()
@@ -48,12 +49,13 @@ def process_file_registered_message(
     publish that the drs_object was registered
     """
 
-    # we add a fictional size for testing purposes, size is currently not used
-    drs_object = DrsObjectInitial(
+    drs_object = DrsObjectBase(
         file_id=message["file_id"],
         md5_checksum=message["md5_checksum"],
-        registration_date=message["timestamp"],
-        size=1000,
+        size=message["size"],
+        creation_date=message["creation_date"],
+        update_date=message["update_date"],
+        format=message["format"],
     )
 
     handle_registered_file(
@@ -72,14 +74,13 @@ def subscribe_file_staged(config: Config = CONFIG, run_forever: bool = True) -> 
     topic = AmqpTopic(
         config=config,
         topic_name=config.topic_name_file_staged,
-        json_schema=schemas.FILE_STAGED,
+        json_schema=schemas.SCHEMAS["file_staged_for_download"],
     )
 
     # subscribe:
     topic.subscribe(
         exec_on_message=lambda message: process_file_staged_message(
-            message,
-            config=config,
+            message, config=config
         ),
         run_forever=run_forever,
     )
@@ -96,7 +97,7 @@ def subscribe_file_registered(
     topic = AmqpTopic(
         config=config,
         topic_name=config.topic_name_file_registered,
-        json_schema=schemas.FILE_REGISTERED,
+        json_schema=schemas.SCHEMAS["file_internally_registered"],
     )
 
     # subscribe:

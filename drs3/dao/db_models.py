@@ -1,4 +1,4 @@
-# Copyright 2021 Universität Tübingen, DKFZ and EMBL
+# Copyright 2021 - 2022 Universität Tübingen, DKFZ and EMBL
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -53,15 +53,30 @@ class DrsObject(Base):
     md5_checksum = Column(
         String,
         nullable=False,
-        default=None,
-        doc=("MD5 checksum of the object content."),
+        unique=False,
+        doc="MD5 checksum of the object content.",
     )
     size = Column(
         Integer,
-        nullable=True,
-        default=None,
-        doc="Size of the object content in bytes.",
+        nullable=False,
+        unique=False,
+        doc="The size of the file in bytes.",
     )
-    registration_date = Column(
-        DateTime, nullable=False, doc="Date/time when the object was registered."
+    creation_date = Column(
+        DateTime,
+        nullable=False,
+        unique=False,
+        doc="Timestamp (in ISO 8601 format) when the entity was created.",
+    )
+    update_date = Column(
+        DateTime,
+        nullable=False,
+        unique=False,
+        doc="Timestamp (in ISO 8601 format) when the entity was updated.",
+    )
+    format = Column(
+        String,
+        nullable=False,
+        unique=False,
+        doc="The format of the file: BAM, SAM, CRAM, BAI, etc.",
     )

@@ -1,4 +1,4 @@
-# Copyright 2021 Universität Tübingen, DKFZ and EMBL
+# Copyright 2021 - 2022 Universität Tübingen, DKFZ and EMBL
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +15,6 @@
 
 """Database DAO"""
 
-from datetime import datetime
 from typing import Any, Optional
 
 from ghga_service_chassis_lib.postgresql import (
@@ -68,17 +67,15 @@ class DatabaseDao(DaoGenericBase):
         - DrsObjectAlreadyExistsError
     """
 
-    def get_drs_object(self, file_id: str) -> models.DrsObjectInternal:
+    def get_drs_object(self, file_id: str) -> models.DrsObjectComplete:
         """Get DRS object from the database"""
         ...
 
-    def register_drs_object(self, drs_object: models.DrsObjectInitial) -> None:
+    def register_drs_object(self, drs_object: models.DrsObjectBase) -> None:
         """Register a new DRS object to the database."""
         ...
 
-    def update_drs_object(
-        self, file_id: str, drs_object: models.DrsObjectInternal
-    ) -> None:
+    def update_drs_object(self, drs_object: models.DrsObjectBase) -> None:
         """Update information for a DRS object in the database."""
         ...
 
@@ -128,13 +125,13 @@ class PostgresDatabase(DatabaseDao):
 
         return orm_drs_object
 
-    def get_drs_object(self, file_id: str) -> models.DrsObjectInternal:
+    def get_drs_object(self, file_id: str) -> models.DrsObjectComplete:
         """Get DRS object from the database"""
 
         orm_drs_object = self._get_orm_drs_object(file_id=file_id)
-        return models.DrsObjectInternal.from_orm(orm_drs_object)
+        return models.DrsObjectComplete.from_orm(orm_drs_object)
 
-    def register_drs_object(self, drs_object: models.DrsObjectInitial) -> None:
+    def register_drs_object(self, drs_object: models.DrsObjectBase) -> None:
         """Register a new DRS object to the database."""
 
         # check for collisions in the database:
@@ -149,23 +146,22 @@ class PostgresDatabase(DatabaseDao):
 
         drs_object_dict = {
             **drs_object.dict(),
-            "registration_date": datetime.now(),
         }
         orm_drs_object = db_models.DrsObject(**drs_object_dict)
         self._session.add(orm_drs_object)
 
-    def update_drs_object(
-        self, file_id: str, drs_object: models.DrsObjectInternal
-    ) -> None:
-        """Update information for a DRS object in the database."""
+    def update_drs_object(self, drs_object: models.DrsObjectBase) -> None:
+        """
+        Update information for a DRS object in the database the fields that could
+        change eg. checksums, size and format
+        """
 
         orm_drs_object = self._get_orm_drs_object(file_id=drs_object.file_id)
 
-        # Modify the fields, in case they changed
+        # Modify all fields that could have changed due to encryption etc.
         orm_drs_object.md5_checksum = drs_object.md5_checksum
-        orm_drs_object.registration_date = drs_object.registration_date
-        if drs_object.size is not None:
-            orm_drs_object.size = drs_object.size
+        orm_drs_object.size = drs_object.size
+        orm_drs_object.format = drs_object.format
 
     def unregister_drs_object(self, file_id: str) -> None:
         """

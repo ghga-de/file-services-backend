@@ -1,4 +1,4 @@
-# Copyright 2021 Universität Tübingen, DKFZ and EMBL
+# Copyright 2021 - 2022 Universität Tübingen, DKFZ and EMBL
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,62 +19,65 @@ Publish asynchronous topics
 
 from pathlib import Path
 
+from ghga_message_schemas import schemas
 from ghga_service_chassis_lib.pubsub import AmqpTopic
 
 from .. import models
 from ..config import CONFIG, Config
-from . import schemas
 
 HERE = Path(__file__).parent.resolve()
 
 
-def publish_stage_request(
-    drs_object: models.DrsObjectInternal, config: Config = CONFIG
-):
+def publish_stage_request(drs_object: models.DrsObjectBase, config: Config = CONFIG):
     """
-    Publishes a message to a specified topic
+    Publishes a message to the non_staged_file_requested topic
     """
 
     topic_name = config.topic_name_stage_request
 
     message = {
-        "request_id": "",
         "file_id": drs_object.file_id,
-        "timestamp": drs_object.registration_date.isoformat(),
+        "md5_checksum": drs_object.md5_checksum,
+        "size": drs_object.size,
+        "creation_date": drs_object.creation_date.isoformat(),
+        "update_date": drs_object.update_date.isoformat(),
+        "format": drs_object.format,
     }
 
     # create a topic object:
     topic = AmqpTopic(
         config=config,
         topic_name=topic_name,
-        json_schema=schemas.STAGE_REQUEST,
+        json_schema=schemas.SCHEMAS["non_staged_file_requested"],
     )
 
     topic.publish(message)
 
 
 def publish_drs_object_registered(
-    drs_object: models.DrsObjectInitial, config: Config = CONFIG
+    drs_object: models.DrsObjectBase, config: Config = CONFIG
 ):
     """
-    Publishes a message to a specified topic
+    Publishes a message to the drs_object_registered topic
     """
 
     topic_name = config.topic_name_drs_object_registered
 
     message = {
-        "request_id": "",
         "file_id": drs_object.file_id,
-        "timestamp": drs_object.registration_date.isoformat(),
-        "md5_checksum": drs_object.md5_checksum,
         "drs_uri": f"{config.drs_self_url}/{drs_object.file_id}",
+        "md5_checksum": drs_object.md5_checksum,
+        "size": drs_object.size,
+        "creation_date": drs_object.creation_date.isoformat(),
+        "update_date": drs_object.update_date.isoformat(),
+        "format": drs_object.format,
     }
 
     # create a topic object:
     topic = AmqpTopic(
         config=config,
         topic_name=topic_name,
-        json_schema=schemas.DRS_OBJECT_REGISTERED,
+        json_schema=schemas.SCHEMAS["drs_object_registered"],
     )
 
     topic.publish(message)

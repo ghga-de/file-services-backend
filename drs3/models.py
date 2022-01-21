@@ -1,4 +1,4 @@
-# Copyright 2021 Universität Tübingen, DKFZ and EMBL
+# Copyright 2021 - 2022 Universität Tübingen, DKFZ and EMBL
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,7 +19,7 @@ in the api."""
 
 import re
 from datetime import datetime
-from typing import List, Literal, Optional
+from typing import List, Literal
 
 from ghga_service_chassis_lib.object_storage_dao import (
     ObjectIdValidationError,
@@ -34,21 +34,16 @@ class DrsObjectBase(BaseModel):
     """
 
     md5_checksum: str
-    size: Optional[int]
+    size: int
+    file_id: str
+    creation_date: datetime
+    update_date: datetime
+    format: str
 
     class Config:
         """Additional pydantic configs."""
 
         orm_mode = True
-
-
-class DrsObjectInitial(DrsObjectBase):
-    """
-    A model containing the metadata needed to register a new DRS object.
-    """
-
-    file_id: str
-    registration_date: datetime
 
     # pylint: disable=no-self-argument,no-self-use
     @validator("file_id")
@@ -65,9 +60,9 @@ class DrsObjectInitial(DrsObjectBase):
         return value
 
 
-class DrsObjectInternal(DrsObjectInitial):
+class DrsObjectComplete(DrsObjectBase):
     """
-    A model for describing all internally-relevant DrsObject metadata.
+    A model for describing all DrsObject metadata.
     Only intended for service-internal use.
     """
 
@@ -106,8 +101,9 @@ class DrsObjectServe(BaseModel):
 
     file_id: str  # the file ID
     self_uri: str
-    size: Optional[int]
+    size: int
     created_time: str
+    updated_time: str
     checksums: List[Checksum]
     access_methods: List[AccessMethod]
 

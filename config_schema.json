@@ -1,0 +1,261 @@
+{
+  "title": "ModSettings",
+  "description": "Modifies the orginal Settings class provided by the user",
+  "type": "object",
+  "properties": {
+    "s3_endpoint_url": {
+      "title": "S3 Endpoint Url",
+      "env_names": [
+        "drs3_s3_endpoint_url"
+      ],
+      "type": "string"
+    },
+    "s3_access_key_id": {
+      "title": "S3 Access Key Id",
+      "env_names": [
+        "drs3_s3_access_key_id"
+      ],
+      "type": "string"
+    },
+    "s3_secret_access_key": {
+      "title": "S3 Secret Access Key",
+      "env_names": [
+        "drs3_s3_secret_access_key"
+      ],
+      "type": "string"
+    },
+    "s3_session_token": {
+      "title": "S3 Session Token",
+      "env_names": [
+        "drs3_s3_session_token"
+      ],
+      "type": "string"
+    },
+    "aws_config_ini": {
+      "title": "Aws Config Ini",
+      "env_names": [
+        "drs3_aws_config_ini"
+      ],
+      "type": "string",
+      "format": "path"
+    },
+    "db_url": {
+      "title": "Db Url",
+      "env_names": [
+        "drs3_db_url"
+      ],
+      "type": "string"
+    },
+    "db_print_logs": {
+      "title": "Db Print Logs",
+      "default": false,
+      "env_names": [
+        "drs3_db_print_logs"
+      ],
+      "type": "boolean"
+    },
+    "service_name": {
+      "title": "Service Name",
+      "default": "drs3",
+      "env_names": [
+        "drs3_service_name"
+      ],
+      "type": "string"
+    },
+    "rabbitmq_host": {
+      "title": "Rabbitmq Host",
+      "default": "rabbitmq",
+      "env_names": [
+        "drs3_rabbitmq_host"
+      ],
+      "type": "string"
+    },
+    "rabbitmq_port": {
+      "title": "Rabbitmq Port",
+      "default": 5672,
+      "env_names": [
+        "drs3_rabbitmq_port"
+      ],
+      "type": "integer"
+    },
+    "host": {
+      "title": "Host",
+      "default": "127.0.0.1",
+      "env_names": [
+        "drs3_host"
+      ],
+      "type": "string"
+    },
+    "port": {
+      "title": "Port",
+      "default": 8080,
+      "env_names": [
+        "drs3_port"
+      ],
+      "type": "integer"
+    },
+    "log_level": {
+      "title": "Log Level",
+      "default": "info",
+      "env_names": [
+        "drs3_log_level"
+      ],
+      "enum": [
+        "critical",
+        "error",
+        "warning",
+        "info",
+        "debug",
+        "trace"
+      ],
+      "type": "string"
+    },
+    "auto_reload": {
+      "title": "Auto Reload",
+      "default": false,
+      "env_names": [
+        "drs3_auto_reload"
+      ],
+      "type": "boolean"
+    },
+    "workers": {
+      "title": "Workers",
+      "default": 1,
+      "env_names": [
+        "drs3_workers"
+      ],
+      "type": "integer"
+    },
+    "api_root_path": {
+      "title": "Api Root Path",
+      "default": "/",
+      "env_names": [
+        "drs3_api_root_path"
+      ],
+      "type": "string"
+    },
+    "openapi_url": {
+      "title": "Openapi Url",
+      "default": "/openapi.json",
+      "env_names": [
+        "drs3_openapi_url"
+      ],
+      "type": "string"
+    },
+    "docs_url": {
+      "title": "Docs Url",
+      "default": "/docs",
+      "env_names": [
+        "drs3_docs_url"
+      ],
+      "type": "string"
+    },
+    "cors_allowed_origins": {
+      "title": "Cors Allowed Origins",
+      "env_names": [
+        "drs3_cors_allowed_origins"
+      ],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "cors_allow_credentials": {
+      "title": "Cors Allow Credentials",
+      "env_names": [
+        "drs3_cors_allow_credentials"
+      ],
+      "type": "boolean"
+    },
+    "cors_allowed_methods": {
+      "title": "Cors Allowed Methods",
+      "env_names": [
+        "drs3_cors_allowed_methods"
+      ],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "cors_allowed_headers": {
+      "title": "Cors Allowed Headers",
+      "env_names": [
+        "drs3_cors_allowed_headers"
+      ],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "api_route": {
+      "title": "Api Route",
+      "default": "/ga4gh/drs/v1",
+      "env_names": [
+        "drs3_api_route"
+      ],
+      "type": "string"
+    },
+    "drs_self_url": {
+      "title": "Drs Self Url",
+      "default": "drs://localhost:8080/",
+      "env_names": [
+        "drs3_drs_self_url"
+      ],
+      "type": "string"
+    },
+    "custom_spec_url": {
+      "title": "Custom Spec Url",
+      "env_names": [
+        "drs3_custom_spec_url"
+      ],
+      "type": "string"
+    },
+    "topic_name_stage_request": {
+      "title": "Topic Name Stage Request",
+      "default": "non_staged_file_requested",
+      "env_names": [
+        "drs3_topic_name_stage_request"
+      ],
+      "type": "string"
+    },
+    "topic_name_file_staged": {
+      "title": "Topic Name File Staged",
+      "default": "file_staged_for_download",
+      "env_names": [
+        "drs3_topic_name_file_staged"
+      ],
+      "type": "string"
+    },
+    "topic_name_file_registered": {
+      "title": "Topic Name File Registered",
+      "default": "file-internally-registered",
+      "env_names": [
+        "drs3_topic_name_file_registered"
+      ],
+      "type": "string"
+    },
+    "topic_name_drs_object_registered": {
+      "title": "Topic Name Drs Object Registered",
+      "default": "drs-object-registered",
+      "env_names": [
+        "drs3_topic_name_drs_object_registered"
+      ],
+      "type": "string"
+    },
+    "s3_outbox_bucket_id": {
+      "title": "S3 Outbox Bucket Id",
+      "env_names": [
+        "drs3_s3_outbox_bucket_id"
+      ],
+      "type": "string"
+    }
+  },
+  "required": [
+    "s3_endpoint_url",
+    "s3_access_key_id",
+    "s3_secret_access_key",
+    "db_url",
+    "s3_outbox_bucket_id"
+  ],
+  "additionalProperties": false
+}
