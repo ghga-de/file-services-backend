@@ -1,4 +1,4 @@
-# Copyright 2021 Universität Tübingen, DKFZ and EMBL
+# Copyright 2021 - 2022 Universität Tübingen, DKFZ and EMBL
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,9 +18,10 @@
 
 from typing import Any, Callable, Dict
 
+from ghga_message_schemas import schemas
 from ghga_service_chassis_lib.utils import exec_with_timeout
 
-from drs3.pubsub import schemas, subscribe_file_registered
+from drs3.pubsub import subscribe_file_registered
 
 from ..fixtures import (  # noqa: F401
     DEFAULT_CONFIG,
@@ -82,8 +83,8 @@ def test_subscribe_stage_requests(psql_fixture, s3_fixture, amqp_fixture):  # no
         upstream_topic_name=DEFAULT_CONFIG.topic_name_file_registered,
         downstream_topic_name=DEFAULT_CONFIG.topic_name_drs_object_registered,
         upstream_message=FILES["not_in_registry_not_in_storage"].message,
-        upstream_msg_schema=schemas.FILE_REGISTERED,
-        downstream_msg_schema=schemas.DRS_OBJECT_REGISTERED,
+        upstream_msg_schema=schemas.SCHEMAS["file_internally_registered"],
+        downstream_msg_schema=schemas.SCHEMAS["drs_object_registered"],
         subscribe_func=subscribe_file_registered,
         psql_fixture=psql_fixture,
         s3_fixture=s3_fixture,

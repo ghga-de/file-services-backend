@@ -1,4 +1,4 @@
-# Copyright 2021 Universität Tübingen, DKFZ and EMBL
+# Copyright 2021 - 2022 Universität Tübingen, DKFZ and EMBL
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,8 +15,9 @@
 
 """Test data"""
 
+import os
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List
 
@@ -48,7 +49,6 @@ class FileState:
         file_path: Path,
         populate_db: bool = True,
         populate_storage: bool = True,
-        message: dict = {},
     ):
         """
         Initialize file state and create imputed attributes.
@@ -59,7 +59,6 @@ class FileState:
         self.file_id = file_id
         self.grouping_label = grouping_label
         self.file_path = file_path
-        self.message = message
         self.populate_db = populate_db
         self.populate_storage = populate_storage
 
@@ -67,14 +66,27 @@ class FileState:
         with open(self.file_path, "rb") as file:
             self.content = file.read()
 
+        filename, file_extension = os.path.splitext(self.file_path)
+
         self.md5 = calc_md5(self.content)
-        self.file_info = models.DrsObjectInitial(
+        self.file_info = models.DrsObjectBase(
             file_id=self.file_id,
-            grouping_label=self.grouping_label,
             md5_checksum=self.md5,
             size=1000,  # not the real size
-            registration_date=datetime.now().isoformat(),
+            creation_date=datetime.now(timezone.utc),
+            update_date=datetime.now(timezone.utc),
+            format=file_extension,
         )
+
+        self.message = {
+            "file_id": self.file_id,
+            "grouping_label": self.grouping_label,
+            "md5_checksum": self.file_info.md5_checksum,
+            "size": self.file_info.size,
+            "creation_date": self.file_info.creation_date.isoformat(),
+            "update_date": self.file_info.update_date.isoformat(),
+            "format": self.file_info.format,
+        }
 
         self.storage_objects: List[ObjectFixture] = []
         if self.populate_storage:
@@ -95,13 +107,6 @@ FILES: Dict[str, FileState] = {
         file_path=TEST_FILE_PATHS[0],
         populate_db=True,
         populate_storage=True,
-        message={
-            "file_id": get_file_id_example(0),
-            "grouping_label": get_study_id_example(0),
-            "md5_checksum": "3851c5cb7518a2ff67ab5581c3e01f2f",  # fake checksum
-            "request_id": "my_test_file_staged_001",
-            "timestamp": datetime.now().isoformat(),
-        },
     ),
     "in_registry_not_in_storage": FileState(
         id=uuid.uuid4(),
@@ -110,13 +115,6 @@ FILES: Dict[str, FileState] = {
         file_path=TEST_FILE_PATHS[1],
         populate_db=True,
         populate_storage=False,
-        message={
-            "file_id": get_file_id_example(1),
-            "grouping_label": get_study_id_example(1),
-            "md5_checksum": "3851c5cb7518a2ff67ab5581c3e01f2f",  # fake checksum
-            "request_id": "my_test_file_staged_002",
-            "timestamp": datetime.now().isoformat(),
-        },
     ),
     "not_in_registry_not_in_storage": FileState(
         id=uuid.uuid4(),
@@ -125,12 +123,5 @@ FILES: Dict[str, FileState] = {
         file_path=TEST_FILE_PATHS[2],
         populate_db=False,
         populate_storage=False,
-        message={
-            "file_id": get_file_id_example(2),
-            "grouping_label": get_study_id_example(2),
-            "md5_checksum": "3851c5cb7518a2ff67ab5581c3e01f2f",  # fake checksum
-            "request_id": "my_test_file_staged_003",
-            "timestamp": datetime.now().isoformat(),
-        },
     ),
 }

@@ -1,4 +1,4 @@
-# Copyright 2021 Universität Tübingen, DKFZ and EMBL
+# Copyright 2021 - 2022 Universität Tübingen, DKFZ and EMBL
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,19 +19,12 @@ from typing import Any, Callable, Dict, Optional
 
 from ..config import CONFIG, Config
 from ..dao import Database, DrsObjectNotFoundError, ObjectNotFoundError, ObjectStorage
-from ..models import (
-    AccessMethod,
-    AccessURL,
-    Checksum,
-    DrsObjectInitial,
-    DrsObjectInternal,
-    DrsObjectServe,
-)
+from ..models import AccessMethod, AccessURL, Checksum, DrsObjectBase, DrsObjectServe
 
 
 def get_drs_object_serve(
     drs_id: str,
-    make_stage_request: Callable[[DrsObjectInternal, Config], None],
+    make_stage_request: Callable[[DrsObjectBase, Config], None],
     config: Config = CONFIG,
 ) -> Optional[DrsObjectServe]:
     """
@@ -60,7 +53,8 @@ def get_drs_object_serve(
                 file_id=drs_id,
                 self_uri=f"{config.drs_self_url}/{drs_id}",
                 size=db_object_info.size,
-                created_time=db_object_info.registration_date.isoformat(),
+                created_time=db_object_info.creation_date.isoformat(),
+                updated_time=db_object_info.creation_date.isoformat(),
                 checksums=[Checksum(checksum=db_object_info.md5_checksum, type="md5")],
                 access_methods=[
                     AccessMethod(access_url=AccessURL(url=download_url), type="s3")
@@ -77,8 +71,8 @@ def get_drs_object_serve(
 
 
 def handle_registered_file(
-    drs_object: DrsObjectInitial,
-    publish_object_registered: Callable[[DrsObjectInitial, Config], None],
+    drs_object: DrsObjectBase,
+    publish_object_registered: Callable[[DrsObjectBase, Config], None],
     config: Config = CONFIG,
 ):
     """
@@ -115,7 +109,7 @@ def handle_staged_file(message: Dict[str, Any], config: Config = CONFIG):
                 db_object_info.md5_checksum = md5_checksum
 
                 # Update information, in case something has changed
-                database.update_drs_object(file_id=file_id, drs_object=db_object_info)
+                database.update_drs_object(drs_object=db_object_info)
                 return
 
             # Throw error, if the file does not exist in the outbox
