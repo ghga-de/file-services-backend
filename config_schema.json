@@ -5,6 +5,8 @@
   "properties": {
     "s3_endpoint_url": {
       "title": "S3 Endpoint Url",
+      "description": "URL to the S3 API.",
+      "example": "http://localhost:4566",
       "env_names": [
         "drs3_s3_endpoint_url"
       ],
@@ -12,6 +14,8 @@
     },
     "s3_access_key_id": {
       "title": "S3 Access Key Id",
+      "description": "Part of credentials for login into the S3 service. See: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html",
+      "example": "my-access-key-id",
       "env_names": [
         "drs3_s3_access_key_id"
       ],
@@ -19,6 +23,8 @@
     },
     "s3_secret_access_key": {
       "title": "S3 Secret Access Key",
+      "description": "Part of credentials for login into the S3 service. See: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html",
+      "example": "my-secret-access-key",
       "env_names": [
         "drs3_s3_secret_access_key"
       ],
@@ -26,6 +32,8 @@
     },
     "s3_session_token": {
       "title": "S3 Session Token",
+      "description": "Part of credentials for login into the S3 service. See: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html",
+      "example": "my-session-token",
       "env_names": [
         "drs3_s3_session_token"
       ],
@@ -33,6 +41,8 @@
     },
     "aws_config_ini": {
       "title": "Aws Config Ini",
+      "description": "Path to a config file for specifying more advanced S3 parameters. This should follow the format described here: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html#using-a-configuration-file",
+      "example": "~/.aws/config",
       "env_names": [
         "drs3_aws_config_ini"
       ],
@@ -41,6 +51,8 @@
     },
     "db_url": {
       "title": "Db Url",
+      "description": "A URL to a PostgreSQL database.",
+      "example": "postgresql://user:password@mydbserver/dbname",
       "env_names": [
         "drs3_db_url"
       ],
@@ -48,6 +60,7 @@
     },
     "db_print_logs": {
       "title": "Db Print Logs",
+      "description": "Print DB/ORM logs.",
       "default": false,
       "env_names": [
         "drs3_db_print_logs"
@@ -64,7 +77,8 @@
     },
     "rabbitmq_host": {
       "title": "Rabbitmq Host",
-      "default": "rabbitmq",
+      "description": "Name or IP address of the host running the RabbitMQ broker.",
+      "example": "rabbitmq",
       "env_names": [
         "drs3_rabbitmq_host"
       ],
@@ -72,6 +86,7 @@
     },
     "rabbitmq_port": {
       "title": "Rabbitmq Port",
+      "description": "Port of the RabbitMQ broker running on the specified host.",
       "default": 5672,
       "env_names": [
         "drs3_rabbitmq_port"
@@ -80,6 +95,7 @@
     },
     "host": {
       "title": "Host",
+      "description": "IP of the host.",
       "default": "127.0.0.1",
       "env_names": [
         "drs3_host"
@@ -88,6 +104,7 @@
     },
     "port": {
       "title": "Port",
+      "description": "Port to expose the server on the specified host",
       "default": 8080,
       "env_names": [
         "drs3_port"
@@ -96,6 +113,7 @@
     },
     "log_level": {
       "title": "Log Level",
+      "description": "Controls the verbosity of the log.",
       "default": "info",
       "env_names": [
         "drs3_log_level"
@@ -112,6 +130,7 @@
     },
     "auto_reload": {
       "title": "Auto Reload",
+      "description": "A development feature. Set to `True` to automatically reload the server upon code changes",
       "default": false,
       "env_names": [
         "drs3_auto_reload"
@@ -120,6 +139,7 @@
     },
     "workers": {
       "title": "Workers",
+      "description": "Number of workers processes to run.",
       "default": 1,
       "env_names": [
         "drs3_workers"
@@ -128,6 +148,7 @@
     },
     "api_root_path": {
       "title": "Api Root Path",
+      "description": "Root path at which the API is reachable. This is relative to the specified host and port.",
       "default": "/",
       "env_names": [
         "drs3_api_root_path"
@@ -136,6 +157,7 @@
     },
     "openapi_url": {
       "title": "Openapi Url",
+      "description": "Path to get the openapi specification in JSON format. This is relative to the specified host and port.",
       "default": "/openapi.json",
       "env_names": [
         "drs3_openapi_url"
@@ -144,6 +166,7 @@
     },
     "docs_url": {
       "title": "Docs Url",
+      "description": "Path to host the swagger documentation. This is relative to the specified host and port.",
       "default": "/docs",
       "env_names": [
         "drs3_docs_url"
@@ -152,6 +175,11 @@
     },
     "cors_allowed_origins": {
       "title": "Cors Allowed Origins",
+      "description": "A list of origins that should be permitted to make cross-origin requests. By default, cross-origin requests are not allowed. You can use ['*'] to allow any origin.",
+      "example": [
+        "https://example.org",
+        "https://www.example.org"
+      ],
       "env_names": [
         "drs3_cors_allowed_origins"
       ],
@@ -162,6 +190,11 @@
     },
     "cors_allow_credentials": {
       "title": "Cors Allow Credentials",
+      "description": "Indicate that cookies should be supported for cross-origin requests. Defaults to False. Also, cors_allowed_origins cannot be set to ['*'] for credentials to be allowed. The origins must be explicitly specified.",
+      "example": [
+        "https://example.org",
+        "https://www.example.org"
+      ],
       "env_names": [
         "drs3_cors_allow_credentials"
       ],
@@ -169,6 +202,10 @@
     },
     "cors_allowed_methods": {
       "title": "Cors Allowed Methods",
+      "description": "A list of HTTP methods that should be allowed for cross-origin requests. Defaults to ['GET']. You can use ['*'] to allow all standard methods.",
+      "example": [
+        "*"
+      ],
       "env_names": [
         "drs3_cors_allowed_methods"
       ],
@@ -179,6 +216,8 @@
     },
     "cors_allowed_headers": {
       "title": "Cors Allowed Headers",
+      "description": "A list of HTTP request headers that should be supported for cross-origin requests. Defaults to []. You can use ['*'] to allow all headers. The Accept, Accept-Language, Content-Language and Content-Type headers are always allowed for CORS requests.",
+      "example": [],
       "env_names": [
         "drs3_cors_allowed_headers"
       ],
@@ -255,6 +294,7 @@
     "s3_access_key_id",
     "s3_secret_access_key",
     "db_url",
+    "rabbitmq_host",
     "s3_outbox_bucket_id"
   ],
   "additionalProperties": false
