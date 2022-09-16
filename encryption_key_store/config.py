@@ -13,31 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Test the api module"""
+"""Config Parameter Modeling and Parsing"""
 
-from fastapi import status
-from fastapi.testclient import TestClient
-
-from my_microservice.api.main import app
+from ghga_service_chassis_lib.api import ApiConfigBase
+from ghga_service_chassis_lib.config import config_from_yaml
 
 
-def test_index():
-    """Test the index endpoint"""
+@config_from_yaml(prefix="encryption_key_store")
+class Config(ApiConfigBase):
+    """Config parameters and their defaults."""
 
-    client = TestClient(app)
-    response = client.get("/")
-
-    assert response.status_code == status.HTTP_200_OK
-    assert response.text == '"Hello World."'
+    service_name: str = "encryption_key_store"
+    dummy_config: str = ""
 
 
-def test_greet():
-    """Test the greet endpoint"""
-
-    name = "Friendly Tester"
-
-    client = TestClient(app)
-    response = client.get(f"/greet/{name}")
-
-    assert response.status_code == status.HTTP_200_OK
-    assert name in response.json()["message"]
+CONFIG = Config()
