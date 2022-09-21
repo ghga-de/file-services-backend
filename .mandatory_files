@@ -14,11 +14,10 @@
 .github/workflows/dev_cd.yaml
 .github/workflows/unit_and_int_tests.yaml
 
-db_migration
-
 docs/README.md
 
 example_data
+.pre-commit-config.yaml
 
 
 tests/fixtures/__init__.py
@@ -32,3 +31,4 @@ config_schema.json
 example_config.yaml
 README.md
 setup.py
+scripts/license_checker.py

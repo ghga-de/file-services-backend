@@ -28,4 +28,3 @@ topic_name_file_registered: file-internally-registered
 topic_name_file_staged: file_staged_for_download
 topic_name_stage_request: non_staged_file_requested
 workers: 1
-
