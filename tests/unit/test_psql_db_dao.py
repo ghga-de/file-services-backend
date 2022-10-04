@@ -17,7 +17,7 @@
 
 import pytest
 
-from drs3.dao.db import DrsObjectAlreadyExistsError, DrsObjectNotFoundError
+from dcs.dao.db import DrsObjectAlreadyExistsError, DrsObjectNotFoundError
 
 from ..fixtures import psql_fixture  # noqa: F401
 

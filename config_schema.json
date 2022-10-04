@@ -8,7 +8,7 @@
       "description": "URL to the S3 API.",
       "example": "http://localhost:4566",
       "env_names": [
-        "drs3_s3_endpoint_url"
+        "dcs_s3_endpoint_url"
       ],
       "type": "string"
     },
@@ -17,7 +17,7 @@
       "description": "Part of credentials for login into the S3 service. See: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html",
       "example": "my-access-key-id",
       "env_names": [
-        "drs3_s3_access_key_id"
+        "dcs_s3_access_key_id"
       ],
       "type": "string"
     },
@@ -26,7 +26,7 @@
       "description": "Part of credentials for login into the S3 service. See: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html",
       "example": "my-secret-access-key",
       "env_names": [
-        "drs3_s3_secret_access_key"
+        "dcs_s3_secret_access_key"
       ],
       "type": "string"
     },
@@ -35,7 +35,7 @@
       "description": "Part of credentials for login into the S3 service. See: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html",
       "example": "my-session-token",
       "env_names": [
-        "drs3_s3_session_token"
+        "dcs_s3_session_token"
       ],
       "type": "string"
     },
@@ -44,7 +44,7 @@
       "description": "Path to a config file for specifying more advanced S3 parameters. This should follow the format described here: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html#using-a-configuration-file",
       "example": "~/.aws/config",
       "env_names": [
-        "drs3_aws_config_ini"
+        "dcs_aws_config_ini"
       ],
       "type": "string",
       "format": "path"
@@ -54,7 +54,7 @@
       "description": "A URL to a PostgreSQL database.",
       "example": "postgresql://user:password@mydbserver/dbname",
       "env_names": [
-        "drs3_db_url"
+        "dcs_db_url"
       ],
       "type": "string"
     },
@@ -63,15 +63,15 @@
       "description": "Print DB/ORM logs.",
       "default": false,
       "env_names": [
-        "drs3_db_print_logs"
+        "dcs_db_print_logs"
       ],
       "type": "boolean"
     },
     "service_name": {
       "title": "Service Name",
-      "default": "drs3",
+      "default": "dcs",
       "env_names": [
-        "drs3_service_name"
+        "dcs_service_name"
       ],
       "type": "string"
     },
@@ -80,7 +80,7 @@
       "description": "Name or IP address of the host running the RabbitMQ broker.",
       "example": "rabbitmq",
       "env_names": [
-        "drs3_rabbitmq_host"
+        "dcs_rabbitmq_host"
       ],
       "type": "string"
     },
@@ -89,7 +89,7 @@
       "description": "Port of the RabbitMQ broker running on the specified host.",
       "default": 5672,
       "env_names": [
-        "drs3_rabbitmq_port"
+        "dcs_rabbitmq_port"
       ],
       "type": "integer"
     },
@@ -98,7 +98,7 @@
       "description": "IP of the host.",
       "default": "127.0.0.1",
       "env_names": [
-        "drs3_host"
+        "dcs_host"
       ],
       "type": "string"
     },
@@ -107,7 +107,7 @@
       "description": "Port to expose the server on the specified host",
       "default": 8080,
       "env_names": [
-        "drs3_port"
+        "dcs_port"
       ],
       "type": "integer"
     },
@@ -116,7 +116,7 @@
       "description": "Controls the verbosity of the log.",
       "default": "info",
       "env_names": [
-        "drs3_log_level"
+        "dcs_log_level"
       ],
       "enum": [
         "critical",
@@ -133,7 +133,7 @@
       "description": "A development feature. Set to `True` to automatically reload the server upon code changes",
       "default": false,
       "env_names": [
-        "drs3_auto_reload"
+        "dcs_auto_reload"
       ],
       "type": "boolean"
     },
@@ -142,7 +142,7 @@
       "description": "Number of workers processes to run.",
       "default": 1,
       "env_names": [
-        "drs3_workers"
+        "dcs_workers"
       ],
       "type": "integer"
     },
@@ -151,7 +151,7 @@
       "description": "Root path at which the API is reachable. This is relative to the specified host and port.",
       "default": "/",
       "env_names": [
-        "drs3_api_root_path"
+        "dcs_api_root_path"
       ],
       "type": "string"
     },
@@ -160,7 +160,7 @@
       "description": "Path to get the openapi specification in JSON format. This is relative to the specified host and port.",
       "default": "/openapi.json",
       "env_names": [
-        "drs3_openapi_url"
+        "dcs_openapi_url"
       ],
       "type": "string"
     },
@@ -169,7 +169,7 @@
       "description": "Path to host the swagger documentation. This is relative to the specified host and port.",
       "default": "/docs",
       "env_names": [
-        "drs3_docs_url"
+        "dcs_docs_url"
       ],
       "type": "string"
     },
@@ -181,7 +181,7 @@
         "https://www.example.org"
       ],
       "env_names": [
-        "drs3_cors_allowed_origins"
+        "dcs_cors_allowed_origins"
       ],
       "type": "array",
       "items": {
@@ -196,7 +196,7 @@
         "https://www.example.org"
       ],
       "env_names": [
-        "drs3_cors_allow_credentials"
+        "dcs_cors_allow_credentials"
       ],
       "type": "boolean"
     },
@@ -207,7 +207,7 @@
         "*"
       ],
       "env_names": [
-        "drs3_cors_allowed_methods"
+        "dcs_cors_allowed_methods"
       ],
       "type": "array",
       "items": {
@@ -219,7 +219,7 @@
       "description": "A list of HTTP request headers that should be supported for cross-origin requests. Defaults to []. You can use ['*'] to allow all headers. The Accept, Accept-Language, Content-Language and Content-Type headers are always allowed for CORS requests.",
       "example": [],
       "env_names": [
-        "drs3_cors_allowed_headers"
+        "dcs_cors_allowed_headers"
       ],
       "type": "array",
       "items": {
@@ -230,7 +230,7 @@
       "title": "Api Route",
       "default": "/ga4gh/drs/v1",
       "env_names": [
-        "drs3_api_route"
+        "dcs_api_route"
       ],
       "type": "string"
     },
@@ -238,14 +238,14 @@
       "title": "Drs Self Url",
       "default": "drs://localhost:8080/",
       "env_names": [
-        "drs3_drs_self_url"
+        "dcs_drs_self_url"
       ],
       "type": "string"
     },
     "custom_spec_url": {
       "title": "Custom Spec Url",
       "env_names": [
-        "drs3_custom_spec_url"
+        "dcs_custom_spec_url"
       ],
       "type": "string"
     },
@@ -253,7 +253,7 @@
       "title": "Topic Name Stage Request",
       "default": "non_staged_file_requested",
       "env_names": [
-        "drs3_topic_name_stage_request"
+        "dcs_topic_name_stage_request"
       ],
       "type": "string"
     },
@@ -261,7 +261,7 @@
       "title": "Topic Name File Staged",
       "default": "file_staged_for_download",
       "env_names": [
-        "drs3_topic_name_file_staged"
+        "dcs_topic_name_file_staged"
       ],
       "type": "string"
     },
@@ -269,7 +269,7 @@
       "title": "Topic Name File Registered",
       "default": "file-internally-registered",
       "env_names": [
-        "drs3_topic_name_file_registered"
+        "dcs_topic_name_file_registered"
       ],
       "type": "string"
     },
@@ -277,14 +277,14 @@
       "title": "Topic Name Drs Object Registered",
       "default": "drs-object-registered",
       "env_names": [
-        "drs3_topic_name_drs_object_registered"
+        "dcs_topic_name_drs_object_registered"
       ],
       "type": "string"
     },
     "s3_outbox_bucket_id": {
       "title": "S3 Outbox Bucket Id",
       "env_names": [
-        "drs3_s3_outbox_bucket_id"
+        "dcs_s3_outbox_bucket_id"
       ],
       "type": "string"
     }

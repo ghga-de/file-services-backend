@@ -20,7 +20,7 @@ from typing import Dict, List, Optional
 
 from pydantic.env_settings import BaseSettings
 
-from drs3.config import Config
+from dcs.config import Config
 
 from .utils import BASE_DIR
 

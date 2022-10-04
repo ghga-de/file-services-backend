@@ -19,7 +19,7 @@
 from ghga_message_schemas import schemas
 from ghga_service_chassis_lib.utils import exec_with_timeout
 
-from drs3.pubsub import publish_stage_request, subscribe_file_staged
+from dcs.pubsub import publish_stage_request, subscribe_file_staged
 
 from ..fixtures import (  # noqa: F401
     FILES,

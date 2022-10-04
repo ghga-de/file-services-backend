@@ -21,7 +21,7 @@ from typing import Any, Callable, Dict
 from ghga_message_schemas import schemas
 from ghga_service_chassis_lib.utils import exec_with_timeout
 
-from drs3.pubsub import subscribe_file_registered
+from dcs.pubsub import subscribe_file_registered
 
 from ..fixtures import (  # noqa: F401
     DEFAULT_CONFIG,

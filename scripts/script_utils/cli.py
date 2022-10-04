@@ -12,21 +12,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
 
-FROM python:3.10.7-bullseye
+"""A collection of CLI utilities"""
 
-COPY . /service
-WORKDIR /service
+import typer
 
-# install dependencies
-RUN apt update
-RUN pip install .
 
-# create new user and execute as that user
-RUN useradd --create-home appuser
-WORKDIR /home/appuser
-USER appuser
+def echo_success(message: str):
+    """Print a success message."""
 
-ENV PYTHONUNBUFFERED=1
+    styled_message = typer.style(text=message, fg=typer.colors.GREEN)
+    typer.echo(styled_message)
 
-ENTRYPOINT ["dcs"]
+
+def echo_failure(message: str):
+    """Print a failure message."""
+
+    styled_message = typer.style(text=message, fg=typer.colors.RED)
+    typer.echo(styled_message)

@@ -11,16 +11,19 @@
 .devcontainer/library-scripts/docker-in-docker-debian.sh
 .devcontainer/license_header.txt
 
+scripts/script_utils/__init__.py
+scripts/script_utils/cli.py
+
 scripts/update_static_files.py
 scripts/get_package_name.py
-scripts/get_config_schema_and_example.py
+scripts/update_config_docs.py
 scripts/check_mandatory_and_static_files.py
 scripts/README.md
 
-.github/workflows/static_code_analysis.yaml
+.github/workflows/check_config_docs.yaml
 .github/workflows/check_mandatory_and_static_files.yaml
+.github/workflows/static_code_analysis.yaml
 .github/workflows/unit_and_int_tests.yaml
-.github/workflows/check_config_schema_and_example.yaml
 
 example_data/README.md
 
@@ -29,8 +32,8 @@ pytest.ini
 .flake8
 .gitattributes
 .gitignore
-.pylintrc
 .mypy.ini
+.pylintrc
 
 LICENSE
 requirements.txt

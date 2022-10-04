@@ -11,7 +11,7 @@ services:
         # [Choice] Install Node.js
         INSTALL_NODE: "true"
         NODE_VERSION: "lts/*"
-        PACKAGE_NAME: "drs3"
+        PACKAGE_NAME: "dcs"
         # On Linux, you may need to update USER_UID and USER_GID below if not your local UID is not 1000.
         USER_UID: 1000
         USER_GID: 1000
@@ -33,7 +33,7 @@ services:
 
     # define environment variables
     environment:
-      DRS3_CONFIG_YAML: /workspace/.devcontainer/.dev_config.yaml
+      DCS_CONFIG_YAML: /workspace/.devcontainer/.dev_config.yaml
       DB_URL: postgresql://admin:admin@postgresql/storage
       AWS_SHARED_CREDENTIALS_FILE: /workspace/.aws/credentials
       AWS_CONFIG_FILE: /workspace/.aws/config

@@ -20,9 +20,9 @@ from typing import Optional, Type
 import pytest
 import requests
 
-from drs3.config import Config
-from drs3.core import get_drs_object_serve, handle_registered_file, handle_staged_file
-from drs3.dao import (
+from dcs.config import Config
+from dcs.core import get_drs_object_serve, handle_registered_file, handle_staged_file
+from dcs.dao import (
     DrsObjectAlreadyExistsError,
     DrsObjectNotFoundError,
     ObjectNotFoundError,

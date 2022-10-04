@@ -19,7 +19,7 @@ topic_name_stage_request: "non_staged_file_requested"
 db_url: postgresql://admin:admin@postgresql/storage
 db_print_logs: false
 
-s3_endpoint_url: http://drs3:4566
+s3_endpoint_url: http://dcs:4566
 s3_access_key_id: test
 s3_secret_access_key: test
 s3_outbox_bucket_id: outbox

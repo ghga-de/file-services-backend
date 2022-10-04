@@ -13,20 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM python:3.10.7-bullseye
+"""This service implements the GA4GH DRS, while providing the option
+to serve files from localstack S3.
+"""
 
-COPY . /service
-WORKDIR /service
-
-# install dependencies
-RUN apt update
-RUN pip install .
-
-# create new user and execute as that user
-RUN useradd --create-home appuser
-WORKDIR /home/appuser
-USER appuser
-
-ENV PYTHONUNBUFFERED=1
-
-ENTRYPOINT ["dcs"]
+__version__ = "0.2.0"

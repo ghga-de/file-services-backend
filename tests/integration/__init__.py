@@ -23,8 +23,8 @@ import unittest
 
 from webtest import TestApp
 
-from drs3.api.main import get_app
-from drs3.config import CONFIG, Config
+from dcs.api.main import get_app
+from dcs.config import CONFIG, Config
 
 
 class BaseIntegrationTest(unittest.TestCase):

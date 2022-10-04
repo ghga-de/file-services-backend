@@ -17,8 +17,8 @@
 docs/README.md
 
 example_data
-.pre-commit-config.yaml
 
+scripts/license_checker.py
 
 tests/fixtures/__init__.py
 tests/integration/fixtures/__init__.py
@@ -31,4 +31,7 @@ config_schema.json
 example_config.yaml
 README.md
 setup.py
-scripts/license_checker.py
+
+.pre-commit-config.yaml
+.static_files
+.mandatory_files

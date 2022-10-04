@@ -18,11 +18,11 @@ port: 8080
 rabbitmq_host: rabbitmq
 rabbitmq_port: 5672
 s3_access_key_id: test
-s3_endpoint_url: http://drs3:4566
+s3_endpoint_url: http://dcs:4566
 s3_outbox_bucket_id: outbox
 s3_secret_access_key: test
 s3_session_token: null
-service_name: drs3
+service_name: dcs
 topic_name_drs_object_registered: drs-object-registered
 topic_name_file_registered: file-internally-registered
 topic_name_file_staged: file_staged_for_download

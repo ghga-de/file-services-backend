@@ -25,9 +25,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from testcontainers.postgres import PostgresContainer
 
-from drs3 import models
-from drs3.dao import db_models
-from drs3.dao.db import PostgresDatabase
+from dcs import models
+from dcs.dao import db_models
+from dcs.dao.db import PostgresDatabase
 
 from . import state
 

@@ -16,7 +16,7 @@ config.set_main_option("sqlalchemy.url", os.getenv("DB_URL"))
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-from drs3.dao.db_models import Base
+from dcs.dao.db_models import Base
 
 target_metadata = Base.metadata
 # target_metadata = None
