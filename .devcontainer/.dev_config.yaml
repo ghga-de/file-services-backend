@@ -1,4 +1,4 @@
 # Please only mention the non-default settings here:
 
-# Delete this, once real config settings are used
-dummy_config: ""
+db_connection_str: "mongodb://localhost:27017"
+db_name: "keystore"

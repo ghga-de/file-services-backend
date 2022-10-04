@@ -13,22 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-Module containing the main FastAPI router and (optionally) top-level API enpoints.
-Additional endpoints might be structured in dedicated modules
-(each of them having a sub-router).
-"""
+"""Entrypoint of the package"""
 
-from fastapi import FastAPI
-from ghga_service_chassis_lib.api import configure_app
+from ghga_service_chassis_lib.api import run_server
 
-from ..config import CONFIG
-
-app = FastAPI()
-configure_app(app, config=CONFIG)
+from .api.main import app  # noqa: F401 pylint: disable=unused-import
+from .config import CONFIG, Config
 
 
-@app.get("/", summary="Greet the world")
-async def index():
-    """Greet the World"""
-    return "Hello World."
+def run(config: Config = CONFIG):
+    """Run the service"""
+    run_server(app="ekss.__main__:app", config=config)
+
+
+if __name__ == "__main__":
+    run()

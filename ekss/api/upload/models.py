@@ -13,23 +13,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM python:3.10.5-slim-bullseye
+"""Defines dataclasses for holding business-logic data"""
 
-COPY . /service
-WORKDIR /service
+from pydantic import BaseModel
 
-# install dependencies
-RUN apt update
-RUN apt install libpq-dev python-dev gcc -y
-RUN apt install libgnutls30
-RUN pip install .
 
-# create new user and execute as that user
-RUN useradd --create-home appuser
-WORKDIR /home/appuser
-USER appuser
+class InboundEnvelopeQuery(BaseModel):
+    """
+    Request object containing first file part and a public key.
+    """
 
-ENV PYTHONUNBUFFERED=1
+    file_part: str
+    public_key: str
 
-# Please adapt to package name:
-ENTRYPOINT ["ekss"]
+
+class InboundEnvelopeContent(BaseModel):
+    """
+    Contains file encryption/decryption secret extracted from file envelope, the ID
+    generated for this secret and the file content offset, i.e. the location of the
+    encrypted file content within the file.
+    """
+
+    secret: str
+    secret_id: str
+    offset: int

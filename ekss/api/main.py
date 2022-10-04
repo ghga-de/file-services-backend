@@ -13,9 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Test dummy."""
+"""
+Module containing the main FastAPI router and (optionally) top-level API enpoints.
+Additional endpoints might be structured in dedicated modules
+(each of them having a sub-router).
+"""
 
+from fastapi import FastAPI
+from ghga_service_chassis_lib.api import configure_app
 
-def test_dummy():
-    """Just makes the CI pass."""
-    assert True
+from ekss.api.upload.router import upload_router
+from ekss.config import CONFIG
+
+app = FastAPI()
+configure_app(app, config=CONFIG)
+
+app.include_router(upload_router)

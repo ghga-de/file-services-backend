@@ -12,5 +12,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
 
-"""Defines dataclasses for holding business-logic data"""
+"""Used to define the location of the main FastAPI app object."""
+
+# flake8: noqa
+# pylint: skip-file
+
+# Please adapt to package structure:
+from ekss.api.main import app

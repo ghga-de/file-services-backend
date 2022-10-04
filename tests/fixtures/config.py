@@ -13,23 +13,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM python:3.10.5-slim-bullseye
+"""Config Parameter Modeling and Parsing"""
 
-COPY . /service
-WORKDIR /service
+from ghga_service_chassis_lib.api import ApiConfigBase
+from ghga_service_chassis_lib.config import config_from_yaml
+from hexkit.providers.mongodb import MongoDbConfig
 
-# install dependencies
-RUN apt update
-RUN apt install libpq-dev python-dev gcc -y
-RUN apt install libgnutls30
-RUN pip install .
 
-# create new user and execute as that user
-RUN useradd --create-home appuser
-WORKDIR /home/appuser
-USER appuser
+@config_from_yaml(prefix="ekss")
+class Config(ApiConfigBase, MongoDbConfig):
+    """Config parameters and their defaults."""
 
-ENV PYTHONUNBUFFERED=1
+    service_name: str = "encryption_key_store"
+    db_connection_str: str = "mongodb://localhost:27017"
+    db_name: str = "keystore"
+    server_private_key: str = "9iYLar4OyeBzKJY8xQ8BAiGUe49wmqRPtcj240+VmjQ="
+    server_publick_key: str = "HsKvfHsAFNGykFi/zMssay0xajoHvY30IcYPGDCXrGU="
 
-# Please adapt to package name:
-ENTRYPOINT ["ekss"]
+
+CONFIG = Config()

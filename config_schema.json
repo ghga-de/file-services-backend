@@ -3,12 +3,28 @@
   "description": "Modifies the orginal Settings class provided by the user",
   "type": "object",
   "properties": {
+    "db_connection_str": {
+      "title": "Db Connection Str",
+      "default": "***",
+      "env_names": [
+        "ekss_db_connection_str"
+      ],
+      "type": "string"
+    },
+    "db_name": {
+      "title": "Db Name",
+      "default": "keystore",
+      "env_names": [
+        "ekss_db_name"
+      ],
+      "type": "string"
+    },
     "host": {
       "title": "Host",
       "description": "IP of the host.",
       "default": "127.0.0.1",
       "env_names": [
-        "encryption_key_store_host"
+        "ekss_host"
       ],
       "type": "string"
     },
@@ -17,7 +33,7 @@
       "description": "Port to expose the server on the specified host",
       "default": 8080,
       "env_names": [
-        "encryption_key_store_port"
+        "ekss_port"
       ],
       "type": "integer"
     },
@@ -26,7 +42,7 @@
       "description": "Controls the verbosity of the log.",
       "default": "info",
       "env_names": [
-        "encryption_key_store_log_level"
+        "ekss_log_level"
       ],
       "enum": [
         "critical",
@@ -43,7 +59,7 @@
       "description": "A development feature. Set to `True` to automatically reload the server upon code changes",
       "default": false,
       "env_names": [
-        "encryption_key_store_auto_reload"
+        "ekss_auto_reload"
       ],
       "type": "boolean"
     },
@@ -52,7 +68,7 @@
       "description": "Number of workers processes to run.",
       "default": 1,
       "env_names": [
-        "encryption_key_store_workers"
+        "ekss_workers"
       ],
       "type": "integer"
     },
@@ -61,7 +77,7 @@
       "description": "Root path at which the API is reachable. This is relative to the specified host and port.",
       "default": "/",
       "env_names": [
-        "encryption_key_store_api_root_path"
+        "ekss_api_root_path"
       ],
       "type": "string"
     },
@@ -70,7 +86,7 @@
       "description": "Path to get the openapi specification in JSON format. This is relative to the specified host and port.",
       "default": "/openapi.json",
       "env_names": [
-        "encryption_key_store_openapi_url"
+        "ekss_openapi_url"
       ],
       "type": "string"
     },
@@ -79,7 +95,7 @@
       "description": "Path to host the swagger documentation. This is relative to the specified host and port.",
       "default": "/docs",
       "env_names": [
-        "encryption_key_store_docs_url"
+        "ekss_docs_url"
       ],
       "type": "string"
     },
@@ -91,7 +107,7 @@
         "https://www.example.org"
       ],
       "env_names": [
-        "encryption_key_store_cors_allowed_origins"
+        "ekss_cors_allowed_origins"
       ],
       "type": "array",
       "items": {
@@ -106,7 +122,7 @@
         "https://www.example.org"
       ],
       "env_names": [
-        "encryption_key_store_cors_allow_credentials"
+        "ekss_cors_allow_credentials"
       ],
       "type": "boolean"
     },
@@ -117,7 +133,7 @@
         "*"
       ],
       "env_names": [
-        "encryption_key_store_cors_allowed_methods"
+        "ekss_cors_allowed_methods"
       ],
       "type": "array",
       "items": {
@@ -129,7 +145,7 @@
       "description": "A list of HTTP request headers that should be supported for cross-origin requests. Defaults to []. You can use ['*'] to allow all headers. The Accept, Accept-Language, Content-Language and Content-Type headers are always allowed for CORS requests.",
       "example": [],
       "env_names": [
-        "encryption_key_store_cors_allowed_headers"
+        "ekss_cors_allowed_headers"
       ],
       "type": "array",
       "items": {
@@ -140,15 +156,23 @@
       "title": "Service Name",
       "default": "encryption_key_store",
       "env_names": [
-        "encryption_key_store_service_name"
+        "ekss_service_name"
       ],
       "type": "string"
     },
-    "dummy_config": {
-      "title": "Dummy Config",
-      "default": "",
+    "server_private_key": {
+      "title": "Server Private Key",
+      "default": "***",
       "env_names": [
-        "encryption_key_store_dummy_config"
+        "ekss_server_private_key"
+      ],
+      "type": "string"
+    },
+    "server_publick_key": {
+      "title": "Server Publick Key",
+      "default": "***",
+      "env_names": [
+        "ekss_server_publick_key"
       ],
       "type": "string"
     }
