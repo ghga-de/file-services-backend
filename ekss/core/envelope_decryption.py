@@ -31,7 +31,7 @@ async def extract_envelope_content(
     """
     envelope_stream = io.BytesIO(file_part)
 
-    server_private_key = base64.b64decode(CONFIG.server_private_key)
+    server_private_key = base64.b64decode(CONFIG.server_private_key.get_secret_value())
     # (method - only 0 supported for now, private_key, public_key)
     keys = [(0, server_private_key, None)]
     session_keys, _ = crypt4gh.header.deconstruct(

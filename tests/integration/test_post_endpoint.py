@@ -23,7 +23,6 @@ from ekss.api.main import app
 from ekss.api.upload.router import dao_injector
 from ekss.core.dao.mongo_db import FileSecretDao
 
-from ..fixtures.config_override import ConfigOverride
 from ..fixtures.dao_keypair import dao_fixture  # noqa: F401
 from ..fixtures.dao_keypair import generate_keypair_fixture  # noqa: F401
 from ..fixtures.file_fixture import first_part_fixture  # noqa: F401
@@ -51,8 +50,7 @@ async def test_post_secrets(
         "public_key": base64.b64encode(first_part_fixture.client_pubkey).hex(),
         "file_part": base64.b64encode(payload).hex(),
     }
-    with ConfigOverride():
-        response = client.post(url="/secrets", json=request_body)
+    response = client.post(url="/secrets", json=request_body)
     assert response.status_code == 200
     body = response.json()
     secret = base64.b64decode(codecs.decode(body["secret"], "hex"))
@@ -82,8 +80,7 @@ async def test_corrupted_header(
         "file_part": content,
     }
 
-    with ConfigOverride():
-        response = client.post(url="/secrets", json=request_body)
+    response = client.post(url="/secrets", json=request_body)
     assert response.status_code == 400
     body = response.json()
     assert body["exception_id"] == "malformedOrMissingEnvelopeError"
@@ -111,8 +108,7 @@ async def test_missing_envelope(
         "file_part": content,
     }
 
-    with ConfigOverride():
-        response = client.post(url="/secrets", json=request_body)
+    response = client.post(url="/secrets", json=request_body)
     assert response.status_code == 400
     body = response.json()
     assert body["exception_id"] == "malformedOrMissingEnvelopeError"

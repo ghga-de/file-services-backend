@@ -5,15 +5,19 @@
   "properties": {
     "db_connection_str": {
       "title": "Db Connection Str",
-      "default": "***",
+      "description": "Mongo DB connection string ",
+      "example": "mongodb://localhost:27017",
       "env_names": [
         "ekss_db_connection_str"
       ],
-      "type": "string"
+      "type": "string",
+      "writeOnly": true,
+      "format": "password"
     },
     "db_name": {
       "title": "Db Name",
-      "default": "keystore",
+      "description": "Database name",
+      "example": "keystore",
       "env_names": [
         "ekss_db_name"
       ],
@@ -162,20 +166,30 @@
     },
     "server_private_key": {
       "title": "Server Private Key",
-      "default": "***",
+      "description": "Base64 encoded server Crypt4GH private key",
+      "example": "server_private_key",
       "env_names": [
         "ekss_server_private_key"
       ],
-      "type": "string"
+      "type": "string",
+      "writeOnly": true,
+      "format": "password"
     },
-    "server_publick_key": {
-      "title": "Server Publick Key",
-      "default": "***",
+    "server_public_key": {
+      "title": "Server Public Key",
+      "description": "Base64 encoded server Crypt4GH public key",
+      "example": "server_public_key",
       "env_names": [
-        "ekss_server_publick_key"
+        "ekss_server_public_key"
       ],
       "type": "string"
     }
   },
+  "required": [
+    "db_connection_str",
+    "db_name",
+    "server_private_key",
+    "server_public_key"
+  ],
   "additionalProperties": false
 }

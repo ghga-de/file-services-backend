@@ -18,6 +18,7 @@
 from ghga_service_chassis_lib.api import ApiConfigBase
 from ghga_service_chassis_lib.config import config_from_yaml
 from hexkit.providers.mongodb import MongoDbConfig
+from pydantic import Field, SecretStr
 
 
 @config_from_yaml(prefix="ekss")
@@ -25,10 +26,22 @@ class Config(ApiConfigBase, MongoDbConfig):
     """Config parameters and their defaults."""
 
     service_name: str = "encryption_key_store"
-    db_name: str = "keystore"
-    db_connection_str: str = "***"
-    server_private_key: str = "***"
-    server_publick_key: str = "***"
+    db_name: str = Field(..., example="keystore", description=("Database name"))
+    db_connection_str: SecretStr = Field(
+        ...,
+        example="mongodb://localhost:27017",
+        description=("Mongo DB connection string "),
+    )
+    server_private_key: SecretStr = Field(
+        ...,
+        example="server_private_key",
+        description="Base64 encoded server Crypt4GH private key",
+    )
+    server_public_key: str = Field(
+        ...,
+        example="server_public_key",
+        description="Base64 encoded server Crypt4GH public key",
+    )
 
 
 CONFIG = Config()
