@@ -58,7 +58,7 @@ class FileSecretDao:
     async def get_file_secret(self, *, id_: str) -> bytes:
         """Retrieve file secret from db"""
         dao = await self._get_file_secret_dao()
-        response = await dao.get(id_=id_)
+        response = await dao.get_by_id(id_=id_)
         return base64.b64decode(response.file_secret)
 
     async def insert_file_secret(self, *, file_secret: bytes) -> FileSecretDto:

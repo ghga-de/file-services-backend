@@ -63,6 +63,33 @@ components:
       properties: {}
       title: HttpEnvelopeDecrpytionErrorData
       type: object
+    HttpSecretNotFoundError:
+      additionalProperties: false
+      description: A custom exception body model.
+      properties:
+        data:
+          $ref: '#/components/schemas/HttpSecretNotFoundErrorData'
+        description:
+          description: A human readable message to the client explaining the cause
+            of the exception.
+          title: Description
+          type: string
+        exception_id:
+          enum:
+          - secretNotFoundError
+          title: Exception Id
+          type: string
+      required:
+      - data
+      - description
+      - exception_id
+      title: HttpEnvelopeDecrpytionErrorData
+      type: object
+    HttpSecretNotFoundErrorData:
+      description: Model for exception data
+      properties: {}
+      title: HttpEnvelopeDecrpytionErrorData
+      type: object
     InboundEnvelopeContent:
       description: 'Contains file encryption/decryption secret extracted from file
         envelope, the ID
@@ -99,6 +126,19 @@ components:
       required:
       - file_part
       - public_key
+      title: HttpEnvelopeDecrpytionErrorData
+      type: object
+    OutboundEnvelopeContent:
+      description: 'Contains the header envelope, which contains the file secret encrypted
+        with the
+
+        client''s public key and the server''s private key'
+      properties:
+        content:
+          title: Content
+          type: string
+      required:
+      - content
       title: HttpEnvelopeDecrpytionErrorData
       type: object
     ValidationError:
@@ -165,3 +205,42 @@ paths:
           description: Validation Error
       summary: Extract file encryption/decryption secret and file content offset from
         enevelope
+  /secrets/{secret_id}/envelopes/{client_pk}:
+    get:
+      description: Create header envelope for the file secret with given ID encrypted
+        with a given public key
+      operationId: getEncryptionData
+      parameters:
+      - in: path
+        name: secret_id
+        required: true
+        schema:
+          title: Secret Id
+          type: string
+      - in: path
+        name: client_pk
+        required: true
+        schema:
+          title: Client Pk
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutboundEnvelopeContent'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpSecretNotFoundError'
+          description: Not Found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get personalized envelope containing Crypt4GH file encryption/decryption
+        key

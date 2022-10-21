@@ -74,7 +74,7 @@ async def post_encryption_secrets(
             client_pubkey=client_pubkey,
         )
     except ValueError as error:
-        # Everything in crypt4gh is an ValueError... try to distinguish based on message
+        # Everything in envelope decryption is a ValueError... try to distinguish based on message
         if "No supported encryption method" == str(error):
             raise exceptions.HttpEnvelopeDecrpytionError() from error
         raise exceptions.HttpMalformedOrMissingEnvelopeError() from error

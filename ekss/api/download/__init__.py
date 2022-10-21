@@ -12,10 +12,4 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-"""
-The encryption key store service provides functionalities to post and get secrets
-via a RESTful API
-"""
-
-__version__ = "0.2.0"
+"""Content for routes dealing with download functionality"""

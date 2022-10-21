@@ -15,12 +15,15 @@
 """Checking if POST on /secrets works correctly"""
 import base64
 import codecs
+import io
 
+import crypt4gh.header
 import pytest
 from fastapi.testclient import TestClient
 
 from ekss.api.main import app
 from ekss.api.upload.router import dao_injector
+from ekss.config import CONFIG
 from ekss.core.dao.mongo_db import FileSecretDao
 
 from ..fixtures.dao_keypair import dao_fixture  # noqa: F401
@@ -54,7 +57,15 @@ async def test_post_secrets(
     assert response.status_code == 200
     body = response.json()
     secret = base64.b64decode(codecs.decode(body["secret"], "hex"))
-    assert secret
+
+    server_private_key = base64.b64decode(CONFIG.server_private_key.get_secret_value())
+    # (method - only 0 supported for now, private_key, public_key)
+    keys = [(0, server_private_key, None)]
+    session_keys, _ = crypt4gh.header.deconstruct(
+        io.BytesIO(payload), keys, sender_pubkey=first_part_fixture.client_pubkey
+    )
+
+    assert secret == session_keys[0]
     assert body["secret_id"]
     assert body["offset"] > 0
 

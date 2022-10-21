@@ -12,10 +12,24 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Defines exceptions that can occur during envelope creation"""
 
-"""
-The encryption key store service provides functionalities to post and get secrets
-via a RESTful API
-"""
+from httpyexpect.server import HttpCustomExceptionBase
+from pydantic import BaseModel
 
-__version__ = "0.2.0"
+
+class HttpSecretNotFoundError(HttpCustomExceptionBase):
+    """Thrown when no secret with the given id could be found"""
+
+    exception_id = "secretNotFoundError"
+
+    class DataModel(BaseModel):
+        """Model for exception data"""
+
+    def __init__(self, *, status_code: int = 404):
+        """Construct message and init the exception."""
+        super().__init__(
+            status_code=status_code,
+            description="The secret for the given id was not found.",
+            data={},
+        )

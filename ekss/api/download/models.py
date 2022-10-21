@@ -13,9 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-The encryption key store service provides functionalities to post and get secrets
-via a RESTful API
-"""
+"""Defines dataclasses for holding business-logic data"""
 
-__version__ = "0.2.0"
+from pydantic import BaseModel
+
+
+class OutboundEnvelopeContent(BaseModel):
+    """
+    Contains the header envelope, which contains the file secret encrypted with the
+    client's public key and the server's private key
+    """
+
+    content: str
