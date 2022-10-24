@@ -14,7 +14,6 @@
 # limitations under the License.
 #
 
-import base64
 import os
 from dataclasses import dataclass
 from typing import AsyncGenerator
@@ -49,7 +48,7 @@ async def envelope_fixture(
     Generates an EnvelopeFixture, containing a client public key as well as a secret id
     That secret id corresponds to a random secret created and put into the database
     """
-    secret = base64.b64encode(os.urandom(32))
+    secret = os.urandom(32)
 
     # put secret in database
     stored_secret = await dao_fixture.insert_file_secret(file_secret=secret)

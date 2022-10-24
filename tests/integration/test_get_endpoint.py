@@ -15,7 +15,6 @@
 """Checking if GET on /secrets/{secret_id}/envelopes/{client_pk} works correctly"""
 
 import base64
-import codecs
 import io
 
 import crypt4gh.header
@@ -48,11 +47,11 @@ async def test_get_envelope(
 
     app.dependency_overrides[dao_injector] = dao_override
     secret_id = envelope_fixture.secret_id
-    client_pk = base64.b64encode(envelope_fixture.client_pk).hex()
+    client_pk = base64.urlsafe_b64encode(envelope_fixture.client_pk).decode("utf-8")
     response = client.get(url=f"/secrets/{secret_id}/envelopes/{client_pk}")
     assert response.status_code == 200
     body = response.json()
-    content = base64.b64decode(codecs.decode(body["content"], "hex"))
+    content = base64.b64decode(body["content"])
     assert content
     keys = [(0, envelope_fixture.client_sk, None)]
     session_keys, _ = crypt4gh.header.deconstruct(
@@ -76,7 +75,7 @@ async def test_wrong_id(
 
     app.dependency_overrides[dao_injector] = dao_override
     secret_id = "wrong_id"
-    client_pk = base64.b64encode(envelope_fixture.client_pk).hex()
+    client_pk = base64.urlsafe_b64encode(envelope_fixture.client_pk).decode("utf-8")
     response = client.get(url=f"/secrets/{secret_id}/envelopes/{client_pk}")
     assert response.status_code == 404
     body = response.json()

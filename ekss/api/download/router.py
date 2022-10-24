@@ -15,7 +15,6 @@
 """Contains routes and associated data for the download path"""
 
 import base64
-import codecs
 
 from fastapi import APIRouter, Depends, status
 from hexkit.protocols.dao import ResourceNotFoundError
@@ -58,20 +57,16 @@ async def get_header_envelope(
     dao: FileSecretDao = Depends(dao_injector),
 ):
     """Create header envelope for the file secret with given ID encrypted with a given public key"""
-    # Mypy false positives
-    client_pubkey = base64.b64decode(
-        codecs.decode(client_pk, "hex"),
-    )
 
     try:
         header_envelope = await get_envelope(
             secret_id=secret_id,
-            client_pubkey=client_pubkey,
+            client_pubkey=base64.urlsafe_b64decode(client_pk),
             dao=dao,
         )
     except ResourceNotFoundError as error:
         raise exceptions.HttpSecretNotFoundError() from error
 
     return {
-        "content": base64.b64encode(header_envelope).hex(),
+        "content": base64.b64encode(header_envelope).decode("utf-8"),
     }

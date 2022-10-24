@@ -63,8 +63,8 @@ class FileSecretDao:
 
     async def insert_file_secret(self, *, file_secret: bytes) -> FileSecretDto:
         """Encode and insert file secret into db"""
-        file_secret = base64.b64encode(file_secret)
-        file_secret_dto = FileSecretCreationDto(file_secret=file_secret)
+        secret = base64.b64encode(file_secret).decode("utf-8")
+        file_secret_dto = FileSecretCreationDto(file_secret=secret)
         dao = await self._get_file_secret_dao()
         response = await dao.insert(file_secret_dto)
         return response

@@ -45,7 +45,6 @@ async def create_envelope(*, file_secret: bytes, client_pubkey: bytes) -> bytes:
     Gather file encryption/decryption secret and assemble a crypt4gh envelope using the
     servers private and the clients public key
     """
-
     server_private_key = base64.b64decode(CONFIG.server_private_key.get_secret_value())
     keys = [(0, server_private_key, client_pubkey)]
     header_content = crypt4gh.header.make_packet_data_enc(0, file_secret)

@@ -15,7 +15,6 @@
 """Contains routes and associated data for the upload path"""
 
 import base64
-import codecs
 
 from fastapi import APIRouter, Depends, status
 
@@ -63,10 +62,8 @@ async def post_encryption_secrets(
     """Extract file encryption/decryption secret, create secret ID and extract
     file content offset"""
     # Mypy false positives
-    client_pubkey = base64.b64decode(
-        codecs.decode(envelope_query.public_key, "hex"),
-    )
-    file_part = base64.b64decode(codecs.decode(envelope_query.file_part, "hex"))
+    client_pubkey = base64.b64decode(envelope_query.public_key)
+    file_part = base64.b64decode(envelope_query.file_part)
     try:
 
         file_secret, offset = await extract_envelope_content(
@@ -80,7 +77,7 @@ async def post_encryption_secrets(
         raise exceptions.HttpMalformedOrMissingEnvelopeError() from error
     stored_secret = await dao.insert_file_secret(file_secret=file_secret)
     return {
-        "secret": base64.b64encode(file_secret).hex(),
+        "secret": base64.b64encode(file_secret).decode("utf-8"),
         "secret_id": stored_secret.id,
         "offset": offset,
     }

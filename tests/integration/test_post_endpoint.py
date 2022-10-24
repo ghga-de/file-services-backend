@@ -14,7 +14,6 @@
 # limitations under the License.
 """Checking if POST on /secrets works correctly"""
 import base64
-import codecs
 import io
 
 import crypt4gh.header
@@ -50,13 +49,15 @@ async def test_post_secrets(
     payload = first_part_fixture.content
 
     request_body = {
-        "public_key": base64.b64encode(first_part_fixture.client_pubkey).hex(),
-        "file_part": base64.b64encode(payload).hex(),
+        "public_key": base64.b64encode(first_part_fixture.client_pubkey).decode(
+            "utf-8"
+        ),
+        "file_part": base64.b64encode(payload).decode("utf-8"),
     }
     response = client.post(url="/secrets", json=request_body)
     assert response.status_code == 200
     body = response.json()
-    secret = base64.b64decode(codecs.decode(body["secret"], "hex"))
+    secret = base64.b64decode(body["secret"])
 
     server_private_key = base64.b64decode(CONFIG.server_private_key.get_secret_value())
     # (method - only 0 supported for now, private_key, public_key)
@@ -84,10 +85,12 @@ async def test_corrupted_header(
     app.dependency_overrides[dao_injector] = dao_override
 
     payload = b"k" + first_part_fixture.content[2:]
-    content = base64.b64encode(payload).hex()
+    content = base64.b64encode(payload).decode("utf-8")
 
     request_body = {
-        "public_key": base64.b64encode(first_part_fixture.client_pubkey).hex(),
+        "public_key": base64.b64encode(first_part_fixture.client_pubkey).decode(
+            "utf-8"
+        ),
         "file_part": content,
     }
 
@@ -111,11 +114,13 @@ async def test_missing_envelope(
     app.dependency_overrides[dao_injector] = dao_override
 
     payload = first_part_fixture.content
-    content = base64.b64encode(payload).hex()
+    content = base64.b64encode(payload).decode("utf-8")
     content = content[124:]
 
     request_body = {
-        "public_key": base64.b64encode(first_part_fixture.client_pubkey).hex(),
+        "public_key": base64.b64encode(first_part_fixture.client_pubkey).decode(
+            "utf-8"
+        ),
         "file_part": content,
     }
 
