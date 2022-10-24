@@ -66,7 +66,6 @@ EXCLUDE = [
     ".editorconfig",
     ".static_files",
     ".mandatory_files",
-    "db_migration",
 ]
 
 # exclude file by file ending from license header check:

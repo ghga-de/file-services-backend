@@ -28,7 +28,7 @@ from dcs.dao import (
     ObjectNotFoundError,
 )
 
-from ..fixtures import FILES, get_config, psql_fixture, s3_fixture  # noqa: F401
+from .fixtures import FILES, get_config, psql_fixture, s3_fixture  # noqa: F401
 
 # call get_drs_object_serve with edge cases
 

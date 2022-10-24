@@ -15,34 +15,23 @@
 
 """Config Parameter Modeling and Parsing"""
 
-from typing import Literal, Optional
+from typing import Literal
 
 from ghga_service_chassis_lib.api import ApiConfigBase
 from ghga_service_chassis_lib.config import config_from_yaml
 from ghga_service_chassis_lib.postgresql import PostgresqlConfigBase
-from ghga_service_chassis_lib.pubsub import PubSubConfigBase
 from ghga_service_chassis_lib.s3 import S3ConfigBase
 
 LogLevel = Literal["critical", "error", "warning", "info", "debug", "trace"]
 
 
 @config_from_yaml(prefix="dcs")
-class Config(ApiConfigBase, PubSubConfigBase, PostgresqlConfigBase, S3ConfigBase):
+class Config(ApiConfigBase, PostgresqlConfigBase, S3ConfigBase):
     """Config parameters and their defaults."""
 
-    # Config parameter needed for:
-    #   - the rabbitmq server
-    #   - the web server
-    #   - the PostgreSQL database
-    #   - the S3 interface
-    # are inherited.
-
-    # Following config parameter are specifically needed for dcs:
+    service_name: str = "dcs"
     api_route: str = "/ga4gh/drs/v1"
     drs_self_url: str = "drs://localhost:8080/"
-    custom_spec_url: Optional[str] = None
-
-    service_name: str = "dcs"
     topic_name_stage_request: str = "non_staged_file_requested"
     topic_name_file_staged: str = "file_staged_for_download"
     topic_name_file_registered: str = "file-internally-registered"

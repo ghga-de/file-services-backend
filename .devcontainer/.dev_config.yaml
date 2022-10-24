@@ -10,11 +10,6 @@ cors_allowed_headers: []
 
 drs_self_url: drs://localhost:8080/
 api_route: /ga4gh/drs/v1
-custom_spec_url: null
-
-rabbitmq_host: "rabbitmq"
-rabbitmq_port: 5672
-topic_name_stage_request: "non_staged_file_requested"
 
 db_url: postgresql://admin:admin@postgresql/storage
 db_print_logs: false

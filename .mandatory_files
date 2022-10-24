@@ -18,20 +18,12 @@ docs/README.md
 
 example_data
 
-scripts/license_checker.py
 
+tests/__init__.py
 tests/fixtures/__init__.py
-tests/integration/fixtures/__init__.py
-tests/unit/fixtures/__init__.py
-tests/integration/__init__.py
-tests/unit/__init__.py
 
 Dockerfile
 config_schema.json
 example_config.yaml
 README.md
 setup.py
-
-.pre-commit-config.yaml
-.static_files
-.mandatory_files

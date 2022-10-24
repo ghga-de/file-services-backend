@@ -1,5 +1,3 @@
-rabbitmq_host: "rabbitmq"
-rabbitmq_port: 5672
 db_url: postgresql://postgres:postgres@test_postgres/postgres
 db_print_logs: false
 s3_endpoint_url: http://test_localstack:4566

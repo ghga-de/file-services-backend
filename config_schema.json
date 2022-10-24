@@ -67,32 +67,6 @@
       ],
       "type": "boolean"
     },
-    "service_name": {
-      "title": "Service Name",
-      "default": "dcs",
-      "env_names": [
-        "dcs_service_name"
-      ],
-      "type": "string"
-    },
-    "rabbitmq_host": {
-      "title": "Rabbitmq Host",
-      "description": "Name or IP address of the host running the RabbitMQ broker.",
-      "example": "rabbitmq",
-      "env_names": [
-        "dcs_rabbitmq_host"
-      ],
-      "type": "string"
-    },
-    "rabbitmq_port": {
-      "title": "Rabbitmq Port",
-      "description": "Port of the RabbitMQ broker running on the specified host.",
-      "default": 5672,
-      "env_names": [
-        "dcs_rabbitmq_port"
-      ],
-      "type": "integer"
-    },
     "host": {
       "title": "Host",
       "description": "IP of the host.",
@@ -226,6 +200,14 @@
         "type": "string"
       }
     },
+    "service_name": {
+      "title": "Service Name",
+      "default": "dcs",
+      "env_names": [
+        "dcs_service_name"
+      ],
+      "type": "string"
+    },
     "api_route": {
       "title": "Api Route",
       "default": "/ga4gh/drs/v1",
@@ -239,13 +221,6 @@
       "default": "drs://localhost:8080/",
       "env_names": [
         "dcs_drs_self_url"
-      ],
-      "type": "string"
-    },
-    "custom_spec_url": {
-      "title": "Custom Spec Url",
-      "env_names": [
-        "dcs_custom_spec_url"
       ],
       "type": "string"
     },
@@ -294,7 +269,6 @@
     "s3_access_key_id",
     "s3_secret_access_key",
     "db_url",
-    "rabbitmq_host",
     "s3_outbox_bucket_id"
   ],
   "additionalProperties": false
