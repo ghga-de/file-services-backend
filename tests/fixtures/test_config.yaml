@@ -1,6 +1,0 @@
-db_url: postgresql://postgres:postgres@test_postgres/postgres
-db_print_logs: false
-s3_endpoint_url: http://test_localstack:4566
-s3_access_key_id: test
-s3_secret_access_key: test
-s3_outbox_bucket_id: outbox

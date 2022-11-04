@@ -8,13 +8,11 @@ cors_allow_credentials: False
 cors_allowed_methods: []
 cors_allowed_headers: []
 
-drs_self_url: drs://localhost:8080/
+drs_server_uri: drs://localhost:8080/
 api_route: /ga4gh/drs/v1
 
-db_url: postgresql://admin:admin@postgresql/storage
-db_print_logs: false
+outbox_bucket: outbox
 
 s3_endpoint_url: http://dcs:4566
 s3_access_key_id: test
 s3_secret_access_key: test
-s3_outbox_bucket_id: outbox

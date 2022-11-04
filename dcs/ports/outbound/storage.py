@@ -13,4 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Fixtures that can be used in both unit and integration tests"""
+"""Interfaces for object storage adapters and the exception they may throw."""
+
+# pylint: disable=unused-import
+from hexkit.protocols.objstorage import ObjectStorageProtocol  # noqa: F401
+
+# Further abstraction seems not adequate here, thus using the protocol as port.
+ObjectStoragePort = ObjectStorageProtocol

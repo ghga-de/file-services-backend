@@ -18,26 +18,21 @@
 from typing import Literal
 
 from ghga_service_chassis_lib.api import ApiConfigBase
-from ghga_service_chassis_lib.config import config_from_yaml
-from ghga_service_chassis_lib.postgresql import PostgresqlConfigBase
-from ghga_service_chassis_lib.s3 import S3ConfigBase
+from hexkit.config import config_from_yaml
+from hexkit.providers.s3 import S3Config
+
+from dcs.core.data_repository import DataRepositoryConfig
 
 LogLevel = Literal["critical", "error", "warning", "info", "debug", "trace"]
 
 
 @config_from_yaml(prefix="dcs")
-class Config(ApiConfigBase, PostgresqlConfigBase, S3ConfigBase):
+class Config(ApiConfigBase, S3Config, DataRepositoryConfig):
     """Config parameters and their defaults."""
 
     service_name: str = "dcs"
     api_route: str = "/ga4gh/drs/v1"
-    drs_self_url: str = "drs://localhost:8080/"
     topic_name_stage_request: str = "non_staged_file_requested"
     topic_name_file_staged: str = "file_staged_for_download"
     topic_name_file_registered: str = "file-internally-registered"
     topic_name_drs_object_registered: str = "drs-object-registered"
-
-    s3_outbox_bucket_id: str
-
-
-CONFIG = Config()

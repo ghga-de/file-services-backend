@@ -13,4 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Fixtures that can be used in both unit and integration tests"""
+"""DAO interface for accessing the database."""
+
+# pylint: disable=unused-import
+from hexkit.protocols.dao import DaoSurrogateId, ResourceNotFoundError  # noqa: F401
+
+from dcs.core import models
+
+# port described by a type alias:
+DrsObjectDaoPort = DaoSurrogateId[models.DrsObject, models.FileToRegister]

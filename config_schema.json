@@ -3,6 +3,31 @@
   "description": "Modifies the orginal Settings class provided by the user",
   "type": "object",
   "properties": {
+    "outbox_bucket": {
+      "title": "Outbox Bucket",
+      "env_names": [
+        "dcs_outbox_bucket"
+      ],
+      "type": "string"
+    },
+    "drs_server_uri": {
+      "title": "Drs Server Uri",
+      "description": "The base of the DRS URI to access DRS objects. Has to start with 'drs://' and end with '/'.",
+      "example": "drs://localhost:8080/",
+      "env_names": [
+        "dcs_drs_server_uri"
+      ],
+      "type": "string"
+    },
+    "retry_access_after": {
+      "title": "Retry Access After",
+      "description": "When trying to access a DRS object that is not yet in the outboxm instruct to retry after this many seconds.",
+      "default": 120,
+      "env_names": [
+        "dcs_retry_access_after"
+      ],
+      "type": "integer"
+    },
     "s3_endpoint_url": {
       "title": "S3 Endpoint Url",
       "description": "URL to the S3 API.",
@@ -28,7 +53,9 @@
       "env_names": [
         "dcs_s3_secret_access_key"
       ],
-      "type": "string"
+      "type": "string",
+      "writeOnly": true,
+      "format": "password"
     },
     "s3_session_token": {
       "title": "S3 Session Token",
@@ -37,7 +64,9 @@
       "env_names": [
         "dcs_s3_session_token"
       ],
-      "type": "string"
+      "type": "string",
+      "writeOnly": true,
+      "format": "password"
     },
     "aws_config_ini": {
       "title": "Aws Config Ini",
@@ -48,24 +77,6 @@
       ],
       "type": "string",
       "format": "path"
-    },
-    "db_url": {
-      "title": "Db Url",
-      "description": "A URL to a PostgreSQL database.",
-      "example": "postgresql://user:password@mydbserver/dbname",
-      "env_names": [
-        "dcs_db_url"
-      ],
-      "type": "string"
-    },
-    "db_print_logs": {
-      "title": "Db Print Logs",
-      "description": "Print DB/ORM logs.",
-      "default": false,
-      "env_names": [
-        "dcs_db_print_logs"
-      ],
-      "type": "boolean"
     },
     "host": {
       "title": "Host",
@@ -216,14 +227,6 @@
       ],
       "type": "string"
     },
-    "drs_self_url": {
-      "title": "Drs Self Url",
-      "default": "drs://localhost:8080/",
-      "env_names": [
-        "dcs_drs_self_url"
-      ],
-      "type": "string"
-    },
     "topic_name_stage_request": {
       "title": "Topic Name Stage Request",
       "default": "non_staged_file_requested",
@@ -255,21 +258,14 @@
         "dcs_topic_name_drs_object_registered"
       ],
       "type": "string"
-    },
-    "s3_outbox_bucket_id": {
-      "title": "S3 Outbox Bucket Id",
-      "env_names": [
-        "dcs_s3_outbox_bucket_id"
-      ],
-      "type": "string"
     }
   },
   "required": [
+    "outbox_bucket",
+    "drs_server_uri",
     "s3_endpoint_url",
     "s3_access_key_id",
-    "s3_secret_access_key",
-    "db_url",
-    "s3_outbox_bucket_id"
+    "s3_secret_access_key"
   ],
   "additionalProperties": false
 }
