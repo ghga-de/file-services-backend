@@ -3,6 +3,26 @@
   "description": "Modifies the orginal Settings class provided by the user",
   "type": "object",
   "properties": {
+    "db_connection_str": {
+      "title": "Db Connection Str",
+      "description": "MongoDB connection string. Might include credentials. For more information see: https://naiveskill.com/mongodb-connection-string/",
+      "example": "mongodb://localhost:27017",
+      "env_names": [
+        "dcs_db_connection_str"
+      ],
+      "type": "string",
+      "writeOnly": true,
+      "format": "password"
+    },
+    "db_name": {
+      "title": "Db Name",
+      "description": "Name of the database located on the MongoDB server.",
+      "example": "my-database",
+      "env_names": [
+        "dcs_db_name"
+      ],
+      "type": "string"
+    },
     "outbox_bucket": {
       "title": "Outbox Bucket",
       "env_names": [
@@ -21,7 +41,7 @@
     },
     "retry_access_after": {
       "title": "Retry Access After",
-      "description": "When trying to access a DRS object that is not yet in the outboxm instruct to retry after this many seconds.",
+      "description": "When trying to access a DRS object that is not yet in the outbox, instruct to retry after this many seconds.",
       "default": 120,
       "env_names": [
         "dcs_retry_access_after"
@@ -261,6 +281,8 @@
     }
   },
   "required": [
+    "db_connection_str",
+    "db_name",
     "outbox_bucket",
     "drs_server_uri",
     "s3_endpoint_url",

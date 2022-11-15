@@ -15,27 +15,30 @@
 
 """Tests edge cases not covered by the typical journey test."""
 
-from unittest.mock import AsyncMock
 
 import pytest
+from fastapi import status
 from hexkit.providers.mongodb.testutils import mongodb_fixture  # noqa: F401
-from hexkit.providers.mongodb.testutils import MongoDbFixture
 from hexkit.providers.s3.testutils import file_fixture  # noqa: F401
 from hexkit.providers.s3.testutils import s3_fixture  # noqa: F401
-from hexkit.providers.s3.testutils import FileObject, S3Fixture
 
-from dcs.adapters.outbound.dao import DrsObjectDaoConstructor
-from dcs.core.data_repository import DataRepository, DataRepositoryConfig
-from dcs.ports.inbound.data_repository import DataRepositoryPort
-from dcs.ports.outbound.event_broadcast import DrsEventBroadcasterPort
+from dcs.core.data_repository import DataRepositoryConfig
+from tests.fixtures.joint import joint_fixture  # noqa: F401
+from tests.fixtures.joint import JointFixture
 
 
 @pytest.mark.asyncio
-async def test_access_non_existing(
-    s3_fixture: S3Fixture,  # noqa: F811
-    mongodb_fixture: MongoDbFixture,  # noqa: F811
-    file_fixture: FileObject,  # noqa: F811
-):
+async def test_get_health(joint_fixture: JointFixture):  # noqa: F811
+    """Test the GET /health endpoint"""
+
+    response = await joint_fixture.rest_client.get("/health")
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() == {"status": "OK"}
+
+
+@pytest.mark.asyncio
+async def test_access_non_existing(joint_fixture: JointFixture):  # noqa F811
     """Checks that requesting access to a non-existing DRS object fails with the
     expected exception."""
 
@@ -45,18 +48,8 @@ async def test_access_non_existing(
         drs_server_uri="http://localhost:1234/",  # a dummy, should not be requested
         retry_access_after=1,
     )
-    await s3_fixture.populate_buckets(buckets=[config.outbox_bucket])
-    drs_object_dao = await DrsObjectDaoConstructor.construct(
-        dao_factory=mongodb_fixture.dao_factory
-    )
-    event_broadcaster = AsyncMock(spec=DrsEventBroadcasterPort)
-    data_repo = DataRepository(
-        config=config,
-        drs_object_dao=drs_object_dao,
-        object_storage=s3_fixture.storage,
-        event_broadcaster=event_broadcaster,
-    )
+    await joint_fixture.s3.populate_buckets(buckets=[config.outbox_bucket])
 
     # request access to non existing DRS object:
-    with pytest.raises(DataRepositoryPort.DrsObjectNotFoundError):
-        await data_repo.access_drs_object(drs_id="my-non-existing-id")
+    response = await joint_fixture.rest_client.get("/objects/my-non-existing-id")
+    assert response.status_code == status.HTTP_404_NOT_FOUND

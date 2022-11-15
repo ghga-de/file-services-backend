@@ -13,8 +13,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""This service implements the GA4GH DRS, while providing the option
-to serve files from localstack S3.
 """
+Utils to customize openAPI script
+"""
+from typing import Any, Dict
 
-__version__ = "0.3.0"
+from fastapi.openapi.utils import get_openapi
+
+from dcs import __version__
+from dcs.config import Config
+
+config = Config()
+
+
+def get_openapi_schema(api) -> Dict[str, Any]:
+
+    """Generates a custom openapi schema for the service"""
+
+    return get_openapi(
+        title="Download Controller Service",
+        version=__version__,
+        description="A GA4GH drs compliant service for delivering files from S3.",
+        servers=[{"url": config.api_route}],
+        routes=api.routes,
+    )

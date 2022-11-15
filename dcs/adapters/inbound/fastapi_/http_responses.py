@@ -13,8 +13,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""This service implements the GA4GH DRS, while providing the option
-to serve files from localstack S3.
-"""
+"""A collection of http responses."""
 
-__version__ = "0.3.0"
+
+from fastapi.responses import JSONResponse
+
+
+class HttpObjectNotInOutboxResponse(JSONResponse):
+
+    """
+    Returned, when a file has not been staged to the outbox yet.
+    """
+
+    response_id = "objectNotInOutbox"
+
+    def __init__(
+        self,
+        *,
+        status_code: int = 202,
+        retry_after: int = 300,
+    ):
+
+        headers = {"Retry-After": str(retry_after)}
+
+        """Construct message and init the response."""
+        super().__init__(status_code=status_code, headers=headers)

@@ -16,7 +16,8 @@
 """DAO interface for accessing the database."""
 
 # pylint: disable=unused-import
-from hexkit.protocols.dao import DaoSurrogateId, ResourceNotFoundError  # noqa: F401
+from hexkit.protocols.dao import DaoSurrogateId  # noqa: F401
+from hexkit.protocols.dao import ResourceNotFoundError  # noqa: F401
 
 from dcs.core import models
 

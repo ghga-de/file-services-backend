@@ -12,9 +12,30 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
 
-"""This service implements the GA4GH DRS, while providing the option
-to serve files from localstack S3.
-"""
+"""Used to define the location of the main FastAPI app object."""
 
-__version__ = "0.3.0"
+# flake8: noqa
+# pylint: skip-file
+
+from typing import Any, Dict
+
+from fastapi import FastAPI
+
+from dcs.adapters.inbound.fastapi_.custom_openapi import get_openapi_schema
+from dcs.adapters.inbound.fastapi_.routes import router
+
+app = FastAPI()
+app.include_router(router)
+
+
+def custom_openapi() -> Dict[str, Any]:
+    if app.openapi_schema:
+        return app.openapi_schema
+    openapi_schema = get_openapi_schema(app)
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi  # type: ignore [assignment]

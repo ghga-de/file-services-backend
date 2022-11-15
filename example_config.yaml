@@ -6,6 +6,8 @@ cors_allow_credentials: false
 cors_allowed_headers: []
 cors_allowed_methods: []
 cors_allowed_origins: []
+db_connection_str: '**********'
+db_name: dev_db
 docs_url: /docs
 drs_server_uri: drs://localhost:8080/
 host: 127.0.0.1

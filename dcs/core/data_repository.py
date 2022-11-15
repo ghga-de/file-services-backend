@@ -41,7 +41,7 @@ class DataRepositoryConfig(BaseSettings):
     retry_access_after: int = Field(
         120,
         description=(
-            "When trying to access a DRS object that is not yet in the outboxm instruct"
+            "When trying to access a DRS object that is not yet in the outbox, instruct"
             + " to retry after this many seconds."
         ),
     )

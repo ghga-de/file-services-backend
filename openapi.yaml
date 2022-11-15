@@ -1,0 +1,166 @@
+components:
+  schemas:
+    DeliveryDelayedModel:
+      description: Pydantic model for 202 Response. Empty, since 202 has no body.
+      properties: {}
+      title: HttpObjectNotFoundErrorData
+      type: object
+    DrsObjectWithAccess:
+      description: 'A model for describing DRS object metadata including information
+        on how to access
+
+        its content.'
+      properties:
+        access_url:
+          title: Access Url
+          type: string
+        creation_date:
+          format: date-time
+          title: Creation Date
+          type: string
+        decrypted_sha256:
+          title: Decrypted Sha256
+          type: string
+        file_id:
+          title: File Id
+          type: string
+        id:
+          title: Id
+          type: string
+        self_uri:
+          title: Self Uri
+          type: string
+        size:
+          title: Size
+          type: integer
+      required:
+      - file_id
+      - decrypted_sha256
+      - size
+      - creation_date
+      - id
+      - self_uri
+      - access_url
+      title: HttpObjectNotFoundErrorData
+      type: object
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          title: Detail
+          type: array
+      title: HTTPValidationError
+      type: object
+    HttpObjectNotFoundError:
+      additionalProperties: false
+      description: A custom exception body model.
+      properties:
+        data:
+          $ref: '#/components/schemas/HttpObjectNotFoundErrorData'
+        description:
+          description: A human readable message to the client explaining the cause
+            of the exception.
+          title: Description
+          type: string
+        exception_id:
+          enum:
+          - noSuchObject
+          title: Exception Id
+          type: string
+      required:
+      - data
+      - description
+      - exception_id
+      title: HttpObjectNotFoundErrorData
+      type: object
+    HttpObjectNotFoundErrorData:
+      description: Model for exception data
+      properties:
+        object_id:
+          title: Object Id
+          type: string
+      required:
+      - object_id
+      title: HttpObjectNotFoundErrorData
+      type: object
+    ValidationError:
+      properties:
+        loc:
+          items:
+            type: string
+          title: Location
+          type: array
+        msg:
+          title: Message
+          type: string
+        type:
+          title: Error Type
+          type: string
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+      type: object
+info:
+  description: A GA4GH drs compliant service for delivering files from S3.
+  title: Download Controller Service
+  version: 0.3.0
+openapi: 3.0.2
+paths:
+  /health:
+    get:
+      description: Used to test if this service is alive
+      operationId: health_health_get
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+      summary: health
+  /objects/{object_id}:
+    get:
+      description: Get info about a ``DrsObject``.
+      operationId: getDrsObject
+      parameters:
+      - in: path
+        name: object_id
+        required: true
+        schema:
+          title: Object Id
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DrsObjectWithAccess'
+          description: The DrsObject was found successfully.
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeliveryDelayedModel'
+          description: The operation is delayed and will continue asynchronously.
+            The client should retry this same request after the delay specified by
+            Retry-After header.
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpObjectNotFoundError'
+          description: 'Exceptions by ID:
+
+            - noSuchUpload: The requested DrsObject wasn''t found'
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Returns object metadata, and a list of access methods that can be used
+        to fetch object bytes.
+servers:
+- url: /ga4gh/drs/v1
