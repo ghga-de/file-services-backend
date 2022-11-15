@@ -104,7 +104,9 @@ components:
       title: ValidationError
       type: object
 info:
-  description: A GA4GH drs compliant service for delivering files from S3.
+  description: "A service managing access to file objects storedon an S3-compatible\
+    \ Object Storage. \n\nThis is an implementation of the DRS standard from the Global\
+    \ Alliance for Genomics and Health, please find more information at: https://github.com/ga4gh/data-repository-service-schemas"
   title: Download Controller Service
   version: 0.3.0
 openapi: 3.0.2
@@ -120,6 +122,8 @@ paths:
               schema: {}
           description: Successful Response
       summary: health
+      tags:
+      - DownloadControllerService
   /objects/{object_id}:
     get:
       description: Get info about a ``DrsObject``.
@@ -162,5 +166,9 @@ paths:
           description: Validation Error
       summary: Returns object metadata, and a list of access methods that can be used
         to fetch object bytes.
+      tags:
+      - DownloadControllerService
 servers:
 - url: /ga4gh/drs/v1
+tags:
+- name: DownloadControllerService

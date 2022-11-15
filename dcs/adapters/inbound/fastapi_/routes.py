@@ -53,7 +53,12 @@ RESPONSES = {
 }
 
 
-@router.get("/health", summary="health", status_code=status.HTTP_200_OK)
+@router.get(
+    "/health",
+    summary="health",
+    tags=["DownloadControllerService"],
+    status_code=status.HTTP_200_OK,
+)
 async def health():
     """Used to test if this service is alive"""
 
@@ -65,6 +70,7 @@ async def health():
     summary="Returns object metadata, and a list of access methods that can be used "
     + "to fetch object bytes.",
     operation_id="getDrsObject",
+    tags=["DownloadControllerService"],
     status_code=status.HTTP_200_OK,
     response_model=DrsObjectWithAccess,
     response_description="The DrsObject was found successfully.",

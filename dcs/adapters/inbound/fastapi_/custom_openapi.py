@@ -33,7 +33,12 @@ def get_openapi_schema(api) -> Dict[str, Any]:
     return get_openapi(
         title="Download Controller Service",
         version=__version__,
-        description="A GA4GH drs compliant service for delivering files from S3.",
+        description="A service managing access to file objects stored"
+        + "on an S3-compatible Object Storage. "
+        + "\n\nThis is an implementation of the DRS standard from the Global Alliance "
+        + "for Genomics and Health, please find more information at: "
+        + "https://github.com/ga4gh/data-repository-service-schemas",
         servers=[{"url": config.api_route}],
+        tags=[{"name": "DownloadControllerService"}],
         routes=api.routes,
     )
