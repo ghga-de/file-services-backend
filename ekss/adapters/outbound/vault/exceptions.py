@@ -23,5 +23,5 @@ class SecretInsertionError(VaultException):
     """Wrapper for errors encountered on secret insertion"""
 
 
-class SecrertRetrievalError(VaultException):
+class SecretRetrievalError(VaultException):
     """Wrapper for errors encountered on secret retrieval"""

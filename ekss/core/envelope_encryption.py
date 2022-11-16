@@ -19,20 +19,17 @@ import base64
 
 import crypt4gh.header
 
+from ekss.adapters.outbound.vault import VaultAdapter
 from ekss.config import CONFIG
-from ekss.core.dao.mongo_db import FileSecretDao
 
 
 async def get_envelope(
-    *,
-    secret_id: str,
-    client_pubkey: bytes,
-    dao: FileSecretDao,
+    *, secret_id: str, client_pubkey: bytes, vault: VaultAdapter
 ) -> bytes:
     """
     Calls the database and then calls a function to assemble an envelope
     """
-    file_secret = await dao.get_file_secret(id_=secret_id)
+    file_secret = vault.get_secret(key=secret_id)
     header_envelope = await (
         create_envelope(file_secret=file_secret, client_pubkey=client_pubkey)
     )

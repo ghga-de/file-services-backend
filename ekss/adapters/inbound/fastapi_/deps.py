@@ -12,16 +12,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
 
-"""Used to define the location of the main FastAPI app object."""
+"""FastAPI dependencies (used with the `Depends` feature)"""
 
-# flake8: noqa
-# pylint: skip-file
+import hvac
+from fastapi import Depends
 
-from ekss.adapters.inbound.fastapi_.main import setup_app
-from ekss.config import CONFIG
+from ekss.adapters.outbound.vault import VaultAdapter
+from ekss.config import CONFIG, VaultConfig
 
-app = setup_app(CONFIG)
 
-__all__ = ["app"]
+def config_injector():
+    """Injectable config, overridable for tests"""
+    return CONFIG
+
+
+def get_vault(config: VaultConfig = Depends(config_injector)) -> VaultAdapter:
+    """Get VaultAdapter for config"""
+    url = f"{config.vault_host}:{config.vault_port}"
+    client = hvac.Client(url=url, token=config.vault_token.get_secret_value())
+    return VaultAdapter(client=client)

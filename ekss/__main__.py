@@ -17,8 +17,12 @@
 
 from ghga_service_chassis_lib.api import run_server
 
-from .api.main import app  # noqa: F401 pylint: disable=unused-import
-from .config import CONFIG, Config
+from ekss.adapters.inbound.fastapi_.main import (  # noqa: F401 pylint: disable=unused-import
+    setup_app,
+)
+from ekss.config import CONFIG, Config
+
+app = setup_app(CONFIG)
 
 
 def run(config: Config = CONFIG):

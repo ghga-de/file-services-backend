@@ -20,11 +20,10 @@ from typing import AsyncGenerator
 
 import pytest_asyncio
 
-from ekss.core.dao.mongo_db import FileSecretDao
-
-from .dao_keypair import dao_fixture  # noqa: F401
-from .dao_keypair import generate_keypair_fixture  # noqa: F401
-from .dao_keypair import KeypairFixture
+from tests.fixtures.keypair import generate_keypair_fixture  # noqa: F401
+from tests.fixtures.keypair import KeypairFixture
+from tests.fixtures.vault import vault_fixture  # noqa: F401
+from tests.fixtures.vault import VaultFixture
 
 
 @dataclass
@@ -35,13 +34,13 @@ class EnvelopeFixture:
     client_sk: bytes
     secret_id: str
     secret: bytes
-    dao: FileSecretDao
+    vault: VaultFixture
 
 
 @pytest_asyncio.fixture
 async def envelope_fixture(
     *,
-    dao_fixture: FileSecretDao,  # noqa: F811
+    vault_fixture: VaultFixture,  # noqa: F811
     generate_keypair_fixture: KeypairFixture,  # noqa: F811
 ) -> AsyncGenerator[EnvelopeFixture, None]:
     """
@@ -51,12 +50,12 @@ async def envelope_fixture(
     secret = os.urandom(32)
 
     # put secret in database
-    stored_secret = await dao_fixture.insert_file_secret(file_secret=secret)
+    secret_id = vault_fixture.adapter.store_secret(secret=secret)
 
     yield EnvelopeFixture(
         client_pk=generate_keypair_fixture.public_key,
         client_sk=generate_keypair_fixture.private_key,
-        secret_id=stored_secret.id,
+        secret_id=secret_id,
         secret=secret,
-        dao=dao_fixture,
+        vault=vault_fixture,
     )

@@ -24,11 +24,10 @@ import pytest_asyncio
 from ghga_service_chassis_lib.utils import big_temp_file
 
 from ekss.config import CONFIG
-from ekss.core.dao.mongo_db import FileSecretDao
-
-from .dao_keypair import dao_fixture  # noqa: F401
-from .dao_keypair import generate_keypair_fixture  # noqa: F401
-from .dao_keypair import KeypairFixture
+from tests.fixtures.keypair import generate_keypair_fixture  # noqa: F401
+from tests.fixtures.keypair import KeypairFixture
+from tests.fixtures.vault import vault_fixture  # noqa: F401
+from tests.fixtures.vault import VaultFixture
 
 
 @dataclass
@@ -37,13 +36,13 @@ class FirstPartFixture:
 
     client_pubkey: bytes
     content: bytes
-    dao: FileSecretDao
+    vault: VaultFixture
 
 
 @pytest_asyncio.fixture
 async def first_part_fixture(
     *,
-    dao_fixture: FileSecretDao,  # noqa: F811
+    vault_fixture: VaultFixture,  # noqa: F811
     generate_keypair_fixture: KeypairFixture,  # noqa: F811
 ) -> AsyncGenerator[FirstPartFixture, None]:
     """
@@ -65,5 +64,5 @@ async def first_part_fixture(
             yield FirstPartFixture(
                 client_pubkey=generate_keypair_fixture.public_key,
                 content=part,
-                dao=dao_fixture,
+                vault=vault_fixture,
             )

@@ -21,16 +21,15 @@ import crypt4gh.header
 import pytest
 from fastapi.testclient import TestClient
 
-from ekss.api.download.router import dao_injector
-from ekss.api.main import app
+from ekss.adapters.inbound.fastapi_.deps import config_injector
+from ekss.adapters.inbound.fastapi_.main import setup_app
 from ekss.config import CONFIG
-from ekss.core.dao.mongo_db import FileSecretDao
+from tests.fixtures.envelope import envelope_fixture  # noqa: F401
+from tests.fixtures.envelope import EnvelopeFixture
+from tests.fixtures.keypair import generate_keypair_fixture  # noqa: F401
+from tests.fixtures.vault import vault_fixture  # noqa: F401
 
-from ..fixtures.dao_keypair import dao_fixture  # noqa: F401
-from ..fixtures.dao_keypair import generate_keypair_fixture  # noqa: F401
-from ..fixtures.envelope_fixture import envelope_fixture  # noqa: F401
-from ..fixtures.envelope_fixture import EnvelopeFixture
-
+app = setup_app(CONFIG)
 client = TestClient(app=app)
 
 
@@ -41,11 +40,8 @@ async def test_get_envelope(
 ):
     """Test request response for /secrets/../envelopes/.. endpoint with valid data"""
 
-    async def dao_override() -> FileSecretDao:
-        """Ad hoc DAO dependency overridde"""
-        return envelope_fixture.dao
+    app.dependency_overrides[config_injector] = lambda: envelope_fixture.vault.config
 
-    app.dependency_overrides[dao_injector] = dao_override
     secret_id = envelope_fixture.secret_id
     client_pk = base64.urlsafe_b64encode(envelope_fixture.client_pk).decode("utf-8")
     response = client.get(url=f"/secrets/{secret_id}/envelopes/{client_pk}")
@@ -69,11 +65,8 @@ async def test_wrong_id(
 ):
     """Test request response for /secrets/../envelopes/.. endpoint with invalid secret_id"""
 
-    async def dao_override() -> FileSecretDao:
-        """Ad hoc DAO dependency overridde"""
-        return envelope_fixture.dao
+    app.dependency_overrides[config_injector] = lambda: envelope_fixture.vault.config
 
-    app.dependency_overrides[dao_injector] = dao_override
     secret_id = "wrong_id"
     client_pk = base64.urlsafe_b64encode(envelope_fixture.client_pk).decode("utf-8")
     response = client.get(url=f"/secrets/{secret_id}/envelopes/{client_pk}")

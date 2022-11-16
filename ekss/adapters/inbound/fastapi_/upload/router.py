@@ -18,9 +18,9 @@ import base64
 
 from fastapi import APIRouter, Depends, status
 
-from ekss.api.upload import exceptions, models
-from ekss.config import CONFIG
-from ekss.core.dao.mongo_db import FileSecretDao
+from ekss.adapters.inbound.fastapi_.deps import get_vault
+from ekss.adapters.inbound.fastapi_.upload import exceptions, models
+from ekss.adapters.outbound.vault import VaultAdapter
 from ekss.core.envelope_decryption import extract_envelope_content
 
 upload_router = APIRouter()
@@ -35,11 +35,6 @@ ERROR_RESPONSES = {
         "model": exceptions.HttpEnvelopeDecrpytionError.get_body_model(),
     },
 }
-
-
-async def dao_injector() -> FileSecretDao:
-    """Define dao as dependency to override during testing"""
-    return FileSecretDao(config=CONFIG)
 
 
 @upload_router.post(
@@ -57,11 +52,10 @@ async def dao_injector() -> FileSecretDao:
 async def post_encryption_secrets(
     *,
     envelope_query: models.InboundEnvelopeQuery,
-    dao: FileSecretDao = Depends(dao_injector),
+    vault: VaultAdapter = Depends(get_vault),
 ):
     """Extract file encryption/decryption secret, create secret ID and extract
     file content offset"""
-    # Mypy false positives
     client_pubkey = base64.b64decode(envelope_query.public_key)
     file_part = base64.b64decode(envelope_query.file_part)
     try:
@@ -75,9 +69,10 @@ async def post_encryption_secrets(
         if "No supported encryption method" == str(error):
             raise exceptions.HttpEnvelopeDecrpytionError() from error
         raise exceptions.HttpMalformedOrMissingEnvelopeError() from error
-    stored_secret = await dao.insert_file_secret(file_secret=file_secret)
+
+    secret_id = vault.store_secret(secret=file_secret)
     return {
         "secret": base64.b64encode(file_secret).decode("utf-8"),
-        "secret_id": stored_secret.id,
+        "secret_id": secret_id,
         "offset": offset,
     }

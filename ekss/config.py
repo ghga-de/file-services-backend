@@ -17,21 +17,34 @@
 
 from ghga_service_chassis_lib.api import ApiConfigBase
 from ghga_service_chassis_lib.config import config_from_yaml
-from hexkit.providers.mongodb import MongoDbConfig
-from pydantic import Field, SecretStr
+from pydantic import BaseSettings, Field, SecretStr
+
+
+class VaultConfig(BaseSettings):
+    """Configuration for HashiCorp Vault connection"""
+
+    vault_host: str = Field(
+        ...,
+        example="http://127.0.0.1",
+        description="URL of the vault instance to connect to without port number",
+    )
+    vault_port: int = Field(
+        ...,
+        example="8200",
+        description="Port number of the vault instance to connect to",
+    )
+    vault_token: SecretStr = Field(
+        ...,
+        example="dummy-token",
+        description="Token used for authentication against HashiCorp Vault",
+    )
 
 
 @config_from_yaml(prefix="ekss")
-class Config(ApiConfigBase, MongoDbConfig):
+class Config(ApiConfigBase, VaultConfig):
     """Config parameters and their defaults."""
 
     service_name: str = "encryption_key_store"
-    db_name: str = Field(..., example="keystore", description=("Database name"))
-    db_connection_str: SecretStr = Field(
-        ...,
-        example="mongodb://localhost:27017",
-        description=("Mongo DB connection string "),
-    )
     server_private_key: SecretStr = Field(
         ...,
         example="server_private_key",

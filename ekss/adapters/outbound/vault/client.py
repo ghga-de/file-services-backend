@@ -26,7 +26,7 @@ from ekss.adapters.outbound.vault import exceptions
 class VaultAdapter:
     """Adapter wrapping hvac.Client"""
 
-    def __init__(self, client: hvac.Client):  # pylint: disable=too-many-arguments
+    def __init__(self, client: hvac.Client):
         self._client = client
         self._client.secrets.kv.default_kv_version = 2
 
@@ -35,8 +35,8 @@ class VaultAdapter:
         Store a secret under a subpath of the given prefix.
         Generates a UUID4 as key, uses it for the subpath and returns it.
         """
-        key = str(uuid4())
         value = base64.b64encode(secret).decode("utf-8")
+        key = str(uuid4())
 
         try:
             # set cas to 0 as we only want a static secret
@@ -56,8 +56,8 @@ class VaultAdapter:
             response = self._client.secrets.kv.read_secret_version(
                 path=f"{prefix}/{key}"
             )
-        except hvac.exceptions.InvalidRequest as exc:
-            raise exceptions.SecrertRetrievalError() from exc
+        except hvac.exceptions.InvalidPath as exc:
+            raise exceptions.SecretRetrievalError() from exc
 
         secret = response["data"]["data"][key]
         return base64.b64decode(secret)

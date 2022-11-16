@@ -22,6 +22,7 @@ import hvac
 import pytest
 from testcontainers.general import DockerContainer
 
+from ekss.adapters.inbound.fastapi_.deps import VaultConfig
 from ekss.adapters.outbound.vault.client import VaultAdapter
 
 VAULT_ADDR = "http://0.0.0.0:8200"
@@ -35,6 +36,7 @@ class VaultFixture:
     """Contains initialized vault client"""
 
     adapter: VaultAdapter
+    config: VaultConfig
 
 
 @pytest.fixture
@@ -49,9 +51,14 @@ def vault_fixture() -> Generator[VaultFixture, None, None]:
     with vault_container:
         host = vault_container.get_container_host_ip()
         port = vault_container.get_exposed_port(VAULT_PORT)
-        host = f"http://{host}:{port}"
-        client = hvac.Client(url=host, token=VAULT_TOKEN, namespace=VAULT_NAMESPACE)
+        url = f"http://{host}:{port}"
+        client = hvac.Client(url=url, token=VAULT_TOKEN, namespace=VAULT_NAMESPACE)
         vault_client = VaultAdapter(client=client)
         # necessary for now
         time.sleep(2)
-        yield VaultFixture(adapter=vault_client)
+        yield VaultFixture(
+            adapter=vault_client,
+            config=VaultConfig(
+                vault_host=f"http://{host}", vault_port=port, vault_token=VAULT_TOKEN
+            ),
+        )

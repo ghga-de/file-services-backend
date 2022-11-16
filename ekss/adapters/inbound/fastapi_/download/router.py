@@ -17,11 +17,10 @@
 import base64
 
 from fastapi import APIRouter, Depends, status
-from hexkit.protocols.dao import ResourceNotFoundError
 
-from ekss.api.download import exceptions, models
-from ekss.config import CONFIG
-from ekss.core.dao.mongo_db import FileSecretDao
+from ekss.adapters.inbound.fastapi_.deps import get_vault
+from ekss.adapters.inbound.fastapi_.download import exceptions, models
+from ekss.adapters.outbound.vault import SecretRetrievalError, VaultAdapter
 from ekss.core.envelope_encryption import get_envelope
 
 download_router = APIRouter()
@@ -32,11 +31,6 @@ ERROR_RESPONSES = {
         "model": exceptions.HttpSecretNotFoundError.get_body_model(),
     },
 }
-
-
-async def dao_injector() -> FileSecretDao:
-    """Define dao as dependency to override during testing"""
-    return FileSecretDao(config=CONFIG)
 
 
 @download_router.get(
@@ -51,20 +45,16 @@ async def dao_injector() -> FileSecretDao:
     },
 )
 async def get_header_envelope(
-    *,
-    secret_id: str,
-    client_pk: str,
-    dao: FileSecretDao = Depends(dao_injector),
+    *, secret_id: str, client_pk: str, vault: VaultAdapter = Depends(get_vault)
 ):
     """Create header envelope for the file secret with given ID encrypted with a given public key"""
-
     try:
         header_envelope = await get_envelope(
             secret_id=secret_id,
             client_pubkey=base64.urlsafe_b64decode(client_pk),
-            dao=dao,
+            vault=vault,
         )
-    except ResourceNotFoundError as error:
+    except SecretRetrievalError as error:
         raise exceptions.HttpSecretNotFoundError() from error
 
     return {

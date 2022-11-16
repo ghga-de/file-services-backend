@@ -23,10 +23,6 @@ from typing import AsyncGenerator
 import pytest_asyncio
 from crypt4gh.keys import get_private_key, get_public_key
 from crypt4gh.keys.c4gh import generate as generate_keypair
-from hexkit.providers.mongodb.testutils import config_from_mongodb_container
-from testcontainers.mongodb import MongoDbContainer
-
-from ekss.core.dao.mongo_db import FileSecretDao
 
 
 @dataclass
@@ -55,14 +51,3 @@ async def generate_keypair_fixture() -> AsyncGenerator[KeypairFixture, None]:
     Path(pk_path).unlink()
     Path(sk_path).unlink()
     yield KeypairFixture(public_key=public_key, private_key=private_key)
-
-
-@pytest_asyncio.fixture
-async def dao_fixture() -> AsyncGenerator[FileSecretDao, None]:
-    """
-    Pytest fixture for tests depending on the MongoDbDaoFactory DAO
-    """
-    with MongoDbContainer(image="mongo:5.0.11") as mongodb:
-        config = config_from_mongodb_container(mongodb)
-        dao = FileSecretDao(config=config)
-        yield dao

@@ -18,11 +18,10 @@
 import pytest
 
 from ekss.core.envelope_decryption import extract_envelope_content
-
-from ..fixtures.dao_keypair import dao_fixture  # noqa: F401
-from ..fixtures.dao_keypair import generate_keypair_fixture  # noqa: F401
-from ..fixtures.file_fixture import first_part_fixture  # noqa: F401
-from ..fixtures.file_fixture import FirstPartFixture
+from tests.fixtures.file import first_part_fixture  # noqa: F401
+from tests.fixtures.file import FirstPartFixture
+from tests.fixtures.keypair import generate_keypair_fixture  # noqa: F401
+from tests.fixtures.vault import vault_fixture  # noqa: F401
 
 
 @pytest.mark.asyncio
@@ -32,15 +31,14 @@ async def test_extract(
 ):
     """Test envelope extraction/file secret insertion"""
     client_pubkey = first_part_fixture.client_pubkey
-    dao = first_part_fixture.dao
 
     file_secret, offset = await extract_envelope_content(
         file_part=first_part_fixture.content,
         client_pubkey=client_pubkey,
     )
 
-    stored_secret = await dao.insert_file_secret(file_secret=file_secret)
-    result = (file_secret, stored_secret.id, offset)
+    secret_id = first_part_fixture.vault.adapter.store_secret(secret=file_secret)
+    result = (file_secret, secret_id, offset)
 
     assert all(result)
     assert offset > 0

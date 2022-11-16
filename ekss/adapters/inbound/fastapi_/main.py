@@ -13,11 +13,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""FastAPI dependencies (used with the `Depends` feature)"""
+"""
+Module containing the main FastAPI router and (optionally) top-level API enpoints.
+Additional endpoints might be structured in dedicated modules
+(each of them having a sub-router).
+"""
 
-from ..config import CONFIG
+from fastapi import FastAPI
+from ghga_service_chassis_lib.api import ApiConfigBase, configure_app
+
+from ekss.adapters.inbound.fastapi_.download.router import download_router
+from ekss.adapters.inbound.fastapi_.upload.router import upload_router
 
 
-def get_config():
-    """Get runtime configuration."""
-    return CONFIG
+def setup_app(config: ApiConfigBase):
+    """Configure and return app"""
+    app = FastAPI()
+    configure_app(app, config=config)
+
+    app.include_router(upload_router)
+    app.include_router(download_router)
+
+    return app

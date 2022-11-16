@@ -3,25 +3,34 @@
   "description": "Modifies the orginal Settings class provided by the user",
   "type": "object",
   "properties": {
-    "db_connection_str": {
-      "title": "Db Connection Str",
-      "description": "Mongo DB connection string ",
-      "example": "mongodb://localhost:27017",
+    "vault_host": {
+      "title": "Vault Host",
+      "description": "URL of the vault instance to connect to without port number",
+      "example": "http://127.0.0.1",
       "env_names": [
-        "ekss_db_connection_str"
+        "ekss_vault_host"
+      ],
+      "type": "string"
+    },
+    "vault_port": {
+      "title": "Vault Port",
+      "description": "Port number of the vault instance to connect to",
+      "example": "8200",
+      "env_names": [
+        "ekss_vault_port"
+      ],
+      "type": "integer"
+    },
+    "vault_token": {
+      "title": "Vault Token",
+      "description": "Token used for authentication against HashiCorp Vault",
+      "example": "dummy-token",
+      "env_names": [
+        "ekss_vault_token"
       ],
       "type": "string",
       "writeOnly": true,
       "format": "password"
-    },
-    "db_name": {
-      "title": "Db Name",
-      "description": "Database name",
-      "example": "keystore",
-      "env_names": [
-        "ekss_db_name"
-      ],
-      "type": "string"
     },
     "host": {
       "title": "Host",
@@ -186,8 +195,9 @@
     }
   },
   "required": [
-    "db_connection_str",
-    "db_name",
+    "vault_host",
+    "vault_port",
+    "vault_token",
     "server_private_key",
     "server_public_key"
   ],
