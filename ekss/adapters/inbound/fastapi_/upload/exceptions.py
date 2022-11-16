@@ -35,7 +35,7 @@ class HttpMalformedOrMissingEnvelopeError(HttpCustomExceptionBase):
         )
 
 
-class HttpEnvelopeDecrpytionError(HttpCustomExceptionBase):
+class HttpEnvelopeDecryptionError(HttpCustomExceptionBase):
     """Thrown when no available secret crypt4GH key can successfully decrypt the file envelope."""
 
     exception_id = "envelopeDecryptionError"

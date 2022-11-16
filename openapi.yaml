@@ -9,12 +9,12 @@ components:
           type: array
       title: HTTPValidationError
       type: object
-    HttpEnvelopeDecrpytionError:
+    HttpEnvelopeDecryptionError:
       additionalProperties: false
       description: A custom exception body model.
       properties:
         data:
-          $ref: '#/components/schemas/HttpEnvelopeDecrpytionErrorData'
+          $ref: '#/components/schemas/HttpEnvelopeDecryptionErrorData'
         description:
           description: A human readable message to the client explaining the cause
             of the exception.
@@ -29,12 +29,12 @@ components:
       - data
       - description
       - exception_id
-      title: HttpEnvelopeDecrpytionErrorData
+      title: HttpEnvelopeDecryptionErrorData
       type: object
-    HttpEnvelopeDecrpytionErrorData:
+    HttpEnvelopeDecryptionErrorData:
       description: Model for exception data
       properties: {}
-      title: HttpEnvelopeDecrpytionErrorData
+      title: HttpEnvelopeDecryptionErrorData
       type: object
     HttpMalformedOrMissingEnvelopeError:
       additionalProperties: false
@@ -56,12 +56,12 @@ components:
       - data
       - description
       - exception_id
-      title: HttpEnvelopeDecrpytionErrorData
+      title: HttpEnvelopeDecryptionErrorData
       type: object
     HttpMalformedOrMissingEnvelopeErrorData:
       description: Model for exception data
       properties: {}
-      title: HttpEnvelopeDecrpytionErrorData
+      title: HttpEnvelopeDecryptionErrorData
       type: object
     HttpSecretNotFoundError:
       additionalProperties: false
@@ -83,12 +83,12 @@ components:
       - data
       - description
       - exception_id
-      title: HttpEnvelopeDecrpytionErrorData
+      title: HttpEnvelopeDecryptionErrorData
       type: object
     HttpSecretNotFoundErrorData:
       description: Model for exception data
       properties: {}
-      title: HttpEnvelopeDecrpytionErrorData
+      title: HttpEnvelopeDecryptionErrorData
       type: object
     InboundEnvelopeContent:
       description: 'Contains file encryption/decryption secret extracted from file
@@ -112,7 +112,7 @@ components:
       - secret
       - secret_id
       - offset
-      title: HttpEnvelopeDecrpytionErrorData
+      title: HttpEnvelopeDecryptionErrorData
       type: object
     InboundEnvelopeQuery:
       description: Request object containing first file part and a public key.
@@ -126,7 +126,7 @@ components:
       required:
       - file_part
       - public_key
-      title: HttpEnvelopeDecrpytionErrorData
+      title: HttpEnvelopeDecryptionErrorData
       type: object
     OutboundEnvelopeContent:
       description: 'Contains the header envelope, which contains the file secret encrypted
@@ -139,7 +139,7 @@ components:
           type: string
       required:
       - content
-      title: HttpEnvelopeDecrpytionErrorData
+      title: HttpEnvelopeDecryptionErrorData
       type: object
     ValidationError:
       properties:
@@ -161,8 +161,10 @@ components:
       title: ValidationError
       type: object
 info:
-  title: FastAPI
-  version: 0.1.0
+  description: A service managing storage and retrieval of symmetric keys in a HashiCorp
+    Vault.
+  title: Encryption Key Store Service
+  version: 0.2.0
 openapi: 3.0.2
 paths:
   /secrets:
@@ -195,7 +197,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HttpEnvelopeDecrpytionError'
+                $ref: '#/components/schemas/HttpEnvelopeDecryptionError'
           description: Forbidden
         '422':
           content:
@@ -205,6 +207,8 @@ paths:
           description: Validation Error
       summary: Extract file encryption/decryption secret and file content offset from
         enevelope
+      tags:
+      - EncryptionKeyStoreService
   /secrets/{secret_id}/envelopes/{client_pk}:
     get:
       description: Create header envelope for the file secret with given ID encrypted
@@ -244,3 +248,9 @@ paths:
           description: Validation Error
       summary: Get personalized envelope containing Crypt4GH file encryption/decryption
         key
+      tags:
+      - EncryptionKeyStoreService
+servers:
+- url: /
+tags:
+- name: EncryptionKeyStoreService

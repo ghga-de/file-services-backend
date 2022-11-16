@@ -23,8 +23,7 @@ from ekss.adapters.inbound.fastapi_.upload import exceptions, models
 from ekss.adapters.outbound.vault import VaultAdapter
 from ekss.core.envelope_decryption import extract_envelope_content
 
-upload_router = APIRouter()
-
+upload_router = APIRouter(tags=["EncryptionKeyStoreService"])
 ERROR_RESPONSES = {
     "malformedOrMissingEnvelope": {
         "description": (""),
@@ -32,7 +31,7 @@ ERROR_RESPONSES = {
     },
     "envelopeDecryptionError": {
         "description": (""),
-        "model": exceptions.HttpEnvelopeDecrpytionError.get_body_model(),
+        "model": exceptions.HttpEnvelopeDecryptionError.get_body_model(),
     },
 }
 
@@ -67,7 +66,7 @@ async def post_encryption_secrets(
     except ValueError as error:
         # Everything in envelope decryption is a ValueError... try to distinguish based on message
         if "No supported encryption method" == str(error):
-            raise exceptions.HttpEnvelopeDecrpytionError() from error
+            raise exceptions.HttpEnvelopeDecryptionError() from error
         raise exceptions.HttpMalformedOrMissingEnvelopeError() from error
 
     secret_id = vault.store_secret(secret=file_secret)

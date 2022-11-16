@@ -12,17 +12,30 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
 
-"""Used to define the location of the main FastAPI app object."""
+"""
+Utils to customize openAPI script
+"""
+from typing import Any, Dict
 
-# flake8: noqa
-# pylint: skip-file
+from fastapi.openapi.utils import get_openapi
 
-from ekss.adapters.inbound.fastapi_.custom_openapi import get_openapi_schema
-from ekss.adapters.inbound.fastapi_.main import setup_app
-from ekss.config import CONFIG
+from ekss import __version__
+from ekss.config import Config
 
-app = setup_app(CONFIG)
+config = Config()
 
-__all__ = ["app"]
+
+def get_openapi_schema(api) -> Dict[str, Any]:
+
+    """Generates a custom openapi schema for the service"""
+
+    return get_openapi(
+        title="Encryption Key Store Service",
+        version=__version__,
+        description="A service managing storage and retrieval of symmetric keys in"
+        + " a HashiCorp Vault.",
+        servers=[{"url": config.api_root_path}],
+        tags=[{"name": "EncryptionKeyStoreService"}],
+        routes=api.routes,
+    )

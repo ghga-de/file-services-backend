@@ -23,7 +23,7 @@ from ekss.adapters.inbound.fastapi_.download import exceptions, models
 from ekss.adapters.outbound.vault import SecretRetrievalError, VaultAdapter
 from ekss.core.envelope_encryption import get_envelope
 
-download_router = APIRouter()
+download_router = APIRouter(tags=["EncryptionKeyStoreService"])
 
 ERROR_RESPONSES = {
     "secretNotFoundError": {
