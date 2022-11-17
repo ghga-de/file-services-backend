@@ -3,7 +3,7 @@ components:
     DeliveryDelayedModel:
       description: Pydantic model for 202 Response. Empty, since 202 has no body.
       properties: {}
-      title: HttpObjectNotFoundErrorData
+      title: DeliveryDelayedModel
       type: object
     DrsObjectWithAccess:
       description: 'A model for describing DRS object metadata including information
@@ -41,7 +41,7 @@ components:
       - id
       - self_uri
       - access_url
-      title: HttpObjectNotFoundErrorData
+      title: DrsObjectWithAccess
       type: object
     HTTPValidationError:
       properties:
@@ -72,7 +72,7 @@ components:
       - data
       - description
       - exception_id
-      title: HttpObjectNotFoundErrorData
+      title: HttpObjectNotFoundError
       type: object
     HttpObjectNotFoundErrorData:
       description: Model for exception data
@@ -108,7 +108,7 @@ info:
     \ Object Storage. \n\nThis is an implementation of the DRS standard from the Global\
     \ Alliance for Genomics and Health, please find more information at: https://github.com/ga4gh/data-repository-service-schemas"
   title: Download Controller Service
-  version: 0.3.0
+  version: 0.3.1
 openapi: 3.0.2
 paths:
   /health:
