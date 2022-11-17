@@ -29,7 +29,7 @@ components:
       - data
       - description
       - exception_id
-      title: HttpEnvelopeDecryptionErrorData
+      title: HttpEnvelopeDecryptionError
       type: object
     HttpEnvelopeDecryptionErrorData:
       description: Model for exception data
@@ -56,12 +56,12 @@ components:
       - data
       - description
       - exception_id
-      title: HttpEnvelopeDecryptionErrorData
+      title: HttpMalformedOrMissingEnvelopeError
       type: object
     HttpMalformedOrMissingEnvelopeErrorData:
       description: Model for exception data
       properties: {}
-      title: HttpEnvelopeDecryptionErrorData
+      title: HttpMalformedOrMissingEnvelopeErrorData
       type: object
     HttpSecretNotFoundError:
       additionalProperties: false
@@ -83,12 +83,12 @@ components:
       - data
       - description
       - exception_id
-      title: HttpEnvelopeDecryptionErrorData
+      title: HttpSecretNotFoundError
       type: object
     HttpSecretNotFoundErrorData:
       description: Model for exception data
       properties: {}
-      title: HttpEnvelopeDecryptionErrorData
+      title: HttpSecretNotFoundErrorData
       type: object
     InboundEnvelopeContent:
       description: 'Contains file encryption/decryption secret extracted from file
@@ -112,7 +112,7 @@ components:
       - secret
       - secret_id
       - offset
-      title: HttpEnvelopeDecryptionErrorData
+      title: InboundEnvelopeContent
       type: object
     InboundEnvelopeQuery:
       description: Request object containing first file part and a public key.
@@ -126,7 +126,7 @@ components:
       required:
       - file_part
       - public_key
-      title: HttpEnvelopeDecryptionErrorData
+      title: InboundEnvelopeQuery
       type: object
     OutboundEnvelopeContent:
       description: 'Contains the header envelope, which contains the file secret encrypted
@@ -139,7 +139,7 @@ components:
           type: string
       required:
       - content
-      title: HttpEnvelopeDecryptionErrorData
+      title: OutboundEnvelopeContent
       type: object
     ValidationError:
       properties:
@@ -164,7 +164,7 @@ info:
   description: A service managing storage and retrieval of symmetric keys in a HashiCorp
     Vault.
   title: Encryption Key Store Service
-  version: 0.2.1
+  version: 0.2.2
 openapi: 3.0.2
 paths:
   /secrets:
