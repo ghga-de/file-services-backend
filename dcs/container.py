@@ -16,10 +16,12 @@
 """Module hosting the dependency injection container."""
 
 from hexkit.inject import ContainerBase, get_configurator, get_constructor
+from hexkit.providers.akafka import KafkaEventPublisher, KafkaEventSubscriber
 from hexkit.providers.mongodb import MongoDbDaoFactory
 
+from dcs.adapters.inbound.event_sub import EventSubTranslator
 from dcs.adapters.outbound.dao import DrsObjectDaoConstructor
-from dcs.adapters.outbound.event_broadcast import DrsEventBroadcaster
+from dcs.adapters.outbound.event_pub import EventPubTranslator
 from dcs.adapters.outbound.s3 import S3ObjectStorage
 from dcs.config import Config
 from dcs.core.data_repository import DataRepository
@@ -32,21 +34,34 @@ class Container(ContainerBase):
 
     # outbound providers:
     dao_factory = get_constructor(MongoDbDaoFactory, config=config)
+    event_pub_provider = get_constructor(KafkaEventPublisher, config=config)
 
     # outbound translators:
     drs_object_dao = get_constructor(DrsObjectDaoConstructor, dao_factory=dao_factory)
+    event_publisher = get_constructor(
+        EventPubTranslator, config=config, provider=event_pub_provider
+    )
 
-    # outbound adapters:
-
+    # outbound adapters (not following the triple hexagonal translator/provider)
     object_storage = get_constructor(S3ObjectStorage, config=config)
-
-    event_broadcaster = get_constructor(DrsEventBroadcaster)
 
     # domain/core components:
     data_repository = get_constructor(
         DataRepository,
         drs_object_dao=drs_object_dao,
         object_storage=object_storage,
-        event_broadcaster=event_broadcaster,
+        event_publisher=event_publisher,
         config=config,
+    )
+
+    # inbound translators:
+    event_sub_translator = get_constructor(
+        EventSubTranslator,
+        data_repository=data_repository,
+        config=config,
+    )
+
+    # inbound providers:
+    event_subscriber = get_constructor(
+        KafkaEventSubscriber, config=config, translator=event_sub_translator
     )

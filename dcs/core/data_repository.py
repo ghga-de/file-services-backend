@@ -22,7 +22,7 @@ from pydantic import BaseSettings, Field, validator
 from dcs.core import models
 from dcs.ports.inbound.data_repository import DataRepositoryPort
 from dcs.ports.outbound.dao import DrsObjectDaoPort, ResourceNotFoundError
-from dcs.ports.outbound.event_broadcast import DrsEventBroadcasterPort
+from dcs.ports.outbound.event_pub import EventPublisherPort
 from dcs.ports.outbound.storage import ObjectStoragePort
 
 
@@ -68,12 +68,12 @@ class DataRepository(DataRepositoryPort):
         config: DataRepositoryConfig,
         drs_object_dao: DrsObjectDaoPort,
         object_storage: ObjectStoragePort,
-        event_broadcaster: DrsEventBroadcasterPort,
+        event_publisher: EventPublisherPort,
     ):
         """Initialize with essential config params and outbound adapters."""
 
         self._config = config
-        self._event_broadcaster = event_broadcaster
+        self._event_publisher = event_publisher
         self._drs_object_dao = drs_object_dao
         self._object_storage = object_storage
 
@@ -120,13 +120,14 @@ class DataRepository(DataRepositoryPort):
         except ResourceNotFoundError as error:
             raise self.DrsObjectNotFoundError(drs_id=drs_id) from error
 
+        drs_object_with_uri = self._get_model_with_self_uri(drs_object=drs_object)
+
         # check if the file corresponding to the DRS object is already in the outbox:
         if not await self._object_storage.does_object_exist(
             bucket_id=self._config.outbox_bucket, object_id=drs_object.file_id
         ):
             # publish an event to request a stage of the corresponding file:
-            drs_object_with_uri = self._get_model_with_self_uri(drs_object=drs_object)
-            await self._event_broadcaster.unstaged_download_requested(
+            await self._event_publisher.unstaged_download_requested(
                 drs_object=drs_object_with_uri
             )
 
@@ -135,7 +136,12 @@ class DataRepository(DataRepositoryPort):
                 retry_after=self._config.retry_access_after
             )
 
-        return await self._get_access_model(drs_object=drs_object)
+        drs_object_with_access = await self._get_access_model(drs_object=drs_object)
+
+        # publish an event indicating the served download:
+        await self._event_publisher.download_served(drs_object=drs_object_with_uri)
+
+        return drs_object_with_access
 
     async def register_new_file(self, *, file: models.FileToRegister):
         """Register a file as a new DRS Object."""
@@ -145,6 +151,4 @@ class DataRepository(DataRepositoryPort):
 
         # publish message that the drs file has been registered
         drs_object_with_uri = self._get_model_with_self_uri(drs_object=drs_object)
-        await self._event_broadcaster.new_drs_object_registered(
-            drs_object=drs_object_with_uri
-        )
+        await self._event_publisher.file_registered(drs_object=drs_object_with_uri)

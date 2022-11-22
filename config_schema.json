@@ -3,6 +3,109 @@
   "description": "Modifies the orginal Settings class provided by the user",
   "type": "object",
   "properties": {
+    "files_to_register_topic": {
+      "title": "Files To Register Topic",
+      "description": "The name of the topic to receive events informing about new files that shall be made available for download.",
+      "example": "file_registry",
+      "env_names": [
+        "dcs_files_to_register_topic"
+      ],
+      "type": "string"
+    },
+    "files_to_register_type": {
+      "title": "Files To Register Type",
+      "description": "The type used for events informing about new files that shall be made available for download.",
+      "example": "files_to_register",
+      "env_names": [
+        "dcs_files_to_register_type"
+      ],
+      "type": "string"
+    },
+    "download_served_event_topic": {
+      "title": "Download Served Event Topic",
+      "description": "Name of the topic used for events indicating that a download of a specified file happened.",
+      "default": "file_downloads",
+      "env_names": [
+        "dcs_download_served_event_topic"
+      ],
+      "type": "string"
+    },
+    "download_served_event_type": {
+      "title": "Download Served Event Type",
+      "description": "The type used for event indicating that a download of a specified file happened.",
+      "default": "donwload_served",
+      "env_names": [
+        "dcs_download_served_event_type"
+      ],
+      "type": "string"
+    },
+    "unstaged_download_event_topic": {
+      "title": "Unstaged Download Event Topic",
+      "description": "Name of the topic used for events indicating that a download was requested for a file that is not yet available in the outbox.",
+      "default": "file_downloads",
+      "env_names": [
+        "dcs_unstaged_download_event_topic"
+      ],
+      "type": "string"
+    },
+    "unstaged_download_event_type": {
+      "title": "Unstaged Download Event Type",
+      "description": "The type used for event indicating that a download was requested for a file that is not yet available in the outbox.",
+      "default": "unstaged_download_requested",
+      "env_names": [
+        "dcs_unstaged_download_event_type"
+      ],
+      "type": "string"
+    },
+    "file_registered_event_topic": {
+      "title": "File Registered Event Topic",
+      "description": "Name of the topic used for events indicating that a file has been registered for download.",
+      "default": "file_downloads",
+      "env_names": [
+        "dcs_file_registered_event_topic"
+      ],
+      "type": "string"
+    },
+    "file_registered_event_type": {
+      "title": "File Registered Event Type",
+      "description": "The type used for event indicating that that a file has been registered for download.",
+      "default": "file_registered",
+      "env_names": [
+        "dcs_file_registered_event_type"
+      ],
+      "type": "string"
+    },
+    "service_name": {
+      "title": "Service Name",
+      "default": "dcs",
+      "env_names": [
+        "dcs_service_name"
+      ],
+      "type": "string"
+    },
+    "service_instance_id": {
+      "title": "Service Instance Id",
+      "description": "A string that uniquely identifies this instance across all instances of this service. A globally unique Kafka client ID will be created by concatenating the service_name and the service_instance_id.",
+      "example": "germany-bw-instance-001",
+      "env_names": [
+        "dcs_service_instance_id"
+      ],
+      "type": "string"
+    },
+    "kafka_servers": {
+      "title": "Kafka Servers",
+      "description": "A list of connection strings to connect to Kafka bootstrap servers.",
+      "example": [
+        "localhost:9092"
+      ],
+      "env_names": [
+        "dcs_kafka_servers"
+      ],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
     "db_connection_str": {
       "title": "Db Connection Str",
       "description": "MongoDB connection string. Might include credentials. For more information see: https://naiveskill.com/mongodb-connection-string/",
@@ -231,14 +334,6 @@
         "type": "string"
       }
     },
-    "service_name": {
-      "title": "Service Name",
-      "default": "dcs",
-      "env_names": [
-        "dcs_service_name"
-      ],
-      "type": "string"
-    },
     "api_route": {
       "title": "Api Route",
       "default": "/ga4gh/drs/v1",
@@ -246,41 +341,13 @@
         "dcs_api_route"
       ],
       "type": "string"
-    },
-    "topic_name_stage_request": {
-      "title": "Topic Name Stage Request",
-      "default": "non_staged_file_requested",
-      "env_names": [
-        "dcs_topic_name_stage_request"
-      ],
-      "type": "string"
-    },
-    "topic_name_file_staged": {
-      "title": "Topic Name File Staged",
-      "default": "file_staged_for_download",
-      "env_names": [
-        "dcs_topic_name_file_staged"
-      ],
-      "type": "string"
-    },
-    "topic_name_file_registered": {
-      "title": "Topic Name File Registered",
-      "default": "file-internally-registered",
-      "env_names": [
-        "dcs_topic_name_file_registered"
-      ],
-      "type": "string"
-    },
-    "topic_name_drs_object_registered": {
-      "title": "Topic Name Drs Object Registered",
-      "default": "drs-object-registered",
-      "env_names": [
-        "dcs_topic_name_drs_object_registered"
-      ],
-      "type": "string"
     }
   },
   "required": [
+    "files_to_register_topic",
+    "files_to_register_type",
+    "service_instance_id",
+    "kafka_servers",
     "db_connection_str",
     "db_name",
     "outbox_bucket",

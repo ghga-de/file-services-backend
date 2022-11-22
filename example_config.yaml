@@ -9,8 +9,16 @@ cors_allowed_origins: []
 db_connection_str: '**********'
 db_name: dev_db
 docs_url: /docs
+download_served_event_topic: file_downloads
+download_served_event_type: donwload_served
 drs_server_uri: drs://localhost:8080/
+file_registered_event_topic: file_downloads
+file_registered_event_type: file_registered
+files_to_register_topic: file_registry
+files_to_register_type: files_to_register
 host: 127.0.0.1
+kafka_servers:
+- kafka:9092
 log_level: info
 openapi_url: /openapi.json
 outbox_bucket: outbox
@@ -20,9 +28,8 @@ s3_access_key_id: test
 s3_endpoint_url: http://dcs:4566
 s3_secret_access_key: '**********'
 s3_session_token: null
+service_instance_id: '1'
 service_name: dcs
-topic_name_drs_object_registered: drs-object-registered
-topic_name_file_registered: file-internally-registered
-topic_name_file_staged: file_staged_for_download
-topic_name_stage_request: non_staged_file_requested
+unstaged_download_event_topic: file_downloads
+unstaged_download_event_type: unstaged_download_requested
 workers: 1

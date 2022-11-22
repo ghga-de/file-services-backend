@@ -21,6 +21,9 @@ components:
         decrypted_sha256:
           title: Decrypted Sha256
           type: string
+        decrypted_size:
+          title: Decrypted Size
+          type: integer
         file_id:
           title: File Id
           type: string
@@ -30,13 +33,10 @@ components:
         self_uri:
           title: Self Uri
           type: string
-        size:
-          title: Size
-          type: integer
       required:
       - file_id
       - decrypted_sha256
-      - size
+      - decrypted_size
       - creation_date
       - id
       - self_uri
@@ -108,7 +108,7 @@ info:
     \ Object Storage. \n\nThis is an implementation of the DRS standard from the Global\
     \ Alliance for Genomics and Health, please find more information at: https://github.com/ga4gh/data-repository-service-schemas"
   title: Download Controller Service
-  version: 0.3.1
+  version: 0.4.0
 openapi: 3.0.2
 paths:
   /health:

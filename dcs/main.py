@@ -65,3 +65,13 @@ async def run_rest():
         container.wire(modules=["dcs.adapters.inbound.fastapi_.routes"])
         api = get_rest_api(config=config)
         await run_server(app=api, config=config)
+
+
+async def consume_events(run_forever: bool = True):
+    """Run an event consumer listening to the specified topic."""
+
+    config = Config()
+
+    async with get_configured_container(config=config) as container:
+        event_subscriber = await container.event_subscriber()
+        await event_subscriber.run(forever=run_forever)

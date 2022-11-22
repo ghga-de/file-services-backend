@@ -30,7 +30,7 @@ class FileToRegister(BaseModel):
 
     file_id: str
     decrypted_sha256: str
-    size: int
+    decrypted_size: int
     creation_date: datetime
 
 

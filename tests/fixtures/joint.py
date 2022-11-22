@@ -20,6 +20,7 @@ __all__ = [
     "JointFixture",
     "mongodb_fixture",
     "s3_fixture",
+    "kafka_fixture",
 ]
 
 import socket
@@ -28,6 +29,7 @@ from typing import AsyncGenerator
 
 import httpx
 import pytest_asyncio
+from hexkit.providers.akafka.testutils import KafkaFixture, kafka_fixture
 from hexkit.providers.mongodb.testutils import MongoDbFixture  # F401
 from hexkit.providers.mongodb.testutils import mongodb_fixture
 from hexkit.providers.s3.testutils import S3Fixture, s3_fixture
@@ -54,20 +56,26 @@ class JointFixture:
     mongodb: MongoDbFixture
     rest_client: httpx.AsyncClient
     s3: S3Fixture
+    kafka: KafkaFixture
 
 
 @pytest_asyncio.fixture
 async def joint_fixture(
-    mongodb_fixture: MongoDbFixture, s3_fixture: S3Fixture
+    mongodb_fixture: MongoDbFixture, s3_fixture: S3Fixture, kafka_fixture: KafkaFixture
 ) -> AsyncGenerator[JointFixture, None]:
     """A fixture that embeds all other fixtures for API-level integration testing"""
 
     # merge configs from different sources with the default one:
-    config = get_config(sources=[mongodb_fixture.config, s3_fixture.config])
+    config = get_config(
+        sources=[mongodb_fixture.config, s3_fixture.config, kafka_fixture.config]
+    )
 
     # create a DI container instance:translators
     async with get_configured_container(config=config) as container:
         container.wire(modules=["dcs.adapters.inbound.fastapi_.routes"])
+
+        # create storage entities:
+        await s3_fixture.populate_buckets(buckets=[config.outbox_bucket])
 
         # setup an API test client:
         api = get_rest_api(config=config)
@@ -82,4 +90,5 @@ async def joint_fixture(
                 mongodb=mongodb_fixture,
                 rest_client=rest_client,
                 s3=s3_fixture,
+                kafka=kafka_fixture,
             )

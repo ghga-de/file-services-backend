@@ -22,13 +22,11 @@ from hexkit.providers.mongodb.testutils import mongodb_fixture  # noqa: F401
 from hexkit.providers.s3.testutils import file_fixture  # noqa: F401
 from hexkit.providers.s3.testutils import s3_fixture  # noqa: F401
 
-from dcs.core.data_repository import DataRepositoryConfig
-from tests.fixtures.joint import joint_fixture  # noqa: F401
-from tests.fixtures.joint import JointFixture
+from tests.fixtures.joint import *  # noqa: F403
 
 
 @pytest.mark.asyncio
-async def test_get_health(joint_fixture: JointFixture):  # noqa: F811
+async def test_get_health(joint_fixture: JointFixture):  # noqa: F811, F405
     """Test the GET /health endpoint"""
 
     response = await joint_fixture.rest_client.get("/health")
@@ -41,14 +39,6 @@ async def test_get_health(joint_fixture: JointFixture):  # noqa: F811
 async def test_access_non_existing(joint_fixture: JointFixture):  # noqa F811
     """Checks that requesting access to a non-existing DRS object fails with the
     expected exception."""
-
-    # Setup DataRepository:
-    config = DataRepositoryConfig(
-        outbox_bucket="test-outbox",
-        drs_server_uri="http://localhost:1234/",  # a dummy, should not be requested
-        retry_access_after=1,
-    )
-    await joint_fixture.s3.populate_buckets(buckets=[config.outbox_bucket])
 
     # request access to non existing DRS object:
     response = await joint_fixture.rest_client.get("/objects/my-non-existing-id")

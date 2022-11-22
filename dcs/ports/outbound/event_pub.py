@@ -20,7 +20,7 @@ from abc import ABC, abstractmethod
 from dcs.core import models
 
 
-class DrsEventBroadcasterPort(ABC):
+class EventPublisherPort(ABC):
     """A port through which DRS-specific events are communicated with the outside."""
 
     @abstractmethod
@@ -33,13 +33,11 @@ class DrsEventBroadcasterPort(ABC):
     async def unstaged_download_requested(
         self, *, drs_object: models.DrsObjectWithUri
     ) -> None:
-        """Communicates the event that a download was requested for a DRS object, that
+        """Communicates the event that a download was requested for a file that
         is not yet available in the outbox."""
         ...
 
     @abstractmethod
-    async def new_drs_object_registered(
-        self, *, drs_object: models.DrsObjectWithUri
-    ) -> None:
+    async def file_registered(self, *, drs_object: models.DrsObjectWithUri) -> None:
         """Communicates the event that a file has been registered."""
         ...
