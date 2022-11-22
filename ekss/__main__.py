@@ -15,6 +15,8 @@
 
 """Entrypoint of the package"""
 
+import asyncio
+
 from ghga_service_chassis_lib.api import run_server
 
 from ekss.adapters.inbound.fastapi_.main import (  # noqa: F401 pylint: disable=unused-import
@@ -27,7 +29,7 @@ app = setup_app(CONFIG)
 
 def run(config: Config = CONFIG):
     """Run the service"""
-    run_server(app="ekss.__main__:app", config=config)
+    asyncio.run(run_server(app="ekss.__main__:app", config=config))
 
 
 if __name__ == "__main__":
