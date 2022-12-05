@@ -18,7 +18,6 @@ in the api."""
 
 
 import re
-from datetime import datetime
 
 from pydantic import BaseModel, validator
 
@@ -31,7 +30,7 @@ class FileToRegister(BaseModel):
     file_id: str
     decrypted_sha256: str
     decrypted_size: int
-    creation_date: datetime
+    creation_date: str
 
 
 class DrsObject(FileToRegister):
