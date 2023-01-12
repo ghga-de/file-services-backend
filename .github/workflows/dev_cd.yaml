@@ -50,6 +50,12 @@ jobs:
       - uses: docker/setup-qemu-action@v2.0.0
         name: Set up QEMU
 
+      - name: Install cosign
+        if: github.event_name != 'pull_request'
+        uses: sigstore/cosign-installer@main
+        with:
+          cosign-release: v1.8.0
+
       - uses: docker/setup-buildx-action@v2.0.0
         name: Set up Docker Buildx
 
@@ -70,12 +76,12 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'docker.io/ghga/${{ github.event.repository.name }}:${{ needs.get_commit_version.outputs.version }}'
-          format: 'table'
-          exit-code: '1'
+          image-ref: "docker.io/ghga/${{ github.event.repository.name }}:${{ needs.get_commit_version.outputs.version }}"
+          format: "table"
+          exit-code: "1"
           ignore-unfixed: true
-          vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH'
+          vuln-type: "os,library"
+          severity: "CRITICAL,HIGH"
 
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
@@ -87,8 +93,8 @@ jobs:
           COSIGN_PRIVATE_KEY: ${{secrets.COSIGN_PRIVATE_KEY}}
           COSIGN_PASSWORD: ${{secrets.COSIGN_PASSWORD}}
         run: |
-         echo "$COSIGN_PRIVATE_KEY" >> cosign.key
-         cosign sign --key cosign.key ghga/${{ github.event.repository.name }}:${{ needs.get_commit_version.outputs.version }} ${TAGS}
+          echo "$COSIGN_PRIVATE_KEY" >> cosign.key
+          cosign sign --key cosign.key ghga/${{ github.event.repository.name }}:${{ needs.get_commit_version.outputs.version }} ${TAGS}
 
   ## Please uncomment and adapt the DEPLOYMENT_CONFIG_REPO to trigger automatic
   ## updates of helm charts:
