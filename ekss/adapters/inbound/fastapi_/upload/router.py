@@ -15,6 +15,7 @@
 """Contains routes and associated data for the upload path"""
 
 import base64
+import os
 
 from fastapi import APIRouter, Depends, status
 
@@ -59,7 +60,7 @@ async def post_encryption_secrets(
     file_part = base64.b64decode(envelope_query.file_part)
     try:
 
-        file_secret, offset = await extract_envelope_content(
+        submitter_secret, offset = await extract_envelope_content(
             file_part=file_part,
             client_pubkey=client_pubkey,
         )
@@ -69,9 +70,12 @@ async def post_encryption_secrets(
             raise exceptions.HttpEnvelopeDecryptionError() from error
         raise exceptions.HttpMalformedOrMissingEnvelopeError() from error
 
-    secret_id = vault.store_secret(secret=file_secret)
+    # generate a new secret for re-encryption
+    new_secret = os.urandom(32)
+    secret_id = vault.store_secret(secret=new_secret)
     return {
-        "secret": base64.b64encode(file_secret).decode("utf-8"),
+        "submitter_secret": base64.b64encode(submitter_secret).decode("utf-8"),
+        "new_secret": base64.b64encode(new_secret).decode("utf-8"),
         "secret_id": secret_id,
         "offset": offset,
     }

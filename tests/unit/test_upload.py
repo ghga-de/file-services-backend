@@ -32,13 +32,13 @@ async def test_extract(
     """Test envelope extraction/file secret insertion"""
     client_pubkey = first_part_fixture.client_pubkey
 
-    file_secret, offset = await extract_envelope_content(
+    submitter_secret, offset = await extract_envelope_content(
         file_part=first_part_fixture.content,
         client_pubkey=client_pubkey,
     )
 
-    secret_id = first_part_fixture.vault.adapter.store_secret(secret=file_secret)
-    result = (file_secret, secret_id, offset)
+    secret_id = first_part_fixture.vault.adapter.store_secret(secret=submitter_secret)
+    result = (submitter_secret, secret_id, offset)
 
     assert all(result)
     assert offset > 0

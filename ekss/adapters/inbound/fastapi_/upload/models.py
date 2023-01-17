@@ -34,6 +34,7 @@ class InboundEnvelopeContent(BaseModel):
     encrypted file content within the file.
     """
 
-    secret: str
+    submitter_secret: str
+    new_secret: str
     secret_id: str
     offset: int

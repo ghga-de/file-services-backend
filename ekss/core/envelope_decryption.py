@@ -38,7 +38,7 @@ async def extract_envelope_content(
         infile=envelope_stream, keys=keys, sender_pubkey=client_pubkey
     )
 
-    file_secret = session_keys[0]
+    submitter_secret = session_keys[0]
     offset = envelope_stream.tell()
 
-    return file_secret, offset
+    return submitter_secret, offset

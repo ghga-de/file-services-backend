@@ -53,7 +53,7 @@ async def test_post_secrets(
     response = client.post(url="/secrets", json=request_body)
     assert response.status_code == 200
     body = response.json()
-    secret = base64.b64decode(body["secret"])
+    submitter_secret = base64.b64decode(body["submitter_secret"])
 
     server_private_key = base64.b64decode(CONFIG.server_private_key.get_secret_value())
     # (method - only 0 supported for now, private_key, public_key)
@@ -62,7 +62,8 @@ async def test_post_secrets(
         io.BytesIO(payload), keys, sender_pubkey=first_part_fixture.client_pubkey
     )
 
-    assert secret == session_keys[0]
+    assert submitter_secret == session_keys[0]
+    assert body["new_secret"]
     assert body["secret_id"]
     assert body["offset"] > 0
 
