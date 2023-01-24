@@ -1,4 +1,4 @@
-# Copyright 2021 - 2022 Universität Tübingen, DKFZ and EMBL
+# Copyright 2021 - 2023 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,4 +37,4 @@ class HttpObjectNotInOutboxResponse(JSONResponse):
         headers = {"Retry-After": str(retry_after)}
 
         """Construct message and init the response."""
-        super().__init__(status_code=status_code, headers=headers)
+        super().__init__(content=None, status_code=status_code, headers=headers)

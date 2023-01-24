@@ -41,7 +41,7 @@
 			88
 		],
 		"licenser.license": "AL2",
-		"licenser.author": "Universität Tübingen, DKFZ and EMBL\nfor the German Human Genome-Phenome Archive (GHGA)",
+		"licenser.author": "Universität Tübingen, DKFZ, EMBL, and Universität zu Köln\nfor the German Human Genome-Phenome Archive (GHGA)",
 	},
 	// Add the IDs of extensions you want installed when the container is created.
 	"extensions": [
@@ -69,9 +69,11 @@
 	// Comment out connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
 	"remoteUser": "vscode",
 	"features": {
-		"docker-in-docker": {
+		"ghcr.io/devcontainers/features/docker-in-docker:2": {
 			"version": "latest",
-			"moby": true
+			"enableNonRootDocker": "true",
+			"moby": true,
+			"azureDnsAutoDetection": false
 		}
 	}
 }

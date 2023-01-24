@@ -14,28 +14,24 @@
 # limitations under the License.
 #
 
-"""Used to define the location of the main FastAPI app object."""
+"""
+Adds wrapper classes to translate httpyexpect errors and check against
+provided exception specs for all API endpoints
+"""
 
-# flake8: noqa
-# pylint: skip-file
+from typing import Dict
 
-from typing import Any, Dict
-
-from fastapi import FastAPI
-
-from dcs.adapters.inbound.fastapi_.custom_openapi import get_openapi_schema
-from dcs.adapters.inbound.fastapi_.routes import router
-
-app = FastAPI()
-app.include_router(router)
+import requests
+from httpyexpect.client import ExceptionMapping, ResponseTranslator
 
 
-def custom_openapi() -> Dict[str, Any]:
-    if app.openapi_schema:
-        return app.openapi_schema
-    openapi_schema = get_openapi_schema(app)
-    app.openapi_schema = openapi_schema
-    return app.openapi_schema
+class ResponseExceptionTranslator:
+    """Base class providing behaviour and injection point for spec"""
 
+    def __init__(self, *, spec: Dict[int, object]) -> None:
+        self._exception_map = ExceptionMapping(spec)
 
-app.openapi = custom_openapi  # type: ignore [assignment]
+    def handle(self, response: requests.Response):
+        """Translate and raise error, if defined by spec"""
+        translator = ResponseTranslator(response, exception_map=self._exception_map)
+        translator.raise_for_error()
