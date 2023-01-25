@@ -34,7 +34,7 @@ class EventSubTranslatorConfig(BaseSettings):
             "The name of the topic to receive events informing about new files that shall"
             + " be made available for download."
         ),
-        example="file_registry",
+        example="internal_file_registry",
     )
     files_to_register_type: str = Field(
         ...,
@@ -42,7 +42,7 @@ class EventSubTranslatorConfig(BaseSettings):
             "The type used for events informing about new files that shall"
             + " be made available for download."
         ),
-        example="files_to_register",
+        example="file_registered",
     )
 
 

@@ -29,46 +29,52 @@ class EventPubTranslatorConfig(BaseSettings):
     """Config for publishing file download related events."""
 
     download_served_event_topic: str = Field(
-        "file_downloads",
+        ...,
         description=(
             "Name of the topic used for events indicating that a download of a"
             + " specified file happened."
         ),
+        example="file_downloads",
     )
     download_served_event_type: str = Field(
-        "donwload_served",
+        ...,
         description=(
             "The type used for event indicating that a download of a specified"
             + " file happened."
         ),
+        example="donwload_served",
     )
     unstaged_download_event_topic: str = Field(
-        "file_downloads",
+        ...,
         description=(
             "Name of the topic used for events indicating that a download was requested"
             + " for a file that is not yet available in the outbox."
         ),
+        example="file_downloads",
     )
     unstaged_download_event_type: str = Field(
-        "unstaged_download_requested",
+        ...,
         description=(
             "The type used for event indicating that a download was requested"
             + " for a file that is not yet available in the outbox."
         ),
+        example="unstaged_download_requested",
     )
     file_registered_event_topic: str = Field(
-        "file_downloads",
+        ...,
         description=(
             "Name of the topic used for events indicating that a file has"
             + " been registered for download."
         ),
+        exmaple="file_downloads",
     )
     file_registered_event_type: str = Field(
-        "file_registered",
+        ...,
         description=(
             "The type used for event indicating that that a file has"
             + " been registered for download."
         ),
+        example="file_registered",
     )
 
 
