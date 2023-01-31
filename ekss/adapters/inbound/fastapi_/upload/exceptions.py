@@ -50,3 +50,37 @@ class HttpEnvelopeDecryptionError(HttpCustomExceptionBase):
             description=("Could not decrypt envelope content with given keys"),
             data={},
         )
+
+
+class HttpSecretInsertionError(HttpCustomExceptionBase):
+    """Thrown when a secret could not be inserted into the vault"""
+
+    exception_id = "secretInsertionError"
+
+    class DataModel(BaseModel):
+        """Model for exception data"""
+
+    def __init__(self, *, status_code: int = 502):
+        """Construct message and init the exception."""
+        super().__init__(
+            status_code=status_code,
+            description=("Could not insert key into vault"),
+            data={},
+        )
+
+
+class HttpVaultConnectionError(HttpCustomExceptionBase):
+    """Thrown when the EKSS could not connect to the vault"""
+
+    exception_id = "vaultConnectionError"
+
+    class DataModel(BaseModel):
+        """Model for exception data"""
+
+    def __init__(self, *, status_code: int = 504):
+        """Construct message and init the exception."""
+        super().__init__(
+            status_code=status_code,
+            description=("Could not connect to vault"),
+            data={},
+        )

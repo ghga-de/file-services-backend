@@ -63,6 +63,33 @@ components:
       properties: {}
       title: HttpMalformedOrMissingEnvelopeErrorData
       type: object
+    HttpSecretInsertionError:
+      additionalProperties: false
+      description: A custom exception body model.
+      properties:
+        data:
+          $ref: '#/components/schemas/HttpSecretInsertionErrorData'
+        description:
+          description: A human readable message to the client explaining the cause
+            of the exception.
+          title: Description
+          type: string
+        exception_id:
+          enum:
+          - secretInsertionError
+          title: Exception Id
+          type: string
+      required:
+      - data
+      - description
+      - exception_id
+      title: HttpSecretInsertionError
+      type: object
+    HttpSecretInsertionErrorData:
+      description: Model for exception data
+      properties: {}
+      title: HttpSecretInsertionErrorData
+      type: object
     HttpSecretNotFoundError:
       additionalProperties: false
       description: A custom exception body model.
@@ -89,6 +116,33 @@ components:
       description: Model for exception data
       properties: {}
       title: HttpSecretNotFoundErrorData
+      type: object
+    HttpVaultConnectionError:
+      additionalProperties: false
+      description: A custom exception body model.
+      properties:
+        data:
+          $ref: '#/components/schemas/HttpVaultConnectionErrorData'
+        description:
+          description: A human readable message to the client explaining the cause
+            of the exception.
+          title: Description
+          type: string
+        exception_id:
+          enum:
+          - vaultConnectionError
+          title: Exception Id
+          type: string
+      required:
+      - data
+      - description
+      - exception_id
+      title: HttpVaultConnectionError
+      type: object
+    HttpVaultConnectionErrorData:
+      description: Model for exception data
+      properties: {}
+      title: HttpVaultConnectionErrorData
       type: object
     InboundEnvelopeContent:
       description: 'Contains file encryption/decryption secret extracted from file
@@ -211,6 +265,18 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
+        '502':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpSecretInsertionError'
+          description: Bad Gateway
+        '504':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpVaultConnectionError'
+          description: Gateway Timeout
       summary: Extract file encryption/decryption secret and file content offset from
         enevelope
       tags:

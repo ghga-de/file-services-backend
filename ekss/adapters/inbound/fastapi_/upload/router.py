@@ -18,10 +18,12 @@ import base64
 import os
 
 from fastapi import APIRouter, Depends, status
+from requests.exceptions import RequestException
 
 from ekss.adapters.inbound.fastapi_.deps import get_vault
 from ekss.adapters.inbound.fastapi_.upload import exceptions, models
 from ekss.adapters.outbound.vault import VaultAdapter
+from ekss.adapters.outbound.vault.exceptions import SecretInsertionError
 from ekss.core.envelope_decryption import extract_envelope_content
 
 upload_router = APIRouter(tags=["EncryptionKeyStoreService"])
@@ -33,6 +35,14 @@ ERROR_RESPONSES = {
     "envelopeDecryptionError": {
         "description": (""),
         "model": exceptions.HttpEnvelopeDecryptionError.get_body_model(),
+    },
+    "secretInsertionError": {
+        "description": (""),
+        "model": exceptions.HttpSecretInsertionError.get_body_model(),
+    },
+    "vaultConnectionError": {
+        "description": (""),
+        "model": exceptions.HttpVaultConnectionError.get_body_model(),
     },
 }
 
@@ -47,6 +57,8 @@ ERROR_RESPONSES = {
     responses={
         status.HTTP_400_BAD_REQUEST: ERROR_RESPONSES["malformedOrMissingEnvelope"],
         status.HTTP_403_FORBIDDEN: ERROR_RESPONSES["envelopeDecryptionError"],
+        status.HTTP_502_BAD_GATEWAY: ERROR_RESPONSES["secretInsertionError"],
+        status.HTTP_504_GATEWAY_TIMEOUT: ERROR_RESPONSES["vaultConnectionError"],
     },
 )
 async def post_encryption_secrets(
@@ -72,7 +84,13 @@ async def post_encryption_secrets(
 
     # generate a new secret for re-encryption
     new_secret = os.urandom(32)
-    secret_id = vault.store_secret(secret=new_secret)
+    try:
+        secret_id = vault.store_secret(secret=new_secret)
+    except SecretInsertionError as error:
+        raise exceptions.HttpSecretInsertionError() from error
+    except RequestException as error:
+        raise exceptions.HttpVaultConnectionError() from error
+
     return {
         "submitter_secret": base64.b64encode(submitter_secret).decode("utf-8"),
         "new_secret": base64.b64encode(new_secret).decode("utf-8"),
