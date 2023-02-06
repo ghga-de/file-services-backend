@@ -18,8 +18,42 @@ in the api."""
 
 
 import re
+from datetime import datetime
 
 from pydantic import BaseModel, validator
+
+
+class Download(BaseModel):
+    """Model for ongoing downloads"""
+
+    id: str
+    object_id: str
+    envelope_id: str
+    signature_hash: str
+    # lifetime should expire 30s after creation
+    expiration_datetime: str
+
+    @validator("expiration_datetime")
+    @classmethod
+    def check_datetime_format(cls, expiration_datetime):
+        """Ensure provided date string can be interpreted as datetime"""
+        return validated_date(expiration_datetime)
+
+
+class Envelope(BaseModel):
+    """Model caching envelope for ongoing download"""
+
+    # hash(object_id + pubkey)
+    id: str
+    header: bytes
+    offset: int
+    creation_timestamp: str
+
+    @validator("creation_timestamp")
+    @classmethod
+    def check_datetime_format(cls, creation_timestamp):
+        """Ensure provided date string can be interpreted as datetime"""
+        return validated_date(creation_timestamp)
 
 
 class FileToRegister(BaseModel):
@@ -62,3 +96,14 @@ class DrsObjectWithAccess(DrsObjectWithUri):
     its content."""
 
     access_url: str
+
+
+def validated_date(date: str):
+    """Ensure that the provided string representation can be interpreted as a datetime"""
+    try:
+        datetime.fromisoformat(date)
+    except ValueError as exc:
+        raise ValueError(
+            f"Could not convert provided string to datetime: {date}"
+        ) from exc
+    return date
