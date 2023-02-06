@@ -14,5 +14,6 @@ server_public_key: HsKvfHsAFNGykFi/zMssay0xajoHvY30IcYPGDCXrGU=
 service_name: encryption_key_store
 vault_host: http://127.0.0.1
 vault_port: 8200
-vault_token: '**********'
+vault_role_id: '**********'
+vault_secret_id: '**********'
 workers: 1

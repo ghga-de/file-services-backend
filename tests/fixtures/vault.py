@@ -51,14 +51,62 @@ def vault_fixture() -> Generator[VaultFixture, None, None]:
     with vault_container:
         host = vault_container.get_container_host_ip()
         port = vault_container.get_exposed_port(VAULT_PORT)
-        url = f"http://{host}:{port}"
-        client = hvac.Client(url=url, token=VAULT_TOKEN, namespace=VAULT_NAMESPACE)
-        vault_client = VaultAdapter(client=client)
-        # necessary for now
-        time.sleep(2)
-        yield VaultFixture(
-            adapter=vault_client,
-            config=VaultConfig(
-                vault_host=f"http://{host}", vault_port=port, vault_token=VAULT_TOKEN
-            ),
+        role_id, secret_id = configure_vault(host=host, port=port)
+        config = VaultConfig(
+            vault_host=host,
+            vault_port=port,
+            vault_role_id=role_id,
+            vault_secret_id=secret_id,
         )
+        vault_adapter = VaultAdapter(config=config, use_http=True)
+        # client needs some time after creation
+        time.sleep(2)
+        yield VaultFixture(adapter=vault_adapter, config=config)
+
+
+def configure_vault(*, host: str, port: int):
+    """Configure vault using direct interaction with hvac.Client"""
+    client = hvac.Client(url=f"http://{host}:{port}", token=VAULT_TOKEN)
+    # client needs some time after creation
+    time.sleep(2)
+
+    # enable authentication with role_id/secret_id
+    client.sys.enable_auth_method(
+        method_type="approle",
+    )
+
+    # create access policy to bind to role
+    ekss_policy = """
+    path "secret/data/ekss/*" {
+        capabilities = ["read", "create"]
+    }
+    """
+
+    # inject policy
+    client.sys.create_or_update_policy(
+        name="ekss",
+        policy=ekss_policy,
+    )
+
+    role_name = "test_role"
+    # create role and bind policy
+    response = client.auth.approle.create_or_update_approle(
+        role_name=role_name,
+        token_policies=["ekss"],
+        token_type="service",
+    )
+
+    # retrieve role_id
+    response = client.auth.approle.read_role_id(role_name=role_name)
+    role_id = response["data"]["role_id"]
+
+    # retrieve secret_id
+    response = client.auth.approle.generate_secret_id(
+        role_name=role_name,
+    )
+    secret_id = response["data"]["secret_id"]
+
+    # log out root token client
+    client.logout()
+
+    return role_id, secret_id

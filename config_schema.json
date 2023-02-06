@@ -21,12 +21,23 @@
       ],
       "type": "integer"
     },
-    "vault_token": {
-      "title": "Vault Token",
-      "description": "Token used for authentication against HashiCorp Vault",
-      "example": "dummy-token",
+    "vault_role_id": {
+      "title": "Vault Role Id",
+      "description": "Vault role ID to access a specific prefix",
+      "example": "example_role",
       "env_names": [
-        "ekss_vault_token"
+        "ekss_vault_role_id"
+      ],
+      "type": "string",
+      "writeOnly": true,
+      "format": "password"
+    },
+    "vault_secret_id": {
+      "title": "Vault Secret Id",
+      "description": "Vault secret ID to access a specific prefix",
+      "example": "example_secret",
+      "env_names": [
+        "ekss_vault_secret_id"
       ],
       "type": "string",
       "writeOnly": true,
@@ -197,7 +208,8 @@
   "required": [
     "vault_host",
     "vault_port",
-    "vault_token",
+    "vault_role_id",
+    "vault_secret_id",
     "server_private_key",
     "server_public_key"
   ],

@@ -18,4 +18,4 @@ The encryption key store service provides functionalities to post and get secret
 via a RESTful API
 """
 
-__version__ = "0.3.1"
+__version__ = "0.3.2"

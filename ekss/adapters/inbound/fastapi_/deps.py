@@ -15,7 +15,6 @@
 
 """FastAPI dependencies (used with the `Depends` feature)"""
 
-import hvac
 from fastapi import Depends
 
 from ekss.adapters.outbound.vault import VaultAdapter
@@ -27,8 +26,14 @@ def config_injector():
     return CONFIG
 
 
-def get_vault(config: VaultConfig = Depends(config_injector)) -> VaultAdapter:
+def use_http_injector():
+    """Configure protocol. https (default, false) or http (for tests, true)"""
+    return False
+
+
+def get_vault(
+    config: VaultConfig = Depends(config_injector),
+    use_http: bool = Depends(use_http_injector),
+) -> VaultAdapter:
     """Get VaultAdapter for config"""
-    url = f"{config.vault_host}:{config.vault_port}"
-    client = hvac.Client(url=url, token=config.vault_token.get_secret_value())
-    return VaultAdapter(client=client)
+    return VaultAdapter(config=config, use_http=use_http)

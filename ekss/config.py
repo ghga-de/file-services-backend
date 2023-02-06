@@ -33,10 +33,15 @@ class VaultConfig(BaseSettings):
         example="8200",
         description="Port number of the vault instance to connect to",
     )
-    vault_token: SecretStr = Field(
+    vault_role_id: SecretStr = Field(
         ...,
-        example="dummy-token",
-        description="Token used for authentication against HashiCorp Vault",
+        example="example_role",
+        description="Vault role ID to access a specific prefix",
+    )
+    vault_secret_id: SecretStr = Field(
+        ...,
+        example="example_secret",
+        description="Vault secret ID to access a specific prefix",
     )
 
 
