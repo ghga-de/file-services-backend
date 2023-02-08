@@ -4,6 +4,7 @@ cors_allow_credentials: null
 cors_allowed_headers: null
 cors_allowed_methods: null
 cors_allowed_origins: null
+debug_vault: false
 docs_url: /docs
 host: 127.0.0.1
 log_level: info

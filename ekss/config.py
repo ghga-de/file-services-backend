@@ -23,6 +23,11 @@ from pydantic import BaseSettings, Field, SecretStr
 class VaultConfig(BaseSettings):
     """Configuration for HashiCorp Vault connection"""
 
+    debug_vault: bool = Field(
+        False,
+        example="False",
+        description="If true, runs vault connections over http instead of https",
+    )
     vault_host: str = Field(
         ...,
         example="http://127.0.0.1",

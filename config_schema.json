@@ -3,6 +3,16 @@
   "description": "Modifies the orginal Settings class provided by the user",
   "type": "object",
   "properties": {
+    "debug_vault": {
+      "title": "Debug Vault",
+      "description": "If true, runs vault connections over http instead of https",
+      "default": false,
+      "example": "False",
+      "env_names": [
+        "ekss_debug_vault"
+      ],
+      "type": "boolean"
+    },
     "vault_host": {
       "title": "Vault Host",
       "description": "URL of the vault instance to connect to without port number",

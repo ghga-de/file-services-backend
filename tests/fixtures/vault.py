@@ -53,12 +53,13 @@ def vault_fixture() -> Generator[VaultFixture, None, None]:
         port = vault_container.get_exposed_port(VAULT_PORT)
         role_id, secret_id = configure_vault(host=host, port=port)
         config = VaultConfig(
+            debug_vault=True,
             vault_host=host,
             vault_port=port,
             vault_role_id=role_id,
             vault_secret_id=secret_id,
         )
-        vault_adapter = VaultAdapter(config=config, use_http=True)
+        vault_adapter = VaultAdapter(config=config)
         # client needs some time after creation
         time.sleep(2)
         yield VaultFixture(adapter=vault_adapter, config=config)

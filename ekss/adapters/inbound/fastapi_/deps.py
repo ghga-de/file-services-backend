@@ -26,14 +26,6 @@ def config_injector():
     return CONFIG
 
 
-def use_http_injector():
-    """Configure protocol. https (default, false) or http (for tests, true)"""
-    return False
-
-
-def get_vault(
-    config: VaultConfig = Depends(config_injector),
-    use_http: bool = Depends(use_http_injector),
-) -> VaultAdapter:
+def get_vault(config: VaultConfig = Depends(config_injector)) -> VaultAdapter:
     """Get VaultAdapter for config"""
-    return VaultAdapter(config=config, use_http=use_http)
+    return VaultAdapter(config=config)

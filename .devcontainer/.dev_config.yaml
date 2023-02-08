@@ -1,5 +1,6 @@
 # Please only mention the non-default settings here:
 
+debug_vault: False
 vault_host: "http://127.0.0.1"
 vault_port: 8200
 vault_role_id: dummy-role

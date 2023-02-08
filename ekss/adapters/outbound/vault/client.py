@@ -27,9 +27,9 @@ from ekss.config import VaultConfig
 class VaultAdapter:
     """Adapter wrapping hvac.Client"""
 
-    def __init__(self, config: VaultConfig, use_http: bool = False):
+    def __init__(self, config: VaultConfig):
         """Initialized approle based client and login"""
-        protocol = "http" if use_http else "https"
+        protocol = "http" if config.debug_vault else "https"
         url = f"{protocol}://{config.vault_host}:{config.vault_port}"
         self._client = hvac.Client(url=url)
 
