@@ -151,6 +151,15 @@
       ],
       "type": "integer"
     },
+    "ekss_base_url": {
+      "title": "Ekss Base Url",
+      "description": "URL containing host and port of the EKSS endpoint to retrieve personalized envelope from",
+      "example": "http://ekss:8080/",
+      "env_names": [
+        "dcs_ekss_base_url"
+      ],
+      "type": "string"
+    },
     "s3_endpoint_url": {
       "title": "S3 Endpoint Url",
       "description": "URL to the S3 API.",
@@ -358,6 +367,7 @@
     "db_name",
     "outbox_bucket",
     "drs_server_uri",
+    "ekss_base_url",
     "s3_endpoint_url",
     "s3_access_key_id",
     "s3_secret_access_key"

@@ -72,6 +72,7 @@ class EventSubTranslator(EventSubscriberProtocol):
 
         file = models.FileToRegister(
             file_id=validated_payload.file_id,
+            decryption_secret_id=validated_payload.decryption_secret_id,
             decrypted_sha256=validated_payload.decrypted_sha256,
             decrypted_size=validated_payload.decrypted_size,
             creation_date=validated_payload.upload_date,

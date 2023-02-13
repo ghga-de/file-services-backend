@@ -20,6 +20,26 @@ from httpyexpect.server import HttpCustomExceptionBase
 from pydantic import BaseModel
 
 
+class HttpDBInteractionError(HttpCustomExceptionBase):
+    """Thrown when interaction with a database produces an error"""
+
+    exception_id = "dbInteractionError"
+
+    def __init__(self, *, description: str, status_code: int = 500):
+        """Construct message and init the exception."""
+        super().__init__(status_code=status_code, description=description, data={})
+
+
+class HttpExternalAPIError(HttpCustomExceptionBase):
+    """Thrown when communication with an external API produces an error"""
+
+    exception_id = "externalAPIError"
+
+    def __init__(self, *, description: str, status_code: int = 500):
+        """Construct message and init the exception."""
+        super().__init__(status_code=status_code, description=description, data={})
+
+
 class HttpObjectNotFoundError(HttpCustomExceptionBase):
     """Thrown when a file with given ID could not be found."""
 
