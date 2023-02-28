@@ -15,24 +15,15 @@
 
 """Main business-logic of this service"""
 
-import hashlib
-import os
 import re
-from datetime import datetime, timedelta
 
-from pydantic import BaseSettings, Field, validator
+from pydantic import BaseSettings, Field, PositiveInt, validator
 
 from dcs.adapters.outbound.http import exceptions
 from dcs.adapters.outbound.http.api_calls import call_ekss_api
 from dcs.core import models
 from dcs.ports.inbound.data_repository import DataRepositoryPort
-from dcs.ports.outbound.dao import (
-    DownloadDaoPort,
-    DrsObjectDaoPort,
-    EnvelopeDaoPort,
-    ResourceAlreadyExistsError,
-    ResourceNotFoundError,
-)
+from dcs.ports.outbound.dao import DrsObjectDaoPort, ResourceNotFoundError
 from dcs.ports.outbound.event_pub import EventPublisherPort
 from dcs.ports.outbound.storage import ObjectStoragePort
 
@@ -58,6 +49,11 @@ class DataRepositoryConfig(BaseSettings):
         + " personalized envelope from",
         example="http://ekss:8080/",
     )
+    presigned_url_expires_after: PositiveInt = Field(
+        ...,
+        description="Expiration time in seconds for presigned URLS. Positive integer required",
+        example=30,
+    )
 
     # pylint: disable=no-self-argument
     @validator("drs_server_uri")
@@ -65,7 +61,7 @@ class DataRepositoryConfig(BaseSettings):
         """Checks the drs_server_uri."""
 
         if not re.match(r"^drs://.+/$", value):
-            ValueError(
+            raise ValueError(
                 f"The drs_server_uri has to start with 'drs://' and end with '/', got : {value}"
             )
 
@@ -79,9 +75,7 @@ class DataRepository(DataRepositoryPort):
         self,
         *,
         config: DataRepositoryConfig,
-        download_dao: DownloadDaoPort,
         drs_object_dao: DrsObjectDaoPort,
-        envelope_dao: EnvelopeDaoPort,
         object_storage: ObjectStoragePort,
         event_publisher: EventPublisherPort,
     ):
@@ -89,65 +83,8 @@ class DataRepository(DataRepositoryPort):
 
         self._config = config
         self._event_publisher = event_publisher
-        self._download_dao = download_dao
         self._drs_object_dao = drs_object_dao
-        self._envelope_dao = envelope_dao
         self._object_storage = object_storage
-
-    async def _check_envelope(
-        self, *, secret_id: str, envelope_id: str, public_key: str, api_base: str
-    ):
-        """Checks if an DB entry exists for the envelope id and creates one, if not"""
-        try:
-            await self._envelope_dao.get_by_id(id_=envelope_id)
-        except ResourceNotFoundError:
-            try:
-                envelope_header = call_ekss_api(
-                    secret_id=secret_id,
-                    receiver_public_key=public_key,
-                    api_base=api_base,
-                )
-            except exceptions.BadResponseCodeError as error:
-                raise self.UnexpectedAPIResponseError(
-                    api_url=api_base, response_code=error.response_code
-                ) from error
-            except exceptions.RequestFailedError as error:
-                raise self.APICommunicationError(api_url=api_base) from error
-            except exceptions.SecretNotFoundError as error:
-                raise self.SecretNotFoundError(message=str(error)) from error
-
-            envelope = models.Envelope(
-                id=envelope_id,
-                header=envelope_header,
-                offset=len(envelope_header),
-                creation_timestamp=datetime.utcnow().isoformat(),
-            )
-            # no need for duplicate id check, branch only triggered if this does not exist
-            await self._envelope_dao.insert(dto=envelope)
-
-    async def _generate_download_uri(self, *, file_id: str, envelope_id: str):
-        """Generates a download_id, signature and creates a corresponding DB entry"""
-        download_id = os.urandom(32).hex()
-        signature = os.urandom(32).hex()
-
-        expiration_datetime = datetime.utcnow() + timedelta(seconds=30)
-
-        download = models.Download(
-            id=download_id,
-            file_id=file_id,
-            envelope_id=envelope_id,
-            signature_hash=hashlib.sha256(signature).hexdigest(),  # type: ignore[arg-type]
-            expiration_datetime=expiration_datetime.isoformat(),
-        )
-        try:
-            await self._download_dao.insert(dto=download)
-        except ResourceAlreadyExistsError as error:
-            raise self.DuplicateEntryError(
-                db_name="downloads", previous_message=str(error)
-            ) from error
-
-        host = self._config.drs_server_uri.replace("drs://", "http://")
-        return f"{host}downloads/{download_id}/?signature={signature}"
 
     def _get_drs_uri(self, *, drs_id: str) -> str:
         """Construct DRS URI for the given DRS ID."""
@@ -165,9 +102,15 @@ class DataRepository(DataRepositoryPort):
         )
 
     async def _get_access_model(
-        self, *, drs_object: models.DrsObject, access_url: str
+        self, *, drs_object: models.DrsObject
     ) -> models.DrsObjectWithAccess:
         """Get a DRS Object model with access information."""
+
+        access_url = await self._object_storage.get_object_download_url(
+            bucket_id=self._config.outbox_bucket,
+            object_id=drs_object.file_id,
+            expires_after=self._config.presigned_url_expires_after,
+        )
 
         return models.DrsObjectWithAccess(
             **drs_object.dict(),
@@ -175,9 +118,7 @@ class DataRepository(DataRepositoryPort):
             access_url=access_url,
         )
 
-    async def access_drs_object(
-        self, *, drs_id: str, public_key: str
-    ) -> models.DrsObjectWithAccess:
+    async def access_drs_object(self, *, drs_id: str) -> models.DrsObjectResponseModel:
         """
         Serve the specified DRS object with access information.
         If it does not exists in the outbox, yet, a RetryAccessLaterError is raised that
@@ -205,29 +146,12 @@ class DataRepository(DataRepositoryPort):
             raise self.RetryAccessLaterError(
                 retry_after=self._config.retry_access_after
             )
-
-        file_id = drs_object.file_id
-        envelope_id = hashlib.sha256(file_id + public_key).hexdigest()
-
-        await self._check_envelope(
-            secret_id=drs_object_with_uri.decryption_secret_id,
-            envelope_id=envelope_id,
-            public_key=public_key,
-            api_base=self._config.ekss_base_url,
-        )
-
-        download_uri = await self._generate_download_uri(
-            file_id=file_id, envelope_id=envelope_id
-        )
-
-        drs_object_with_access = await self._get_access_model(
-            drs_object=drs_object, access_url=download_uri
-        )
+        drs_object_with_access = await self._get_access_model(drs_object=drs_object)
 
         # publish an event indicating the served download:
         await self._event_publisher.download_served(drs_object=drs_object_with_uri)
 
-        return drs_object_with_access
+        return drs_object_with_access.convert_to_drs_response_model()
 
     async def register_new_file(self, *, file: models.FileToRegister):
         """Register a file as a new DRS Object."""
@@ -238,3 +162,33 @@ class DataRepository(DataRepositoryPort):
         # publish message that the drs file has been registered
         drs_object_with_uri = self._get_model_with_self_uri(drs_object=drs_object)
         await self._event_publisher.file_registered(drs_object=drs_object_with_uri)
+
+    async def serve_envelope(self, *, drs_id: str, public_key: str) -> str:
+        """
+        Retrieve envelope for the object with the given DRS ID
+
+        :returns: base64 encoded envelope bytes
+        """
+
+        try:
+            drs_object = await self._drs_object_dao.get_by_id(id_=drs_id)
+        except ResourceNotFoundError as error:
+            raise self.DrsObjectNotFoundError(drs_id=drs_id) from error
+
+        try:
+            envelope = call_ekss_api(
+                secret_id=drs_object.decryption_secret_id,
+                receiver_public_key=public_key,
+                api_base=self._config.ekss_base_url,
+            )
+        except (
+            exceptions.BadResponseCodeError,
+            exceptions.RequestFailedError,
+        ) as error:
+            raise self.APICommunicationError(
+                api_url=self._config.ekss_base_url
+            ) from error
+        except exceptions.SecretNotFoundError as error:
+            raise self.EnvelopeNotFoundError(object_id=drs_id) from error
+
+        return envelope

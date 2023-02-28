@@ -15,15 +15,13 @@
 
 """HTTP calls to other service APIs happen here"""
 
-import base64
-
 import requests
 
 from dcs.adapters.outbound.http import exceptions
 from dcs.adapters.outbound.http.exception_translation import ResponseExceptionTranslator
 
 
-def call_ekss_api(*, secret_id: str, receiver_public_key: str, api_base: str) -> bytes:
+def call_ekss_api(*, secret_id: str, receiver_public_key: str, api_base: str) -> str:
     """Calls EKS to get an envelope for an encrypted file, using the receivers
     public key as well as the id of the file secret."""
     api_url = f"{api_base}/secrets/{secret_id}/envelopes/{receiver_public_key}"
@@ -46,6 +44,6 @@ def call_ekss_api(*, secret_id: str, receiver_public_key: str, api_base: str) ->
         raise exceptions.BadResponseCodeError(url=api_base, response_code=status_code)
 
     body = response.json()
-    content = base64.b64decode(body["content"])
+    content = body["content"]
 
     return content

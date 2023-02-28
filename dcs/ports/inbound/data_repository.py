@@ -37,13 +37,11 @@ class DataRepositoryPort(ABC):
             message = f"No DRS object with the following ID exists: {drs_id}"
             super().__init__(message)
 
-    class DuplicateEntryError(RuntimeError):
-        """Raised when insertion into database fails due to a duplicate id"""
+    class EnvelopeNotFoundError(RuntimeError):
+        """Raised when an envelope for a given download was not found"""
 
-        def __init__(self, *, db_name: str, previous_message: str):
-            message = (
-                f"Tried to insert duplicate entry into {db_name}: {previous_message}"
-            )
+        def __init__(self, *, object_id: str):
+            message = f"Envelope not found for object {object_id}"
             super().__init__(message)
 
     class RetryAccessLaterError(RuntimeError):
@@ -61,12 +59,6 @@ class DataRepositoryPort(ABC):
 
             super().__init__(message)
 
-    class SecretNotFoundError(RuntimeError):
-        """Raised when a secret for a given secret ID could not be found"""
-
-        def __init__(self, *, message: str):
-            super().__init__(message)
-
     class UnexpectedAPIResponseError(RuntimeError):
         """Raise when API call returns unexpected return code"""
 
@@ -77,9 +69,7 @@ class DataRepositoryPort(ABC):
             super().__init__(message)
 
     @abstractmethod
-    async def access_drs_object(
-        self, *, drs_id: str, public_key: str
-    ) -> models.DrsObjectWithAccess:
+    async def access_drs_object(self, *, drs_id: str) -> models.DrsObjectResponseModel:
         """
         Serve the specified DRS object with access information.
         If it does not exists in the outbox, yet, a RetryAccessLaterError is raised that
@@ -90,4 +80,13 @@ class DataRepositoryPort(ABC):
     @abstractmethod
     async def register_new_file(self, *, file: models.FileToRegister):
         """Register a file as a new DRS Object."""
+        ...
+
+    @abstractmethod
+    async def serve_envelope(self, *, drs_id: str, public_key: str) -> str:
+        """
+        Retrieve envelope for the object with the given DRS ID
+
+        :returns: base64 encoded envelope bytes
+        """
         ...

@@ -15,12 +15,21 @@
 
 """A collection of http responses."""
 
-
 from fastapi.responses import JSONResponse
 
 
-class HttpObjectNotInOutboxResponse(JSONResponse):
+class HttpEnvelopeResponse(JSONResponse):
+    """Return base64 encoded envelope bytes"""
 
+    response_id = "envelope"
+
+    def __init__(self, *, envelope: str, status_code: int = 200):
+        """Construct message and init the response."""
+
+        super().__init__(content=envelope, status_code=status_code)
+
+
+class HttpObjectNotInOutboxResponse(JSONResponse):
     """
     Returned, when a file has not been staged to the outbox yet.
     """
@@ -33,8 +42,7 @@ class HttpObjectNotInOutboxResponse(JSONResponse):
         status_code: int = 202,
         retry_after: int = 300,
     ):
+        """Construct message and init the response."""
 
         headers = {"Retry-After": str(retry_after)}
-
-        """Construct message and init the response."""
         super().__init__(content=None, status_code=status_code, headers=headers)

@@ -20,11 +20,7 @@ from hexkit.providers.akafka import KafkaEventPublisher, KafkaEventSubscriber
 from hexkit.providers.mongodb import MongoDbDaoFactory
 
 from dcs.adapters.inbound.event_sub import EventSubTranslator
-from dcs.adapters.outbound.dao import (
-    DownloadsDaoConstructor,
-    DrsObjectDaoConstructor,
-    EnvelopesDaoConstructor,
-)
+from dcs.adapters.outbound.dao import DrsObjectDaoConstructor
 from dcs.adapters.outbound.event_pub import EventPubTranslator
 from dcs.adapters.outbound.s3 import S3ObjectStorage
 from dcs.config import Config
@@ -41,9 +37,7 @@ class Container(ContainerBase):
     event_pub_provider = get_constructor(KafkaEventPublisher, config=config)
 
     # outbound translators:
-    download_dao = get_constructor(DownloadsDaoConstructor, dao_factory=dao_factory)
     drs_object_dao = get_constructor(DrsObjectDaoConstructor, dao_factory=dao_factory)
-    envelope_dao = get_constructor(EnvelopesDaoConstructor, dao_factory=dao_factory)
     event_publisher = get_constructor(
         EventPubTranslator, config=config, provider=event_pub_provider
     )
@@ -54,9 +48,7 @@ class Container(ContainerBase):
     # domain/core components:
     data_repository = get_constructor(
         DataRepository,
-        download_dao=download_dao,
         drs_object_dao=drs_object_dao,
-        envelope_dao=envelope_dao,
         object_storage=object_storage,
         event_publisher=event_publisher,
         config=config,

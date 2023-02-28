@@ -13,6 +13,8 @@ api_route: /ga4gh/drs/v1
 
 outbox_bucket: outbox
 
+presigned_url_expires_after: 30
+
 s3_endpoint_url: http://dcs:4566
 s3_access_key_id: test
 s3_secret_access_key: test

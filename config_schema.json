@@ -160,6 +160,16 @@
       ],
       "type": "string"
     },
+    "presigned_url_expires_after": {
+      "title": "Presigned Url Expires After",
+      "description": "Expiration time in seconds for presigned URLS. Positive integer required",
+      "example": 30,
+      "env_names": [
+        "dcs_presigned_url_expires_after"
+      ],
+      "exclusiveMinimum": 0,
+      "type": "integer"
+    },
     "s3_endpoint_url": {
       "title": "S3 Endpoint Url",
       "description": "URL to the S3 API.",
@@ -368,6 +378,7 @@
     "outbox_bucket",
     "drs_server_uri",
     "ekss_base_url",
+    "presigned_url_expires_after",
     "s3_endpoint_url",
     "s3_access_key_id",
     "s3_secret_access_key"

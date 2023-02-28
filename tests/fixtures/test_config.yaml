@@ -9,6 +9,7 @@ openapi_url: /openapi.json
 outbox_bucket: test-outbox
 port: 8080
 retry_access_after: 120
+presigned_url_expires_after: 30
 s3_access_key_id: test
 s3_endpoint_url: http://localhost:4566
 s3_secret_access_key: test

@@ -20,14 +20,20 @@ from httpyexpect.server import HttpCustomExceptionBase
 from pydantic import BaseModel
 
 
-class HttpDBInteractionError(HttpCustomExceptionBase):
-    """Thrown when interaction with a database produces an error"""
+class HttpEnvelopeNotFoundError(HttpCustomExceptionBase):
+    """
+    Thrown when envelope data is not found.
+    """
 
-    exception_id = "dbInteractionError"
+    exception_id = "envelopeNotFoundError"
 
-    def __init__(self, *, description: str, status_code: int = 500):
+    def __init__(self, *, description: str, status_code: int = 404):
         """Construct message and init the exception."""
-        super().__init__(status_code=status_code, description=description, data={})
+        super().__init__(
+            status_code=status_code,
+            description=description,
+            data={},
+        )
 
 
 class HttpExternalAPIError(HttpCustomExceptionBase):

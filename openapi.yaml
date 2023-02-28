@@ -1,33 +1,59 @@
 components:
   schemas:
+    AccessMethod:
+      description: Wrapped DRS access_methods field value
+      properties:
+        access_url:
+          additionalProperties:
+            type: string
+          title: Access Url
+          type: object
+        type:
+          default: s3
+          enum:
+          - s3
+          title: Type
+          type: string
+      required:
+      - access_url
+      title: AccessMethod
+      type: object
+    Checksum:
+      description: Wrapped DRS checksums field value
+      properties:
+        checksum:
+          title: Checksum
+          type: string
+        type:
+          default: sha-256
+          enum:
+          - sha-256
+          title: Type
+          type: string
+      required:
+      - checksum
+      title: Checksum
+      type: object
     DeliveryDelayedModel:
       description: Pydantic model for 202 Response. Empty, since 202 has no body.
       properties: {}
       title: DeliveryDelayedModel
       type: object
-    DrsObjectWithAccess:
-      description: 'A model for describing DRS object metadata including information
-        on how to access
-
-        its content.'
+    DrsObjectResponseModel:
+      description: A DRS compliant representation for the DrsObjectWithAccess model
       properties:
-        access_url:
-          title: Access Url
-          type: string
-        creation_date:
-          title: Creation Date
-          type: string
-        decrypted_sha256:
-          title: Decrypted Sha256
-          type: string
-        decrypted_size:
-          title: Decrypted Size
-          type: integer
-        decryption_secret_id:
-          title: Decryption Secret Id
-          type: string
-        file_id:
-          title: File Id
+        access_methods:
+          items:
+            $ref: '#/components/schemas/AccessMethod'
+          title: Access Methods
+          type: array
+        checksums:
+          items:
+            $ref: '#/components/schemas/Checksum'
+          title: Checksums
+          type: array
+        created_time:
+          title: Created Time
           type: string
         id:
           title: Id
@@ -35,16 +61,38 @@ components:
         self_uri:
           title: Self Uri
           type: string
+        size:
+          title: Size
+          type: integer
       required:
-      - file_id
-      - decryption_secret_id
-      - decrypted_sha256
-      - decrypted_size
-      - creation_date
+      - access_methods
+      - checksums
+      - created_time
       - id
       - self_uri
-      - access_url
-      title: DrsObjectWithAccess
+      - size
+      title: DrsObjectResponseModel
+      type: object
+    EnvelopeEndpointErrorModel:
+      description: Response model for 404 responses of the envelope endpoint
+      discriminator:
+        mapping:
+          envelopeNotFoundError: '#/components/schemas/HttpEnvelopeNotFoundError'
+          externalAPIError: '#/components/schemas/HttpExternalAPIError'
+        propertyName: exception_id
+      oneOf:
+      - $ref: '#/components/schemas/HttpExternalAPIError'
+      - $ref: '#/components/schemas/HttpEnvelopeNotFoundError'
+      title: EnvelopeEndpointErrorModel
+    EnvelopeResponseModel:
+      description: Response model for base64 encoded envelope bytes
+      properties:
+        content:
+          title: Content
+          type: string
+      required:
+      - content
+      title: EnvelopeResponseModel
       type: object
     HTTPValidationError:
       properties:
@@ -54,6 +102,64 @@ components:
           title: Detail
           type: array
       title: HTTPValidationError
+      type: object
+    HttpEnvelopeNotFoundError:
+      additionalProperties: false
+      description: A custom exception body model.
+      properties:
+        data:
+          $ref: '#/components/schemas/HttpEnvelopeNotFoundErrorData'
+        description:
+          description: A human readable message to the client explaining the cause
+            of the exception.
+          title: Description
+          type: string
+        exception_id:
+          enum:
+          - envelopeNotFoundError
+          title: Exception Id
+          type: string
+      required:
+      - data
+      - description
+      - exception_id
+      title: HttpEnvelopeNotFoundError
+      type: object
+    HttpEnvelopeNotFoundErrorData:
+      description: 'An empty model used as default for describing exception data.
+
+        Please overwrite this to define your own data model.'
+      properties: {}
+      title: HttpEnvelopeNotFoundErrorData
+      type: object
+    HttpExternalAPIError:
+      additionalProperties: false
+      description: A custom exception body model.
+      properties:
+        data:
+          $ref: '#/components/schemas/HttpExternalAPIErrorData'
+        description:
+          description: A human readable message to the client explaining the cause
+            of the exception.
+          title: Description
+          type: string
+        exception_id:
+          enum:
+          - externalAPIError
+          title: Exception Id
+          type: string
+      required:
+      - data
+      - description
+      - exception_id
+      title: HttpExternalAPIError
+      type: object
+    HttpExternalAPIErrorData:
+      description: 'An empty model used as default for describing exception data.
+
+        Please overwrite this to define your own data model.'
+      properties: {}
+      title: HttpExternalAPIErrorData
       type: object
     HttpObjectNotFoundError:
       additionalProperties: false
@@ -113,7 +219,7 @@ info:
     \ Object Storage. \n\nThis is an implementation of the DRS standard from the Global\
     \ Alliance for Genomics and Health, please find more information at: https://github.com/ga4gh/data-repository-service-schemas"
   title: Download Controller Service
-  version: 0.5.4
+  version: 0.5.5
 openapi: 3.0.2
 paths:
   /health:
@@ -140,18 +246,12 @@ paths:
         schema:
           title: Object Id
           type: string
-      - in: header
-        name: public-key
-        required: true
-        schema:
-          title: Public-Key
-          type: string
       responses:
         '200':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DrsObjectWithAccess'
+                $ref: '#/components/schemas/DrsObjectResponseModel'
           description: The DrsObject was found successfully.
         '202':
           content:
@@ -168,7 +268,7 @@ paths:
                 $ref: '#/components/schemas/HttpObjectNotFoundError'
           description: 'Exceptions by ID:
 
-            - noSuchUpload: The requested DrsObject wasn''t found'
+            - noSuchObject: The requested DrsObject was not found'
         '422':
           content:
             application/json:
@@ -177,6 +277,60 @@ paths:
           description: Validation Error
       summary: Returns object metadata, and a list of access methods that can be used
         to fetch object bytes.
+      tags:
+      - DownloadControllerService
+  /objects/{object_id}/envelopes/{public_key}:
+    get:
+      description: 'Retrieve the base64 encoded envelope for a given object based
+        on object id and
+
+        URL safe base64 encoded public key'
+      operationId: getEnvelope
+      parameters:
+      - in: path
+        name: object_id
+        required: true
+        schema:
+          title: Object Id
+          type: string
+      - in: path
+        name: public_key
+        required: true
+        schema:
+          title: Public Key
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeResponseModel'
+          description: Successfully delivered envelope.
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeEndpointErrorModel'
+          description: 'Exceptions by ID:
+
+            - envelopeNotFoundError: The requested envelope could not be retrieved
+
+            - noSuchObject: The requested DrsObject was not found'
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpExternalAPIError'
+          description: 'Exceptions by ID:
+
+            - externalAPIError: Communication with a service external API failed'
+      summary: Returns base64 encoded, personalized file envelope
       tags:
       - DownloadControllerService
 servers:

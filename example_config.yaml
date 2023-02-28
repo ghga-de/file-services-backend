@@ -24,6 +24,7 @@ log_level: info
 openapi_url: /openapi.json
 outbox_bucket: outbox
 port: 8080
+presigned_url_expires_after: 30
 retry_access_after: 120
 s3_access_key_id: test
 s3_endpoint_url: http://dcs:4566

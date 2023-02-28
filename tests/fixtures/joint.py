@@ -83,7 +83,6 @@ async def joint_fixture(
         async with httpx.AsyncClient(
             app=api, base_url=f"http://localhost:{port}"
         ) as rest_client:
-
             yield JointFixture(
                 config=config,
                 container=container,

@@ -16,44 +16,24 @@
 """Defines dataclasses for business-logic data as well as request/reply models for use
 in the api."""
 
-
 import re
-from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, validator
 
 
-class Download(BaseModel):
-    """Model for ongoing downloads"""
+class AccessMethod(BaseModel):
+    """Wrapped DRS access_methods field value"""
 
-    id: str
-    file_id: str
-    envelope_id: str
-    signature_hash: str
-    # lifetime should expire 30s after creation
-    expiration_datetime: str
-
-    @validator("expiration_datetime")
-    @classmethod
-    def check_datetime_format(cls, expiration_datetime):
-        """Ensure provided date string can be interpreted as datetime"""
-        return validated_date(expiration_datetime)
+    access_url: dict[str, str]
+    type: Literal["s3"] = "s3"
 
 
-class Envelope(BaseModel):
-    """Model caching envelope for ongoing download"""
+class Checksum(BaseModel):
+    """Wrapped DRS checksums field value"""
 
-    # hash(object_id + pubkey)
-    id: str
-    header: bytes
-    offset: int
-    creation_timestamp: str
-
-    @validator("creation_timestamp")
-    @classmethod
-    def check_datetime_format(cls, creation_timestamp):
-        """Ensure provided date string can be interpreted as datetime"""
-        return validated_date(creation_timestamp)
+    checksum: str
+    type: Literal["sha-256"] = "sha-256"
 
 
 class FileToRegister(BaseModel):
@@ -87,7 +67,7 @@ class DrsObjectWithUri(DrsObject):
         """Checks if the self_uri is a valid DRS URI."""
 
         if not re.match(r"^drs://.+/.+", value):
-            ValueError(f"The self_uri '{value}' is no valid DRS URI.")
+            raise ValueError(f"The self_uri '{value}' is no valid DRS URI.")
 
         return value
 
@@ -98,13 +78,28 @@ class DrsObjectWithAccess(DrsObjectWithUri):
 
     access_url: str
 
+    def convert_to_drs_response_model(self):
+        """Convert from internal representation ingested by even to DRS compliant representation"""
 
-def validated_date(date: str):
-    """Ensure that the provided string representation can be interpreted as a datetime"""
-    try:
-        datetime.fromisoformat(date)
-    except ValueError as exc:
-        raise ValueError(
-            f"Could not convert provided string to datetime: {date}"
-        ) from exc
-    return date
+        access_method = AccessMethod(access_url={"url": self.access_url})
+        checksum = Checksum(checksum=self.decrypted_sha256)
+
+        return DrsObjectResponseModel(
+            access_methods=[access_method],
+            checksums=[checksum],
+            created_time=self.creation_date,
+            id=self.id,
+            self_uri=self.self_uri,
+            size=self.decrypted_size,
+        )
+
+
+class DrsObjectResponseModel(BaseModel):
+    """A DRS compliant representation for the DrsObjectWithAccess model"""
+
+    access_methods: list[AccessMethod]
+    checksums: list[Checksum]
+    created_time: str
+    id: str
+    self_uri: str
+    size: int
