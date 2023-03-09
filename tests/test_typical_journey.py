@@ -15,8 +15,8 @@
 
 """Tests typical user journeys"""
 
+import base64
 import json
-from datetime import datetime
 
 import pytest
 import requests
@@ -28,70 +28,24 @@ from hexkit.providers.s3.testutils import file_fixture  # noqa: F401
 from hexkit.providers.s3.testutils import s3_fixture  # noqa: F401
 from hexkit.providers.s3.testutils import FileObject
 
-from dcs.core import models
 from tests.fixtures.joint import *  # noqa: F403
-
-EXAMPLE_FILE = models.FileToRegister(
-    file_id="examplefile001",
-    decrypted_sha256="0677de3685577a06862f226bb1bfa8f889e96e59439d915543929fb4f011d096",
-    creation_date=datetime.now().isoformat(),
-    decrypted_size=12345,
-    decryption_secret_id="some-secret",
-)
 
 
 @pytest.mark.asyncio
 async def test_happy(
-    joint_fixture: JointFixture,  # noqa: F811, F405
+    populated_fixture: PopulatedFixture,  # noqa: F405,F811
     file_fixture: FileObject,  # noqa: F811
 ):
     """Simulates a typical, successful API journey."""
-    # TODO: not working for now, will be fixed in GDEV-1612
-    return True
-    # publish an event to register a new file for download:
-    files_to_register_event = event_schemas.FileInternallyRegistered(
-        file_id=EXAMPLE_FILE.file_id,
-        upload_date=EXAMPLE_FILE.creation_date,
-        decrypted_size=EXAMPLE_FILE.decrypted_size,
-        decrypted_sha256=EXAMPLE_FILE.decrypted_sha256,
-        encrypted_part_size=1,
-        encrypted_parts_md5=["some", "checksum"],
-        encrypted_parts_sha256=["some", "checksum"],
-        content_offset=1234,
-        decryption_secret_id="some-secret",
-    )
-    await joint_fixture.kafka.publish_event(
-        payload=json.loads(files_to_register_event.json()),
-        type_=joint_fixture.config.files_to_register_type,
-        topic=joint_fixture.config.files_to_register_topic,
-    )
-
-    # consume the event:
-    event_subscriber = await joint_fixture.container.event_subscriber()
-    async with joint_fixture.kafka.record_events(
-        in_topic=joint_fixture.config.file_registered_event_topic
-    ) as recorder:
-        await event_subscriber.run(forever=False)
-
-    # check that an event informing about the newly registered file was published:
-    assert len(recorder.recorded_events) == 1
-    assert (
-        recorder.recorded_events[0].type_
-        == joint_fixture.config.file_registered_event_type
-    )
-    file_registered_event = event_schemas.FileRegisteredForDownload(
-        **recorder.recorded_events[0].payload
-    )
-    assert file_registered_event.file_id == EXAMPLE_FILE.file_id
-    assert file_registered_event.decrypted_sha256 == EXAMPLE_FILE.decrypted_sha256
-    assert file_registered_event.upload_date == EXAMPLE_FILE.creation_date
-    drs_id = file_registered_event.drs_uri.split("/")[-1]
+    drs_id = populated_fixture.drs_id
+    example_file = populated_fixture.example_file
+    joint_fixture = populated_fixture.joint_fixture
 
     # request access to the newly registered file:
     # (An check that an event is published indicating that the file is not in
     # outbox yet.)
     non_staged_requested_event = event_schemas.NonStagedFileRequested(
-        file_id=EXAMPLE_FILE.file_id, decrypted_sha256=EXAMPLE_FILE.decrypted_sha256
+        file_id=example_file.file_id, decrypted_sha256=example_file.decrypted_sha256
     )
     async with joint_fixture.kafka.expect_events(
         events=[
@@ -113,7 +67,7 @@ async def test_happy(
     file_object = file_fixture.copy(
         update={
             "bucket_id": joint_fixture.config.outbox_bucket,
-            "object_id": EXAMPLE_FILE.file_id,
+            "object_id": example_file.file_id,
         }
     )
     await joint_fixture.s3.populate_file_objects([file_object])
@@ -121,8 +75,8 @@ async def test_happy(
     # retry the access request:
     # (An check that an event is published indicating that a download was served.)
     download_served_event = event_schemas.FileDownloadServed(
-        file_id=EXAMPLE_FILE.file_id,
-        decrypted_sha256=EXAMPLE_FILE.decrypted_sha256,
+        file_id=example_file.file_id,
+        decrypted_sha256=example_file.decrypted_sha256,
         context="unkown",
     )
     async with joint_fixture.kafka.expect_events(
@@ -137,6 +91,19 @@ async def test_happy(
         drs_object_response = await joint_fixture.rest_client.get(f"/objects/{drs_id}")
 
     # download file bytes:
-    dowloaded_file = requests.get(drs_object_response.json()["access_url"], timeout=2)
+    presigned_url = drs_object_response.json()["access_methods"][0]["access_url"]["url"]
+    dowloaded_file = requests.get(presigned_url, timeout=2)
     dowloaded_file.raise_for_status()
     assert dowloaded_file.content == file_object.content
+
+    pubkey = base64.urlsafe_b64encode(b"valid_key").decode("utf-8")
+
+    response = await joint_fixture.rest_client.get(
+        f"/objects/invalid_id/envelopes/{pubkey}", timeout=60
+    )
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    response = await joint_fixture.rest_client.get(
+        f"/objects/{drs_id}/envelopes/{pubkey}", timeout=60
+    )
+    assert response.status_code == status.HTTP_200_OK

@@ -15,7 +15,6 @@
 
 """Tests edge cases not covered by the typical journey test."""
 
-
 import pytest
 from fastapi import status
 from hexkit.providers.mongodb.testutils import mongodb_fixture  # noqa: F401
@@ -40,8 +39,6 @@ async def test_access_non_existing(joint_fixture: JointFixture):  # noqa F811
     """Checks that requesting access to a non-existing DRS object fails with the
     expected exception."""
 
-    # TODO: not working for now, will be fixed in GDEV-1612
-    return True
     # request access to non existing DRS object:
     response = await joint_fixture.rest_client.get("/objects/my-non-existing-id")
     assert response.status_code == status.HTTP_404_NOT_FOUND
