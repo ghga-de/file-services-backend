@@ -47,7 +47,7 @@ from dcs.main import get_configured_container, get_rest_api
 from tests.fixtures.config import get_config
 from tests.fixtures.mock_api.testcontainer import MockAPIContainer
 
-EXAMPLE_FILE = models.FileToRegister(
+EXAMPLE_FILE = models.DrsObject(
     file_id="examplefile001",
     decrypted_sha256="0677de3685577a06862f226bb1bfa8f889e96e59439d915543929fb4f011d096",
     creation_date=datetime.now().isoformat(),
@@ -128,7 +128,7 @@ class PopulatedFixture:
     """Returned by `populated_fixture()`."""
 
     drs_id: str
-    example_file: models.FileToRegister
+    example_file: models.DrsObject
     joint_fixture: JointFixture
 
 
@@ -174,8 +174,9 @@ async def populated_fixture(
     assert file_registered_event.file_id == EXAMPLE_FILE.file_id
     assert file_registered_event.decrypted_sha256 == EXAMPLE_FILE.decrypted_sha256
     assert file_registered_event.upload_date == EXAMPLE_FILE.creation_date
-    drs_id = file_registered_event.drs_uri.split("/")[-1]
 
     yield PopulatedFixture(
-        drs_id=drs_id, example_file=EXAMPLE_FILE, joint_fixture=joint_fixture
+        drs_id=EXAMPLE_FILE.file_id,
+        example_file=EXAMPLE_FILE,
+        joint_fixture=joint_fixture,
     )

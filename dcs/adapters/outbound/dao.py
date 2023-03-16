@@ -34,6 +34,5 @@ class DrsObjectDaoConstructor:
         return await dao_factory.get_dao(
             name="drs_objects",
             dto_model=models.DrsObject,
-            dto_creation_model=models.FileToRegister,
-            id_field="id",
+            id_field="file_id",
         )

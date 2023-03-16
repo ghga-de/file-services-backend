@@ -17,7 +17,7 @@
 
 # pylint: disable=unused-import
 from hexkit.protocols.dao import (  # noqa: F401
-    DaoSurrogateId,
+    DaoNaturalId,
     ResourceAlreadyExistsError,
     ResourceNotFoundError,
 )
@@ -25,4 +25,4 @@ from hexkit.protocols.dao import (  # noqa: F401
 from dcs.core import models
 
 # port described by a type alias:
-DrsObjectDaoPort = DaoSurrogateId[models.DrsObject, models.FileToRegister]
+DrsObjectDaoPort = DaoNaturalId[models.DrsObject]

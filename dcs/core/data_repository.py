@@ -98,7 +98,7 @@ class DataRepository(DataRepositoryPort):
 
         return models.DrsObjectWithUri(
             **drs_object.dict(),
-            self_uri=self._get_drs_uri(drs_id=drs_object.id),
+            self_uri=self._get_drs_uri(drs_id=drs_object.file_id),
         )
 
     async def _get_access_model(
@@ -114,7 +114,7 @@ class DataRepository(DataRepositoryPort):
 
         return models.DrsObjectWithAccess(
             **drs_object.dict(),
-            self_uri=self._get_drs_uri(drs_id=drs_object.id),
+            self_uri=self._get_drs_uri(drs_id=drs_object.file_id),
             access_url=access_url,
         )
 
@@ -153,14 +153,14 @@ class DataRepository(DataRepositoryPort):
 
         return drs_object_with_access.convert_to_drs_response_model()
 
-    async def register_new_file(self, *, file: models.FileToRegister):
+    async def register_new_file(self, *, file: models.DrsObject):
         """Register a file as a new DRS Object."""
 
         # write file entry to database
-        drs_object = await self._drs_object_dao.insert(file)
+        await self._drs_object_dao.insert(file)
 
         # publish message that the drs file has been registered
-        drs_object_with_uri = self._get_model_with_self_uri(drs_object=drs_object)
+        drs_object_with_uri = self._get_model_with_self_uri(drs_object=file)
         await self._event_publisher.file_registered(drs_object=drs_object_with_uri)
 
     async def serve_envelope(self, *, drs_id: str, public_key: str) -> str:
