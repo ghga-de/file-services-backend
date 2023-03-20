@@ -22,10 +22,16 @@ from typing import Literal
 from pydantic import BaseModel, validator
 
 
+class AccessURL(BaseModel):
+    """AccessUrl object for access method"""
+
+    url: str
+
+
 class AccessMethod(BaseModel):
     """Wrapped DRS access_methods field value"""
 
-    access_url: dict[str, str]
+    access_url: AccessURL
     type: Literal["s3"] = "s3"
 
 
@@ -70,10 +76,10 @@ class DrsObjectWithAccess(DrsObjectWithUri):
 
     access_url: str
 
-    def convert_to_drs_response_model(self):
+    def convert_to_drs_response_model(self, size: int):
         """Convert from internal representation ingested by even to DRS compliant representation"""
 
-        access_method = AccessMethod(access_url={"url": self.access_url})
+        access_method = AccessMethod(access_url=AccessURL(url=self.access_url))
         checksum = Checksum(checksum=self.decrypted_sha256)
 
         return DrsObjectResponseModel(
@@ -82,7 +88,7 @@ class DrsObjectWithAccess(DrsObjectWithUri):
             created_time=self.creation_date,
             id=self.file_id,
             self_uri=self.self_uri,
-            size=self.decrypted_size,
+            size=size,
         )
 
 

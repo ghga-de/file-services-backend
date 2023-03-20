@@ -4,10 +4,7 @@ components:
       description: Wrapped DRS access_methods field value
       properties:
         access_url:
-          additionalProperties:
-            type: string
-          title: Access Url
-          type: object
+          $ref: '#/components/schemas/AccessURL'
         type:
           default: s3
           enum:
@@ -17,6 +14,16 @@ components:
       required:
       - access_url
       title: AccessMethod
+      type: object
+    AccessURL:
+      description: AccessUrl object for access method
+      properties:
+        url:
+          title: Url
+          type: string
+      required:
+      - url
+      title: AccessURL
       type: object
     Checksum:
       description: Wrapped DRS checksums field value
@@ -219,7 +226,7 @@ info:
     \ Object Storage. \n\nThis is an implementation of the DRS standard from the Global\
     \ Alliance for Genomics and Health, please find more information at: https://github.com/ga4gh/data-repository-service-schemas"
   title: Download Controller Service
-  version: 0.5.8
+  version: 0.5.9
 openapi: 3.0.2
 paths:
   /health:

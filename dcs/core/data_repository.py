@@ -151,7 +151,11 @@ class DataRepository(DataRepositoryPort):
         # publish an event indicating the served download:
         await self._event_publisher.download_served(drs_object=drs_object_with_uri)
 
-        return drs_object_with_access.convert_to_drs_response_model()
+        # CLI needs to have the encrypted size to correctly download all file parts
+        encrypted_size = await self._object_storage.get_object_size(
+            bucket_id=self._config.outbox_bucket, object_id=drs_object.file_id
+        )
+        return drs_object_with_access.convert_to_drs_response_model(size=encrypted_size)
 
     async def register_new_file(self, *, file: models.DrsObject):
         """Register a file as a new DRS Object."""
