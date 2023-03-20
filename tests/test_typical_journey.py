@@ -77,7 +77,7 @@ async def test_happy(
     download_served_event = event_schemas.FileDownloadServed(
         file_id=example_file.file_id,
         decrypted_sha256=example_file.decrypted_sha256,
-        context="unkown",
+        context="unknown",
     )
     async with joint_fixture.kafka.expect_events(
         events=[

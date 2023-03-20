@@ -97,7 +97,7 @@ class EventPubTranslator(EventPublisherPort):
         payload = event_schemas.FileDownloadServed(
             file_id=drs_object.file_id,
             decrypted_sha256=drs_object.decrypted_sha256,
-            context="unkown",
+            context="unknown",
         )
         payload_dict = json.loads(payload.json())
 
