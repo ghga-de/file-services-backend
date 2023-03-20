@@ -71,7 +71,6 @@ async def post_encryption_secrets(
     client_pubkey = base64.b64decode(envelope_query.public_key)
     file_part = base64.b64decode(envelope_query.file_part)
     try:
-
         submitter_secret, offset = await extract_envelope_content(
             file_part=file_part,
             client_pubkey=client_pubkey,

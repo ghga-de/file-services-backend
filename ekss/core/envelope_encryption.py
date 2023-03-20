@@ -30,8 +30,8 @@ async def get_envelope(
     Calls the database and then calls a function to assemble an envelope
     """
     file_secret = vault.get_secret(key=secret_id)
-    header_envelope = await (
-        create_envelope(file_secret=file_secret, client_pubkey=client_pubkey)
+    header_envelope = await create_envelope(
+        file_secret=file_secret, client_pubkey=client_pubkey
     )
 
     return header_envelope
