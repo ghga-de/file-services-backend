@@ -20,11 +20,13 @@ from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, status
 
 from dcs.adapters.inbound.fastapi_ import (
+    http_authorization,
     http_exceptions,
     http_response_models,
     http_responses,
 )
 from dcs.container import Container
+from dcs.core.auth_policies import WorkOrderContext
 from dcs.core.models import DrsObjectResponseModel
 from dcs.ports.inbound.data_repository import DataRepositoryPort
 
@@ -61,6 +63,14 @@ RESPONSES = {
         ),
         "model": http_response_models.DeliveryDelayedModel,
     },
+    "wrongFileAuthorizationError": {
+        "description": (
+            "Work order token announced wrong file ID."
+            + "\nExceptions by ID:"
+            + "\n- wrongFileAuthorizationError: Mismatch of URL file ID and token file ID"
+        ),
+        "model": http_exceptions.HttpWrongFileAuthorizationError.get_body_model(),
+    },
 }
 
 
@@ -87,17 +97,22 @@ async def health():
     response_description="The DrsObject was found successfully.",
     responses={
         status.HTTP_202_ACCEPTED: RESPONSES["objectNotInOutbox"],
+        status.HTTP_403_FORBIDDEN: RESPONSES["wrongFileAuthorizationError"],
         status.HTTP_404_NOT_FOUND: RESPONSES["noSuchObject"],
     },
 )
 @inject
 async def get_drs_object(
     object_id: str,
+    work_order_context: WorkOrderContext = http_authorization.require_work_order_context,
     data_repository: DataRepositoryPort = Depends(Provide[Container.data_repository]),
 ):
     """
     Get info about a ``DrsObject``.
     """
+
+    if not work_order_context.file_id == object_id:
+        raise http_exceptions.HttpWrongFileAuthorizationError()
 
     try:
         drs_object = await data_repository.access_drs_object(drs_id=object_id)
@@ -116,7 +131,7 @@ async def get_drs_object(
 
 
 @router.get(
-    "/objects/{object_id}/envelopes/{public_key}",
+    "/objects/{object_id}/envelopes",
     summary="Returns base64 encoded, personalized file envelope",
     operation_id="getEnvelope",
     tags=["DownloadControllerService"],
@@ -124,20 +139,26 @@ async def get_drs_object(
     response_model=http_response_models.EnvelopeResponseModel,
     response_description="Successfully delivered envelope.",
     responses={
+        status.HTTP_403_FORBIDDEN: RESPONSES["wrongFileAuthorizationError"],
         status.HTTP_404_NOT_FOUND: RESPONSES["entryNotFoundError"],
         status.HTTP_500_INTERNAL_SERVER_ERROR: RESPONSES["externalAPIError"],
     },
 )
 @inject
-async def get_envelope(
+async def get_envelope(  # noqa: C901
     object_id: str,
-    public_key: str,
+    work_order_context: WorkOrderContext = http_authorization.require_work_order_context,
     data_repository: DataRepositoryPort = Depends(Provide[Container.data_repository]),
 ):
     """
     Retrieve the base64 encoded envelope for a given object based on object id and
     URL safe base64 encoded public key
     """
+
+    if not work_order_context.file_id == object_id:
+        raise http_exceptions.HttpWrongFileAuthorizationError()
+
+    public_key = work_order_context.user_public_crypt4gh_key
 
     try:
         envelope = await data_repository.serve_envelope(

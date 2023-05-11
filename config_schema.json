@@ -220,6 +220,55 @@
       "type": "string",
       "format": "path"
     },
+    "auth_key": {
+      "title": "Internal public key",
+      "description": "The GHGA internal public key for validating the token signature.",
+      "example": "{\"crv\": \"P-256\", \"kty\": \"EC\", \"x\": \"...\", \"y\": \"...\"}",
+      "env_names": [
+        "dcs_auth_key"
+      ],
+      "type": "string"
+    },
+    "auth_algs": {
+      "title": "Auth Algs",
+      "description": "A list of all algorithms used for signing GHGA internal tokens.",
+      "default": [
+        "ES256"
+      ],
+      "env_names": [
+        "dcs_auth_algs"
+      ],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "auth_check_claims": {
+      "title": "Auth Check Claims",
+      "description": "A dict of all GHGA internal claims that shall be verified.",
+      "default": {
+        "name": null,
+        "email": null,
+        "iat": null,
+        "exp": null
+      },
+      "env_names": [
+        "dcs_auth_check_claims"
+      ],
+      "type": "object"
+    },
+    "auth_map_claims": {
+      "title": "Auth Map Claims",
+      "description": "A mapping of claims to attributes in the GHGA auth context.",
+      "default": {},
+      "env_names": [
+        "dcs_auth_map_claims"
+      ],
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
     "host": {
       "title": "Host",
       "description": "IP of the host.",
@@ -381,7 +430,8 @@
     "presigned_url_expires_after",
     "s3_endpoint_url",
     "s3_access_key_id",
-    "s3_secret_access_key"
+    "s3_secret_access_key",
+    "auth_key"
   ],
   "additionalProperties": false
 }

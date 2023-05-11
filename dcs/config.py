@@ -15,21 +15,37 @@
 
 """Config Parameter Modeling and Parsing"""
 
-from ghga_service_chassis_lib.api import ApiConfigBase
+from typing import Any
+
+from ghga_service_commons.api import ApiConfigBase
+from ghga_service_commons.auth.ghga import AuthConfig
 from hexkit.config import config_from_yaml
 from hexkit.providers.akafka import KafkaConfig
 from hexkit.providers.mongodb import MongoDbConfig
 from hexkit.providers.s3 import S3Config
+from pydantic import Field
 
 from dcs.adapters.inbound.event_sub import EventSubTranslatorConfig
 from dcs.adapters.outbound.event_pub import EventPubTranslatorConfig
 from dcs.core.data_repository import DataRepositoryConfig
 
 
+class WorkOrderTokenConfig(AuthConfig):
+    """Overwrite checked claims"""
+
+    auth_check_claims: dict[str, Any] = Field(
+        dict.fromkeys(
+            "type file_id user_id user_public_crypt4gh_key full_user_name email iat exp".split()
+        ),
+        description="A dict of all GHGA internal claims that shall be verified.",
+    )
+
+
 # pylint: disable=too-many-ancestors
 @config_from_yaml(prefix="dcs")
 class Config(
     ApiConfigBase,
+    AuthConfig,
     S3Config,
     DataRepositoryConfig,
     MongoDbConfig,

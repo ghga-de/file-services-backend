@@ -23,10 +23,10 @@ __all__ = [
     "kafka_fixture",
     "populated_fixture",
     "PopulatedFixture",
+    "get_work_order_token",
 ]
 
 import json
-import socket
 from dataclasses import dataclass
 from datetime import datetime
 from typing import AsyncGenerator
@@ -34,15 +34,18 @@ from typing import AsyncGenerator
 import httpx
 import pytest_asyncio
 from ghga_event_schemas import pydantic_ as event_schemas
+from ghga_service_commons.api.testing import AsyncTestClient
+from ghga_service_commons.utils import jwt_helpers
+from ghga_service_commons.utils.crypt import encode_key, generate_key_pair
 from hexkit.providers.akafka.testutils import KafkaFixture, kafka_fixture
 from hexkit.providers.mongodb.testutils import MongoDbFixture  # F401
 from hexkit.providers.mongodb.testutils import mongodb_fixture
 from hexkit.providers.s3.testutils import S3Fixture, s3_fixture
 from pydantic import BaseSettings
 
-from dcs.config import Config
-from dcs.container import Container
-from dcs.core import models
+from dcs.config import Config, WorkOrderTokenConfig
+from dcs.container import Container, auth_provider
+from dcs.core import auth_policies, models
 from dcs.main import get_configured_container, get_rest_api
 from tests.fixtures.config import get_config
 from tests.fixtures.mock_api.testcontainer import MockAPIContainer
@@ -55,12 +58,36 @@ EXAMPLE_FILE = models.DrsObject(
     decryption_secret_id="some-secret",
 )
 
+SignedToken = str
+PubKey = str
 
-def get_free_port() -> int:
-    """Finds and returns a free port on localhost."""
-    sock = socket.socket()
-    sock.bind(("", 0))
-    return int(sock.getsockname()[1])
+
+def get_work_order_token(
+    file_id: str,
+    valid_seconds: int = 30,
+) -> tuple[SignedToken, PubKey]:
+    """Generate work order token for testing"""
+
+    # we don't need the actual user pubkey
+    user_pubkey = encode_key(generate_key_pair().public)
+    # generate minimal test token
+    wot = auth_policies.WorkOrderContext(
+        type="download",
+        file_id=file_id,
+        user_id="007",
+        user_public_crypt4gh_key=user_pubkey,
+        full_user_name="John Doe",
+        email="john.doe@test.com",
+    )
+    claims = wot.dict()
+
+    jwk = jwt_helpers.generate_jwk()
+
+    signed_token = jwt_helpers.sign_and_serialize_token(
+        claims=claims, key=jwk, valid_seconds=valid_seconds
+    )
+    signing_pubkey = jwk.export_public()
+    return signed_token, signing_pubkey
 
 
 class EKSSBaseInjector(BaseSettings):
@@ -87,9 +114,10 @@ async def joint_fixture(
 ) -> AsyncGenerator[JointFixture, None]:
     """A fixture that embeds all other fixtures for API-level integration testing"""
 
+    auth_key = jwt_helpers.generate_jwk().export(private_key=False)
     with MockAPIContainer() as ekss_api:
         # merge configs from different sources with the default one:
-
+        auth_config = WorkOrderTokenConfig(auth_key=auth_key)
         ekss_config = EKSSBaseInjector(ekss_base_url=ekss_api.get_connection_url())
 
         config = get_config(
@@ -98,21 +126,24 @@ async def joint_fixture(
                 s3_fixture.config,
                 kafka_fixture.config,
                 ekss_config,
+                auth_config,
             ]
         )
         # create a DI container instance:translators
         async with get_configured_container(config=config) as container:
-            container.wire(modules=["dcs.adapters.inbound.fastapi_.routes"])
+            container.wire(
+                modules=[
+                    "dcs.adapters.inbound.fastapi_.routes",
+                    "dcs.adapters.inbound.fastapi_.http_authorization",
+                ]
+            )
 
             # create storage entities:
             await s3_fixture.populate_buckets(buckets=[config.outbox_bucket])
 
             api = get_rest_api(config=config)
-            port = get_free_port()
             # setup an API test client:
-            async with httpx.AsyncClient(
-                app=api, base_url=f"http://localhost:{port}"
-            ) as rest_client:
+            async with AsyncTestClient(app=api) as rest_client:
                 yield JointFixture(
                     config=config,
                     container=container,
@@ -174,6 +205,18 @@ async def populated_fixture(
     assert file_registered_event.file_id == EXAMPLE_FILE.file_id
     assert file_registered_event.decrypted_sha256 == EXAMPLE_FILE.decrypted_sha256
     assert file_registered_event.upload_date == EXAMPLE_FILE.creation_date
+
+    work_order_token, pubkey = get_work_order_token(  # noqa: F405
+        file_id=EXAMPLE_FILE.file_id,
+        valid_seconds=120,
+    )
+
+    # modify default headers and patch signing pubkey
+    joint_fixture.rest_client.headers = httpx.Headers(
+        {"Authorization": f"Bearer {work_order_token}"}
+    )
+    auth_provider_override = auth_provider(config=WorkOrderTokenConfig(auth_key=pubkey))
+    joint_fixture.container.auth_provider.override(auth_provider_override)
 
     yield PopulatedFixture(
         drs_id=EXAMPLE_FILE.file_id,

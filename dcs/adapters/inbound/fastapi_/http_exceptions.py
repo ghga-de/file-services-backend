@@ -16,6 +16,7 @@
 
 """A collection of http exceptions."""
 
+
 from httpyexpect.server import HttpCustomExceptionBase
 from pydantic import BaseModel
 
@@ -62,4 +63,19 @@ class HttpObjectNotFoundError(HttpCustomExceptionBase):
             status_code=status_code,
             description="The requested DrsObject wasn't found",
             data={"object_id": object_id},
+        )
+
+
+class HttpWrongFileAuthorizationError(HttpCustomExceptionBase):
+    """Raised when a work order token cannot be validated"""
+
+    exception_id = "wrongFileAuthorizationError"
+
+    def __init__(self, *, status_code: int = 403):
+        """Construct message and init the exception."""
+
+        super().__init__(
+            status_code=status_code,
+            description="Endpoint file ID did not match file ID announced in work order token.",
+            data={},
         )

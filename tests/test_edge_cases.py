@@ -21,6 +21,8 @@ from hexkit.providers.mongodb.testutils import mongodb_fixture  # noqa: F401
 from hexkit.providers.s3.testutils import file_fixture  # noqa: F401
 from hexkit.providers.s3.testutils import s3_fixture  # noqa: F401
 
+from dcs.config import WorkOrderTokenConfig
+from dcs.container import auth_provider
 from tests.fixtures.joint import *  # noqa: F403
 
 
@@ -39,6 +41,38 @@ async def test_access_non_existing(joint_fixture: JointFixture):  # noqa F811
     """Checks that requesting access to a non-existing DRS object fails with the
     expected exception."""
 
+    file_id = "my-non-existing-id"
+
     # request access to non existing DRS object:
-    response = await joint_fixture.rest_client.get("/objects/my-non-existing-id")
-    assert response.status_code == status.HTTP_404_NOT_FOUND
+    work_order_token, pubkey = get_work_order_token(file_id=file_id)  # noqa: F405
+
+    # test with missing authorization header
+    response = await joint_fixture.rest_client.get(f"/objects/{file_id}")
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    # test with authorization header but wrong pubkey
+    response = await joint_fixture.rest_client.get(
+        f"/objects/{file_id}",
+        timeout=5,
+        headers={"Authorization": f"Bearer {work_order_token}"},
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    # update pubkey config option on live object
+    auth_provider_override = auth_provider(config=WorkOrderTokenConfig(auth_key=pubkey))
+
+    with joint_fixture.container.auth_provider.override(auth_provider_override):
+        # test with correct authorization header but wrong object_id
+        response = await joint_fixture.rest_client.get(
+            f"/objects/{file_id}",
+            timeout=5,
+            headers={"Authorization": f"Bearer {work_order_token}"},
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+        response = await joint_fixture.rest_client.get(
+            f"/objects/{file_id}/envelopes",
+            timeout=5,
+            headers={"Authorization": f"Bearer {work_order_token}"},
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND

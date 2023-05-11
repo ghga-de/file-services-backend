@@ -31,7 +31,7 @@ class MockAPIContainer(DockerContainer):
 
     def __init__(
         self,
-        image: str = "ghga/fastapi_essentials:0.89.1",
+        image: str = "ghga/fastapi_essentials:0.94.1",
         port: int = 8000,
     ) -> None:
         """Initialize the Fastapi test container.
@@ -62,7 +62,7 @@ class MockAPIContainer(DockerContainer):
     def readiness_probe(self):
         """Test if the container is ready."""
         connection_url = self.get_connection_url()
-        request = requests.get(f"{connection_url}/ready", timeout=0.5)
+        request = requests.get(f"{connection_url}/ready", timeout=5)
 
         if request.status_code != 204:
             raise RuntimeError("Mock API server not ready.")

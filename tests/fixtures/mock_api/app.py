@@ -77,6 +77,7 @@ async def ekss_mock(secret_id: str, receiver_public_key: str):
     """
     Mock for the drs3 /objects/{file_id} call
     """
+
     valid_secret = "some-secret"
 
     if secret_id != valid_secret:

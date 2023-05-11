@@ -15,7 +15,6 @@
 
 """Tests typical user journeys"""
 
-import base64
 import json
 
 import pytest
@@ -41,6 +40,8 @@ async def test_happy(
     example_file = populated_fixture.example_file
     joint_fixture = populated_fixture.joint_fixture
 
+    # simplify testing by using one longer lived work order token
+
     # request access to the newly registered file:
     # (An check that an event is published indicating that the file is not in
     # outbox yet.)
@@ -56,7 +57,7 @@ async def test_happy(
         ],
         in_topic=joint_fixture.config.unstaged_download_event_topic,
     ):
-        response = await joint_fixture.rest_client.get(f"/objects/{drs_id}")
+        response = await joint_fixture.rest_client.get(f"/objects/{drs_id}", timeout=5)
     assert response.status_code == status.HTTP_202_ACCEPTED
     assert (
         int(response.headers["Retry-After"]) == joint_fixture.config.retry_access_after
@@ -92,18 +93,23 @@ async def test_happy(
 
     # download file bytes:
     presigned_url = drs_object_response.json()["access_methods"][0]["access_url"]["url"]
-    dowloaded_file = requests.get(presigned_url, timeout=2)
+    dowloaded_file = requests.get(presigned_url, timeout=5)
     dowloaded_file.raise_for_status()
     assert dowloaded_file.content == file_object.content
 
-    pubkey = base64.urlsafe_b64encode(b"valid_key").decode("utf-8")
-
     response = await joint_fixture.rest_client.get(
-        f"/objects/invalid_id/envelopes/{pubkey}", timeout=60
-    )
-    assert response.status_code == status.HTTP_404_NOT_FOUND
-
-    response = await joint_fixture.rest_client.get(
-        f"/objects/{drs_id}/envelopes/{pubkey}", timeout=60
+        f"/objects/{drs_id}/envelopes", timeout=5
     )
     assert response.status_code == status.HTTP_200_OK
+
+    response = await joint_fixture.rest_client.get(
+        "/objects/invalid_id/envelopes", timeout=5
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    response = await joint_fixture.rest_client.get(
+        f"/objects/{drs_id}/envelopes",
+        timeout=5,
+        headers={"Authorization": "Bearer invalid"},
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN

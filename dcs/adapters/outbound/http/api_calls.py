@@ -35,7 +35,7 @@ def call_ekss_api(*, secret_id: str, receiver_public_key: str, api_base: str) ->
     if status_code != 200:
         spec: dict[int, object] = {
             404: {
-                "secretNotFoundError": exceptions.SecretNotFoundError(
+                "secretNotFoundError": lambda: exceptions.SecretNotFoundError(
                     secret_id=secret_id
                 )
             },

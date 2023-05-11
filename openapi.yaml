@@ -200,6 +200,35 @@ components:
       - object_id
       title: HttpObjectNotFoundErrorData
       type: object
+    HttpWrongFileAuthorizationError:
+      additionalProperties: false
+      description: A custom exception body model.
+      properties:
+        data:
+          $ref: '#/components/schemas/HttpWrongFileAuthorizationErrorData'
+        description:
+          description: A human readable message to the client explaining the cause
+            of the exception.
+          title: Description
+          type: string
+        exception_id:
+          enum:
+          - wrongFileAuthorizationError
+          title: Exception Id
+          type: string
+      required:
+      - data
+      - description
+      - exception_id
+      title: HttpWrongFileAuthorizationError
+      type: object
+    HttpWrongFileAuthorizationErrorData:
+      description: 'An empty model used as default for describing exception data.
+
+        Please overwrite this to define your own data model.'
+      properties: {}
+      title: HttpWrongFileAuthorizationErrorData
+      type: object
     ValidationError:
       properties:
         loc:
@@ -221,6 +250,10 @@ components:
       - type
       title: ValidationError
       type: object
+  securitySchemes:
+    HTTPBearer:
+      scheme: bearer
+      type: http
 info:
   description: "A service managing access to file objects storedon an S3-compatible\
     \ Object Storage. \n\nThis is an implementation of the DRS standard from the Global\
@@ -268,6 +301,17 @@ paths:
           description: The operation is delayed and will continue asynchronously.
             The client should retry this same request after the delay specified by
             Retry-After header.
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpWrongFileAuthorizationError'
+          description: 'Work order token announced wrong file ID.
+
+            Exceptions by ID:
+
+            - wrongFileAuthorizationError: Mismatch of URL file ID and token file
+            ID'
         '404':
           content:
             application/json:
@@ -282,11 +326,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
+      security:
+      - HTTPBearer: []
       summary: Returns object metadata, and a list of access methods that can be used
         to fetch object bytes.
       tags:
       - DownloadControllerService
-  /objects/{object_id}/envelopes/{public_key}:
+  /objects/{object_id}/envelopes:
     get:
       description: 'Retrieve the base64 encoded envelope for a given object based
         on object id and
@@ -300,12 +346,6 @@ paths:
         schema:
           title: Object Id
           type: string
-      - in: path
-        name: public_key
-        required: true
-        schema:
-          title: Public Key
-          type: string
       responses:
         '200':
           content:
@@ -313,6 +353,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/EnvelopeResponseModel'
           description: Successfully delivered envelope.
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpWrongFileAuthorizationError'
+          description: 'Work order token announced wrong file ID.
+
+            Exceptions by ID:
+
+            - wrongFileAuthorizationError: Mismatch of URL file ID and token file
+            ID'
         '404':
           content:
             application/json:
@@ -337,6 +388,8 @@ paths:
           description: 'Exceptions by ID:
 
             - externalAPIError: Communication with a service external API failed'
+      security:
+      - HTTPBearer: []
       summary: Returns base64 encoded, personalized file envelope
       tags:
       - DownloadControllerService
