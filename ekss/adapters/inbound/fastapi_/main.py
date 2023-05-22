@@ -20,7 +20,7 @@ Additional endpoints might be structured in dedicated modules
 """
 
 from fastapi import FastAPI
-from ghga_service_chassis_lib.api import ApiConfigBase, configure_app
+from ghga_service_commons.api import ApiConfigBase, configure_app
 
 from ekss.adapters.inbound.fastapi_.custom_openapi import get_openapi_schema
 from ekss.adapters.inbound.fastapi_.download.router import download_router

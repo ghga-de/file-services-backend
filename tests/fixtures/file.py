@@ -21,7 +21,7 @@ from typing import AsyncGenerator
 
 import crypt4gh.lib
 import pytest_asyncio
-from ghga_service_chassis_lib.utils import big_temp_file
+from ghga_service_commons.utils import temp_files
 
 from ekss.config import CONFIG
 from tests.fixtures.keypair import generate_keypair_fixture  # noqa: F401
@@ -51,7 +51,7 @@ async def first_part_fixture(
     file_size = 20 * 1024**2
     part_size = 16 * 1024**2
 
-    with big_temp_file(file_size) as raw_file:
+    with temp_files.big_temp_file(file_size) as raw_file:
         with io.BytesIO() as encrypted_file:
             server_pubkey = base64.b64decode(CONFIG.server_public_key)
             keys = [(0, generate_keypair_fixture.private_key, server_pubkey)]
