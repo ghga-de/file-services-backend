@@ -15,6 +15,8 @@
 
 """HTTP calls to other service APIs happen here"""
 
+import base64
+
 import requests
 
 from dcs.adapters.outbound.http import exceptions
@@ -24,7 +26,11 @@ from dcs.adapters.outbound.http.exception_translation import ResponseExceptionTr
 def call_ekss_api(*, secret_id: str, receiver_public_key: str, api_base: str) -> str:
     """Calls EKS to get an envelope for an encrypted file, using the receivers
     public key as well as the id of the file secret."""
-    api_url = f"{api_base}/secrets/{secret_id}/envelopes/{receiver_public_key}"
+
+    receiver_public_key_base64 = base64.urlsafe_b64encode(
+        base64.b64decode(receiver_public_key)
+    ).decode()
+    api_url = f"{api_base}/secrets/{secret_id}/envelopes/{receiver_public_key_base64}"
     try:
         response = requests.get(url=api_url, timeout=60)
     except requests.exceptions.RequestException as request_error:
