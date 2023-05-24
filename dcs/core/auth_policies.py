@@ -14,7 +14,12 @@
 # limitations under the License.
 """Supported authentication policies for endpoints"""
 
-from typing import Literal, Union
+try:  # workaround for https://github.com/pydantic/pydantic/issues/5821
+    from typing_extensions import Literal
+except ImportError:
+    from typing import Literal  # type: ignore
+
+from typing import Union
 
 from ghga_service_commons.utils.crypt import decode_key
 from pydantic import BaseModel, EmailStr, Field, validator

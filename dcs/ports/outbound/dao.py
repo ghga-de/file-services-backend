@@ -25,4 +25,4 @@ from hexkit.protocols.dao import (  # noqa: F401
 from dcs.core import models
 
 # port described by a type alias:
-DrsObjectDaoPort = DaoNaturalId[models.DrsObject]
+DrsObjectDaoPort = DaoNaturalId[models.AccessTimeDrsObject]

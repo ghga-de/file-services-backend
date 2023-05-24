@@ -35,7 +35,7 @@ import httpx
 import pytest_asyncio
 from ghga_event_schemas import pydantic_ as event_schemas
 from ghga_service_commons.api.testing import AsyncTestClient
-from ghga_service_commons.utils import jwt_helpers
+from ghga_service_commons.utils import jwt_helpers, utc_dates
 from ghga_service_commons.utils.crypt import encode_key, generate_key_pair
 from hexkit.providers.akafka.testutils import KafkaFixture, kafka_fixture
 from hexkit.providers.mongodb.testutils import MongoDbFixture  # F401
@@ -50,12 +50,13 @@ from dcs.main import get_configured_container, get_rest_api
 from tests.fixtures.config import get_config
 from tests.fixtures.mock_api.testcontainer import MockAPIContainer
 
-EXAMPLE_FILE = models.DrsObject(
+EXAMPLE_FILE = models.AccessTimeDrsObject(
     file_id="examplefile001",
     decrypted_sha256="0677de3685577a06862f226bb1bfa8f889e96e59439d915543929fb4f011d096",
     creation_date=datetime.now().isoformat(),
     decrypted_size=12345,
     decryption_secret_id="some-secret",
+    last_accessed=utc_dates.now_as_utc(),
 )
 
 SignedToken = str

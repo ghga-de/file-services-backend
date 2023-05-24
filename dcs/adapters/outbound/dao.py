@@ -33,6 +33,6 @@ class DrsObjectDaoConstructor:
 
         return await dao_factory.get_dao(
             name="drs_objects",
-            dto_model=models.DrsObject,
+            dto_model=models.AccessTimeDrsObject,
             id_field="file_id",
         )

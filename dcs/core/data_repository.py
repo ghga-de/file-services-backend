@@ -17,6 +17,7 @@
 
 import re
 
+from ghga_service_commons.utils import utc_dates
 from pydantic import BaseSettings, Field, PositiveInt, validator
 
 from dcs.adapters.outbound.http import exceptions
@@ -127,9 +128,13 @@ class DataRepository(DataRepositoryPort):
 
         # make sure that metadata for the DRS object exists in the database:
         try:
-            drs_object = await self._drs_object_dao.get_by_id(drs_id)
+            drs_object_with_access_time = await self._drs_object_dao.get_by_id(drs_id)
         except ResourceNotFoundError as error:
             raise self.DrsObjectNotFoundError(drs_id=drs_id) from error
+
+        drs_object = models.DrsObject(
+            **drs_object_with_access_time.dict(exclude={"last_accessed"})
+        )
 
         drs_object_with_uri = self._get_model_with_self_uri(drs_object=drs_object)
 
@@ -146,6 +151,14 @@ class DataRepository(DataRepositoryPort):
             raise self.RetryAccessLaterError(
                 retry_after=self._config.retry_access_after
             )
+
+        # Successfully staged, update access information now
+        drs_object_with_access_time.last_accessed = utc_dates.now_as_utc()
+        try:
+            await self._drs_object_dao.update(drs_object_with_access_time)
+        except ResourceNotFoundError as error:
+            raise self.DrsObjectNotFoundError(drs_id=drs_id) from error
+
         drs_object_with_access = await self._get_access_model(drs_object=drs_object)
 
         # publish an event indicating the served download:
@@ -160,8 +173,11 @@ class DataRepository(DataRepositoryPort):
     async def register_new_file(self, *, file: models.DrsObject):
         """Register a file as a new DRS Object."""
 
+        file_with_access_time = models.AccessTimeDrsObject(
+            **file.dict(), last_accessed=utc_dates.now_as_utc()
+        )
         # write file entry to database
-        await self._drs_object_dao.insert(file)
+        await self._drs_object_dao.insert(file_with_access_time)
 
         # publish message that the drs file has been registered
         drs_object_with_uri = self._get_model_with_self_uri(drs_object=file)
