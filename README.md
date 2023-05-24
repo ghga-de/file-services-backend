@@ -41,6 +41,14 @@ private key and the clients public key to create a crypt4gh file envelope.
 This enpoint returns the envelope.
 
 
+#### `DELETE /secrets/{secret_id}`:
+
+This endpoint takes a secret_id.
+It deletes the corresponding secret from the Vault.
+This enpoint returns a 204 Response, if the deletion was successfull
+or a 404 response, if the secret_id did not exist.
+
+
 ## Installation
 We recommend using the provided Docker container.
 
