@@ -25,3 +25,7 @@ class SecretInsertionError(VaultException):
 
 class SecretRetrievalError(VaultException):
     """Wrapper for errors encountered on secret retrieval"""
+
+
+class SecretDeletionError(VaultException):
+    """Wrapper for errors encountered on secret deletion"""

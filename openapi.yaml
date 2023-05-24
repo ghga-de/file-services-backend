@@ -281,6 +281,36 @@ paths:
         enevelope
       tags:
       - EncryptionKeyStoreService
+  /secrets/{secret_id}:
+    delete:
+      description: Create header envelope for the file secret with given ID encrypted
+        with a given public key
+      operationId: deleteSecret
+      parameters:
+      - in: path
+        name: secret_id
+        required: true
+        schema:
+          title: Secret Id
+          type: string
+      responses:
+        '204':
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpSecretNotFoundError'
+          description: Not Found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Delete the associated secret
+      tags:
+      - EncryptionKeyStoreService
   /secrets/{secret_id}/envelopes/{client_pk}:
     get:
       description: Create header envelope for the file secret with given ID encrypted

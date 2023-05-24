@@ -38,3 +38,12 @@ class InboundEnvelopeContent(BaseModel):
     new_secret: str
     secret_id: str
     offset: int
+
+
+class OutboundEnvelopeContent(BaseModel):
+    """
+    Contains the header envelope, which contains the file secret encrypted with the
+    client's public key and the server's private key
+    """
+
+    content: str

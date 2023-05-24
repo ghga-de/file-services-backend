@@ -20,13 +20,17 @@ import os
 from fastapi import APIRouter, Depends, status
 from requests.exceptions import RequestException
 
+from ekss.adapters.inbound.fastapi_ import exceptions, models
 from ekss.adapters.inbound.fastapi_.deps import get_vault
-from ekss.adapters.inbound.fastapi_.upload import exceptions, models
 from ekss.adapters.outbound.vault import VaultAdapter
-from ekss.adapters.outbound.vault.exceptions import SecretInsertionError
+from ekss.adapters.outbound.vault.exceptions import (
+    SecretInsertionError,
+    SecretRetrievalError,
+)
 from ekss.core.envelope_decryption import extract_envelope_content
+from ekss.core.envelope_encryption import get_envelope
 
-upload_router = APIRouter(tags=["EncryptionKeyStoreService"])
+router = APIRouter(tags=["EncryptionKeyStoreService"])
 ERROR_RESPONSES = {
     "malformedOrMissingEnvelope": {
         "description": (""),
@@ -44,10 +48,14 @@ ERROR_RESPONSES = {
         "description": (""),
         "model": exceptions.HttpVaultConnectionError.get_body_model(),
     },
+    "secretNotFoundError": {
+        "description": (""),
+        "model": exceptions.HttpSecretNotFoundError.get_body_model(),
+    },
 }
 
 
-@upload_router.post(
+@router.post(
     "/secrets",
     summary="Extract file encryption/decryption secret and file content offset from enevelope",
     operation_id="postEncryptionData",
@@ -96,3 +104,52 @@ async def post_encryption_secrets(
         "secret_id": secret_id,
         "offset": offset,
     }
+
+
+@router.get(
+    "/secrets/{secret_id}/envelopes/{client_pk}",
+    summary="Get personalized envelope containing Crypt4GH file encryption/decryption key",
+    operation_id="getEncryptionData",
+    status_code=status.HTTP_200_OK,
+    response_model=models.OutboundEnvelopeContent,
+    response_description="",
+    responses={
+        status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["secretNotFoundError"],
+    },
+)
+async def get_header_envelope(
+    *, secret_id: str, client_pk: str, vault: VaultAdapter = Depends(get_vault)
+):
+    """Create header envelope for the file secret with given ID encrypted with a given public key"""
+    try:
+        header_envelope = await get_envelope(
+            secret_id=secret_id,
+            client_pubkey=base64.urlsafe_b64decode(client_pk),
+            vault=vault,
+        )
+    except SecretRetrievalError as error:
+        raise exceptions.HttpSecretNotFoundError() from error
+
+    return {
+        "content": base64.b64encode(header_envelope).decode("utf-8"),
+    }
+
+
+@router.delete(
+    "/secrets/{secret_id}",
+    summary="Delete the associated secret",
+    operation_id="deleteSecret",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_description="",
+    responses={
+        status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["secretNotFoundError"],
+    },
+)
+async def delete_secret(*, secret_id: str, vault: VaultAdapter = Depends(get_vault)):
+    """Create header envelope for the file secret with given ID encrypted with a given public key"""
+    try:
+        vault.delete_secret(key=secret_id)
+    except SecretRetrievalError as error:
+        raise exceptions.HttpSecretNotFoundError() from error
+
+    return status.HTTP_204_NO_CONTENT

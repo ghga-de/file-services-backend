@@ -84,3 +84,21 @@ class VaultAdapter:
 
         secret = response["data"]["data"][key]
         return base64.b64decode(secret)
+
+    def delete_secret(self, *, key: str, prefix: str = "ekss") -> None:
+        """
+        Delete a secret
+        """
+        self._check_auth()
+        path = f"{prefix}/{key}"
+
+        try:
+            self._client.secrets.kv.read_secret_version(path=path)
+        except hvac.exceptions.InvalidPath as exc:
+            raise exceptions.SecretRetrievalError() from exc
+
+        response = self._client.secrets.kv.v1.delete_secret(path=path, name=key)
+
+        # Check the response status
+        if response.status_code != 204:
+            raise exceptions.SecretDeletionError()
