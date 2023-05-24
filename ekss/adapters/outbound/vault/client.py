@@ -33,7 +33,6 @@ class VaultAdapter:
         url = f"{protocol}://{config.vault_host}:{config.vault_port}"
         self._client = hvac.Client(url=url)
 
-        self._client.secrets.kv.default_kv_version = 2
         self._role_id = config.vault_role_id.get_secret_value()
         self._secret_id = config.vault_secret_id.get_secret_value()
 
@@ -60,7 +59,7 @@ class VaultAdapter:
 
         try:
             # set cas to 0 as we only want a static secret
-            self._client.secrets.kv.create_or_update_secret(
+            self._client.secrets.kv.v2.create_or_update_secret(
                 path=f"{prefix}/{key}", secret={key: value}, cas=0
             )
         except hvac.exceptions.InvalidRequest as exc:
@@ -76,7 +75,7 @@ class VaultAdapter:
         self._check_auth()
 
         try:
-            response = self._client.secrets.kv.read_secret_version(
+            response = self._client.secrets.kv.v2.read_secret_version(
                 path=f"{prefix}/{key}"
             )
         except hvac.exceptions.InvalidPath as exc:
@@ -93,11 +92,13 @@ class VaultAdapter:
         path = f"{prefix}/{key}"
 
         try:
-            self._client.secrets.kv.read_secret_version(path=path)
+            self._client.secrets.kv.v2.read_secret_version(path=path)
         except hvac.exceptions.InvalidPath as exc:
             raise exceptions.SecretRetrievalError() from exc
 
-        response = self._client.secrets.kv.v1.delete_secret(path=path, name=key)
+        response = self._client.secrets.kv.v2.delete_metadata_and_all_versions(
+            path=path
+        )
 
         # Check the response status
         if response.status_code != 204:

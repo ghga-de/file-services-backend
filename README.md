@@ -48,6 +48,22 @@ It deletes the corresponding secret from the Vault.
 This enpoint returns a 204 Response, if the deletion was successfull
 or a 404 response, if the secret_id did not exist.
 
+### Vault configuration:
+
+For the aforementioned endpoints to work correctly, the vault instance the encryption
+key store communicates with needs to set policies granting *create* and *read* privileges
+on all secret paths managed and *delete* priviliges on the respective metadata.
+
+For all encryption keys stored under a prefix of *ekss* this might look like
+```
+path "secret/data/ekss/*" {
+    capabilities = ["read", "create"]
+}
+path "secret/metadata/ekss/*" {
+    capabilities = ["delete"]
+}
+```
+
 
 ## Installation
 We recommend using the provided Docker container.

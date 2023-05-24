@@ -81,6 +81,9 @@ def configure_vault(*, host: str, port: int):
     path "secret/data/ekss/*" {
         capabilities = ["read", "create"]
     }
+    path "secret/metadata/ekss/*" {
+        capabilities = ["delete"]
+    }
     """
 
     # inject policy
