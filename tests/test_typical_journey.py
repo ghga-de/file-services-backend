@@ -31,7 +31,7 @@ from tests.fixtures.joint import *  # noqa: F403
 
 
 @pytest.mark.asyncio
-async def test_happy(
+async def test_happy_journey(
     populated_fixture: PopulatedFixture,  # noqa: F405,F811
     file_fixture: FileObject,  # noqa: F811
 ):
@@ -113,3 +113,42 @@ async def test_happy(
         headers={"Authorization": "Bearer invalid"},
     )
     assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.asyncio
+async def test_happy_deletion(
+    populated_fixture: PopulatedFixture,  # noqa: F405,F811
+    file_fixture: FileObject,  # noqa: F811
+):
+    """Simulates a typical, successful journey for file deletion."""
+    drs_id = populated_fixture.drs_id
+    joint_fixture = populated_fixture.joint_fixture
+
+    # place example content in the outbox bucket:
+    file_object = file_fixture.copy(
+        update={
+            "bucket_id": joint_fixture.config.outbox_bucket,
+            "object_id": drs_id,
+        }
+    )
+    await joint_fixture.s3.populate_file_objects(file_objects=[file_object])
+
+    data_repository = await joint_fixture.container.data_repository()
+
+    # request a stage to the outbox:
+    async with joint_fixture.kafka.expect_events(
+        events=[
+            ExpectedEvent(
+                payload={
+                    "file_id": drs_id,
+                },
+                type_=joint_fixture.config.file_deleted_event_type,
+            )
+        ],
+        in_topic=joint_fixture.config.file_deleted_event_topic,
+    ):
+        await data_repository.delete_file(file_id=drs_id)
+
+    assert not await joint_fixture.s3.storage.does_object_exist(
+        bucket_id=joint_fixture.config.outbox_bucket, object_id=drs_id
+    )

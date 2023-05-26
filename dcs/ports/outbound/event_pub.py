@@ -41,3 +41,8 @@ class EventPublisherPort(ABC):
     async def file_registered(self, *, drs_object: models.DrsObjectWithUri) -> None:
         """Communicates the event that a file has been registered."""
         ...
+
+    @abstractmethod
+    async def file_deleted(self, *, file_id: str) -> None:
+        """Communicates the event that a file has been successfully deleted."""
+        ...

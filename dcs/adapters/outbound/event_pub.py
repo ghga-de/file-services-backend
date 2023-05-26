@@ -76,6 +76,18 @@ class EventPubTranslatorConfig(BaseSettings):
         ),
         example="file_registered",
     )
+    file_deleted_event_topic: str = Field(
+        ...,
+        description="Name of the topic used for events indicating that a file has"
+        + " been deleted.",
+        example="file_downloads",
+    )
+    file_deleted_event_type: str = Field(
+        ...,
+        description="The type used for events indicating that a file has"
+        + " been deleted.",
+        example="file_deleted",
+    )
 
 
 class EventPubTranslator(EventPublisherPort):
@@ -142,4 +154,19 @@ class EventPubTranslator(EventPublisherPort):
             type_=self._config.file_registered_event_type,
             topic=self._config.file_registered_event_topic,
             key=drs_object.file_id,
+        )
+
+    async def file_deleted(self, *, file_id: str) -> None:
+        """Communicates the event that a file has been successfully deleted."""
+
+        payload = event_schemas.FileDeletionSuccess(
+            file_id=file_id,
+        )
+        payload_dict = json.loads(payload.json())
+
+        await self._provider.publish(
+            payload=payload_dict,
+            type_=self._config.file_deleted_event_type,
+            topic=self._config.file_deleted_event_topic,
+            key=file_id,
         )

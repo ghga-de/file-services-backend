@@ -21,6 +21,24 @@
       ],
       "type": "string"
     },
+    "files_to_delete_topic": {
+      "title": "Files To Delete Topic",
+      "description": "The name of the topic to receive events informing about files to delete.",
+      "example": "file_deletions",
+      "env_names": [
+        "dcs_files_to_delete_topic"
+      ],
+      "type": "string"
+    },
+    "files_to_delete_type": {
+      "title": "Files To Delete Type",
+      "description": "The type used for events informing about a file to be deleted.",
+      "example": "file_deletion_requested",
+      "env_names": [
+        "dcs_files_to_delete_type"
+      ],
+      "type": "string"
+    },
     "download_served_event_topic": {
       "title": "Download Served Event Topic",
       "description": "Name of the topic used for events indicating that a download of a specified file happened.",
@@ -72,6 +90,24 @@
       "example": "file_registered",
       "env_names": [
         "dcs_file_registered_event_type"
+      ],
+      "type": "string"
+    },
+    "file_deleted_event_topic": {
+      "title": "File Deleted Event Topic",
+      "description": "Name of the topic used for events indicating that a file has been deleted.",
+      "example": "file_downloads",
+      "env_names": [
+        "dcs_file_deleted_event_topic"
+      ],
+      "type": "string"
+    },
+    "file_deleted_event_type": {
+      "title": "File Deleted Event Type",
+      "description": "The type used for events indicating that a file has been deleted.",
+      "example": "file_deleted",
+      "env_names": [
+        "dcs_file_deleted_event_type"
       ],
       "type": "string"
     },
@@ -414,12 +450,16 @@
   "required": [
     "files_to_register_topic",
     "files_to_register_type",
+    "files_to_delete_topic",
+    "files_to_delete_type",
     "download_served_event_topic",
     "download_served_event_type",
     "unstaged_download_event_topic",
     "unstaged_download_event_type",
     "file_registered_event_topic",
     "file_registered_event_type",
+    "file_deleted_event_topic",
+    "file_deleted_event_type",
     "service_instance_id",
     "kafka_servers",
     "db_connection_str",

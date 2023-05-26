@@ -82,6 +82,10 @@ The service requires the following configuration parameters:
 
 - **`files_to_register_type`** *(string)*: The type used for events informing about new files that shall be made available for download.
 
+- **`files_to_delete_topic`** *(string)*: The name of the topic to receive events informing about files to delete.
+
+- **`files_to_delete_type`** *(string)*: The type used for events informing about a file to be deleted.
+
 - **`download_served_event_topic`** *(string)*: Name of the topic used for events indicating that a download of a specified file happened.
 
 - **`download_served_event_type`** *(string)*: The type used for event indicating that a download of a specified file happened.
@@ -93,6 +97,10 @@ The service requires the following configuration parameters:
 - **`file_registered_event_topic`** *(string)*: Name of the topic used for events indicating that a file has been registered for download.
 
 - **`file_registered_event_type`** *(string)*: The type used for event indicating that that a file has been registered for download.
+
+- **`file_deleted_event_topic`** *(string)*: Name of the topic used for events indicating that a file has been deleted.
+
+- **`file_deleted_event_type`** *(string)*: The type used for events indicating that a file has been deleted.
 
 - **`service_name`** *(string)*: Default: `dcs`.
 

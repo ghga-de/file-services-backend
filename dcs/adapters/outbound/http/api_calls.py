@@ -23,8 +23,10 @@ from dcs.adapters.outbound.http import exceptions
 from dcs.adapters.outbound.http.exception_translation import ResponseExceptionTranslator
 
 
-def call_ekss_api(*, secret_id: str, receiver_public_key: str, api_base: str) -> str:
-    """Calls EKS to get an envelope for an encrypted file, using the receivers
+def get_envelope_from_ekss(
+    *, secret_id: str, receiver_public_key: str, api_base: str
+) -> str:
+    """Calls EKSS to get an envelope for an encrypted file, using the receivers
     public key as well as the id of the file secret."""
 
     receiver_public_key_base64 = base64.urlsafe_b64encode(
@@ -53,3 +55,28 @@ def call_ekss_api(*, secret_id: str, receiver_public_key: str, api_base: str) ->
     content = body["content"]
 
     return content
+
+
+def delete_secret_from_ekss(*, secret_id: str, api_base: str) -> None:
+    """Calls EKSS to delete a file secret"""
+
+    api_url = f"{api_base}/secrets/{secret_id}"
+
+    try:
+        response = requests.delete(url=api_url, timeout=60)
+    except requests.exceptions.RequestException as request_error:
+        raise exceptions.RequestFailedError(url=api_base) from request_error
+
+    status_code = response.status_code
+
+    # implement httpyexpect error conversion
+    if status_code != 204:
+        spec: dict[int, object] = {
+            404: {
+                "secretNotFoundError": lambda: exceptions.SecretNotFoundError(
+                    secret_id=secret_id
+                )
+            },
+        }
+        ResponseExceptionTranslator(spec=spec).handle(response=response)
+        raise exceptions.BadResponseCodeError(url=api_base, response_code=status_code)

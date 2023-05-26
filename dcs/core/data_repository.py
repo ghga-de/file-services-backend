@@ -21,7 +21,10 @@ from ghga_service_commons.utils import utc_dates
 from pydantic import BaseSettings, Field, PositiveInt, validator
 
 from dcs.adapters.outbound.http import exceptions
-from dcs.adapters.outbound.http.api_calls import call_ekss_api
+from dcs.adapters.outbound.http.api_calls import (
+    delete_secret_from_ekss,
+    get_envelope_from_ekss,
+)
 from dcs.core import models
 from dcs.ports.inbound.data_repository import DataRepositoryPort
 from dcs.ports.outbound.dao import DrsObjectDaoPort, ResourceNotFoundError
@@ -196,7 +199,7 @@ class DataRepository(DataRepositoryPort):
             raise self.DrsObjectNotFoundError(drs_id=drs_id) from error
 
         try:
-            envelope = call_ekss_api(
+            envelope = get_envelope_from_ekss(
                 secret_id=drs_object.decryption_secret_id,
                 receiver_public_key=public_key,
                 api_base=self._config.ekss_base_url,
@@ -212,3 +215,45 @@ class DataRepository(DataRepositoryPort):
             raise self.EnvelopeNotFoundError(object_id=drs_id) from error
 
         return envelope
+
+    async def delete_file(self, *, file_id: str) -> None:
+        """Deletes a file from the outbox storage, the internal database and the
+        corresponding secret from the secrets store.
+        If no file or secret with that id exists, do nothing.
+
+        Args:
+            file_id: id for the file to delete.
+        """
+
+        # Get secret_id, call EKSS to remove file secret from vault
+        try:
+            drs_object = await self._drs_object_dao.get_by_id(id_=file_id)
+            delete_secret_from_ekss(
+                secret_id=drs_object.decryption_secret_id,
+                api_base=self._config.ekss_base_url,
+            )
+        except (
+            exceptions.SecretNotFoundError,
+            self._object_storage.ObjectNotFoundError,
+        ):
+            # If the secret does not exist, we are done
+            pass
+
+        # Try to remove file from S3
+        try:
+            await self._object_storage.delete_object(
+                bucket_id=self._config.outbox_bucket, object_id=file_id
+            )
+
+        except self._object_storage.ObjectNotFoundError:
+            # If file does not exist anyways, we are done.
+            pass
+
+        # Try to remove file from database
+        try:
+            await self._drs_object_dao.delete(id_=file_id)
+        except ResourceNotFoundError:
+            # If file does not exist anyways, we are done.
+            pass
+
+        await self._event_publisher.file_deleted(file_id=file_id)
