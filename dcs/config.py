@@ -55,5 +55,5 @@ class Config(
 ):
     """Config parameters and their defaults."""
 
-    service_name: str = "dcs"
     api_route: str = "/ga4gh/drs/v1"
+    service_name: str = "dcs"

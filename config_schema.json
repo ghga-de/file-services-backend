@@ -206,6 +206,15 @@
       "exclusiveMinimum": 0,
       "type": "integer"
     },
+    "cache_timeout": {
+      "title": "Cache Timeout",
+      "description": "Time in days since last access after which a file present in the outbox should be unstaged and has to be requested from permanent storage again for the next request.",
+      "default": 7,
+      "env_names": [
+        "dcs_cache_timeout"
+      ],
+      "type": "integer"
+    },
     "s3_endpoint_url": {
       "title": "S3 Endpoint Url",
       "description": "URL to the S3 API.",

@@ -124,6 +124,8 @@ The service requires the following configuration parameters:
 
 - **`presigned_url_expires_after`** *(integer)*: Expiration time in seconds for presigned URLS. Positive integer required.
 
+- **`cache_timeout`** *(integer)*: Time in days since last access after which a file present in the outbox should be unstaged and has to be requested from permanent storage again for the next request. Default: `7`.
+
 - **`s3_endpoint_url`** *(string)*: URL to the S3 API.
 
 - **`s3_access_key_id`** *(string)*: Part of credentials for login into the S3 service. See: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html.

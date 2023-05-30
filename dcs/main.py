@@ -75,3 +75,13 @@ async def consume_events(run_forever: bool = True):
     async with get_configured_container(config=config) as container:
         event_subscriber = await container.event_subscriber()
         await event_subscriber.run(forever=run_forever)
+
+
+async def run_outbox_cleanup():
+    """Check if outbox contains files that should be cleaned up and perform clean-up"""
+
+    config = Config()
+
+    async with get_configured_container(config=config) as container:
+        data_repository = await container.data_repository()
+        await data_repository.cleanup_outbox()

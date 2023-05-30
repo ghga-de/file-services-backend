@@ -16,6 +16,7 @@
 """Main business-logic of this service"""
 
 import re
+from datetime import timedelta
 
 from ghga_service_commons.utils import utc_dates
 from pydantic import BaseSettings, Field, PositiveInt, validator
@@ -57,6 +58,12 @@ class DataRepositoryConfig(BaseSettings):
         ...,
         description="Expiration time in seconds for presigned URLS. Positive integer required",
         example=30,
+    )
+    cache_timeout: int = Field(
+        7,
+        description="Time in days since last access after which a file present in the "
+        + "outbox should be unstaged and has to be requested from permanent storage again "
+        + "for the next request.",
     )
 
     # pylint: disable=no-self-argument
@@ -173,11 +180,48 @@ class DataRepository(DataRepositoryPort):
         )
         return drs_object_with_access.convert_to_drs_response_model(size=encrypted_size)
 
+    async def cleanup_outbox(self):
+        """
+        Check if files present in the outbox have outlived their allocated time and remove
+        all that do.
+        For each file in the outbox, its 'last_accessed' field is checked and compared
+        to the current datetime. If the threshold configured in the cache_timeout option
+        is met or exceeded, the corresponding file is removed from the outbox.
+        """
+        threshold = utc_dates.now_as_utc() - timedelta(days=self._config.cache_timeout)
+
+        # filter to get all files in outbox that should be removed
+        outbox_ids = await self._object_storage.list_all_object_ids(
+            bucket_id=self._config.outbox_bucket
+        )
+        for outbox_id in outbox_ids:
+            try:
+                drs_object = await self._drs_object_dao.get_by_id(outbox_id)
+            except ResourceNotFoundError as error:
+                raise self.CleanupError(
+                    object_id=outbox_id, from_error=error
+                ) from error
+
+            # only remove file if last access is later than cache timeout days ago
+            if drs_object.last_accessed <= threshold:
+                try:
+                    await self._object_storage.delete_object(
+                        bucket_id=self._config.outbox_bucket, object_id=outbox_id
+                    )
+                except (
+                    self._object_storage.ObjectError,
+                    self._object_storage.ObjectStorageProtocolError,
+                ) as error:
+                    raise self.CleanupError(
+                        object_id=outbox_id, from_error=error
+                    ) from error
+
     async def register_new_file(self, *, file: models.DrsObject):
         """Register a file as a new DRS Object."""
 
         file_with_access_time = models.AccessTimeDrsObject(
-            **file.dict(), last_accessed=utc_dates.now_as_utc()
+            **file.dict(),
+            last_accessed=utc_dates.now_as_utc(),
         )
         # write file entry to database
         await self._drs_object_dao.insert(file_with_access_time)

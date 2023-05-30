@@ -19,7 +19,7 @@ import asyncio
 
 import typer
 
-from dcs.main import consume_events, run_rest
+from dcs.main import consume_events, run_outbox_cleanup, run_rest
 
 cli = typer.Typer()
 
@@ -36,3 +36,10 @@ def sync_consume_events(run_forever: bool = True):
     """Run an event consumer listening to the specified topic."""
 
     asyncio.run(consume_events(run_forever=run_forever))
+
+
+@cli.command(name="cleanup-outbox")
+def sync_run_cleanup():
+    """Run outbox cleanup"""
+
+    asyncio.run(run_outbox_cleanup())

@@ -30,6 +30,18 @@ class DataRepositoryPort(ABC):
             message = f"Failed to communicate with API at {api_url}"
             super().__init__(message)
 
+    class CleanupError(RuntimeError):
+        """
+        Raised when removal of an object from the outbox could not be performed due to
+        an underlying issue
+        """
+
+        def __init__(self, *, object_id: str, from_error: Exception):
+            message = (
+                f"Could not remove object {object_id} from outbox: {str(from_error)}"
+            )
+            super().__init__(message)
+
     class DrsObjectNotFoundError(RuntimeError):
         """Raised when no DRS object was found with the specified DRS ID."""
 
@@ -74,6 +86,17 @@ class DataRepositoryPort(ABC):
         Serve the specified DRS object with access information.
         If it does not exists in the outbox, yet, a RetryAccessLaterError is raised that
         instructs to retry the call after a specified amount of time.
+        """
+        ...
+
+    @abstractmethod
+    async def cleanup_outbox(self):
+        """
+        Check if files present in the outbox have outlived their allocated time and remove
+        all that do.
+        For each file in the outbox, its 'last_accessed' field is checked and compared
+        to the current datetime. If the threshold configured in the cache_timeout option
+        is met or exceeded, the corresponding file is removed from the outbox.
         """
         ...
 
