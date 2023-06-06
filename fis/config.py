@@ -18,16 +18,13 @@
 from ghga_service_commons.api import ApiConfigBase
 from hexkit.config import config_from_yaml
 
-from .models import SupportedLanguages
-
 
 # Please adapt config prefix and remove unnecessary config bases:
-@config_from_yaml(prefix="my_microservice")
+@config_from_yaml(prefix="fis")
 class Config(ApiConfigBase):
     """Config parameters and their defaults."""
 
-    service_name: str = "my_microservice"  # Please adapt
-    language: SupportedLanguages = "Croatian"
+    service_name: str = "fis"
 
 
 CONFIG = Config()

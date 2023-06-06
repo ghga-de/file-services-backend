@@ -1,52 +1,34 @@
 
-[![tests](https://github.com/ghga-de/microservice-repository-template/actions/workflows/unit_and_int_tests.yaml/badge.svg)](https://github.com/ghga-de/microservice-repository-template/actions/workflows/unit_and_int_tests.yaml)
-[![Coverage Status](https://coveralls.io/repos/github/ghga-de/microservice-repository-template/badge.svg?branch=main)](https://coveralls.io/github/ghga-de/microservice-repository-template?branch=main)
+[![tests](https://github.com/ghga-de/file-ingest-service/actions/workflows/unit_and_int_tests.yaml/badge.svg)](https://github.com/ghga-de/file-ingest-service/actions/workflows/unit_and_int_tests.yaml)
+[![Coverage Status](https://coveralls.io/repos/github/ghga-de/file-ingest-service/badge.svg?branch=main)](https://coveralls.io/github/ghga-de/file-ingest-service?branch=main)
 
-# Microservice Repository Template
+# File Ingest Service
 
-My-Microservice - a short description
+File Ingest Service - A lightweight service to propagate file upload metadata to the GHGA file backend services
 
 ## Description
 
 <!-- Please provide a short overview of the features of this service.-->
 
-This repo is a template for creating a new microservice.
+The File Ingest Service provides an endpoint to populate the Encryption Key Store,
+Internal File Registry and Download Controller with output metadata from the S3 upload
+script at https://github.com/ghga-de/data-steward-scripts/blob/main/src/s3_upload.py.
 
-The directories, files, and their structure herein are recommendations
-from the GHGA Dev Team.
-
-### Naming Conventions
-The github repository contains only lowercase letters, numbers, and hyphens "-",
-e.g.: `my-microservice`
-
-The python package (and thus the source repository) contains underscores "_"
-instead of hyphens, e.g.: `my_microservice`
-However, an abbreviated version is prefered as package name.
-
-### Adapt to your service
-This is just a template and needs some adaption to your specific use case.
-
-Please search for **"please adapt"** comments. They will indicate all locations
-that need modification. Once the adaptions are in place, please remove these #
-comments.
-
-Finally, follow the instructions to generate the README.md described in
-[`./readme_generation.md`](./readme_generation.md). Please also adapt this markdown file
-by providing an overview of the feature of the package.
+TODO: Endpoint description (will follow in the endpoint ticket)
 
 
 ## Installation
 We recommend using the provided Docker container.
 
-A pre-build version is available at [docker hub](https://hub.docker.com/repository/docker/ghga/microservice-repository-template):
+A pre-build version is available at [docker hub](https://hub.docker.com/repository/docker/ghga/file-ingest-service):
 ```bash
-docker pull ghga/microservice-repository-template:0.1.0
+docker pull ghga/file-ingest-service:0.1.0
 ```
 
 Or you can build the container yourself from the [`./Dockerfile`](./Dockerfile):
 ```bash
 # Execute in the repo's root dir:
-docker build -t ghga/microservice-repository-template:0.1.0 .
+docker build -t ghga/file-ingest-service:0.1.0 .
 ```
 
 For production-ready deployment, we recommend using Kubernetes, however,
@@ -54,7 +36,7 @@ for simple use cases, you could execute the service using docker
 on a single server:
 ```bash
 # The entrypoint is preconfigured:
-docker run -p 8080:8080 ghga/microservice-repository-template:0.1.0 --help
+docker run -p 8080:8080 ghga/file-ingest-service:0.1.0 --help
 ```
 
 If you prefer not to use containers, you may install the service from source:
@@ -63,7 +45,7 @@ If you prefer not to use containers, you may install the service from source:
 pip install .
 
 # To run the service:
-my_microservice --help
+fis --help
 ```
 
 ## Configuration
@@ -100,18 +82,16 @@ The service requires the following configuration parameters:
 
   - **Items** *(string)*
 
-- **`service_name`** *(string)*: Default: `my_microservice`.
-
-- **`language`** *(string)*: Must be one of: `['Greek', 'Croatian', 'French', 'German']`. Default: `Croatian`.
+- **`service_name`** *(string)*: Default: `fis`.
 
 
 ### Usage:
 
 A template YAML for configurating the service can be found at
 [`./example-config.yaml`](./example-config.yaml).
-Please adapt it, rename it to `.my_microservice.yaml`, and place it into one of the following locations:
-- in the current working directory were you are execute the service (on unix: `./.my_microservice.yaml`)
-- in your home directory (on unix: `~/.my_microservice.yaml`)
+Please adapt it, rename it to `.fis.yaml`, and place it into one of the following locations:
+- in the current working directory were you are execute the service (on unix: `./.fis.yaml`)
+- in your home directory (on unix: `~/.fis.yaml`)
 
 The config yaml will be automatically parsed by the service.
 
@@ -120,8 +100,8 @@ The config yaml will be automatically parsed by the service.
 All parameters mentioned in the [`./example-config.yaml`](./example-config.yaml)
 could also be set using environment variables or file secrets.
 
-For naming the environment variables, just prefix the parameter name with `my_microservice_`,
-e.g. for the `host` set an environment variable named `my_microservice_host`
+For naming the environment variables, just prefix the parameter name with `fis_`,
+e.g. for the `host` set an environment variable named `fis_host`
 (you may use both upper or lower cases, however, it is standard to define all env
 variables in upper cases).
 
