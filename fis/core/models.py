@@ -12,5 +12,27 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Models for internal representation"""
 
-"""Subpackage defining a RESTful API"""
+from pydantic import BaseModel
+
+
+class FileUploadMetadataEncrypted(BaseModel):
+    """Encrypted file upload metadata model"""
+
+    payload: str
+
+
+class FileUploadMetadata(BaseModel):
+    """Decrypted payload model for S3 upload script output"""
+
+    # get all data for now, optimize later if we don't need all of it
+    file_id: str
+    object_id: str
+    part_size: int
+    unencrypted_size: int
+    encrypted_size: int
+    file_secret: str
+    unencrypted_checksum: str
+    encrypted_md5_checksums: list[str]
+    encrypted_sha256_checksums: list[str]

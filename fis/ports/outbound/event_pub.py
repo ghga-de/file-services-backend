@@ -12,12 +12,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Interface for broadcasting events to other services."""
 
-"""FastAPI dependencies (used with the `Depends` feature)"""
-
-from ..config import CONFIG
+from abc import ABC
 
 
-def get_config():
-    """Get runtime configuration."""
-    return CONFIG
+class EventPublisherPort(ABC):
+    """A port through which ingest events are communicated with the file backend services."""

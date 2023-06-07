@@ -9,5 +9,9 @@ host: 127.0.0.1
 log_level: info
 openapi_url: /openapi.json
 port: 8080
+private_key: dummy-key
 service_name: fis
+token_hashes:
+- abcdef
+- ghijkl
 workers: 1

@@ -3,6 +3,23 @@
   "description": "Modifies the orginal Settings class provided by the user",
   "type": "object",
   "properties": {
+    "token_hashes": {
+      "title": "Token Hashes",
+      "env_names": [
+        "fis_token_hashes"
+      ],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "private_key": {
+      "title": "Private Key",
+      "env_names": [
+        "fis_private_key"
+      ],
+      "type": "string"
+    },
     "host": {
       "title": "Host",
       "description": "IP of the host.",
@@ -145,5 +162,9 @@
       "type": "string"
     }
   },
+  "required": [
+    "token_hashes",
+    "private_key"
+  ],
   "additionalProperties": false
 }

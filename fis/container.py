@@ -12,30 +12,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
-
-"""Used to define the location of the main FastAPI app object."""
-
-# flake8: noqa
-# pylint: skip-file
-
-from typing import Any, Dict
-
-from fastapi import FastAPI
-
-from fis.adapters.inbound.fastapi_.custom_openapi import get_openapi_schema
-from fis.adapters.inbound.fastapi_.routes import router
-
-app = FastAPI()
-app.include_router(router)
+"""Module hosting the dependency injection container."""
 
 
-def custom_openapi() -> Dict[str, Any]:
-    if app.openapi_schema:
-        return app.openapi_schema
-    openapi_schema = get_openapi_schema(app)
-    app.openapi_schema = openapi_schema
-    return app.openapi_schema
+from hexkit.inject import ContainerBase, get_configurator, get_constructor
+
+from fis.config import Config
+from fis.core.ingest import UploadMetadataProcessor
 
 
-app.openapi = custom_openapi  # type: ignore [assignment]
+class Container(ContainerBase):
+    """DI Container"""
+
+    config = get_configurator(Config)
+    upload_metadata_processor = get_constructor(UploadMetadataProcessor, config=config)

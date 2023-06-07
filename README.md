@@ -14,8 +14,6 @@ The File Ingest Service provides an endpoint to populate the Encryption Key Stor
 Internal File Registry and Download Controller with output metadata from the S3 upload
 script at https://github.com/ghga-de/data-steward-scripts/blob/main/src/s3_upload.py.
 
-TODO: Endpoint description (will follow in the endpoint ticket)
-
 
 ## Installation
 We recommend using the provided Docker container.
@@ -52,6 +50,12 @@ fis --help
 ### Parameters
 
 The service requires the following configuration parameters:
+- **`token_hashes`** *(array)*
+
+  - **Items** *(string)*
+
+- **`private_key`** *(string)*
+
 - **`host`** *(string)*: IP of the host. Default: `127.0.0.1`.
 
 - **`port`** *(integer)*: Port to expose the server on the specified host. Default: `8080`.
