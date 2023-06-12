@@ -3,6 +3,56 @@
   "description": "Modifies the orginal Settings class provided by the user",
   "type": "object",
   "properties": {
+    "debug_vault": {
+      "title": "Debug Vault",
+      "description": "If true, runs vault connections over http instead of https",
+      "default": false,
+      "example": "False",
+      "env_names": [
+        "fis_debug_vault"
+      ],
+      "type": "boolean"
+    },
+    "vault_host": {
+      "title": "Vault Host",
+      "description": "URL of the vault instance to connect to without port number",
+      "example": "http://127.0.0.1",
+      "env_names": [
+        "fis_vault_host"
+      ],
+      "type": "string"
+    },
+    "vault_port": {
+      "title": "Vault Port",
+      "description": "Port number of the vault instance to connect to",
+      "example": "8200",
+      "env_names": [
+        "fis_vault_port"
+      ],
+      "type": "integer"
+    },
+    "vault_role_id": {
+      "title": "Vault Role Id",
+      "description": "Vault role ID to access a specific prefix",
+      "example": "example_role",
+      "env_names": [
+        "fis_vault_role_id"
+      ],
+      "type": "string",
+      "writeOnly": true,
+      "format": "password"
+    },
+    "vault_secret_id": {
+      "title": "Vault Secret Id",
+      "description": "Vault secret ID to access a specific prefix",
+      "example": "example_secret",
+      "env_names": [
+        "fis_vault_secret_id"
+      ],
+      "type": "string",
+      "writeOnly": true,
+      "format": "password"
+    },
     "token_hashes": {
       "title": "Token Hashes",
       "env_names": [
@@ -163,6 +213,10 @@
     }
   },
   "required": [
+    "vault_host",
+    "vault_port",
+    "vault_role_id",
+    "vault_secret_id",
     "token_hashes",
     "private_key"
   ],

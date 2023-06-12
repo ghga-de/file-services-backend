@@ -4,6 +4,7 @@ cors_allow_credentials: null
 cors_allowed_headers: null
 cors_allowed_methods: null
 cors_allowed_origins: null
+debug_vault: false
 docs_url: /docs
 host: 127.0.0.1
 log_level: info
@@ -14,4 +15,8 @@ service_name: fis
 token_hashes:
 - abcdef
 - ghijkl
+vault_host: http://127.0.0.1
+vault_port: 8200
+vault_role_id: '**********'
+vault_secret_id: '**********'
 workers: 1

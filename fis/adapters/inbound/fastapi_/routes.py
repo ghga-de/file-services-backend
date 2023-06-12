@@ -47,11 +47,20 @@ async def ingest_file_upload_metadata(
 ):
     """Decrypt payload, process metadata, file secret and send success event"""
     try:
-        _ = await upload_metadata_processor.decrypt_payload(encrypted=encrypted_payload)
+        decrypted_metadata = await upload_metadata_processor.decrypt_payload(
+            encrypted=encrypted_payload
+        )
     except (
         upload_metadata_processor.DecryptionError,
         upload_metadata_processor.WrongDecryptedFormatError,
     ) as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
+
+    file_secret = decrypted_metadata.file_secret
+
+    try:
+        _ = await upload_metadata_processor.store_secret(file_secret=file_secret)
+    except upload_metadata_processor.VaultCommunicationError as error:
+        raise HTTPException(status_code=500, detail=str(error)) from error
 
     return Response(status_code=202)

@@ -17,6 +17,7 @@
 
 from hexkit.inject import ContainerBase, get_configurator, get_constructor
 
+from fis.adapters.outbound.vault import VaultAdapter
 from fis.config import Config
 from fis.core.ingest import UploadMetadataProcessor
 
@@ -25,4 +26,7 @@ class Container(ContainerBase):
     """DI Container"""
 
     config = get_configurator(Config)
-    upload_metadata_processor = get_constructor(UploadMetadataProcessor, config=config)
+    vault_adapter = get_constructor(VaultAdapter, config=config)
+    upload_metadata_processor = get_constructor(
+        UploadMetadataProcessor, config=config, vault_adapter=vault_adapter
+    )

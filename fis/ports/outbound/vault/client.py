@@ -12,21 +12,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Config Parameter Modeling and Parsing"""
+"""Ports for vault interaction"""
 
-from ghga_service_commons.api import ApiConfigBase
-from hexkit.config import config_from_yaml
-
-from fis.adapters.outbound.vault import VaultConfig
-from fis.core.ingest import ServiceConfig
+from abc import ABC, abstractmethod
 
 
-# Please adapt config prefix and remove unnecessary config bases:
-@config_from_yaml(prefix="fis")
-class Config(ApiConfigBase, ServiceConfig, VaultConfig):
-    """Config parameters and their defaults."""
+class VaultAdapterPort(ABC):
+    """Port for vault adapter"""
 
-    service_name: str = "fis"
+    class SecretInsertionError(RuntimeError):
+        """Wrapper for errors encountered on secret insertion"""
 
-
-CONFIG = Config()
+    @abstractmethod
+    def store_secret(self, *, secret: str, prefix: str = "ekss") -> str:
+        """
+        Store a secret under a subpath of the given prefix.
+        Generates a UUID4 as key, uses it for the subpath and returns it.
+        """

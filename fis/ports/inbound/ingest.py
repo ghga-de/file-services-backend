@@ -38,6 +38,12 @@ class UploadMetadataProcessorPort(ABC):
             message = f"Decrypted payload does not conform to expected format: {cause}."
             super().__init__(message)
 
+    class VaultCommunicationError(RuntimeError):
+        """Thrown when interaction with the vault resulted in an error"""
+
+        def __init__(self, *, message) -> None:
+            super().__init__(message)
+
     @abstractmethod
     async def decrypt_payload(
         self, *, encrypted: models.FileUploadMetadataEncrypted
@@ -49,5 +55,5 @@ class UploadMetadataProcessorPort(ABC):
         """Send FileUploadValidationSuccess event to be processed by downstream services"""
 
     @abstractmethod
-    async def store_secret(self, *, file_secret: str):
+    async def store_secret(self, *, file_secret: str) -> str:
         """Communicate with HashiCorp Vault to store file secret and get secret ID"""

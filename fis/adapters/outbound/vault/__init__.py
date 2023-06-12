@@ -12,21 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Config Parameter Modeling and Parsing"""
+"""Module containing HashiCorp vault related functionality"""
 
-from ghga_service_commons.api import ApiConfigBase
-from hexkit.config import config_from_yaml
+from fis.adapters.outbound.vault.client import VaultAdapter, VaultConfig
 
-from fis.adapters.outbound.vault import VaultConfig
-from fis.core.ingest import ServiceConfig
-
-
-# Please adapt config prefix and remove unnecessary config bases:
-@config_from_yaml(prefix="fis")
-class Config(ApiConfigBase, ServiceConfig, VaultConfig):
-    """Config parameters and their defaults."""
-
-    service_name: str = "fis"
-
-
-CONFIG = Config()
+__all__ = ["VaultAdapter", "VaultConfig"]

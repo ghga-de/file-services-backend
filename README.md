@@ -50,6 +50,16 @@ fis --help
 ### Parameters
 
 The service requires the following configuration parameters:
+- **`debug_vault`** *(boolean)*: If true, runs vault connections over http instead of https. Default: `False`.
+
+- **`vault_host`** *(string)*: URL of the vault instance to connect to without port number.
+
+- **`vault_port`** *(integer)*: Port number of the vault instance to connect to.
+
+- **`vault_role_id`** *(string)*: Vault role ID to access a specific prefix.
+
+- **`vault_secret_id`** *(string)*: Vault secret ID to access a specific prefix.
+
 - **`token_hashes`** *(array)*
 
   - **Items** *(string)*

@@ -23,6 +23,7 @@ from pydantic import BaseSettings, ValidationError
 
 from fis.core import models
 from fis.ports.inbound.ingest import UploadMetadataProcessorPort
+from fis.ports.outbound.vault.client import VaultAdapterPort
 
 
 class ServiceConfig(BaseSettings):
@@ -35,8 +36,9 @@ class ServiceConfig(BaseSettings):
 class UploadMetadataProcessor(UploadMetadataProcessorPort):
     """Handler for S3 upload metadata processing"""
 
-    def __init__(self, *, config: ServiceConfig):
+    def __init__(self, *, config: ServiceConfig, vault_adapter: VaultAdapterPort):
         self._config = config
+        self._vault_adapter = vault_adapter
 
     async def decrypt_payload(
         self, *, encrypted: models.FileUploadMetadataEncrypted
@@ -57,5 +59,9 @@ class UploadMetadataProcessor(UploadMetadataProcessorPort):
     async def populate_by_event(self, *, event: FileUploadValidationSuccess):
         """Send FileUploadValidationSuccess event to be processed by downstream services"""
 
-    async def store_secret(self, *, file_secret: str):
+    async def store_secret(self, *, file_secret: str) -> str:
         """Communicate with HashiCorp Vault to store file secret and get secret ID"""
+        try:
+            return self._vault_adapter.store_secret(secret=file_secret)
+        except self._vault_adapter.SecretInsertionError as error:
+            raise self.VaultCommunicationError(message=str(error)) from error
