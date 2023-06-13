@@ -14,8 +14,20 @@
 # limitations under the License.
 """Interface for broadcasting events to other services."""
 
-from abc import ABC
+from abc import ABC, abstractmethod
+
+from fis.core.models import FileUploadMetadata
 
 
 class EventPublisherPort(ABC):
     """A port through which ingest events are communicated with the file backend services."""
+
+    @abstractmethod
+    async def send_file_metadata(
+        self,
+        *,
+        upload_metadata: FileUploadMetadata,
+        source_bucket_id: str,
+        secret_id: str
+    ):
+        """Send FileUploadValidationSuccess event to downstream services"""

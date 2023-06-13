@@ -14,7 +14,7 @@
 # limitations under the License.
 """Authorization specific code for FastAPI"""
 
-from dependency_injector.wiring import Provide
+from dependency_injector.wiring import Provide, inject
 from fastapi import Depends, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from ghga_service_commons.auth.context import AuthContextProtocol
@@ -53,6 +53,7 @@ class IngestTokenAuthProvider(AuthContextProtocol[IngestTokenAuthContext]):
         return IngestTokenAuthContext(token=token)
 
 
+@inject
 async def require_token_context(
     service_config: ServiceConfig = Depends(Provide[Container.config]),
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=True)),

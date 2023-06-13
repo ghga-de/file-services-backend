@@ -16,7 +16,9 @@
 
 
 from hexkit.inject import ContainerBase, get_configurator, get_constructor
+from hexkit.providers.akafka import KafkaEventPublisher
 
+from fis.adapters.outbound.event_pub import EventPubTranslator
 from fis.adapters.outbound.vault import VaultAdapter
 from fis.config import Config
 from fis.core.ingest import UploadMetadataProcessor
@@ -26,7 +28,15 @@ class Container(ContainerBase):
     """DI Container"""
 
     config = get_configurator(Config)
+    event_pub_provider = get_constructor(KafkaEventPublisher, config=config)
+    event_publisher = get_constructor(
+        EventPubTranslator, config=config, provider=event_pub_provider
+    )
     vault_adapter = get_constructor(VaultAdapter, config=config)
+
     upload_metadata_processor = get_constructor(
-        UploadMetadataProcessor, config=config, vault_adapter=vault_adapter
+        UploadMetadataProcessor,
+        config=config,
+        event_publisher=event_publisher,
+        vault_adapter=vault_adapter,
     )

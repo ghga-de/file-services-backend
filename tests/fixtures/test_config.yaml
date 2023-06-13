@@ -1,6 +1,13 @@
 service_name: fis
-token_hashes: [abcdef, ghijkl]
+source_bucket_id: test-staging
 private_key: dummy-key
+token_hashes: [abcdef, ghijkl]
+
+publisher_topic: file_interrogation
+publisher_type: file_validation_success
+
+service_instance_id: 001
+kafka_servers: ["kafka:9092"]
 
 vault_host: "http://127.0.0.1"
 vault_port: 8200

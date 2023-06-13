@@ -7,11 +7,17 @@ cors_allowed_origins: null
 debug_vault: false
 docs_url: /docs
 host: 127.0.0.1
+kafka_servers:
+- kafka:9092
 log_level: info
 openapi_url: /openapi.json
 port: 8080
 private_key: dummy-key
+publisher_topic: file_interrogation
+publisher_type: file_validation_success
+service_instance_id: '1'
 service_name: fis
+source_bucket_id: test-staging
 token_hashes:
 - abcdef
 - ghijkl

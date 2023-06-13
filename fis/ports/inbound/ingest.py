@@ -16,8 +16,6 @@
 
 from abc import ABC, abstractmethod
 
-from ghga_event_schemas.pydantic_ import FileUploadValidationSuccess
-
 from fis.core import models
 
 
@@ -51,7 +49,9 @@ class UploadMetadataProcessorPort(ABC):
         """Decrypt upload metadata using private key"""
 
     @abstractmethod
-    async def populate_by_event(self, *, event: FileUploadValidationSuccess):
+    async def populate_by_event(
+        self, *, upload_metadata: models.FileUploadMetadata, secret_id: str
+    ):
         """Send FileUploadValidationSuccess event to be processed by downstream services"""
 
     @abstractmethod

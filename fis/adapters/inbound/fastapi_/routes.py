@@ -59,8 +59,14 @@ async def ingest_file_upload_metadata(
     file_secret = decrypted_metadata.file_secret
 
     try:
-        _ = await upload_metadata_processor.store_secret(file_secret=file_secret)
+        secret_id = await upload_metadata_processor.store_secret(
+            file_secret=file_secret
+        )
     except upload_metadata_processor.VaultCommunicationError as error:
         raise HTTPException(status_code=500, detail=str(error)) from error
+
+    await upload_metadata_processor.populate_by_event(
+        upload_metadata=decrypted_metadata, secret_id=secret_id
+    )
 
     return Response(status_code=202)

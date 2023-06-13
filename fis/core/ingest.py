@@ -16,28 +16,36 @@
 
 import json
 
-from ghga_event_schemas.pydantic_ import FileUploadValidationSuccess
 from ghga_service_commons.utils.crypt import decrypt
 from nacl.exceptions import CryptoError
 from pydantic import BaseSettings, ValidationError
 
 from fis.core import models
 from fis.ports.inbound.ingest import UploadMetadataProcessorPort
+from fis.ports.outbound.event_pub import EventPublisherPort
 from fis.ports.outbound.vault.client import VaultAdapterPort
 
 
 class ServiceConfig(BaseSettings):
     """Specific configs for authentication and encryption"""
 
-    token_hashes: list[str]
     private_key: str
+    source_bucket_id: str
+    token_hashes: list[str]
 
 
 class UploadMetadataProcessor(UploadMetadataProcessorPort):
     """Handler for S3 upload metadata processing"""
 
-    def __init__(self, *, config: ServiceConfig, vault_adapter: VaultAdapterPort):
+    def __init__(
+        self,
+        *,
+        config: ServiceConfig,
+        event_publisher: EventPublisherPort,
+        vault_adapter: VaultAdapterPort
+    ):
         self._config = config
+        self._event_publisher = event_publisher
         self._vault_adapter = vault_adapter
 
     async def decrypt_payload(
@@ -56,8 +64,15 @@ class UploadMetadataProcessor(UploadMetadataProcessorPort):
         except ValidationError as error:
             raise self.WrongDecryptedFormatError(cause=str(error)) from error
 
-    async def populate_by_event(self, *, event: FileUploadValidationSuccess):
+    async def populate_by_event(
+        self, *, upload_metadata: models.FileUploadMetadata, secret_id: str
+    ):
         """Send FileUploadValidationSuccess event to be processed by downstream services"""
+        await self._event_publisher.send_file_metadata(
+            secret_id=secret_id,
+            source_bucket_id=self._config.source_bucket_id,
+            upload_metadata=upload_metadata,
+        )
 
     async def store_secret(self, *, file_secret: str) -> str:
         """Communicate with HashiCorp Vault to store file secret and get secret ID"""
