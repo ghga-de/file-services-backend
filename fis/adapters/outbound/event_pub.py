@@ -70,8 +70,8 @@ class EventPubTranslator(EventPublisherPort):
         payload = FileUploadValidationSuccess(
             upload_date=now_as_utc().isoformat(),
             file_id=upload_metadata.file_id,
-            source_object_id=upload_metadata.object_id,
-            source_bucket_id=source_bucket_id,
+            object_id=upload_metadata.object_id,
+            bucket_id=source_bucket_id,
             decrypted_size=upload_metadata.unencrypted_size,
             decryption_secret_id=secret_id,
             content_offset=0,

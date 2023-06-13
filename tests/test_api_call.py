@@ -67,8 +67,8 @@ async def test_api_call(monkeypatch, joint_fixture: JointFixture):  # noqa: F811
     payload = FileUploadValidationSuccess(
         upload_date=expected_upload_date,
         file_id=joint_fixture.payload.file_id,
-        source_object_id=joint_fixture.payload.object_id,
-        source_bucket_id=joint_fixture.config.source_bucket_id,
+        object_id=joint_fixture.payload.object_id,
+        bucket_id=joint_fixture.config.source_bucket_id,
         decrypted_size=joint_fixture.payload.unencrypted_size,
         decryption_secret_id=secret_id,
         content_offset=0,
