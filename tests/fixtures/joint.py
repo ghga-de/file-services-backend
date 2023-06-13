@@ -55,6 +55,7 @@ from tests.fixtures.mock_api.testcontainer import MockAPIContainer
 
 EXAMPLE_FILE = models.AccessTimeDrsObject(
     file_id="examplefile001",
+    object_id="object001",
     decrypted_sha256="0677de3685577a06862f226bb1bfa8f889e96e59439d915543929fb4f011d096",
     creation_date=datetime.now().isoformat(),
     decrypted_size=12345,
@@ -163,6 +164,7 @@ class PopulatedFixture:
     """Returned by `populated_fixture()`."""
 
     drs_id: str
+    object_id: str
     example_file: models.AccessTimeDrsObject
     joint_fixture: JointFixture
 
@@ -175,6 +177,8 @@ async def populated_fixture(
     # publish an event to register a new file for download:
     files_to_register_event = event_schemas.FileInternallyRegistered(
         file_id=EXAMPLE_FILE.file_id,
+        object_id=EXAMPLE_FILE.object_id,
+        bucket_id=joint_fixture.config.outbox_bucket,
         upload_date=EXAMPLE_FILE.creation_date,
         decrypted_size=EXAMPLE_FILE.decrypted_size,
         decrypted_sha256=EXAMPLE_FILE.decrypted_sha256,
@@ -210,6 +214,12 @@ async def populated_fixture(
     assert file_registered_event.decrypted_sha256 == EXAMPLE_FILE.decrypted_sha256
     assert file_registered_event.upload_date == EXAMPLE_FILE.creation_date
 
+    # get the object id that was generated upon event consumption
+    dao = await joint_fixture.container.drs_object_dao()
+    drs_object = await dao.get_by_id(EXAMPLE_FILE.file_id)
+    object_id = drs_object.object_id
+
+    # generate work order token
     work_order_token, pubkey = get_work_order_token(  # noqa: F405
         file_id=EXAMPLE_FILE.file_id,
         valid_seconds=120,
@@ -224,6 +234,7 @@ async def populated_fixture(
 
     yield PopulatedFixture(
         drs_id=EXAMPLE_FILE.file_id,
+        object_id=object_id,
         example_file=EXAMPLE_FILE,
         joint_fixture=joint_fixture,
     )
@@ -248,10 +259,12 @@ async def cleanup_fixture(
     # create AccessTimeDrsObjects for valid cached and expired cached file
     test_file_cached = EXAMPLE_FILE.copy(deep=True)
     test_file_cached.file_id = "cached"
+    test_file_cached.object_id = "cached"
     test_file_cached.last_accessed = utc_dates.now_as_utc()
 
     test_file_expired = EXAMPLE_FILE.copy(deep=True)
     test_file_expired.file_id = "expired"
+    test_file_expired.object_id = "expired"
     test_file_expired.last_accessed = utc_dates.now_as_utc() - timedelta(
         days=joint_fixture.config.cache_timeout
     )
@@ -267,11 +280,12 @@ async def cleanup_fixture(
 
     # populate storage
     with temp_file_object(
-        bucket_id=joint_fixture.config.outbox_bucket, object_id=test_file_cached.file_id
+        bucket_id=joint_fixture.config.outbox_bucket,
+        object_id=test_file_cached.object_id,
     ) as cached_file:
         with temp_file_object(
             bucket_id=joint_fixture.config.outbox_bucket,
-            object_id=test_file_expired.file_id,
+            object_id=test_file_expired.object_id,
         ) as expired_file:
             await joint_fixture.s3.populate_file_objects([cached_file, expired_file])
 

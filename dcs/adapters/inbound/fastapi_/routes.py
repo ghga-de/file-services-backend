@@ -108,7 +108,8 @@ async def get_drs_object(
     data_repository: DataRepositoryPort = Depends(Provide[Container.data_repository]),
 ):
     """
-    Get info about a ``DrsObject``.
+    Get info about a ``DrsObject``. The object_id parameter refers to the file id
+    and **not** the S3 object id.
     """
 
     if not work_order_context.file_id == object_id:
@@ -152,7 +153,8 @@ async def get_envelope(  # noqa: C901
 ):
     """
     Retrieve the base64 encoded envelope for a given object based on object id and
-    URL safe base64 encoded public key
+    URL safe base64 encoded public key. The object_id parameter refers to the file id
+    and **not** the S3 object id.
     """
 
     if not work_order_context.file_id == object_id:

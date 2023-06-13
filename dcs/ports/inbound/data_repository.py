@@ -101,7 +101,7 @@ class DataRepositoryPort(ABC):
         ...
 
     @abstractmethod
-    async def register_new_file(self, *, file: models.DrsObject):
+    async def register_new_file(self, *, file: models.DrsObjectBase):
         """Register a file as a new DRS Object."""
         ...
 

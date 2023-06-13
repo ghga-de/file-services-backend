@@ -15,6 +15,7 @@
 
 """Adapter for receiving events providing metadata on files"""
 
+
 from ghga_event_schemas import pydantic_ as event_schemas
 from ghga_event_schemas.validation import get_validated_payload
 from hexkit.custom_types import Ascii, JsonObject
@@ -81,7 +82,7 @@ class EventSubTranslator(EventSubscriberProtocol):
             payload=payload, schema=event_schemas.FileInternallyRegistered
         )
 
-        file = models.DrsObject(
+        file = models.DrsObjectBase(
             file_id=validated_payload.file_id,
             decryption_secret_id=validated_payload.decryption_secret_id,
             decrypted_sha256=validated_payload.decrypted_sha256,

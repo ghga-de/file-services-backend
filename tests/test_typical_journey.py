@@ -39,6 +39,7 @@ async def test_happy_journey(
     drs_id = populated_fixture.drs_id
     example_file = populated_fixture.example_file
     joint_fixture = populated_fixture.joint_fixture
+    object_id = populated_fixture.object_id
 
     # simplify testing by using one longer lived work order token
 
@@ -46,7 +47,10 @@ async def test_happy_journey(
     # (An check that an event is published indicating that the file is not in
     # outbox yet.)
     non_staged_requested_event = event_schemas.NonStagedFileRequested(
-        file_id=example_file.file_id, decrypted_sha256=example_file.decrypted_sha256
+        file_id=example_file.file_id,
+        target_object_id=object_id,
+        target_bucket_id=joint_fixture.config.outbox_bucket,
+        decrypted_sha256=example_file.decrypted_sha256,
     )
     async with joint_fixture.kafka.expect_events(
         events=[
@@ -68,15 +72,18 @@ async def test_happy_journey(
     file_object = file_fixture.copy(
         update={
             "bucket_id": joint_fixture.config.outbox_bucket,
-            "object_id": example_file.file_id,
+            "object_id": object_id,
         }
     )
+
     await joint_fixture.s3.populate_file_objects([file_object])
 
     # retry the access request:
     # (An check that an event is published indicating that a download was served.)
     download_served_event = event_schemas.FileDownloadServed(
         file_id=example_file.file_id,
+        target_object_id=object_id,
+        target_bucket_id=joint_fixture.config.outbox_bucket,
         decrypted_sha256=example_file.decrypted_sha256,
         context="unknown",
     )
@@ -123,12 +130,13 @@ async def test_happy_deletion(
     """Simulates a typical, successful journey for file deletion."""
     drs_id = populated_fixture.drs_id
     joint_fixture = populated_fixture.joint_fixture
+    object_id = populated_fixture.object_id
 
     # place example content in the outbox bucket:
     file_object = file_fixture.copy(
         update={
             "bucket_id": joint_fixture.config.outbox_bucket,
-            "object_id": drs_id,
+            "object_id": object_id,
         }
     )
     await joint_fixture.s3.populate_file_objects(file_objects=[file_object])
@@ -150,7 +158,8 @@ async def test_happy_deletion(
         await data_repository.delete_file(file_id=drs_id)
 
     assert not await joint_fixture.s3.storage.does_object_exist(
-        bucket_id=joint_fixture.config.outbox_bucket, object_id=drs_id
+        bucket_id=joint_fixture.config.outbox_bucket,
+        object_id=object_id,
     )
 
 
@@ -166,7 +175,7 @@ async def test_cleanup(cleanup_fixture: CleanupFixture):  # noqa: F405,F811
     )
     assert await cleanup_fixture.joint_fixture.s3.storage.does_object_exist(
         bucket_id=cleanup_fixture.joint_fixture.config.outbox_bucket,
-        object_id=cached_object.file_id,
+        object_id=cached_object.object_id,
     )
 
     # check if expired object has been removed from outbox
@@ -175,5 +184,5 @@ async def test_cleanup(cleanup_fixture: CleanupFixture):  # noqa: F405,F811
     )
     assert not await cleanup_fixture.joint_fixture.s3.storage.does_object_exist(
         bucket_id=cleanup_fixture.joint_fixture.config.outbox_bucket,
-        object_id=expired_object.file_id,
+        object_id=expired_object.object_id,
     )

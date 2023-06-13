@@ -24,14 +24,16 @@ class EventPublisherPort(ABC):
     """A port through which DRS-specific events are communicated with the outside."""
 
     @abstractmethod
-    async def download_served(self, *, drs_object: models.DrsObjectWithUri) -> None:
+    async def download_served(
+        self, *, drs_object: models.DrsObjectWithUri, target_bucket_id: str
+    ) -> None:
         """Communicate the event of an download being served. This can be relevant for
         auditing purposes."""
         ...
 
     @abstractmethod
     async def unstaged_download_requested(
-        self, *, drs_object: models.DrsObjectWithUri
+        self, *, drs_object: models.DrsObjectWithUri, target_bucket_id: str
     ) -> None:
         """Communicates the event that a download was requested for a file that
         is not yet available in the outbox."""

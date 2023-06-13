@@ -16,6 +16,7 @@
 """Main business-logic of this service"""
 
 import re
+import uuid
 from datetime import timedelta
 
 from ghga_service_commons.utils import utc_dates
@@ -119,7 +120,7 @@ class DataRepository(DataRepositoryPort):
 
         access_url = await self._object_storage.get_object_download_url(
             bucket_id=self._config.outbox_bucket,
-            object_id=drs_object.file_id,
+            object_id=drs_object.object_id,
             expires_after=self._config.presigned_url_expires_after,
         )
 
@@ -150,11 +151,12 @@ class DataRepository(DataRepositoryPort):
 
         # check if the file corresponding to the DRS object is already in the outbox:
         if not await self._object_storage.does_object_exist(
-            bucket_id=self._config.outbox_bucket, object_id=drs_object.file_id
+            bucket_id=self._config.outbox_bucket, object_id=drs_object.object_id
         ):
             # publish an event to request a stage of the corresponding file:
             await self._event_publisher.unstaged_download_requested(
-                drs_object=drs_object_with_uri
+                drs_object=drs_object_with_uri,
+                target_bucket_id=self._config.outbox_bucket,
             )
 
             # instruct to retry later:
@@ -172,11 +174,13 @@ class DataRepository(DataRepositoryPort):
         drs_object_with_access = await self._get_access_model(drs_object=drs_object)
 
         # publish an event indicating the served download:
-        await self._event_publisher.download_served(drs_object=drs_object_with_uri)
+        await self._event_publisher.download_served(
+            drs_object=drs_object_with_uri, target_bucket_id=self._config.outbox_bucket
+        )
 
         # CLI needs to have the encrypted size to correctly download all file parts
         encrypted_size = await self._object_storage.get_object_size(
-            bucket_id=self._config.outbox_bucket, object_id=drs_object.file_id
+            bucket_id=self._config.outbox_bucket, object_id=drs_object.object_id
         )
         return drs_object_with_access.convert_to_drs_response_model(size=encrypted_size)
 
@@ -191,43 +195,47 @@ class DataRepository(DataRepositoryPort):
         threshold = utc_dates.now_as_utc() - timedelta(days=self._config.cache_timeout)
 
         # filter to get all files in outbox that should be removed
-        outbox_ids = await self._object_storage.list_all_object_ids(
+        object_ids = await self._object_storage.list_all_object_ids(
             bucket_id=self._config.outbox_bucket
         )
-        for outbox_id in outbox_ids:
+        for object_id in object_ids:
             try:
-                drs_object = await self._drs_object_dao.get_by_id(outbox_id)
+                drs_object = await self._drs_object_dao.find_one(
+                    mapping={"object_id": object_id}
+                )
             except ResourceNotFoundError as error:
                 raise self.CleanupError(
-                    object_id=outbox_id, from_error=error
+                    object_id=object_id, from_error=error
                 ) from error
 
             # only remove file if last access is later than cache timeout days ago
             if drs_object.last_accessed <= threshold:
                 try:
                     await self._object_storage.delete_object(
-                        bucket_id=self._config.outbox_bucket, object_id=outbox_id
+                        bucket_id=self._config.outbox_bucket, object_id=object_id
                     )
                 except (
                     self._object_storage.ObjectError,
                     self._object_storage.ObjectStorageProtocolError,
                 ) as error:
                     raise self.CleanupError(
-                        object_id=outbox_id, from_error=error
+                        object_id=object_id, from_error=error
                     ) from error
 
-    async def register_new_file(self, *, file: models.DrsObject):
+    async def register_new_file(self, *, file: models.DrsObjectBase):
         """Register a file as a new DRS Object."""
+        object_id = str(uuid.uuid4())
+        drs_object = models.DrsObject(**file.dict(), object_id=object_id)
 
         file_with_access_time = models.AccessTimeDrsObject(
-            **file.dict(),
+            **drs_object.dict(),
             last_accessed=utc_dates.now_as_utc(),
         )
         # write file entry to database
         await self._drs_object_dao.insert(file_with_access_time)
 
         # publish message that the drs file has been registered
-        drs_object_with_uri = self._get_model_with_self_uri(drs_object=file)
+        drs_object_with_uri = self._get_model_with_self_uri(drs_object=drs_object)
         await self._event_publisher.file_registered(drs_object=drs_object_with_uri)
 
     async def serve_envelope(self, *, drs_id: str, public_key: str) -> str:
@@ -256,7 +264,7 @@ class DataRepository(DataRepositoryPort):
                 api_url=self._config.ekss_base_url
             ) from error
         except exceptions.SecretNotFoundError as error:
-            raise self.EnvelopeNotFoundError(object_id=drs_id) from error
+            raise self.EnvelopeNotFoundError(object_id=drs_object.object_id) from error
 
         return envelope
 
@@ -286,7 +294,7 @@ class DataRepository(DataRepositoryPort):
         # Try to remove file from S3
         try:
             await self._object_storage.delete_object(
-                bucket_id=self._config.outbox_bucket, object_id=file_id
+                bucket_id=self._config.outbox_bucket, object_id=drs_object.object_id
             )
 
         except self._object_storage.ObjectNotFoundError:
