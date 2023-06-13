@@ -55,6 +55,7 @@
     },
     "private_key": {
       "title": "Private Key",
+      "description": "Base64 encoded private key of the keypair whose public key is used to encrypt the payload.",
       "env_names": [
         "fis_private_key"
       ],
@@ -62,6 +63,7 @@
     },
     "source_bucket_id": {
       "title": "Source Bucket Id",
+      "description": "ID of the bucket the object(s) corresponding to the upload metadata have been uploaded to. This should currently point to the staging bucket.",
       "env_names": [
         "fis_source_bucket_id"
       ],
@@ -69,6 +71,7 @@
     },
     "token_hashes": {
       "title": "Token Hashes",
+      "description": "List of token hashes corresponding to the tokens that can be used to authenticate calls to this service.",
       "env_names": [
         "fis_token_hashes"
       ],

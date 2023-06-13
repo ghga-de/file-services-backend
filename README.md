@@ -20,13 +20,13 @@ We recommend using the provided Docker container.
 
 A pre-build version is available at [docker hub](https://hub.docker.com/repository/docker/ghga/file-ingest-service):
 ```bash
-docker pull ghga/file-ingest-service:0.1.0
+docker pull ghga/file-ingest-service:0.1.1
 ```
 
 Or you can build the container yourself from the [`./Dockerfile`](./Dockerfile):
 ```bash
 # Execute in the repo's root dir:
-docker build -t ghga/file-ingest-service:0.1.0 .
+docker build -t ghga/file-ingest-service:0.1.1 .
 ```
 
 For production-ready deployment, we recommend using Kubernetes, however,
@@ -34,7 +34,7 @@ for simple use cases, you could execute the service using docker
 on a single server:
 ```bash
 # The entrypoint is preconfigured:
-docker run -p 8080:8080 ghga/file-ingest-service:0.1.0 --help
+docker run -p 8080:8080 ghga/file-ingest-service:0.1.1 --help
 ```
 
 If you prefer not to use containers, you may install the service from source:
@@ -60,11 +60,11 @@ The service requires the following configuration parameters:
 
 - **`vault_secret_id`** *(string)*: Vault secret ID to access a specific prefix.
 
-- **`private_key`** *(string)*
+- **`private_key`** *(string)*: Base64 encoded private key of the keypair whose public key is used to encrypt the payload.
 
-- **`source_bucket_id`** *(string)*
+- **`source_bucket_id`** *(string)*: ID of the bucket the object(s) corresponding to the upload metadata have been uploaded to. This should currently point to the staging bucket.
 
-- **`token_hashes`** *(array)*
+- **`token_hashes`** *(array)*: List of token hashes corresponding to the tokens that can be used to authenticate calls to this service.
 
   - **Items** *(string)*
 

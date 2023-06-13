@@ -18,7 +18,7 @@ import json
 
 from ghga_service_commons.utils.crypt import decrypt
 from nacl.exceptions import CryptoError
-from pydantic import BaseSettings, ValidationError
+from pydantic import BaseSettings, Field, ValidationError
 
 from fis.core import models
 from fis.ports.inbound.ingest import UploadMetadataProcessorPort
@@ -29,9 +29,21 @@ from fis.ports.outbound.vault.client import VaultAdapterPort
 class ServiceConfig(BaseSettings):
     """Specific configs for authentication and encryption"""
 
-    private_key: str
-    source_bucket_id: str
-    token_hashes: list[str]
+    private_key: str = Field(
+        ...,
+        description="Base64 encoded private key of the keypair whose public key is used "
+        + "to encrypt the payload.",
+    )
+    source_bucket_id: str = Field(
+        ...,
+        description="ID of the bucket the object(s) corresponding to the upload metadata "
+        + "have been uploaded to. This should currently point to the staging bucket.",
+    )
+    token_hashes: list[str] = Field(
+        ...,
+        description="List of token hashes corresponding to the tokens that can be used "
+        + "to authenticate calls to this service.",
+    )
 
 
 class UploadMetadataProcessor(UploadMetadataProcessorPort):
