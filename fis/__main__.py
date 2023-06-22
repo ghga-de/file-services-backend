@@ -16,5 +16,11 @@
 
 from fis.cli import cli
 
-if __name__ == "__main__":
+
+def run():
+    """Run the service"""
     cli()
+
+
+if __name__ == "__main__":
+    run()

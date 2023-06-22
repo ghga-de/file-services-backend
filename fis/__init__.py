@@ -14,4 +14,4 @@
 # limitations under the License.
 """Short description of package"""
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
