@@ -17,7 +17,7 @@
 
 import base64
 
-import requests
+import httpx
 
 from dcs.adapters.outbound.http import exceptions
 from dcs.adapters.outbound.http.exception_translation import ResponseExceptionTranslator
@@ -34,8 +34,8 @@ def get_envelope_from_ekss(
     ).decode()
     api_url = f"{api_base}/secrets/{secret_id}/envelopes/{receiver_public_key_base64}"
     try:
-        response = requests.get(url=api_url, timeout=60)
-    except requests.exceptions.RequestException as request_error:
+        response = httpx.get(url=api_url, timeout=60)
+    except httpx.RequestError as request_error:
         raise exceptions.RequestFailedError(url=api_base) from request_error
 
     status_code = response.status_code
@@ -63,8 +63,8 @@ def delete_secret_from_ekss(*, secret_id: str, api_base: str) -> None:
     api_url = f"{api_base}/secrets/{secret_id}"
 
     try:
-        response = requests.delete(url=api_url, timeout=60)
-    except requests.exceptions.RequestException as request_error:
+        response = httpx.delete(url=api_url, timeout=60)
+    except httpx.RequestError as request_error:
         raise exceptions.RequestFailedError(url=api_base) from request_error
 
     status_code = response.status_code

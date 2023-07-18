@@ -4,4 +4,4 @@
 # is considered:
 cd /workspace/.devcontainer
 
-dcs
+dcs run-rest

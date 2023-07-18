@@ -14,24 +14,4 @@
 # limitations under the License.
 #
 
-"""
-Adds wrapper classes to translate httpyexpect errors and check against
-provided exception specs for all API endpoints
-"""
-
-from typing import Dict
-
-import httpx
-from httpyexpect.client import ExceptionMapping, ResponseTranslator
-
-
-class ResponseExceptionTranslator:
-    """Base class providing behaviour and injection point for spec"""
-
-    def __init__(self, *, spec: Dict[int, object]) -> None:
-        self._exception_map = ExceptionMapping(spec)
-
-    def handle(self, response: httpx.Response):
-        """Translate and raise error, if defined by spec"""
-        translator = ResponseTranslator(response, exception_map=self._exception_map)
-        translator.raise_for_error()
+"""Scripts and utils used during development or in CI pipelines."""

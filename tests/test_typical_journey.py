@@ -17,8 +17,8 @@
 
 import json
 
+import httpx
 import pytest
-import requests
 from fastapi import status
 from ghga_event_schemas import pydantic_ as event_schemas
 from hexkit.providers.akafka.testutils import ExpectedEvent
@@ -100,7 +100,7 @@ async def test_happy_journey(
 
     # download file bytes:
     presigned_url = drs_object_response.json()["access_methods"][0]["access_url"]["url"]
-    dowloaded_file = requests.get(presigned_url, timeout=5)
+    dowloaded_file = httpx.get(presigned_url, timeout=5)
     dowloaded_file.raise_for_status()
     assert dowloaded_file.content == file_object.content
 
