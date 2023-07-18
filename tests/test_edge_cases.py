@@ -17,9 +17,6 @@
 
 import pytest
 from fastapi import status
-from hexkit.providers.mongodb.testutils import mongodb_fixture  # noqa: F401
-from hexkit.providers.s3.testutils import file_fixture  # noqa: F401
-from hexkit.providers.s3.testutils import s3_fixture  # noqa: F401
 
 from dcs.config import WorkOrderTokenConfig
 from dcs.container import auth_provider

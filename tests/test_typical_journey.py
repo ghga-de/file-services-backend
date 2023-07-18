@@ -22,9 +22,6 @@ import pytest
 from fastapi import status
 from ghga_event_schemas import pydantic_ as event_schemas
 from hexkit.providers.akafka.testutils import ExpectedEvent
-from hexkit.providers.mongodb.testutils import mongodb_fixture  # noqa: F401
-from hexkit.providers.s3.testutils import file_fixture  # noqa: F401
-from hexkit.providers.s3.testutils import s3_fixture  # noqa: F401
 from hexkit.providers.s3.testutils import FileObject
 
 from tests.fixtures.joint import *  # noqa: F403

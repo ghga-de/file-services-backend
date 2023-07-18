@@ -18,6 +18,7 @@
 __all__ = [
     "cleanup_fixture",
     "CleanupFixture",
+    "file_fixture",
     "joint_fixture",
     "JointFixture",
     "mongodb_fixture",
@@ -39,10 +40,14 @@ from ghga_event_schemas import pydantic_ as event_schemas
 from ghga_service_commons.api.testing import AsyncTestClient
 from ghga_service_commons.utils import jwt_helpers, utc_dates
 from ghga_service_commons.utils.crypt import encode_key, generate_key_pair
-from hexkit.providers.akafka.testutils import KafkaFixture, kafka_fixture
-from hexkit.providers.mongodb.testutils import MongoDbFixture  # F401
-from hexkit.providers.mongodb.testutils import mongodb_fixture
-from hexkit.providers.s3.testutils import S3Fixture, s3_fixture, temp_file_object
+from hexkit.providers.testing.fixtures import (
+    KafkaFixture,
+    MongoDbFixture,
+    S3Fixture,
+    file_fixture,
+    get_fixture,
+    temp_file_object,
+)
 from pydantic import BaseSettings
 
 from dcs.config import Config, WorkOrderTokenConfig
@@ -65,6 +70,10 @@ EXAMPLE_FILE = models.AccessTimeDrsObject(
 
 SignedToken = str
 PubKey = str
+
+mongodb_fixture = get_fixture(MongoDbFixture)
+s3_fixture = get_fixture(S3Fixture)
+kafka_fixture = get_fixture(KafkaFixture)
 
 
 def get_work_order_token(
