@@ -45,7 +45,7 @@ class WorkOrderTokenConfig(AuthConfig):
 @config_from_yaml(prefix="dcs")
 class Config(
     ApiConfigBase,
-    AuthConfig,
+    WorkOrderTokenConfig,
     S3Config,
     DataRepositoryConfig,
     MongoDbConfig,

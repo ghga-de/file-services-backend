@@ -292,7 +292,11 @@
       "title": "Auth Check Claims",
       "description": "A dict of all GHGA internal claims that shall be verified.",
       "default": {
-        "name": null,
+        "type": null,
+        "file_id": null,
+        "user_id": null,
+        "user_public_crypt4gh_key": null,
+        "full_user_name": null,
         "email": null,
         "iat": null,
         "exp": null
