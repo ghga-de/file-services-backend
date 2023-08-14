@@ -16,6 +16,7 @@
 """Tests typical user journeys"""
 
 import json
+import re
 
 import httpx
 import pytest
@@ -23,20 +24,52 @@ from fastapi import status
 from ghga_event_schemas import pydantic_ as event_schemas
 from hexkit.providers.akafka.testutils import ExpectedEvent
 from hexkit.providers.s3.testutils import FileObject
+from pytest_httpx import HTTPXMock, httpx_mock  # noqa: F401
 
 from tests.fixtures.joint import *  # noqa: F403
+from tests.fixtures.mock_api.app import handle_request
+
+unintercepted_hosts: list[str] = ["localhost"]
+
+
+@pytest.fixture
+def non_mocked_hosts() -> list:
+    """Fixture used by httpx_mock to determine which requests to intercept
+
+    We only want to intercept calls to the EKSS API, so this list will include
+    localhost and the host from the S3 fixture's connection URL.
+    """
+    return unintercepted_hosts
+
+
+@pytest.fixture
+def assert_all_responses_were_requested() -> bool:
+    """Fixture used by httpx_mock.
+
+    Deactivates error that is otherwise raised if all mocked requests aren't used.
+    """
+    return False
 
 
 @pytest.mark.asyncio
 async def test_happy_journey(
     populated_fixture: PopulatedFixture,  # noqa: F405,F811
     file_fixture: FileObject,  # noqa: F811
+    httpx_mock: HTTPXMock,  # noqa: F811
 ):
     """Simulates a typical, successful API journey."""
     drs_id = populated_fixture.drs_id
     example_file = populated_fixture.example_file
     joint_fixture = populated_fixture.joint_fixture
     object_id = populated_fixture.object_id
+
+    # httpx_mock.add_response(status_code=200, url="http://ekss/")
+
+    # explicitly handle ekss API calls (and name unintercepted hosts above)
+    httpx_mock.add_callback(
+        callback=handle_request,
+        url=re.compile(rf"^{joint_fixture.config.ekss_base_url}.*"),
+    )
 
     # simplify testing by using one longer lived work order token
 
@@ -97,6 +130,7 @@ async def test_happy_journey(
 
     # download file bytes:
     presigned_url = drs_object_response.json()["access_methods"][0]["access_url"]["url"]
+    unintercepted_hosts.append(httpx.URL(presigned_url).host)
     dowloaded_file = httpx.get(presigned_url, timeout=5)
     dowloaded_file.raise_for_status()
     assert dowloaded_file.content == file_object.content
@@ -123,11 +157,18 @@ async def test_happy_journey(
 async def test_happy_deletion(
     populated_fixture: PopulatedFixture,  # noqa: F405,F811
     file_fixture: FileObject,  # noqa: F811
+    httpx_mock: HTTPXMock,  # noqa: F811
 ):
     """Simulates a typical, successful journey for file deletion."""
     drs_id = populated_fixture.drs_id
     joint_fixture = populated_fixture.joint_fixture
     object_id = populated_fixture.object_id
+
+    # explicitly handle ekss API calls (and name unintercepted hosts above)
+    httpx_mock.add_callback(
+        callback=handle_request,
+        url=re.compile(rf"^{joint_fixture.config.ekss_base_url}.*"),
+    )
 
     # place example content in the outbox bucket:
     file_object = file_fixture.copy(

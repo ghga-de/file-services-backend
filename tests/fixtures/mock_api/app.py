@@ -14,9 +14,11 @@
 # limitations under the License.
 """Mock EKSS endpoints"""
 
-from fastapi import FastAPI, Request, status
-from fastapi.responses import JSONResponse, Response
+import httpx
+from fastapi import status
 from httpyexpect.server import HttpCustomExceptionBase
+
+from tests.fixtures.endpoints_handler import EndpointsHandler
 
 
 class HttpSecretNotFoundError(HttpCustomExceptionBase):
@@ -46,15 +48,11 @@ class HttpException(Exception):
         super().__init__(description)
 
 
-app = FastAPI()
-
-
-@app.exception_handler(HttpException)
-async def httpy_exception_handler(request: Request, exc: HttpException):
+def httpy_exception_handler(exc: HttpException):
     """Transform HttpException data into a proper response object"""
-    return JSONResponse(
+    return httpx.Response(
         status_code=exc.status_code,
-        content={
+        json={
             "exception_id": exc.exception_id,
             "description": exc.description,
             "data": exc.data,
@@ -62,23 +60,13 @@ async def httpy_exception_handler(request: Request, exc: HttpException):
     )
 
 
-@app.get("/ready", summary="readiness_probe")
-async def ready():
-    """
-    Readiness endpoint for container
-    """
-    return Response(None, status_code=status.HTTP_204_NO_CONTENT)
-
-
-@app.get(
+@EndpointsHandler.get(
     "/secrets/{secret_id}/envelopes/{receiver_public_key}",
-    summary="ekss_get_envelope_mock",
 )
-async def ekss_get_envelope_mock(secret_id: str, receiver_public_key: str):
+def ekss_get_envelope_mock(secret_id: str, receiver_public_key: str):
     """
-    Mock for the drs3 /objects/{file_id} call
+    Mock API call to the EKSS to get the envelope
     """
-
     valid_secret = "some-secret"
 
     if secret_id != valid_secret:
@@ -89,13 +77,13 @@ async def ekss_get_envelope_mock(secret_id: str, receiver_public_key: str):
         + "8jBF73IyszJzVezDokPe8AJIEFG18luo/ZRI9mDSEI/GFy2EtNdflqW+CBSgUEWiQjkRAwS3V+dVeFsVQ=="
     )
 
-    return {"content": envelope}
+    return httpx.Response(status_code=status.HTTP_200_OK, json={"content": envelope})
 
 
-@app.delete("/secrets/{secret_id}", summary="ekss_delete_secret_mock")
-async def ekss_delete_secret_mock(secret_id: str):
+@EndpointsHandler.delete("/secrets/{secret_id}")
+def ekss_delete_secret_mock(secret_id: str):
     """
-    Mock for the drs3 /objects/{file_id} call
+    Mock API call to the EKSS to delete file secret
     """
 
     valid_secret = "some-secret"
@@ -103,4 +91,15 @@ async def ekss_delete_secret_mock(secret_id: str):
     if secret_id != valid_secret:
         raise HttpSecretNotFoundError()
 
-    return Response(None, status_code=status.HTTP_204_NO_CONTENT)
+    return httpx.Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+def handle_request(request: httpx.Request):
+    """
+    This is used as the callback function for the httpx_mock fixture
+    """
+    try:
+        endpoint_function = EndpointsHandler.build_loaded_endpoint_function(request)
+        return endpoint_function()
+    except HttpException as exc:
+        return httpy_exception_handler(exc=exc)

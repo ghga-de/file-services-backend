@@ -56,7 +56,6 @@ from dcs.core import auth_policies, models
 from dcs.main import get_configured_container, get_rest_api
 from dcs.ports.outbound.dao import DrsObjectDaoPort
 from tests.fixtures.config import get_config
-from tests.fixtures.mock_api.testcontainer import MockAPIContainer
 
 EXAMPLE_FILE = models.AccessTimeDrsObject(
     file_id="examplefile001",
@@ -129,43 +128,42 @@ async def joint_fixture(
     """A fixture that embeds all other fixtures for API-level integration testing"""
 
     auth_key = jwt_helpers.generate_jwk().export(private_key=False)
-    with MockAPIContainer() as ekss_api:
-        # merge configs from different sources with the default one:
-        auth_config = WorkOrderTokenConfig(auth_key=auth_key)
-        ekss_config = EKSSBaseInjector(ekss_base_url=ekss_api.get_connection_url())
+    # merge configs from different sources with the default one:
+    auth_config = WorkOrderTokenConfig(auth_key=auth_key)
+    ekss_config = EKSSBaseInjector(ekss_base_url="http://ekss")
 
-        config = get_config(
-            sources=[
-                mongodb_fixture.config,
-                s3_fixture.config,
-                kafka_fixture.config,
-                ekss_config,
-                auth_config,
+    config = get_config(
+        sources=[
+            mongodb_fixture.config,
+            s3_fixture.config,
+            kafka_fixture.config,
+            ekss_config,
+            auth_config,
+        ]
+    )
+    # create a DI container instance:translators
+    async with get_configured_container(config=config) as container:
+        container.wire(
+            modules=[
+                "dcs.adapters.inbound.fastapi_.routes",
+                "dcs.adapters.inbound.fastapi_.http_authorization",
             ]
         )
-        # create a DI container instance:translators
-        async with get_configured_container(config=config) as container:
-            container.wire(
-                modules=[
-                    "dcs.adapters.inbound.fastapi_.routes",
-                    "dcs.adapters.inbound.fastapi_.http_authorization",
-                ]
+
+        # create storage entities:
+        await s3_fixture.populate_buckets(buckets=[config.outbox_bucket])
+
+        api = get_rest_api(config=config)
+        # setup an API test client:
+        async with AsyncTestClient(app=api) as rest_client:
+            yield JointFixture(
+                config=config,
+                container=container,
+                mongodb=mongodb_fixture,
+                rest_client=rest_client,
+                s3=s3_fixture,
+                kafka=kafka_fixture,
             )
-
-            # create storage entities:
-            await s3_fixture.populate_buckets(buckets=[config.outbox_bucket])
-
-            api = get_rest_api(config=config)
-            # setup an API test client:
-            async with AsyncTestClient(app=api) as rest_client:
-                yield JointFixture(
-                    config=config,
-                    container=container,
-                    mongodb=mongodb_fixture,
-                    rest_client=rest_client,
-                    s3=s3_fixture,
-                    kafka=kafka_fixture,
-                )
 
 
 @dataclass
