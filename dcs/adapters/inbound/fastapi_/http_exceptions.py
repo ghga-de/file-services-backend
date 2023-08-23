@@ -17,7 +17,7 @@
 """A collection of http exceptions."""
 
 
-from httpyexpect.server import HttpCustomExceptionBase
+from ghga_service_commons.httpyexpect.server.exceptions import HttpCustomExceptionBase
 from pydantic import BaseModel
 
 

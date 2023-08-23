@@ -22,12 +22,15 @@ import httpx
 import pytest
 from fastapi import status
 from ghga_event_schemas import pydantic_ as event_schemas
+from ghga_service_commons.api.mock_router import (  # noqa: F401
+    assert_all_responses_were_requested,
+)
 from hexkit.providers.akafka.testutils import ExpectedEvent
 from hexkit.providers.s3.testutils import FileObject
 from pytest_httpx import HTTPXMock, httpx_mock  # noqa: F401
 
 from tests.fixtures.joint import *  # noqa: F403
-from tests.fixtures.mock_api.app import handle_request
+from tests.fixtures.mock_api.app import router
 
 unintercepted_hosts: list[str] = ["localhost"]
 
@@ -42,15 +45,6 @@ def non_mocked_hosts() -> list:
     return unintercepted_hosts
 
 
-@pytest.fixture
-def assert_all_responses_were_requested() -> bool:
-    """Fixture used by httpx_mock.
-
-    Deactivates error that is otherwise raised if all mocked requests aren't used.
-    """
-    return False
-
-
 @pytest.mark.asyncio
 async def test_happy_journey(
     populated_fixture: PopulatedFixture,  # noqa: F405,F811
@@ -63,11 +57,9 @@ async def test_happy_journey(
     joint_fixture = populated_fixture.joint_fixture
     object_id = populated_fixture.object_id
 
-    # httpx_mock.add_response(status_code=200, url="http://ekss/")
-
     # explicitly handle ekss API calls (and name unintercepted hosts above)
     httpx_mock.add_callback(
-        callback=handle_request,
+        callback=router.handle_request,
         url=re.compile(rf"^{joint_fixture.config.ekss_base_url}.*"),
     )
 
@@ -166,7 +158,7 @@ async def test_happy_deletion(
 
     # explicitly handle ekss API calls (and name unintercepted hosts above)
     httpx_mock.add_callback(
-        callback=handle_request,
+        callback=router.handle_request,
         url=re.compile(rf"^{joint_fixture.config.ekss_base_url}.*"),
     )
 
