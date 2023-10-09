@@ -13,11 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
+"""Bundle test fixtures together"""
 import base64
 import os
+from collections.abc import AsyncGenerator
 from dataclasses import dataclass
-from typing import AsyncGenerator
 
 import httpx
 import pytest_asyncio
@@ -69,7 +69,6 @@ async def joint_fixture(
     kafka_fixture: KafkaFixture,  # noqa: F811
 ) -> AsyncGenerator[JointFixture, None]:
     """Generate keypair for testing and setup container with updated config"""
-
     keypair = generate_key_pair()
     private_key = encode_key(key=keypair.private)
 

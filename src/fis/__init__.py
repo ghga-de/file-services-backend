@@ -12,28 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Short description of package"""
 
-"""
-Utils to customize openAPI script
-"""
-from typing import Any, Dict
+from importlib.metadata import version
 
-from fastapi.openapi.utils import get_openapi
-
-from fis import __version__
-from fis.config import Config
-
-config = Config()
-
-
-def get_openapi_schema(api) -> Dict[str, Any]:
-    """Generates a custom openapi schema for the service"""
-
-    return get_openapi(
-        title="File Ingest Service",
-        version=__version__,
-        description="A service to ingest s3 file upload metadata produced by the"
-        + "data-steward-kit upload command",
-        tags=[{"name": "FileIngestService"}],
-        routes=api.routes,
-    )
+__version__ = version(__package__)

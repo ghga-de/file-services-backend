@@ -12,22 +12,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Interface for broadcasting events to other services."""
 
-from abc import ABC, abstractmethod
+"""Utils to customize openAPI script"""
+from typing import Any
 
-from fis.core.models import FileUploadMetadata
+from fastapi.openapi.utils import get_openapi
+
+from fis import __version__
+from fis.config import Config
+
+config = Config()  # type: ignore [call-arg]
 
 
-class EventPublisherPort(ABC):
-    """A port through which ingest events are communicated with the file backend services."""
-
-    @abstractmethod
-    async def send_file_metadata(
-        self,
-        *,
-        upload_metadata: FileUploadMetadata,
-        source_bucket_id: str,
-        secret_id: str
-    ):
-        """Send FileUploadValidationSuccess event to downstream services"""
+def get_openapi_schema(api) -> dict[str, Any]:
+    """Generates a custom openapi schema for the service"""
+    return get_openapi(
+        title="File Ingest Service",
+        version=__version__,
+        description="A service to ingest s3 file upload metadata produced by the"
+        + "data-steward-kit upload command",
+        tags=[{"name": "FileIngestService"}],
+        routes=api.routes,
+    )

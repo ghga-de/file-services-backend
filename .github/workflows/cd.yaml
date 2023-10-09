@@ -2,7 +2,8 @@ name: CD
 
 on:
   release:
-    types: [published]
+    types:
+      [published]
       # trigger only on new release
 
 jobs:
@@ -32,7 +33,7 @@ jobs:
         name: Verify tag format
         # format must be compatible with semantic versioning
         run: |
-          SEMVER_REGEX="^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$"
+          SEMVER_REGEX="^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-((?:0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$"
           if echo "${{ steps.get_version_tag.outputs.version }}" | grep -Eq "$SEMVER_REGEX"; then
             echo "Tag format is valid"
           else
@@ -44,7 +45,7 @@ jobs:
         name: Verify package version vs tag version
         # package version must be same with tag version
         run: |
-          PKG_VER="$(python setup.py --version)"
+          PKG_VER="$(grep -oP 'version = "\K[^"]+' pyproject.toml)"
           echo "Package version is $PKG_VER" >&2
           echo "Tag version is ${{ steps.get_version_tag.outputs.version }}" >&2
           if [ "$PKG_VER" != "${{ steps.get_version_tag.outputs.version }}" ]; then

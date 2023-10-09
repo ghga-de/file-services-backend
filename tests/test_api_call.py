@@ -35,7 +35,6 @@ from tests.fixtures.joint import (  # noqa: F401
 @pytest.mark.asyncio
 async def test_api_call(monkeypatch, joint_fixture: JointFixture):  # noqa: F811
     """Test functionality with incoming API call"""
-
     event_recorder = EventRecorder(
         kafka_servers=joint_fixture.kafka.config.kafka_servers,
         topic=joint_fixture.config.publisher_topic,

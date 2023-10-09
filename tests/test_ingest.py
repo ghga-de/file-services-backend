@@ -30,7 +30,6 @@ from tests.fixtures.joint import (  # noqa: F401
 @pytest.mark.asyncio
 async def test_decryption_happy(joint_fixture: JointFixture):  # noqa: F811
     """Test decryption with valid keypair and correct file upload metadata format."""
-
     upload_metadata_processor = (
         await joint_fixture.container.upload_metadata_processor()
     )
@@ -44,7 +43,6 @@ async def test_decryption_happy(joint_fixture: JointFixture):  # noqa: F811
 @pytest.mark.asyncio
 async def test_decryption_sad(joint_fixture: JointFixture):  # noqa: F811
     """Test decryption throws correct errors for payload and key issues"""
-
     upload_metadata_processor = (
         await joint_fixture.container.upload_metadata_processor()
     )

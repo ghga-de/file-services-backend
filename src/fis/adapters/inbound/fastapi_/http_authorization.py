@@ -46,7 +46,6 @@ class IngestTokenAuthProvider(AuthContextProtocol[IngestTokenAuthContext]):
 
     async def get_context(self, token: str) -> IngestTokenAuthContext:
         """Get ingest token auth context"""
-
         if not check_token(token=token, token_hashes=self._token_hashes):
             raise self.AuthContextValidationError("Invalid Token")
 

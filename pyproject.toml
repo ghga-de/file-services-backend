@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=67.7.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fis"
+version = "0.1.4"
+description = "File Ingest Service - A lightweight service to propagate file upload metadata to the GHGA file backend services"
+readme = "README.md"
+authors = [
+    { name = "German Human Genome Phenome Archive (GHGA)", email = "contact@ghga.de" },
+]
+requires-python = ">=3.9"
+classifiers = [
+    "Development Status :: 1 - Planning",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "License :: OSI Approved :: Apache Software License",
+    "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+    "Topic :: Software Development :: Libraries",
+    "Intended Audience :: Developers",
+]
+dependencies = [
+    "typer>=0.7.0",
+    "ghga-service-commons[api,crypt]>=0.4.1",
+    "ghga-event-schemas==0.13.4",
+    "hexkit[akafka,s3,mongodb]>=0.10.0",
+    "hvac>=1.0.2",
+]
+
+[project.license]
+text = "Apache 2.0"
+
+[project.urls]
+Repository = "https://github.com/ghga-de/file-ingest-service"
+
+[project.scripts]
+fis = "fis.__main__:run"
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -48,13 +48,13 @@ class EventPubTranslatorConfig(BaseSettings):
 
 class EventPubTranslator(EventPublisherPort):
     """A translator according to  the triple hexagonal architecture implementing
-    the EventPublisherPort."""
+    the EventPublisherPort.
+    """
 
     def __init__(
         self, *, config: EventPubTranslatorConfig, provider: EventPublisherProtocol
     ):
         """Initialize with configs and a provider of the EventPublisherProtocol."""
-
         self._config = config
         self._provider = provider
 
@@ -66,7 +66,6 @@ class EventPubTranslator(EventPublisherPort):
         secret_id: str,
     ):
         """Send FileUploadValidationSuccess event to downstream services"""
-
         payload = FileUploadValidationSuccess(
             upload_date=now_as_utc().isoformat(),
             file_id=upload_metadata.file_id,

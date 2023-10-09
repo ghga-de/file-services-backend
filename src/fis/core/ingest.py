@@ -54,7 +54,7 @@ class UploadMetadataProcessor(UploadMetadataProcessorPort):
         *,
         config: ServiceConfig,
         event_publisher: EventPublisherPort,
-        vault_adapter: VaultAdapterPort
+        vault_adapter: VaultAdapterPort,
     ):
         self._config = config
         self._event_publisher = event_publisher

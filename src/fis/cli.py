@@ -42,5 +42,4 @@ cli = typer.Typer()
 @cli.command(name="run-rest")
 def sync_run_api():
     """Run the HTTP REST API."""
-
     asyncio.run(run_rest())

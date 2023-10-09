@@ -37,4 +37,4 @@ class Config(  # pylint: disable=too-many-ancestors
     service_name: str = "fis"
 
 
-CONFIG = Config()
+CONFIG = Config()  # type: ignore [call-arg]
