@@ -30,9 +30,9 @@ __all__ = [
 ]
 
 import json
+from collections.abc import AsyncGenerator
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import AsyncGenerator
 
 import httpx
 import pytest_asyncio
@@ -76,7 +76,6 @@ def get_work_order_token(
     valid_seconds: int = 30,
 ) -> tuple[SignedToken, PubKey]:
     """Generate work order token for testing"""
-
     # we don't need the actual user pubkey
     user_pubkey = encode_key(generate_key_pair().public)
     # generate minimal test token
@@ -86,7 +85,7 @@ def get_work_order_token(
         user_id="007",
         user_public_crypt4gh_key=user_pubkey,
         full_user_name="John Doe",
-        email="john.doe@test.com",
+        email="john.doe@test.com",  # type: ignore
     )
     claims = wot.dict()
 
@@ -122,7 +121,6 @@ async def joint_fixture(
     mongodb_fixture: MongoDbFixture, s3_fixture: S3Fixture, kafka_fixture: KafkaFixture
 ) -> AsyncGenerator[JointFixture, None]:
     """A fixture that embeds all other fixtures for API-level integration testing"""
-
     auth_key = jwt_helpers.generate_jwk().export(private_key=False)
     # merge configs from different sources with the default one:
     auth_config = WorkOrderTokenConfig(auth_key=auth_key)
@@ -223,7 +221,7 @@ async def populated_fixture(
     object_id = drs_object.object_id
 
     # generate work order token
-    work_order_token, pubkey = get_work_order_token(  # noqa: F405
+    work_order_token, pubkey = get_work_order_token(
         file_id=EXAMPLE_FILE.file_id,
         valid_seconds=120,
     )
@@ -258,7 +256,6 @@ async def cleanup_fixture(
     joint_fixture: JointFixture,
 ) -> AsyncGenerator[CleanupFixture, None]:
     """Set up state for and populate CleanupFixture"""
-
     # create AccessTimeDrsObjects for valid cached and expired cached file
     test_file_cached = EXAMPLE_FILE.copy(deep=True)
     test_file_cached.file_id = "cached"

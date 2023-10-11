@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=67.7.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+# please adapt to package name
+name = "dcs"
+version = "0.6.6"
+description = "Download Controller Service - a GA4GH DRS-compliant service for delivering files from S3 encrypted according to the GA4GH Crypt4GH standard."
+readme = "README.md"
+authors = [
+    { name = "German Human Genome Phenome Archive (GHGA)", email = "contact@ghga.de" },
+]
+requires-python = ">=3.9"
+license = { text = "Apache 2.0" }
+classifiers = [
+    "Development Status :: 1 - Planning",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "License :: OSI Approved :: Apache Software License",
+    "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+    "Topic :: Software Development :: Libraries",
+    "Intended Audience :: Developers",
+]
+dependencies = [
+    "ghga-service-commons[all]~=0.6.0",
+    "ghga-event-schemas==0.13.4",
+    "hexkit[mongodb,s3,akafka]~=0.10.2",
+    "httpx~=0.23.3",
+    "typer~=0.7.0"
+]
+
+[project.urls]
+# please adapt to package name
+Repository = "https://github.com/ghga-de/dcs"
+
+[project.scripts]
+# please adapt to package name
+dcs = "dcs.__main__:cli"
+
+[tool.setuptools.packages.find]
+where = ["src"]

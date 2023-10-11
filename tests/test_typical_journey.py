@@ -47,8 +47,8 @@ def non_mocked_hosts() -> list:
 
 @pytest.mark.asyncio
 async def test_happy_journey(
-    populated_fixture: PopulatedFixture,  # noqa: F405,F811
-    file_fixture: FileObject,  # noqa: F811
+    populated_fixture: PopulatedFixture,  # noqa: F405
+    file_fixture: FileObject,
     httpx_mock: HTTPXMock,  # noqa: F811
 ):
     """Simulates a typical, successful API journey."""
@@ -147,8 +147,8 @@ async def test_happy_journey(
 
 @pytest.mark.asyncio
 async def test_happy_deletion(
-    populated_fixture: PopulatedFixture,  # noqa: F405,F811
-    file_fixture: FileObject,  # noqa: F811
+    populated_fixture: PopulatedFixture,  # noqa: F405
+    file_fixture: FileObject,
     httpx_mock: HTTPXMock,  # noqa: F811
 ):
     """Simulates a typical, successful journey for file deletion."""
@@ -194,7 +194,7 @@ async def test_happy_deletion(
 
 
 @pytest.mark.asyncio
-async def test_cleanup(cleanup_fixture: CleanupFixture):  # noqa: F405,F811
+async def test_cleanup(cleanup_fixture: CleanupFixture):  # noqa: F405
     """Test outbox cleanup handling"""
     data_repository = await cleanup_fixture.joint_fixture.container.data_repository()
     await data_repository.cleanup_outbox()

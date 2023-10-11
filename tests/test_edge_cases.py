@@ -24,9 +24,8 @@ from tests.fixtures.joint import *  # noqa: F403
 
 
 @pytest.mark.asyncio
-async def test_get_health(joint_fixture: JointFixture):  # noqa: F811, F405
+async def test_get_health(joint_fixture: JointFixture):  # noqa: F405
     """Test the GET /health endpoint"""
-
     response = await joint_fixture.rest_client.get("/health")
 
     assert response.status_code == status.HTTP_200_OK
@@ -34,10 +33,10 @@ async def test_get_health(joint_fixture: JointFixture):  # noqa: F811, F405
 
 
 @pytest.mark.asyncio
-async def test_access_non_existing(joint_fixture: JointFixture):  # noqa F811
+async def test_access_non_existing(joint_fixture: JointFixture):  # noqa: F405
     """Checks that requesting access to a non-existing DRS object fails with the
-    expected exception."""
-
+    expected exception.
+    """
     file_id = "my-non-existing-id"
 
     # request access to non existing DRS object:
