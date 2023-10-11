@@ -19,7 +19,7 @@ import asyncio
 
 from ghga_service_commons.api import run_server
 
-from ekss.adapters.inbound.fastapi_.main import (  # noqa: F401 pylint: disable=unused-import
+from ekss.adapters.inbound.fastapi_.main import (
     setup_app,
 )
 from ekss.config import CONFIG, Config

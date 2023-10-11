@@ -19,13 +19,14 @@ import os
 import pytest
 
 from ekss.adapters.outbound.vault.exceptions import SecretRetrievalError
-from tests.fixtures.vault import vault_fixture  # noqa: F401
-from tests.fixtures.vault import VaultFixture
+from tests.fixtures.vault import (
+    VaultFixture,
+    vault_fixture,  # noqa: F401
+)
 
 
 def test_connection(vault_fixture: VaultFixture):  # noqa: F811
     """Test if container is up and reachable and commands are working"""
-
     # populate
     secret = os.urandom(32)
     secret2 = os.urandom(32)

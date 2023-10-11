@@ -26,9 +26,7 @@ from ekss.config import CONFIG
 async def get_envelope(
     *, secret_id: str, client_pubkey: bytes, vault: VaultAdapter
 ) -> bytes:
-    """
-    Calls the database and then calls a function to assemble an envelope
-    """
+    """Calls the database and then calls a function to assemble an envelope"""
     file_secret = vault.get_secret(key=secret_id)
     header_envelope = await create_envelope(
         file_secret=file_secret, client_pubkey=client_pubkey

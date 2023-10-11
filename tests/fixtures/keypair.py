@@ -15,10 +15,10 @@
 """Provides a fixture around MongoDB, prefilling the DB with test data"""
 
 import os
+from collections.abc import AsyncGenerator
 from dataclasses import dataclass
 from pathlib import Path
 from tempfile import mkstemp
-from typing import AsyncGenerator
 
 import pytest_asyncio
 from crypt4gh.keys import get_private_key, get_public_key

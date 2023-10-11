@@ -16,7 +16,6 @@
 
 import base64
 import io
-from typing import Tuple
 
 import crypt4gh.header
 
@@ -25,10 +24,8 @@ from ekss.config import CONFIG
 
 async def extract_envelope_content(
     *, file_part: bytes, client_pubkey: bytes
-) -> Tuple[bytes, int]:
-    """
-    Extract file encryption/decryption secret and file content offset from envelope
-    """
+) -> tuple[bytes, int]:
+    """Extract file encryption/decryption secret and file content offset from envelope"""
     envelope_stream = io.BytesIO(file_part)
 
     server_private_key = base64.b64decode(CONFIG.server_private_key.get_secret_value())

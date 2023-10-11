@@ -12,22 +12,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+"""First-file-part fixture"""
 
 import base64
 import io
+from collections.abc import AsyncGenerator
 from dataclasses import dataclass
-from typing import AsyncGenerator
 
 import crypt4gh.lib
 import pytest_asyncio
 from ghga_service_commons.utils import temp_files
 
 from ekss.config import CONFIG
-from tests.fixtures.keypair import generate_keypair_fixture  # noqa: F401
-from tests.fixtures.keypair import KeypairFixture
-from tests.fixtures.vault import vault_fixture  # noqa: F401
-from tests.fixtures.vault import VaultFixture
+from tests.fixtures.keypair import (
+    KeypairFixture,
+    generate_keypair_fixture,  # noqa: F401
+)
+from tests.fixtures.vault import (
+    VaultFixture,
+    vault_fixture,  # noqa: F401
+)
 
 
 @dataclass
@@ -45,9 +49,7 @@ async def first_part_fixture(
     vault_fixture: VaultFixture,  # noqa: F811
     generate_keypair_fixture: KeypairFixture,  # noqa: F811
 ) -> AsyncGenerator[FirstPartFixture, None]:
-    """
-    Create random File, encrypt with Crypt4GH, return DAOs, secrets and first file part
-    """
+    """Create random File, encrypt with Crypt4GH, return DAOs, secrets and first file part"""
     file_size = 20 * 1024**2
     part_size = 16 * 1024**2
 

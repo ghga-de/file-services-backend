@@ -70,13 +70,13 @@ We recommend using the provided Docker container.
 
 A pre-build version is available at [docker hub](https://hub.docker.com/repository/docker/ghga/encryption-key-store-service):
 ```bash
-docker pull ghga/encryption-key-store-service:0.3.5
+docker pull ghga/encryption-key-store-service:0.3.6
 ```
 
 Or you can build the container yourself from the [`./Dockerfile`](./Dockerfile):
 ```bash
 # Execute in the repo's root dir:
-docker build -t ghga/encryption-key-store-service:0.3.5 .
+docker build -t ghga/encryption-key-store-service:0.3.6 .
 ```
 
 For production-ready deployment, we recommend using Kubernetes, however,
@@ -84,7 +84,7 @@ for simple use cases, you could execute the service using docker
 on a single server:
 ```bash
 # The entrypoint is preconfigured:
-docker run -p 8080:8080 ghga/encryption-key-store-service:0.3.5 --help
+docker run -p 8080:8080 ghga/encryption-key-store-service:0.3.6 --help
 ```
 
 If you prefer not to use containers, you may install the service from source:
@@ -100,31 +100,31 @@ ekss --help
 ### Parameters
 
 The service requires the following configuration parameters:
-- **`debug_vault`** *(boolean)*: If true, runs vault connections over http instead of https. Default: `False`.
+- **`debug_vault`** *(boolean)*: If true, runs vault connections over http instead of https. Default: `false`.
 
 - **`vault_host`** *(string)*: URL of the vault instance to connect to without port number.
 
 - **`vault_port`** *(integer)*: Port number of the vault instance to connect to.
 
-- **`vault_role_id`** *(string)*: Vault role ID to access a specific prefix.
+- **`vault_role_id`** *(string, format: password)*: Vault role ID to access a specific prefix.
 
-- **`vault_secret_id`** *(string)*: Vault secret ID to access a specific prefix.
+- **`vault_secret_id`** *(string, format: password)*: Vault secret ID to access a specific prefix.
 
-- **`host`** *(string)*: IP of the host. Default: `127.0.0.1`.
+- **`host`** *(string)*: IP of the host. Default: `"127.0.0.1"`.
 
 - **`port`** *(integer)*: Port to expose the server on the specified host. Default: `8080`.
 
-- **`log_level`** *(string)*: Controls the verbosity of the log. Must be one of: `['critical', 'error', 'warning', 'info', 'debug', 'trace']`. Default: `info`.
+- **`log_level`** *(string)*: Controls the verbosity of the log. Must be one of: `["critical", "error", "warning", "info", "debug", "trace"]`. Default: `"info"`.
 
-- **`auto_reload`** *(boolean)*: A development feature. Set to `True` to automatically reload the server upon code changes. Default: `False`.
+- **`auto_reload`** *(boolean)*: A development feature. Set to `True` to automatically reload the server upon code changes. Default: `false`.
 
 - **`workers`** *(integer)*: Number of workers processes to run. Default: `1`.
 
-- **`api_root_path`** *(string)*: Root path at which the API is reachable. This is relative to the specified host and port. Default: `/`.
+- **`api_root_path`** *(string)*: Root path at which the API is reachable. This is relative to the specified host and port. Default: `"/"`.
 
-- **`openapi_url`** *(string)*: Path to get the openapi specification in JSON format. This is relative to the specified host and port. Default: `/openapi.json`.
+- **`openapi_url`** *(string)*: Path to get the openapi specification in JSON format. This is relative to the specified host and port. Default: `"/openapi.json"`.
 
-- **`docs_url`** *(string)*: Path to host the swagger documentation. This is relative to the specified host and port. Default: `/docs`.
+- **`docs_url`** *(string)*: Path to host the swagger documentation. This is relative to the specified host and port. Default: `"/docs"`.
 
 - **`cors_allowed_origins`** *(array)*: A list of origins that should be permitted to make cross-origin requests. By default, cross-origin requests are not allowed. You can use ['*'] to allow any origin.
 
@@ -140,9 +140,9 @@ The service requires the following configuration parameters:
 
   - **Items** *(string)*
 
-- **`service_name`** *(string)*: Default: `encryption_key_store`.
+- **`service_name`** *(string)*: Default: `"encryption_key_store"`.
 
-- **`server_private_key`** *(string)*: Base64 encoded server Crypt4GH private key.
+- **`server_private_key`** *(string, format: password)*: Base64 encoded server Crypt4GH private key.
 
 - **`server_public_key`** *(string)*: Base64 encoded server Crypt4GH public key.
 
@@ -205,7 +205,7 @@ Moreover, inside the devcontainer, a convenience commands `dev_install` is avail
 It installs the service with all development dependencies, installs pre-commit.
 
 The installation is performed automatically when you build the devcontainer. However,
-if you update dependencies in the [`./setup.cfg`](./setup.cfg) or the
+if you update dependencies in the [`./pyproject.toml`](./pyproject.toml) or the
 [`./requirements-dev.txt`](./requirements-dev.txt), please run it again.
 
 ## License

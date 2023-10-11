@@ -15,8 +15,8 @@
 """HashiCorp vault fixture for texting"""
 
 import time
+from collections.abc import Generator
 from dataclasses import dataclass
-from typing import Generator
 
 import hvac
 import pytest

@@ -23,8 +23,10 @@ from fastapi.testclient import TestClient
 from ekss.adapters.inbound.fastapi_.deps import config_injector
 from ekss.adapters.inbound.fastapi_.main import setup_app
 from ekss.config import CONFIG
-from tests.fixtures.file import first_part_fixture  # noqa: F401
-from tests.fixtures.file import FirstPartFixture
+from tests.fixtures.file import (
+    FirstPartFixture,
+    first_part_fixture,  # noqa: F401
+)
 from tests.fixtures.keypair import generate_keypair_fixture  # noqa: F401
 from tests.fixtures.vault import vault_fixture  # noqa: F401
 
@@ -38,7 +40,6 @@ async def test_post_secrets(
     first_part_fixture: FirstPartFixture,  # noqa: F811
 ):
     """Test request response for /secrets endpoint with valid data"""
-
     app.dependency_overrides[config_injector] = lambda: first_part_fixture.vault.config
 
     payload = first_part_fixture.content
@@ -74,7 +75,6 @@ async def test_corrupted_header(
     first_part_fixture: FirstPartFixture,  # noqa: F811
 ):
     """Test request response for /secrets endpoint with first char replaced in envelope"""
-
     app.dependency_overrides[config_injector] = lambda: first_part_fixture.vault.config
 
     payload = b"k" + first_part_fixture.content[2:]
@@ -99,7 +99,6 @@ async def test_missing_envelope(
     first_part_fixture: FirstPartFixture,  # noqa: F811
 ):
     """Test request response for /secrets endpoint without envelope"""
-
     app.dependency_overrides[config_injector] = lambda: first_part_fixture.vault.config
 
     payload = first_part_fixture.content

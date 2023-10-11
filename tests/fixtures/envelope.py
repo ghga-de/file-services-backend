@@ -13,17 +13,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
+"""Envelope test fixture for public keys/secrets"""
 import os
+from collections.abc import AsyncGenerator
 from dataclasses import dataclass
-from typing import AsyncGenerator
 
 import pytest_asyncio
 
-from tests.fixtures.keypair import generate_keypair_fixture  # noqa: F401
-from tests.fixtures.keypair import KeypairFixture
-from tests.fixtures.vault import vault_fixture  # noqa: F401
-from tests.fixtures.vault import VaultFixture
+from tests.fixtures.keypair import (
+    KeypairFixture,
+    generate_keypair_fixture,  # noqa: F401
+)
+from tests.fixtures.vault import (
+    VaultFixture,
+    vault_fixture,  # noqa: F401
+)
 
 
 @dataclass

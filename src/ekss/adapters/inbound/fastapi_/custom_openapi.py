@@ -12,20 +12,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Exceptions wrapping HashiCorp Vault errors """
+
+"""Utils to customize openAPI script"""
+from typing import Any
+
+from fastapi.openapi.utils import get_openapi
+
+from ekss import __version__
+from ekss.config import Config
+
+config = Config()  # type: ignore [call-arg]
 
 
-class VaultException(RuntimeError):
-    """Baseclass for for errors encountered when interacting with HashiCorp Vault"""
-
-
-class SecretInsertionError(VaultException):
-    """Wrapper for errors encountered on secret insertion"""
-
-
-class SecretRetrievalError(VaultException):
-    """Wrapper for errors encountered on secret retrieval"""
-
-
-class SecretDeletionError(VaultException):
-    """Wrapper for errors encountered on secret deletion"""
+def get_openapi_schema(api) -> dict[str, Any]:
+    """Generates a custom openapi schema for the service"""
+    return get_openapi(
+        title="Encryption Key Store Service",
+        version=__version__,
+        description="A service managing storage and retrieval of symmetric keys in"
+        + " a HashiCorp Vault.",
+        servers=[{"url": config.api_root_path}],
+        tags=[{"name": "EncryptionKeyStoreService"}],
+        routes=api.routes,
+    )

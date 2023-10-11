@@ -40,6 +40,6 @@ def setup_app(config: ApiConfigBase):
         app.openapi_schema = openapi_schema
         return app.openapi_schema
 
-    app.openapi = custom_openapi  # type: ignore [assignment]
+    app.openapi = custom_openapi  # type: ignore [method-assign]
 
     return app

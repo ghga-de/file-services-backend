@@ -67,4 +67,4 @@ class Config(ApiConfigBase, VaultConfig):
     )
 
 
-CONFIG = Config()
+CONFIG = Config()  # type: ignore [call-arg]

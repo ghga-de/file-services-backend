@@ -24,8 +24,10 @@ from fastapi.testclient import TestClient
 from ekss.adapters.inbound.fastapi_.deps import config_injector
 from ekss.adapters.inbound.fastapi_.main import setup_app
 from ekss.config import CONFIG
-from tests.fixtures.envelope import envelope_fixture  # noqa: F401
-from tests.fixtures.envelope import EnvelopeFixture
+from tests.fixtures.envelope import (
+    EnvelopeFixture,
+    envelope_fixture,  # noqa: F401
+)
 from tests.fixtures.keypair import generate_keypair_fixture  # noqa: F401
 from tests.fixtures.vault import vault_fixture  # noqa: F401
 
@@ -39,7 +41,6 @@ async def test_get_envelope(
     envelope_fixture: EnvelopeFixture,  # noqa: F811
 ):
     """Test request response for /secrets/../envelopes/.. endpoint with valid data"""
-
     app.dependency_overrides[config_injector] = lambda: envelope_fixture.vault.config
 
     secret_id = envelope_fixture.secret_id
@@ -64,7 +65,6 @@ async def test_wrong_id(
     envelope_fixture: EnvelopeFixture,  # noqa: F811
 ):
     """Test request response for /secrets/../envelopes/.. endpoint with invalid secret_id"""
-
     app.dependency_overrides[config_injector] = lambda: envelope_fixture.vault.config
 
     secret_id = "wrong_id"

@@ -75,7 +75,8 @@ async def post_encryption_secrets(
     vault: VaultAdapter = Depends(get_vault),
 ):
     """Extract file encryption/decryption secret, create secret ID and extract
-    file content offset"""
+    file content offset
+    """
     client_pubkey = base64.b64decode(envelope_query.public_key)
     file_part = base64.b64decode(envelope_query.file_part)
     try:
@@ -85,7 +86,7 @@ async def post_encryption_secrets(
         )
     except ValueError as error:
         # Everything in envelope decryption is a ValueError... try to distinguish based on message
-        if "No supported encryption method" == str(error):
+        if str(error) == "No supported encryption method":
             raise exceptions.HttpEnvelopeDecryptionError() from error
         raise exceptions.HttpMalformedOrMissingEnvelopeError() from error
 
