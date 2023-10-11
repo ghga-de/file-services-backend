@@ -224,9 +224,22 @@ info:
   description: A service managing storage and retrieval of symmetric keys in a HashiCorp
     Vault.
   title: Encryption Key Store Service
-  version: 0.3.6
+  version: 0.3.7
 openapi: 3.0.2
 paths:
+  /health:
+    get:
+      description: Used to test if this service is alive
+      operationId: health_health_get
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+      summary: health
+      tags:
+      - EncryptionKeyStoreService
   /secrets:
     post:
       description: 'Extract file encryption/decryption secret, create secret ID and

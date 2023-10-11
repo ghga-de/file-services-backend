@@ -55,6 +55,16 @@ ERROR_RESPONSES = {
 }
 
 
+@router.get(
+    "/health",
+    summary="health",
+    status_code=status.HTTP_200_OK,
+)
+async def health():
+    """Used to test if this service is alive"""
+    return {"status": "OK"}
+
+
 @router.post(
     "/secrets",
     summary="Extract file encryption/decryption secret and file content offset from enevelope",
