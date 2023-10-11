@@ -51,6 +51,19 @@ info:
   version: 0.1.4
 openapi: 3.0.2
 paths:
+  /health:
+    get:
+      description: Used to test if this service is alive
+      operationId: health_health_get
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+      summary: health
+      tags:
+      - FileIngestService
   /ingest:
     post:
       description: Decrypt payload, process metadata, file secret and send success

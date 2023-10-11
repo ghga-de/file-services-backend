@@ -33,6 +33,15 @@ from tests.fixtures.joint import (  # noqa: F401
 
 
 @pytest.mark.asyncio
+async def test_health_check(joint_fixture: JointFixture):  # noqa: F811
+    """Test that the health check endpoint works."""
+    response = await joint_fixture.rest_client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "OK"}
+
+
+@pytest.mark.asyncio
 async def test_api_call(monkeypatch, joint_fixture: JointFixture):  # noqa: F811
     """Test functionality with incoming API call"""
     event_recorder = EventRecorder(

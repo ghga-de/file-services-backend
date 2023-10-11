@@ -28,6 +28,17 @@ from fis.core.models import FileUploadMetadataEncrypted
 router = APIRouter()
 
 
+@router.get(
+    "/health",
+    summary="health",
+    tags=["FileIngestService"],
+    status_code=200,
+)
+async def health():
+    """Used to test if this service is alive"""
+    return {"status": "OK"}
+
+
 @router.post(
     "/ingest",
     summary="Processes encrypted output data from the S3 upload script and ingests it "
