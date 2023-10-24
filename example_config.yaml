@@ -4,7 +4,6 @@ cors_allow_credentials: null
 cors_allowed_headers: null
 cors_allowed_methods: null
 cors_allowed_origins: null
-debug_vault: false
 docs_url: /docs
 host: 127.0.0.1
 log_level: info
@@ -13,8 +12,8 @@ port: 8080
 server_private_key: '**********'
 server_public_key: HsKvfHsAFNGykFi/zMssay0xajoHvY30IcYPGDCXrGU=
 service_name: encryption_key_store
-vault_host: http://127.0.0.1
-vault_port: 8200
 vault_role_id: '**********'
 vault_secret_id: '**********'
+vault_url: http://127.0.0.1:8200
+vault_verify: true
 workers: 1

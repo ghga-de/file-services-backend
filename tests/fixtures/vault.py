@@ -25,7 +25,7 @@ from testcontainers.general import DockerContainer
 from ekss.adapters.inbound.fastapi_.deps import VaultConfig
 from ekss.adapters.outbound.vault.client import VaultAdapter
 
-VAULT_ADDR = "http://0.0.0.0:8200"
+VAULT_URL = "http://0.0.0.0:8200"
 VAULT_NAMESPACE = "vault"
 VAULT_TOKEN = "dev-token"
 VAULT_PORT = 8200
@@ -43,9 +43,9 @@ class VaultFixture:
 def vault_fixture() -> Generator[VaultFixture, None, None]:
     """Generate preconfigured test container"""
     vault_container = (
-        DockerContainer(image="hashicorp/vault:1.11.4")
+        DockerContainer(image="hashicorp/vault:1.12")
         .with_exposed_ports(VAULT_PORT)
-        .with_env("VAULT_ADDR", VAULT_ADDR)
+        .with_env("VAULT_ADDR", VAULT_URL)
         .with_env("VAULT_DEV_ROOT_TOKEN_ID", VAULT_TOKEN)
     )
     with vault_container:
@@ -53,11 +53,10 @@ def vault_fixture() -> Generator[VaultFixture, None, None]:
         port = vault_container.get_exposed_port(VAULT_PORT)
         role_id, secret_id = configure_vault(host=host, port=port)
         config = VaultConfig(
-            debug_vault=True,
-            vault_host=host,
-            vault_port=port,
+            vault_url=f"http://{host}:{port}",
             vault_role_id=role_id,
             vault_secret_id=secret_id,
+            vault_verify=True,
         )
         vault_adapter = VaultAdapter(config=config)
         # client needs some time after creation

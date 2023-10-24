@@ -66,17 +66,18 @@ path "secret/metadata/ekss/*" {
 
 
 ## Installation
+
 We recommend using the provided Docker container.
 
 A pre-build version is available at [docker hub](https://hub.docker.com/repository/docker/ghga/encryption-key-store-service):
 ```bash
-docker pull ghga/encryption-key-store-service:0.3.7
+docker pull ghga/encryption-key-store-service:0.3.8
 ```
 
 Or you can build the container yourself from the [`./Dockerfile`](./Dockerfile):
 ```bash
 # Execute in the repo's root dir:
-docker build -t ghga/encryption-key-store-service:0.3.7 .
+docker build -t ghga/encryption-key-store-service:0.3.8 .
 ```
 
 For production-ready deployment, we recommend using Kubernetes, however,
@@ -84,7 +85,7 @@ for simple use cases, you could execute the service using docker
 on a single server:
 ```bash
 # The entrypoint is preconfigured:
-docker run -p 8080:8080 ghga/encryption-key-store-service:0.3.7 --help
+docker run -p 8080:8080 ghga/encryption-key-store-service:0.3.8 --help
 ```
 
 If you prefer not to use containers, you may install the service from source:
@@ -97,18 +98,23 @@ ekss --help
 ```
 
 ## Configuration
+
 ### Parameters
 
 The service requires the following configuration parameters:
-- **`debug_vault`** *(boolean)*: If true, runs vault connections over http instead of https. Default: `false`.
-
-- **`vault_host`** *(string)*: URL of the vault instance to connect to without port number.
-
-- **`vault_port`** *(integer)*: Port number of the vault instance to connect to.
+- **`vault_url`** *(string)*: URL of the vault instance to connect to.
 
 - **`vault_role_id`** *(string, format: password)*: Vault role ID to access a specific prefix.
 
 - **`vault_secret_id`** *(string, format: password)*: Vault secret ID to access a specific prefix.
+
+- **`vault_verify`**: SSL certificates (CA bundle) used to verify the identity of the vault, or True to use the default CAs, or False for no verification. Default: `true`.
+
+  - **Any of**
+
+    - *boolean*
+
+    - *string*
 
 - **`host`** *(string)*: IP of the host. Default: `"127.0.0.1"`.
 
@@ -185,19 +191,20 @@ It uses protocol/provider pairs and dependency injection mechanisms provided by 
 
 
 ## Development
+
 For setting up the development environment, we rely on the
-[devcontainer feature](https://code.visualstudio.com/docs/remote/containers) of vscode
+[devcontainer feature](https://code.visualstudio.com/docs/remote/containers) of VS Code
 in combination with Docker Compose.
 
-To use it, you have to have Docker Compose as well as vscode with its "Remote - Containers"
+To use it, you have to have Docker Compose as well as VS Code with its "Remote - Containers"
 extension (`ms-vscode-remote.remote-containers`) installed.
-Then open this repository in vscode and run the command
-`Remote-Containers: Reopen in Container` from the vscode "Command Palette".
+Then open this repository in VS Code and run the command
+`Remote-Containers: Reopen in Container` from the VS Code "Command Palette".
 
 This will give you a full-fledged, pre-configured development environment including:
 - infrastructural dependencies of the service (databases, etc.)
-- all relevant vscode extensions pre-installed
-- pre-configured linting and auto-formating
+- all relevant VS Code extensions pre-installed
+- pre-configured linting and auto-formatting
 - a pre-configured debugger
 - automatic license-header insertion
 
@@ -209,9 +216,11 @@ if you update dependencies in the [`./pyproject.toml`](./pyproject.toml) or the
 [`./requirements-dev.txt`](./requirements-dev.txt), please run it again.
 
 ## License
+
 This repository is free to use and modify according to the
 [Apache 2.0 License](./LICENSE).
 
-## Readme Generation
-This readme is autogenerate, please see [`readme_generation.md`](./readme_generation.md)
+## README Generation
+
+This README file is auto-generated, please see [`readme_generation.md`](./readme_generation.md)
 for details.

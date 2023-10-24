@@ -15,6 +15,8 @@
 
 """Config Parameter Modeling and Parsing"""
 
+from typing import Union
+
 from ghga_service_commons.api import ApiConfigBase
 from hexkit.config import config_from_yaml
 from pydantic import BaseSettings, Field, SecretStr
@@ -23,20 +25,10 @@ from pydantic import BaseSettings, Field, SecretStr
 class VaultConfig(BaseSettings):
     """Configuration for HashiCorp Vault connection"""
 
-    debug_vault: bool = Field(
-        False,
-        example="False",
-        description="If true, runs vault connections over http instead of https",
-    )
-    vault_host: str = Field(
+    vault_url: str = Field(
         ...,
-        example="http://127.0.0.1",
-        description="URL of the vault instance to connect to without port number",
-    )
-    vault_port: int = Field(
-        ...,
-        example="8200",
-        description="Port number of the vault instance to connect to",
+        example="http://127.0.0.1.8200",
+        description="URL of the vault instance to connect to",
     )
     vault_role_id: SecretStr = Field(
         ...,
@@ -47,6 +39,13 @@ class VaultConfig(BaseSettings):
         ...,
         example="example_secret",
         description="Vault secret ID to access a specific prefix",
+    )
+    vault_verify: Union[bool, str] = Field(
+        True,
+        example="/etc/ssl/certs/my_bundle.pem",
+        description="SSL certificates (CA bundle) used to"
+        " verify the identity of the vault, or True to"
+        " use the default CAs, or False for no verification.",
     )
 
 

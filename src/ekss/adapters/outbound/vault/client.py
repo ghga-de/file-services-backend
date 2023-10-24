@@ -29,9 +29,7 @@ class VaultAdapter:
 
     def __init__(self, config: VaultConfig):
         """Initialized approle based client and login"""
-        protocol = "http" if config.debug_vault else "https"
-        url = f"{protocol}://{config.vault_host}:{config.vault_port}"
-        self._client = hvac.Client(url=url)
+        self._client = hvac.Client(url=config.vault_url, verify=config.vault_verify)
 
         self._role_id = config.vault_role_id.get_secret_value()
         self._secret_id = config.vault_secret_id.get_secret_value()
