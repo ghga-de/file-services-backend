@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ekss"
-version = "0.3.8"
+version = "0.3.9"
 description = "Encryption Key Store Sevice - providing crypt4gh file secret extraction, storage and envelope generation"
 readme = "README.md"
 authors = [
@@ -23,10 +23,11 @@ classifiers = [
     "Intended Audience :: Developers",
 ]
 dependencies = [
-    "ghga-service-commons[all]>=0.3.2",
-    "crypt4gh>=1.6",
-    "hexkit>=0.9.3",
-    "hvac>=1.0.2",
+    "ghga-service-commons[all]>=0.7.1,<0.8",
+    "hexkit>=0.10.2,<0.11",
+    "crypt4gh>=1.6,<2",
+    "hvac>=2,<3",
+    "pydantic>=1.10.6,<2"
 ]
 
 [project.license]
