@@ -3,33 +3,14 @@
   "description": "Modifies the orginal Settings class provided by the user",
   "type": "object",
   "properties": {
-    "debug_vault": {
-      "title": "Debug Vault",
-      "description": "If true, runs vault connections over http instead of https",
-      "default": false,
-      "example": "False",
+    "vault_url": {
+      "title": "Vault Url",
+      "description": "URL of the vault instance to connect to",
+      "example": "http://127.0.0.1.8200",
       "env_names": [
-        "fis_debug_vault"
-      ],
-      "type": "boolean"
-    },
-    "vault_host": {
-      "title": "Vault Host",
-      "description": "URL of the vault instance to connect to without port number",
-      "example": "http://127.0.0.1",
-      "env_names": [
-        "fis_vault_host"
+        "fis_vault_url"
       ],
       "type": "string"
-    },
-    "vault_port": {
-      "title": "Vault Port",
-      "description": "Port number of the vault instance to connect to",
-      "example": "8200",
-      "env_names": [
-        "fis_vault_port"
-      ],
-      "type": "integer"
     },
     "vault_role_id": {
       "title": "Vault Role Id",
@@ -52,6 +33,23 @@
       "type": "string",
       "writeOnly": true,
       "format": "password"
+    },
+    "vault_verify": {
+      "title": "Vault Verify",
+      "description": "SSL certificates (CA bundle) used to verify the identity of the vault, or True to use the default CAs, or False for no verification.",
+      "default": true,
+      "example": "/etc/ssl/certs/my_bundle.pem",
+      "env_names": [
+        "fis_vault_verify"
+      ],
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "string"
+        }
+      ]
     },
     "private_key": {
       "title": "Private Key",
@@ -264,8 +262,7 @@
     }
   },
   "required": [
-    "vault_host",
-    "vault_port",
+    "vault_url",
     "vault_role_id",
     "vault_secret_id",
     "private_key",

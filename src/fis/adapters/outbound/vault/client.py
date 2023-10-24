@@ -14,6 +14,7 @@
 # limitations under the License.
 """Provides client side functionality for interaction with HashiCorp Vault"""
 
+from typing import Union
 from uuid import uuid4
 
 import hvac
@@ -26,20 +27,10 @@ from fis.ports.outbound.vault.client import VaultAdapterPort
 class VaultConfig(BaseSettings):
     """Configuration for HashiCorp Vault connection"""
 
-    debug_vault: bool = Field(
-        False,
-        example="False",
-        description="If true, runs vault connections over http instead of https",
-    )
-    vault_host: str = Field(
+    vault_url: str = Field(
         ...,
-        example="http://127.0.0.1",
-        description="URL of the vault instance to connect to without port number",
-    )
-    vault_port: int = Field(
-        ...,
-        example="8200",
-        description="Port number of the vault instance to connect to",
+        example="http://127.0.0.1.8200",
+        description="URL of the vault instance to connect to",
     )
     vault_role_id: SecretStr = Field(
         ...,
@@ -51,6 +42,13 @@ class VaultConfig(BaseSettings):
         example="example_secret",
         description="Vault secret ID to access a specific prefix",
     )
+    vault_verify: Union[bool, str] = Field(
+        True,
+        example="/etc/ssl/certs/my_bundle.pem",
+        description="SSL certificates (CA bundle) used to"
+        " verify the identity of the vault, or True to"
+        " use the default CAs, or False for no verification.",
+    )
 
 
 class VaultAdapter(VaultAdapterPort):
@@ -58,9 +56,7 @@ class VaultAdapter(VaultAdapterPort):
 
     def __init__(self, config: VaultConfig):
         """Initialized approle based client and login"""
-        protocol = "http" if config.debug_vault else "https"
-        url = f"{protocol}://{config.vault_host}:{config.vault_port}"
-        self._client = hvac.Client(url=url)
+        self._client = hvac.Client(url=config.vault_url, verify=config.vault_verify)
 
         self._role_id = config.vault_role_id.get_secret_value()
         self._secret_id = config.vault_secret_id.get_secret_value()

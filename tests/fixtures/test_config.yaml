@@ -9,7 +9,7 @@ publisher_type: file_validation_success
 service_instance_id: 001
 kafka_servers: ["kafka:9092"]
 
-vault_host: "http://127.0.0.1"
-vault_port: 8200
+vault_url: "http://127.0.0.1:8200"
 vault_role_id: dummy-role
 vault_secret_id: dummy-secret
+vault_verify: True
