@@ -15,13 +15,14 @@
 """Functionality relating to S3 upload metadata processing"""
 
 import json
+from typing import Generic
 
 from ghga_service_commons.utils.crypt import decrypt
 from nacl.exceptions import CryptoError
 from pydantic import BaseSettings, Field, ValidationError
 
 from fis.core import models
-from fis.ports.inbound.ingest import UploadMetadataProcessorPort
+from fis.ports.inbound.ingest import UploadMetadataModel, UploadMetadataProcessorPort
 from fis.ports.outbound.event_pub import EventPublisherPort
 from fis.ports.outbound.vault.client import VaultAdapterPort
 
@@ -46,8 +47,13 @@ class ServiceConfig(BaseSettings):
     )
 
 
-class UploadMetadataProcessor(UploadMetadataProcessorPort):
-    """Handler for S3 upload metadata processing"""
+class UploadMetadataProcessorBase(
+    UploadMetadataProcessorPort, Generic[UploadMetadataModel]
+):
+    """Shared implementations for current/legacy upload processor.
+
+    Do not instantiate directly.
+    """
 
     def __init__(
         self,
@@ -60,24 +66,8 @@ class UploadMetadataProcessor(UploadMetadataProcessorPort):
         self._event_publisher = event_publisher
         self._vault_adapter = vault_adapter
 
-    async def decrypt_payload(
-        self, *, encrypted: models.FileUploadMetadataEncrypted
-    ) -> models.FileUploadMetadata:
-        """Decrypt upload metadata using private key"""
-        try:
-            decrypted = decrypt(data=encrypted.payload, key=self._config.private_key)
-        except (ValueError, CryptoError) as error:
-            raise self.DecryptionError() from error
-
-        upload_metadata = json.loads(decrypted)
-
-        try:
-            return models.FileUploadMetadata(**upload_metadata)
-        except ValidationError as error:
-            raise self.WrongDecryptedFormatError(cause=str(error)) from error
-
     async def populate_by_event(
-        self, *, upload_metadata: models.FileUploadMetadata, secret_id: str
+        self, *, upload_metadata: UploadMetadataModel, secret_id: str
     ):
         """Send FileUploadValidationSuccess event to be processed by downstream services"""
         await self._event_publisher.send_file_metadata(
@@ -92,3 +82,52 @@ class UploadMetadataProcessor(UploadMetadataProcessorPort):
             return self._vault_adapter.store_secret(secret=file_secret)
         except self._vault_adapter.SecretInsertionError as error:
             raise self.VaultCommunicationError(message=str(error)) from error
+
+
+class LegacyUploadMetadataProcessor(UploadMetadataProcessorBase):
+    """Handler for S3 upload metadata processing"""
+
+    async def decrypt_payload(
+        self, *, encrypted: models.EncryptedPayload
+    ) -> models.LegacyUploadMetadata:
+        """Decrypt upload metadata using private key"""
+        try:
+            decrypted = decrypt(data=encrypted.payload, key=self._config.private_key)
+        except (ValueError, CryptoError) as error:
+            raise self.DecryptionError() from error
+
+        upload_metadata = json.loads(decrypted)
+
+        try:
+            return models.LegacyUploadMetadata(**upload_metadata)
+        except ValidationError as error:
+            raise self.WrongDecryptedFormatError(cause=str(error)) from error
+
+
+class UploadMetadataProcessor(UploadMetadataProcessorBase):
+    """Handler for S3 upload metadata processing"""
+
+    async def decrypt_payload(
+        self, *, encrypted: models.EncryptedPayload
+    ) -> models.UploadMetadata:
+        """Decrypt upload metadata using private key"""
+        try:
+            decrypted = decrypt(data=encrypted.payload, key=self._config.private_key)
+        except (ValueError, CryptoError) as error:
+            raise self.DecryptionError() from error
+
+        upload_metadata = json.loads(decrypted)
+
+        try:
+            return models.UploadMetadata(**upload_metadata)
+        except ValidationError as error:
+            raise self.WrongDecryptedFormatError(cause=str(error)) from error
+
+    async def decrypt_secret(self, *, encrypted: models.EncryptedPayload) -> str:
+        """Decrypt file secret payload"""
+        try:
+            decrypted = decrypt(data=encrypted.payload, key=self._config.private_key)
+        except (ValueError, CryptoError) as error:
+            raise self.DecryptionError() from error
+
+        return decrypted

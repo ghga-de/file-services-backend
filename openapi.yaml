@@ -1,14 +1,17 @@
 components:
   schemas:
-    FileUploadMetadataEncrypted:
-      description: Encrypted file upload metadata model
+    EncryptedPayload:
+      description: 'Generic model for an encrypted payload.
+
+
+        Can correspond to current/legacy upload metadata or a file secret.'
       properties:
         payload:
           title: Payload
           type: string
       required:
       - payload
-      title: FileUploadMetadataEncrypted
+      title: EncryptedPayload
       type: object
     HTTPValidationError:
       properties:
@@ -48,9 +51,66 @@ info:
   description: A service to ingest s3 file upload metadata produced by thedata-steward-kit
     upload command
   title: File Ingest Service
-  version: 0.1.5
+  version: 0.1.6
 openapi: 3.0.2
 paths:
+  /federated/ingest_metadata:
+    post:
+      description: Decrypt payload, process metadata, file secret id and send success
+        event
+      operationId: ingestFileUploadMetadata
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EncryptedPayload'
+        required: true
+      responses:
+        '202':
+          content:
+            application/json:
+              schema: {}
+          description: Received and decrypted data successfully.
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      security:
+      - HTTPBearer: []
+      summary: Processes encrypted output data from the S3 upload script and ingests
+        it into the Encryption Key Store, Internal File Registry and Download Controller.
+      tags:
+      - FileIngestService
+  /federated/ingest_secret:
+    post:
+      description: Decrypt payload and deposit file secret in exchange for a secret
+        id
+      operationId: ingestSecret
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EncryptedPayload'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: Received and stored secret successfully.
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      security:
+      - HTTPBearer: []
+      summary: Store file encryption/decryption secret and return secret ID.
+      tags:
+      - FileIngestService
   /health:
     get:
       description: Used to test if this service is alive
@@ -64,16 +124,17 @@ paths:
       summary: health
       tags:
       - FileIngestService
-  /ingest:
+  /legacy/ingest:
     post:
+      deprecated: true
       description: Decrypt payload, process metadata, file secret and send success
         event
-      operationId: ingestFileUploadMetadata
+      operationId: ingestLegacyFileUploadMetadata
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/FileUploadMetadataEncrypted'
+              $ref: '#/components/schemas/EncryptedPayload'
         required: true
       responses:
         '202':

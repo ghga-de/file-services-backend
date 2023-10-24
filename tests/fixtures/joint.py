@@ -14,8 +14,6 @@
 # limitations under the License.
 #
 """Bundle test fixtures together"""
-import base64
-import os
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass
 
@@ -25,7 +23,6 @@ from ghga_service_commons.api.testing import AsyncTestClient
 from ghga_service_commons.utils.crypt import (
     KeyPair,
     encode_key,
-    encrypt,
     generate_key_pair,
 )
 from ghga_service_commons.utils.simple_token import generate_token_and_hash
@@ -33,17 +30,16 @@ from hexkit.providers.akafka.testutils import KafkaFixture, kafka_fixture  # noq
 
 from fis.config import Config, ServiceConfig
 from fis.container import Container
-from fis.core.models import FileUploadMetadata, FileUploadMetadataEncrypted
+from fis.core.models import UploadMetadataBase
 from fis.main import get_configured_container, get_rest_api
 from tests.fixtures.config import get_config
 
-TEST_PAYLOAD = FileUploadMetadata(
+TEST_PAYLOAD = UploadMetadataBase(
     file_id="abc",
     object_id="happy_little_object",
     part_size=16 * 1024**2,
     unencrypted_size=50 * 1024**2,
     encrypted_size=50 * 1024**2 + 128,
-    file_secret=base64.b64encode(os.urandom(32)).decode(),
     unencrypted_checksum="def",
     encrypted_md5_checksums=["a", "b", "c"],
     encrypted_sha256_checksums=["a", "b", "c"],
@@ -58,8 +54,7 @@ class JointFixture:
     container: Container
     keypair: KeyPair
     token: str
-    payload: FileUploadMetadata
-    encrypted_payload: FileUploadMetadataEncrypted
+    payload: UploadMetadataBase
     kafka: KafkaFixture
     rest_client: httpx.AsyncClient
 
@@ -88,13 +83,6 @@ async def joint_fixture(
         ]
     )
 
-    encrypted_payload = FileUploadMetadataEncrypted(
-        payload=encrypt(
-            data=TEST_PAYLOAD.json(),
-            key=keypair.public,
-        )
-    )
-
     api = get_rest_api(config=config)
 
     async with AsyncTestClient(app=api) as rest_client:
@@ -103,7 +91,6 @@ async def joint_fixture(
             container=container,
             keypair=keypair,
             payload=TEST_PAYLOAD,
-            encrypted_payload=encrypted_payload,
             token=token,
             kafka=kafka_fixture,
             rest_client=rest_client,

@@ -16,7 +16,7 @@
 
 from abc import ABC, abstractmethod
 
-from fis.core.models import FileUploadMetadata
+from fis.core.models import UploadMetadataBase
 
 
 class EventPublisherPort(ABC):
@@ -26,7 +26,7 @@ class EventPublisherPort(ABC):
     async def send_file_metadata(
         self,
         *,
-        upload_metadata: FileUploadMetadata,
+        upload_metadata: UploadMetadataBase,
         source_bucket_id: str,
         secret_id: str,
     ):

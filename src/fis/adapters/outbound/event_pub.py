@@ -21,7 +21,7 @@ from ghga_service_commons.utils.utc_dates import now_as_utc
 from hexkit.protocols.eventpub import EventPublisherProtocol
 from pydantic import BaseSettings, Field
 
-from fis.core.models import FileUploadMetadata
+from fis.core.models import UploadMetadataBase
 from fis.ports.outbound.event_pub import EventPublisherPort
 
 
@@ -61,7 +61,7 @@ class EventPubTranslator(EventPublisherPort):
     async def send_file_metadata(
         self,
         *,
-        upload_metadata: FileUploadMetadata,
+        upload_metadata: UploadMetadataBase,
         source_bucket_id: str,
         secret_id: str,
     ):

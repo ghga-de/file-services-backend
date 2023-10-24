@@ -17,22 +17,39 @@
 from pydantic import BaseModel
 
 
-class FileUploadMetadataEncrypted(BaseModel):
-    """Encrypted file upload metadata model"""
+class EncryptedPayload(BaseModel):
+    """Generic model for an encrypted payload.
+
+    Can correspond to current/legacy upload metadata or a file secret.
+    """
 
     payload: str
 
 
-class FileUploadMetadata(BaseModel):
-    """Decrypted payload model for S3 upload script output"""
+class UploadMetadataBase(BaseModel):
+    """BaseModel for common parts of different variants of the decrypted payload model
+    representing the S3 upload script output
+    """
 
-    # get all data for now, optimize later if we don't need all of it
     file_id: str
     object_id: str
     part_size: int
     unencrypted_size: int
     encrypted_size: int
-    file_secret: str
     unencrypted_checksum: str
     encrypted_md5_checksums: list[str]
     encrypted_sha256_checksums: list[str]
+
+
+class LegacyUploadMetadata(UploadMetadataBase):
+    """Legacy model including file encryption/decryption secret"""
+
+    file_secret: str
+
+
+class UploadMetadata(UploadMetadataBase):
+    """Current model including a secret ID that can be used to retrieve a stored secret
+    in place of the actual secret.
+    """
+
+    secret_id: str

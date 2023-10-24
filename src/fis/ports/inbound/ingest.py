@@ -14,12 +14,15 @@
 # limitations under the License.
 """Ports for S3 upload metadata ingest"""
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
+from typing import Generic, TypeVar
 
 from fis.core import models
 
+UploadMetadataModel = TypeVar("UploadMetadataModel", bound=models.UploadMetadataBase)
 
-class UploadMetadataProcessorPort(ABC):
+
+class UploadMetadataProcessorPort(Generic[UploadMetadataModel]):
     """Port for"""
 
     class DecryptionError(RuntimeError):
@@ -43,14 +46,8 @@ class UploadMetadataProcessorPort(ABC):
             super().__init__(message)
 
     @abstractmethod
-    async def decrypt_payload(
-        self, *, encrypted: models.FileUploadMetadataEncrypted
-    ) -> models.FileUploadMetadata:
-        """Decrypt upload metadata using private key"""
-
-    @abstractmethod
     async def populate_by_event(
-        self, *, upload_metadata: models.FileUploadMetadata, secret_id: str
+        self, *, upload_metadata: UploadMetadataModel, secret_id: str
     ):
         """Send FileUploadValidationSuccess event to be processed by downstream services"""
 

@@ -21,7 +21,7 @@ from hexkit.providers.akafka import KafkaEventPublisher
 from fis.adapters.outbound.event_pub import EventPubTranslator
 from fis.adapters.outbound.vault import VaultAdapter
 from fis.config import Config
-from fis.core.ingest import UploadMetadataProcessor
+from fis.core.ingest import LegacyUploadMetadataProcessor, UploadMetadataProcessor
 
 
 class Container(ContainerBase):
@@ -33,6 +33,13 @@ class Container(ContainerBase):
         EventPubTranslator, config=config, provider=event_pub_provider
     )
     vault_adapter = get_constructor(VaultAdapter, config=config)
+
+    legacy_upload_metadata_processor = get_constructor(
+        LegacyUploadMetadataProcessor,
+        config=config,
+        event_publisher=event_publisher,
+        vault_adapter=vault_adapter,
+    )
 
     upload_metadata_processor = get_constructor(
         UploadMetadataProcessor,

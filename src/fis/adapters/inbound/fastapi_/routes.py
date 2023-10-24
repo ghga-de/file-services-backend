@@ -22,8 +22,8 @@ from fis.adapters.inbound.fastapi_.http_authorization import (
     require_token,
 )
 from fis.container import Container
-from fis.core.ingest import UploadMetadataProcessorPort
-from fis.core.models import FileUploadMetadataEncrypted
+from fis.core.ingest import LegacyUploadMetadataProcessor, UploadMetadataProcessor
+from fis.core.models import EncryptedPayload
 
 router = APIRouter()
 
@@ -40,19 +40,20 @@ async def health():
 
 
 @router.post(
-    "/ingest",
+    "/legacy/ingest",
     summary="Processes encrypted output data from the S3 upload script and ingests it "
     + "into the Encryption Key Store, Internal File Registry and Download Controller.",
-    operation_id="ingestFileUploadMetadata",
+    operation_id="ingestLegacyFileUploadMetadata",
     tags=["FileIngestService"],
     status_code=status.HTTP_202_ACCEPTED,
     response_description="Received and decrypted data successfully.",
+    deprecated=True,
 )
 @inject
-async def ingest_file_upload_metadata(
-    encrypted_payload: FileUploadMetadataEncrypted,
-    upload_metadata_processor: UploadMetadataProcessorPort = Depends(
-        Provide[Container.upload_metadata_processor]
+async def ingest_legacy_metadata(
+    encrypted_payload: EncryptedPayload,
+    upload_metadata_processor: LegacyUploadMetadataProcessor = Depends(
+        Provide[Container.legacy_upload_metadata_processor]
     ),
     _token: IngestTokenAuthContext = require_token,
 ):
@@ -81,3 +82,65 @@ async def ingest_file_upload_metadata(
     )
 
     return Response(status_code=202)
+
+
+@router.post(
+    "/federated/ingest_metadata",
+    summary="Processes encrypted output data from the S3 upload script and ingests it "
+    + "into the Encryption Key Store, Internal File Registry and Download Controller.",
+    operation_id="ingestFileUploadMetadata",
+    tags=["FileIngestService"],
+    status_code=status.HTTP_202_ACCEPTED,
+    response_description="Received and decrypted data successfully.",
+)
+@inject
+async def ingest_metadata(
+    encrypted_payload: EncryptedPayload,
+    upload_metadata_processor: UploadMetadataProcessor = Depends(
+        Provide[Container.upload_metadata_processor]
+    ),
+    _token: IngestTokenAuthContext = require_token,
+):
+    """Decrypt payload, process metadata, file secret id and send success event"""
+    try:
+        decrypted_metadata = await upload_metadata_processor.decrypt_payload(
+            encrypted=encrypted_payload
+        )
+    except (
+        upload_metadata_processor.DecryptionError,
+        upload_metadata_processor.WrongDecryptedFormatError,
+    ) as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
+    secret_id = decrypted_metadata.secret_id
+
+    await upload_metadata_processor.populate_by_event(
+        upload_metadata=decrypted_metadata, secret_id=secret_id
+    )
+
+    return Response(status_code=202)
+
+
+@router.post(
+    "/federated/ingest_secret",
+    summary="Store file encryption/decryption secret and return secret ID.",
+    operation_id="ingestSecret",
+    tags=["FileIngestService"],
+    status_code=status.HTTP_200_OK,
+    response_description="Received and stored secret successfully.",
+)
+@inject
+async def ingest_secret(
+    encrypted_payload: EncryptedPayload,
+    upload_metadata_processor: UploadMetadataProcessor = Depends(
+        Provide[Container.upload_metadata_processor]
+    ),
+    _token: IngestTokenAuthContext = require_token,
+):
+    """Decrypt payload and deposit file secret in exchange for a secret id"""
+    file_secret = await upload_metadata_processor.decrypt_secret(
+        encrypted=encrypted_payload
+    )
+
+    secret_id = await upload_metadata_processor.store_secret(file_secret=file_secret)
+    return {"secret_id": secret_id}
