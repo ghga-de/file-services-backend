@@ -14,16 +14,17 @@
 # limitations under the License.
 """Module containing the main FastAPI router and all route functions."""
 
-from dependency_injector.wiring import Provide, inject
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, status
 
 from dcs.adapters.inbound.fastapi_ import (
+    dummies,
     http_authorization,
     http_exceptions,
     http_response_models,
     http_responses,
 )
-from dcs.container import Container
 from dcs.core.auth_policies import WorkOrderContext
 from dcs.core.models import DrsObjectResponseModel
 from dcs.ports.inbound.data_repository import DataRepositoryPort
@@ -98,11 +99,12 @@ async def health():
         status.HTTP_404_NOT_FOUND: RESPONSES["noSuchObject"],
     },
 )
-@inject
 async def get_drs_object(
     object_id: str,
-    work_order_context: WorkOrderContext = http_authorization.require_work_order_context,
-    data_repository: DataRepositoryPort = Depends(Provide[Container.data_repository]),
+    data_repository: Annotated[DataRepositoryPort, Depends(dummies.data_repo_port)],
+    work_order_context: Annotated[
+        WorkOrderContext, http_authorization.require_work_order_context
+    ],
 ):
     """
     Get info about a ``DrsObject``. The object_id parameter refers to the file id
@@ -141,11 +143,12 @@ async def get_drs_object(
         status.HTTP_500_INTERNAL_SERVER_ERROR: RESPONSES["externalAPIError"],
     },
 )
-@inject
 async def get_envelope(
     object_id: str,
-    work_order_context: WorkOrderContext = http_authorization.require_work_order_context,
-    data_repository: DataRepositoryPort = Depends(Provide[Container.data_repository]),
+    work_order_context: Annotated[
+        WorkOrderContext, http_authorization.require_work_order_context
+    ],
+    data_repository: Annotated[DataRepositoryPort, Depends(dummies.data_repo_port)],
 ):
     """
     Retrieve the base64 encoded envelope for a given object based on object id and

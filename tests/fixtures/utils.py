@@ -17,4 +17,47 @@
 
 from pathlib import Path
 
+from ghga_service_commons.utils import jwt_helpers
+from ghga_service_commons.utils.crypt import encode_key, generate_key_pair
+from jwcrypto.jwk import JWK
+from typing_extensions import TypeAlias
+
+from dcs.core import auth_policies
+
 BASE_DIR = Path(__file__).parent.resolve()
+
+
+SignedToken: TypeAlias = str
+
+
+def generate_work_order_token(
+    *,
+    file_id: str,
+    jwk: JWK,
+    valid_seconds: int = 30,
+) -> SignedToken:
+    """Generate work order token for testing"""
+    # we don't need the actual user pubkey
+    user_pubkey = encode_key(generate_key_pair().public)
+    # generate minimal test token
+    wot = auth_policies.WorkOrderContext(
+        type="download",
+        file_id=file_id,
+        user_id="007",
+        user_public_crypt4gh_key=user_pubkey,
+        full_user_name="John Doe",
+        email="john.doe@test.com",  # type: ignore
+    )
+    claims = wot.dict()
+
+    signed_token = jwt_helpers.sign_and_serialize_token(
+        claims=claims, key=jwk, valid_seconds=valid_seconds
+    )
+    return signed_token
+
+
+def generate_token_signing_keys() -> JWK:
+    """Generate JWK credentials that can be used for signing and verification
+    of JWT tokens.
+    """
+    return jwt_helpers.generate_jwk()

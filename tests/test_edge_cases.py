@@ -18,13 +18,13 @@
 import pytest
 from fastapi import status
 
-from dcs.config import WorkOrderTokenConfig
-from dcs.container import auth_provider
 from tests.fixtures.joint import *  # noqa: F403
+from tests.fixtures.joint import JointFixture
+from tests.fixtures.utils import generate_token_signing_keys, generate_work_order_token
 
 
 @pytest.mark.asyncio
-async def test_get_health(joint_fixture: JointFixture):  # noqa: F405
+async def test_get_health(joint_fixture: JointFixture):
     """Test the GET /health endpoint"""
     response = await joint_fixture.rest_client.get("/health")
 
@@ -33,42 +33,42 @@ async def test_get_health(joint_fixture: JointFixture):  # noqa: F405
 
 
 @pytest.mark.asyncio
-async def test_access_non_existing(joint_fixture: JointFixture):  # noqa: F405
+async def test_access_non_existing(joint_fixture: JointFixture):
     """Checks that requesting access to a non-existing DRS object fails with the
     expected exception.
     """
     file_id = "my-non-existing-id"
 
-    # request access to non existing DRS object:
-    work_order_token, pubkey = get_work_order_token(file_id=file_id)  # noqa: F405
+    work_order_token = generate_work_order_token(file_id=file_id, jwk=joint_fixture.jwk)
+    wrong_jwk = generate_token_signing_keys()
+    wrong_work_order_token = generate_work_order_token(file_id=file_id, jwk=wrong_jwk)
 
     # test with missing authorization header
-    response = await joint_fixture.rest_client.get(f"/objects/{file_id}")
+    # (should not expose whether the file with the given id exists or not)
+    response = await joint_fixture.rest_client.get(
+        f"/objects/{file_id}",
+    )
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
     # test with authorization header but wrong pubkey
     response = await joint_fixture.rest_client.get(
         f"/objects/{file_id}",
         timeout=5,
-        headers={"Authorization": f"Bearer {work_order_token}"},
+        headers={"Authorization": f"Bearer {wrong_work_order_token}"},
     )
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    # update pubkey config option on live object
-    auth_provider_override = auth_provider(config=WorkOrderTokenConfig(auth_key=pubkey))
+    # test with correct authorization header but wrong object_id
+    response = await joint_fixture.rest_client.get(
+        f"/objects/{file_id}",
+        timeout=5,
+        headers={"Authorization": f"Bearer {work_order_token}"},
+    )
+    assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    with joint_fixture.container.auth_provider.override(auth_provider_override):
-        # test with correct authorization header but wrong object_id
-        response = await joint_fixture.rest_client.get(
-            f"/objects/{file_id}",
-            timeout=5,
-            headers={"Authorization": f"Bearer {work_order_token}"},
-        )
-        assert response.status_code == status.HTTP_404_NOT_FOUND
-
-        response = await joint_fixture.rest_client.get(
-            f"/objects/{file_id}/envelopes",
-            timeout=5,
-            headers={"Authorization": f"Bearer {work_order_token}"},
-        )
-        assert response.status_code == status.HTTP_404_NOT_FOUND
+    response = await joint_fixture.rest_client.get(
+        f"/objects/{file_id}/envelopes",
+        timeout=5,
+        headers={"Authorization": f"Bearer {work_order_token}"},
+    )
+    assert response.status_code == status.HTTP_404_NOT_FOUND

@@ -26,7 +26,7 @@ __all__ = [
     "kafka_fixture",
     "populated_fixture",
     "PopulatedFixture",
-    "get_work_order_token",
+    "generate_work_order_token",
 ]
 
 import json
@@ -38,8 +38,8 @@ import httpx
 import pytest_asyncio
 from ghga_event_schemas import pydantic_ as event_schemas
 from ghga_service_commons.api.testing import AsyncTestClient
-from ghga_service_commons.utils import jwt_helpers, utc_dates
-from ghga_service_commons.utils.crypt import encode_key, generate_key_pair
+from ghga_service_commons.utils import utc_dates
+from hexkit.providers.akafka import KafkaEventSubscriber
 from hexkit.providers.akafka.testutils import KafkaFixture, kafka_fixture
 from hexkit.providers.mongodb.testutils import MongoDbFixture, mongodb_fixture
 from hexkit.providers.s3.testutils import (
@@ -48,14 +48,23 @@ from hexkit.providers.s3.testutils import (
     s3_fixture,
     temp_file_object,
 )
+from jwcrypto.jwk import JWK
 from pydantic import BaseSettings
 
+from dcs.adapters.outbound.dao import DrsObjectDaoConstructor
 from dcs.config import Config, WorkOrderTokenConfig
-from dcs.container import Container, auth_provider
-from dcs.core import auth_policies, models
-from dcs.main import get_configured_container, get_rest_api
+from dcs.core import models
+from dcs.inject import (
+    OutboxCleaner,
+    prepare_core,
+    prepare_event_subscriber,
+    prepare_outbox_cleaner,
+    prepare_rest_app,
+)
+from dcs.ports.inbound.data_repository import DataRepositoryPort
 from dcs.ports.outbound.dao import DrsObjectDaoPort
 from tests.fixtures.config import get_config
+from tests.fixtures.utils import generate_token_signing_keys, generate_work_order_token
 
 EXAMPLE_FILE = models.AccessTimeDrsObject(
     file_id="examplefile001",
@@ -66,36 +75,6 @@ EXAMPLE_FILE = models.AccessTimeDrsObject(
     decryption_secret_id="some-secret",
     last_accessed=utc_dates.now_as_utc(),
 )
-
-SignedToken = str
-PubKey = str
-
-
-def get_work_order_token(
-    file_id: str,
-    valid_seconds: int = 30,
-) -> tuple[SignedToken, PubKey]:
-    """Generate work order token for testing"""
-    # we don't need the actual user pubkey
-    user_pubkey = encode_key(generate_key_pair().public)
-    # generate minimal test token
-    wot = auth_policies.WorkOrderContext(
-        type="download",
-        file_id=file_id,
-        user_id="007",
-        user_public_crypt4gh_key=user_pubkey,
-        full_user_name="John Doe",
-        email="john.doe@test.com",  # type: ignore
-    )
-    claims = wot.dict()
-
-    jwk = jwt_helpers.generate_jwk()
-
-    signed_token = jwt_helpers.sign_and_serialize_token(
-        claims=claims, key=jwk, valid_seconds=valid_seconds
-    )
-    signing_pubkey = jwk.export_public()
-    return signed_token, signing_pubkey
 
 
 class EKSSBaseInjector(BaseSettings):
@@ -109,11 +88,14 @@ class JointFixture:
     """Returned by the `joint_fixture`."""
 
     config: Config
-    container: Container
-    mongodb: MongoDbFixture
+    data_repository: DataRepositoryPort
     rest_client: httpx.AsyncClient
+    event_subscriber: KafkaEventSubscriber
+    outbox_cleaner: OutboxCleaner
+    mongodb: MongoDbFixture
     s3: S3Fixture
     kafka: KafkaFixture
+    jwk: JWK
 
 
 @pytest_asyncio.fixture
@@ -121,7 +103,9 @@ async def joint_fixture(
     mongodb_fixture: MongoDbFixture, s3_fixture: S3Fixture, kafka_fixture: KafkaFixture
 ) -> AsyncGenerator[JointFixture, None]:
     """A fixture that embeds all other fixtures for API-level integration testing"""
-    auth_key = jwt_helpers.generate_jwk().export(private_key=False)
+    jwk = generate_token_signing_keys()
+    auth_key = jwk.export(private_key=False)
+
     # merge configs from different sources with the default one:
     auth_config = WorkOrderTokenConfig(auth_key=auth_key)
     ekss_config = EKSSBaseInjector(ekss_base_url="http://ekss")
@@ -135,29 +119,32 @@ async def joint_fixture(
             auth_config,
         ]
     )
-    # create a DI container instance:translators
-    async with get_configured_container(config=config) as container:
-        container.wire(
-            modules=[
-                "dcs.adapters.inbound.fastapi_.routes",
-                "dcs.adapters.inbound.fastapi_.http_authorization",
-            ]
-        )
 
-        # create storage entities:
-        await s3_fixture.populate_buckets(buckets=[config.outbox_bucket])
+    # create storage entities:
+    await s3_fixture.populate_buckets(buckets=[config.outbox_bucket])
 
-        api = get_rest_api(config=config)
-        # setup an API test client:
-        async with AsyncTestClient(app=api) as rest_client:
-            yield JointFixture(
-                config=config,
-                container=container,
-                mongodb=mongodb_fixture,
-                rest_client=rest_client,
-                s3=s3_fixture,
-                kafka=kafka_fixture,
-            )
+    async with prepare_core(config=config) as data_repository:
+        async with (
+            prepare_rest_app(config=config, data_repo_override=data_repository) as app,
+            prepare_event_subscriber(
+                config=config, data_repo_override=data_repository
+            ) as event_subscriber,
+            prepare_outbox_cleaner(
+                config=config, data_repo_override=data_repository
+            ) as outbox_cleaner,
+        ):
+            async with AsyncTestClient(app=app) as rest_client:
+                yield JointFixture(
+                    config=config,
+                    data_repository=data_repository,
+                    rest_client=rest_client,
+                    event_subscriber=event_subscriber,
+                    outbox_cleaner=outbox_cleaner,
+                    mongodb=mongodb_fixture,
+                    s3=s3_fixture,
+                    kafka=kafka_fixture,
+                    jwk=jwk,
+                )
 
 
 @dataclass
@@ -196,11 +183,10 @@ async def populated_fixture(
     )
 
     # consume the event:
-    event_subscriber = await joint_fixture.container.event_subscriber()
     async with joint_fixture.kafka.record_events(
         in_topic=joint_fixture.config.file_registered_event_topic
     ) as recorder:
-        await event_subscriber.run(forever=False)
+        await joint_fixture.event_subscriber.run(forever=False)
 
     # check that an event informing about the newly registered file was published:
     assert len(recorder.recorded_events) == 1
@@ -216,22 +202,23 @@ async def populated_fixture(
     assert file_registered_event.upload_date == EXAMPLE_FILE.creation_date
 
     # get the object id that was generated upon event consumption
-    dao = await joint_fixture.container.drs_object_dao()
+    dao = await DrsObjectDaoConstructor.construct(
+        dao_factory=joint_fixture.mongodb.dao_factory
+    )
     drs_object = await dao.get_by_id(EXAMPLE_FILE.file_id)
     object_id = drs_object.object_id
 
     # generate work order token
-    work_order_token, pubkey = get_work_order_token(
+    work_order_token = generate_work_order_token(
         file_id=EXAMPLE_FILE.file_id,
+        jwk=joint_fixture.jwk,
         valid_seconds=120,
     )
 
-    # modify default headers and patch signing pubkey
+    # modify default headers:
     joint_fixture.rest_client.headers = httpx.Headers(
         {"Authorization": f"Bearer {work_order_token}"}
     )
-    auth_provider_override = auth_provider(config=WorkOrderTokenConfig(auth_key=pubkey))
-    joint_fixture.container.auth_provider.override(auth_provider_override)
 
     yield PopulatedFixture(
         drs_id=EXAMPLE_FILE.file_id,

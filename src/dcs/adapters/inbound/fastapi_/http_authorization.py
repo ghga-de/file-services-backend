@@ -17,22 +17,22 @@
 __all__ = ["require_work_order_context"]
 
 
-from dependency_injector.wiring import Provide, inject
+from typing import Annotated
+
 from fastapi import Depends, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from ghga_service_commons.auth.context import AuthContextProtocol
 from ghga_service_commons.auth.policies import require_auth_context_using_credentials
 
-from dcs.container import Container
+from dcs.adapters.inbound.fastapi_ import dummies
 from dcs.core.auth_policies import WorkOrderContext
 
 
-@inject
 async def _require_work_order_context(
+    auth_provider: Annotated[
+        AuthContextProtocol[WorkOrderContext], Depends(dummies.auth_provider)
+    ],
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=True)),
-    auth_provider: AuthContextProtocol[WorkOrderContext] = Depends(
-        Provide[Container.auth_provider]
-    ),
 ) -> WorkOrderContext:
     """Require a work order context using FastAPI."""
     return await require_auth_context_using_credentials(

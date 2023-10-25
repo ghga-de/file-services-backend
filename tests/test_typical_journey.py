@@ -30,6 +30,7 @@ from hexkit.providers.s3.testutils import FileObject
 from pytest_httpx import HTTPXMock, httpx_mock  # noqa: F401
 
 from tests.fixtures.joint import *  # noqa: F403
+from tests.fixtures.joint import CleanupFixture, PopulatedFixture
 from tests.fixtures.mock_api.app import router
 
 unintercepted_hosts: list[str] = ["localhost"]
@@ -47,7 +48,7 @@ def non_mocked_hosts() -> list:
 
 @pytest.mark.asyncio
 async def test_happy_journey(
-    populated_fixture: PopulatedFixture,  # noqa: F405
+    populated_fixture: PopulatedFixture,
     file_fixture: FileObject,
     httpx_mock: HTTPXMock,  # noqa: F811
 ):
@@ -147,7 +148,7 @@ async def test_happy_journey(
 
 @pytest.mark.asyncio
 async def test_happy_deletion(
-    populated_fixture: PopulatedFixture,  # noqa: F405
+    populated_fixture: PopulatedFixture,
     file_fixture: FileObject,
     httpx_mock: HTTPXMock,  # noqa: F811
 ):
@@ -171,7 +172,7 @@ async def test_happy_deletion(
     )
     await joint_fixture.s3.populate_file_objects(file_objects=[file_object])
 
-    data_repository = await joint_fixture.container.data_repository()
+    data_repository = joint_fixture.data_repository
 
     # request a stage to the outbox:
     async with joint_fixture.kafka.expect_events(
@@ -194,9 +195,9 @@ async def test_happy_deletion(
 
 
 @pytest.mark.asyncio
-async def test_cleanup(cleanup_fixture: CleanupFixture):  # noqa: F405
+async def test_cleanup(cleanup_fixture: CleanupFixture):
     """Test outbox cleanup handling"""
-    data_repository = await cleanup_fixture.joint_fixture.container.data_repository()
+    data_repository = cleanup_fixture.joint_fixture.data_repository
     await data_repository.cleanup_outbox()
 
     # check if object within threshold is still there

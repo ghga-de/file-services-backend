@@ -12,31 +12,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
 
-"""Entrypoint of the package"""
-
-import asyncio
-
-import typer
-
-from dcs.main import consume_events, run_outbox_cleanup, run_rest_app
-
-cli = typer.Typer()
+"""A collection of dependency dummies that are used in view definitions but need to be
+replaces at runtime by actual dependencies.
+"""
 
 
-@cli.command(name="run-rest")
-def sync_run_api():
-    """Run the HTTP REST API."""
-    asyncio.run(run_rest_app())
+from dcs.utils import DependencyDummy
 
-
-@cli.command(name="consume-events")
-def sync_consume_events(run_forever: bool = True):
-    """Run an event consumer listening to the specified topic."""
-    asyncio.run(consume_events(run_forever=run_forever))
-
-
-@cli.command(name="cleanup-outbox")
-def sync_run_cleanup():
-    """Run outbox cleanup"""
-    asyncio.run(run_outbox_cleanup())
+data_repo_port = DependencyDummy("data_repo_port")
+auth_provider = DependencyDummy("auth_provider")
