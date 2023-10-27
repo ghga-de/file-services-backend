@@ -66,6 +66,8 @@ The service requires the following configuration parameters:
 
     - *string*
 
+- **`vault_path`** *(string)*: Path without leading or trailing slashes where secrets should be stored in the vault.
+
 - **`private_key`** *(string)*: Base64 encoded private key of the keypair whose public key is used to encrypt the payload.
 
 - **`source_bucket_id`** *(string)*: ID of the bucket the object(s) corresponding to the upload metadata have been uploaded to. This should currently point to the staging bucket.

@@ -13,3 +13,4 @@ vault_url: "http://127.0.0.1:8200"
 vault_role_id: dummy-role
 vault_secret_id: dummy-secret
 vault_verify: True
+vault_path: ekss

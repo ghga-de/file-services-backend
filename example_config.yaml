@@ -20,6 +20,7 @@ source_bucket_id: test-staging
 token_hashes:
 - abcdef
 - ghijkl
+vault_path: ekss
 vault_role_id: '**********'
 vault_secret_id: '**********'
 vault_url: http://127.0.0.1:8200

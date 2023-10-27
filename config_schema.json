@@ -51,6 +51,14 @@
         }
       ]
     },
+    "vault_path": {
+      "title": "Vault Path",
+      "description": "Path without leading or trailing slashes where secrets should be stored in the vault.",
+      "env_names": [
+        "fis_vault_path"
+      ],
+      "type": "string"
+    },
     "private_key": {
       "title": "Private Key",
       "description": "Base64 encoded private key of the keypair whose public key is used to encrypt the payload.",
@@ -265,6 +273,7 @@
     "vault_url",
     "vault_role_id",
     "vault_secret_id",
+    "vault_path",
     "private_key",
     "source_bucket_id",
     "token_hashes",

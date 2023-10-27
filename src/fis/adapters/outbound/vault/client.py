@@ -49,6 +49,11 @@ class VaultConfig(BaseSettings):
         " verify the identity of the vault, or True to"
         " use the default CAs, or False for no verification.",
     )
+    vault_path: str = Field(
+        ...,
+        description="Path without leading or trailing slashes where secrets should"
+        + " be stored in the vault.",
+    )
 
 
 class VaultAdapter(VaultAdapterPort):
@@ -57,6 +62,7 @@ class VaultAdapter(VaultAdapterPort):
     def __init__(self, config: VaultConfig):
         """Initialized approle based client and login"""
         self._client = hvac.Client(url=config.vault_url, verify=config.vault_verify)
+        self._path = config.vault_path
 
         self._role_id = config.vault_role_id.get_secret_value()
         self._secret_id = config.vault_secret_id.get_secret_value()
@@ -72,7 +78,7 @@ class VaultAdapter(VaultAdapterPort):
             role_id=self._role_id, secret_id=self._secret_id
         )
 
-    def store_secret(self, *, secret: str, prefix: str = "ekss") -> str:
+    def store_secret(self, *, secret: str) -> str:
         """
         Store a secret under a subpath of the given prefix.
         Generates a UUID4 as key, uses it for the subpath and returns it.
@@ -84,7 +90,7 @@ class VaultAdapter(VaultAdapterPort):
         try:
             # set cas to 0 as we only want a static secret
             self._client.secrets.kv.v2.create_or_update_secret(
-                path=f"{prefix}/{key}", secret={key: secret}, cas=0
+                path=f"{self._path}/{key}", secret={key: secret}, cas=0
             )
         except hvac.exceptions.InvalidRequest as exc:
             raise self.SecretInsertionError() from exc

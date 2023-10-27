@@ -24,7 +24,7 @@ class VaultAdapterPort(ABC):
         """Wrapper for errors encountered on secret insertion"""
 
     @abstractmethod
-    def store_secret(self, *, secret: str, prefix: str = "ekss") -> str:
+    def store_secret(self, *, secret: str) -> str:
         """
         Store a secret under a subpath of the given prefix.
         Generates a UUID4 as key, uses it for the subpath and returns it.
