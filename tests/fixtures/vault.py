@@ -51,12 +51,13 @@ def vault_fixture() -> Generator[VaultFixture, None, None]:
     with vault_container:
         host = vault_container.get_container_host_ip()
         port = vault_container.get_exposed_port(VAULT_PORT)
-        role_id, secret_id = configure_vault(host=host, port=port)
+        role_id, secret_id = configure_vault(host=host, port=int(port))
         config = VaultConfig(
             vault_url=f"http://{host}:{port}",
             vault_role_id=role_id,
             vault_secret_id=secret_id,
             vault_verify=True,
+            vault_path="ekss",
         )
         vault_adapter = VaultAdapter(config=config)
         # client needs some time after creation

@@ -51,6 +51,14 @@
         }
       ]
     },
+    "vault_path": {
+      "title": "Vault Path",
+      "description": "Path without leading or trailing slashes where secrets should be stored in the vault.",
+      "env_names": [
+        "ekss_vault_path"
+      ],
+      "type": "string"
+    },
     "host": {
       "title": "Host",
       "description": "IP of the host.",
@@ -217,6 +225,7 @@
     "vault_url",
     "vault_role_id",
     "vault_secret_id",
+    "vault_path",
     "server_private_key",
     "server_public_key"
   ],

@@ -30,6 +30,7 @@ class VaultAdapter:
     def __init__(self, config: VaultConfig):
         """Initialized approle based client and login"""
         self._client = hvac.Client(url=config.vault_url, verify=config.vault_verify)
+        self._path = config.vault_path
 
         self._role_id = config.vault_role_id.get_secret_value()
         self._secret_id = config.vault_secret_id.get_secret_value()
@@ -45,7 +46,7 @@ class VaultAdapter:
             role_id=self._role_id, secret_id=self._secret_id
         )
 
-    def store_secret(self, *, secret: bytes, prefix: str = "ekss") -> str:
+    def store_secret(self, *, secret: bytes) -> str:
         """
         Store a secret under a subpath of the given prefix.
         Generates a UUID4 as key, uses it for the subpath and returns it.
@@ -58,13 +59,13 @@ class VaultAdapter:
         try:
             # set cas to 0 as we only want a static secret
             self._client.secrets.kv.v2.create_or_update_secret(
-                path=f"{prefix}/{key}", secret={key: value}, cas=0
+                path=f"{self._path}/{key}", secret={key: value}, cas=0
             )
         except hvac.exceptions.InvalidRequest as exc:
             raise exceptions.SecretInsertionError() from exc
         return key
 
-    def get_secret(self, *, key: str, prefix: str = "ekss") -> bytes:
+    def get_secret(self, *, key: str) -> bytes:
         """
         Retrieve a secret at the subpath of the given prefix denoted by key.
         Key should be a UUID4 returned by store_secret on insertion
@@ -73,7 +74,7 @@ class VaultAdapter:
 
         try:
             response = self._client.secrets.kv.v2.read_secret_version(
-                path=f"{prefix}/{key}",
+                path=f"{self._path}/{key}",
                 raise_on_deleted_version=True,
             )
         except hvac.exceptions.InvalidPath as exc:
@@ -82,10 +83,10 @@ class VaultAdapter:
         secret = response["data"]["data"][key]
         return base64.b64decode(secret)
 
-    def delete_secret(self, *, key: str, prefix: str = "ekss") -> None:
+    def delete_secret(self, *, key: str) -> None:
         """Delete a secret"""
         self._check_auth()
-        path = f"{prefix}/{key}"
+        path = f"{self._path}/{key}"
 
         try:
             self._client.secrets.kv.v2.read_secret_version(
