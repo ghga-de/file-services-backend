@@ -18,15 +18,10 @@ in the api.
 """
 
 import re
-
-try:  # workaround for https://github.com/pydantic/pydantic/issues/5821
-    from typing_extensions import Literal
-except ImportError:
-    from typing import Literal  # type: ignore
-
+from typing import Literal
 
 from ghga_service_commons.utils import utc_dates
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 
 
 class AccessURL(BaseModel):
@@ -76,8 +71,9 @@ class DrsObjectWithUri(DrsObject):
 
     self_uri: str
 
-    @validator("self_uri")
-    def check_self_uri(cls, value: str):  # noqa: N805
+    @field_validator("self_uri")
+    @classmethod
+    def check_self_uri(cls, value: str):
         """Checks if the self_uri is a valid DRS URI."""
         if not re.match(r"^drs://.+/.+", value):
             raise ValueError(f"The self_uri '{value}' is no valid DRS URI.")

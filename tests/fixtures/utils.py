@@ -46,7 +46,7 @@ def generate_work_order_token(
         user_id="007",
         user_public_crypt4gh_key=user_pubkey,
         full_user_name="John Doe",
-        email="john.doe@test.com",  # type: ignore
+        email="john.doe@test.com",
     )
     claims = wot.dict()
 

@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Supported authentication policies for endpoints"""
+from pydantic import field_validator
 
 try:  # workaround for https://github.com/pydantic/pydantic/issues/5821
     from typing_extensions import Literal
@@ -22,7 +23,7 @@ except ImportError:
 from typing import Union
 
 from ghga_service_commons.utils.crypt import decode_key
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import BaseModel, EmailStr, Field
 
 
 class WorkOrderContext(BaseModel):
@@ -47,15 +48,17 @@ class WorkOrderContext(BaseModel):
     )
     email: EmailStr = Field(..., title="E-Mail", help="The email address of the user")
 
-    @validator("type")
-    def type_must_be_download(cls, work_type):  # noqa: N805
+    @field_validator("type")
+    @classmethod
+    def type_must_be_download(cls, work_type):
         """Make sure work type matches expectation for the download controller"""
         if work_type != "download":
             raise ValueError("Only download work type is accepted by the DCS.")
         return work_type
 
-    @validator("user_public_crypt4gh_key")
-    def validate_crypt4gh_key(cls, pubkey):  # noqa: N805
+    @field_validator("user_public_crypt4gh_key")
+    @classmethod
+    def validate_crypt4gh_key(cls, pubkey):
         """Make sure the received pubkey is decodable"""
         decode_key(pubkey)
         return pubkey

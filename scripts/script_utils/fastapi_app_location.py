@@ -20,17 +20,19 @@ from typing import Any
 
 from fastapi import FastAPI
 
-from dcs.adapters.inbound.fastapi_.custom_openapi import get_openapi_schema
+from dcs.adapters.inbound.fastapi_.configure import DrsApiConfig, get_openapi_schema
 from dcs.adapters.inbound.fastapi_.routes import router
 
 app = FastAPI()
 app.include_router(router)
 
+CONFIG = DrsApiConfig()
+
 
 def custom_openapi() -> dict[str, Any]:
     if app.openapi_schema:
         return app.openapi_schema
-    openapi_schema = get_openapi_schema(app)
+    openapi_schema = get_openapi_schema(app, config=CONFIG)
     app.openapi_schema = openapi_schema
     return app.openapi_schema
 

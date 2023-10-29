@@ -70,6 +70,7 @@ async def test_happy_journey(
     # (An check that an event is published indicating that the file is not in
     # outbox yet.)
     non_staged_requested_event = event_schemas.NonStagedFileRequested(
+        s3_endpoint_alias="test",
         file_id=example_file.file_id,
         target_object_id=object_id,
         target_bucket_id=joint_fixture.config.outbox_bucket,
@@ -92,7 +93,7 @@ async def test_happy_journey(
 
     # place the requested file into the outbox bucket (it is not important here that
     # the file content does not match the announced decrypted_sha256 checksum):
-    file_object = file_fixture.copy(
+    file_object = file_fixture.model_copy(
         update={
             "bucket_id": joint_fixture.config.outbox_bucket,
             "object_id": object_id,
@@ -104,6 +105,7 @@ async def test_happy_journey(
     # retry the access request:
     # (An check that an event is published indicating that a download was served.)
     download_served_event = event_schemas.FileDownloadServed(
+        s3_endpoint_alias="test",
         file_id=example_file.file_id,
         target_object_id=object_id,
         target_bucket_id=joint_fixture.config.outbox_bucket,

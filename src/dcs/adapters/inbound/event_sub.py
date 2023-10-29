@@ -20,7 +20,8 @@ from ghga_event_schemas import pydantic_ as event_schemas
 from ghga_event_schemas.validation import get_validated_payload
 from hexkit.custom_types import Ascii, JsonObject
 from hexkit.protocols.eventsub import EventSubscriberProtocol
-from pydantic import BaseSettings, Field
+from pydantic import Field
+from pydantic_settings import BaseSettings
 
 from dcs.core import models
 from dcs.ports.inbound.data_repository import DataRepositoryPort
@@ -35,7 +36,7 @@ class EventSubTranslatorConfig(BaseSettings):
             "The name of the topic to receive events informing about new files that shall"
             + " be made available for download."
         ),
-        example="internal_file_registry",
+        examples=["internal_file_registry"],
     )
     files_to_register_type: str = Field(
         ...,
@@ -43,18 +44,18 @@ class EventSubTranslatorConfig(BaseSettings):
             "The type used for events informing about new files that shall"
             + " be made available for download."
         ),
-        example="file_registered",
+        examples=["file_registered"],
     )
 
     files_to_delete_topic: str = Field(
         ...,
         description="The name of the topic to receive events informing about files to delete.",
-        example="file_deletions",
+        examples=["file_deletions"],
     )
     files_to_delete_type: str = Field(
         ...,
         description="The type used for events informing about a file to be deleted.",
-        example="file_deletion_requested",
+        examples=["file_deletion_requested"],
     )
 
 

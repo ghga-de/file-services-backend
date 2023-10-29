@@ -49,7 +49,7 @@ from hexkit.providers.s3.testutils import (
     temp_file_object,
 )
 from jwcrypto.jwk import JWK
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 
 from dcs.adapters.outbound.dao import DrsObjectDaoConstructor
 from dcs.config import Config, WorkOrderTokenConfig
@@ -164,6 +164,7 @@ async def populated_fixture(
     """Prepopulate state for an existing DRS object"""
     # publish an event to register a new file for download:
     files_to_register_event = event_schemas.FileInternallyRegistered(
+        s3_endpoint_alias="test",  # to be changed
         file_id=EXAMPLE_FILE.file_id,
         object_id=EXAMPLE_FILE.object_id,
         bucket_id=joint_fixture.config.outbox_bucket,

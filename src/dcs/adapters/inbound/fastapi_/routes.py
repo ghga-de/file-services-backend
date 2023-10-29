@@ -39,14 +39,7 @@ RESPONSES = {
             + "\n- envelopeNotFoundError: The requested envelope could not be retrieved"
             + "\n- noSuchObject: The requested DrsObject was not found"
         ),
-        "model": http_response_models.EnvelopeEndpointErrorModel,
-    },
-    "externalAPIError": {
-        "description": (
-            "Exceptions by ID:"
-            + "\n- externalAPIError: Communication with a service external API failed"
-        ),
-        "model": http_response_models.ExternalAPIErrorModel,
+        "model": http_exceptions.HttpObjectNotFoundError.get_body_model(),
     },
     "noSuchObject": {
         "description": (
@@ -140,7 +133,6 @@ async def get_drs_object(
     responses={
         status.HTTP_403_FORBIDDEN: RESPONSES["wrongFileAuthorizationError"],
         status.HTTP_404_NOT_FOUND: RESPONSES["entryNotFoundError"],
-        status.HTTP_500_INTERNAL_SERVER_ERROR: RESPONSES["externalAPIError"],
     },
 )
 async def get_envelope(
@@ -164,10 +156,6 @@ async def get_envelope(
         envelope = await data_repository.serve_envelope(
             drs_id=object_id, public_key=public_key
         )
-    except data_repository.APICommunicationError as external_api_error:
-        raise http_exceptions.HttpExternalAPIError(
-            description=str(external_api_error)
-        ) from external_api_error
     except data_repository.DrsObjectNotFoundError as object_not_found_error:
         raise http_exceptions.HttpObjectNotFoundError(
             object_id=object_id

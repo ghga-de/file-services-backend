@@ -15,11 +15,17 @@
 #
 
 """A collection of dependency dummies that are used in view definitions but need to be
-replaces at runtime by actual dependencies.
+replaced at runtime by actual dependencies.
 """
 
+from typing import Annotated
 
-from dcs.utils import DependencyDummy
+from fastapi import Depends
+from ghga_service_commons.api.di import DependencyDummy
+
+from dcs.ports.inbound.data_repository import DataRepositoryPort
 
 data_repo_port = DependencyDummy("data_repo_port")
 auth_provider = DependencyDummy("auth_provider")
+
+DataRepositoryDummy = Annotated[DataRepositoryPort, Depends(data_repo_port)]

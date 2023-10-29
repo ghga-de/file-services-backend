@@ -49,13 +49,13 @@ We recommend using the provided Docker container.
 
 A pre-build version is available at [docker hub](https://hub.docker.com/repository/docker/ghga/download-controller-service):
 ```bash
-docker pull ghga/download-controller-service:0.6.7
+docker pull ghga/download-controller-service:1.0.0
 ```
 
 Or you can build the container yourself from the [`./Dockerfile`](./Dockerfile):
 ```bash
 # Execute in the repo's root dir:
-docker build -t ghga/download-controller-service:0.6.7 .
+docker build -t ghga/download-controller-service:1.0.0 .
 ```
 
 For production-ready deployment, we recommend using Kubernetes, however,
@@ -63,7 +63,7 @@ for simple use cases, you could execute the service using docker
 on a single server:
 ```bash
 # The entrypoint is preconfigured:
-docker run -p 8080:8080 ghga/download-controller-service:0.6.7 --help
+docker run -p 8080:8080 ghga/download-controller-service:1.0.0 --help
 ```
 
 If you prefer not to use containers, you may install the service from source:
@@ -82,69 +82,283 @@ dcs --help
 The service requires the following configuration parameters:
 - **`files_to_register_topic`** *(string)*: The name of the topic to receive events informing about new files that shall be made available for download.
 
+
+  Examples:
+
+  ```json
+  "internal_file_registry"
+  ```
+
+
 - **`files_to_register_type`** *(string)*: The type used for events informing about new files that shall be made available for download.
+
+
+  Examples:
+
+  ```json
+  "file_registered"
+  ```
+
 
 - **`files_to_delete_topic`** *(string)*: The name of the topic to receive events informing about files to delete.
 
+
+  Examples:
+
+  ```json
+  "file_deletions"
+  ```
+
+
 - **`files_to_delete_type`** *(string)*: The type used for events informing about a file to be deleted.
+
+
+  Examples:
+
+  ```json
+  "file_deletion_requested"
+  ```
+
 
 - **`download_served_event_topic`** *(string)*: Name of the topic used for events indicating that a download of a specified file happened.
 
+
+  Examples:
+
+  ```json
+  "file_downloads"
+  ```
+
+
 - **`download_served_event_type`** *(string)*: The type used for event indicating that a download of a specified file happened.
+
+
+  Examples:
+
+  ```json
+  "donwload_served"
+  ```
+
 
 - **`unstaged_download_event_topic`** *(string)*: Name of the topic used for events indicating that a download was requested for a file that is not yet available in the outbox.
 
+
+  Examples:
+
+  ```json
+  "file_downloads"
+  ```
+
+
 - **`unstaged_download_event_type`** *(string)*: The type used for event indicating that a download was requested for a file that is not yet available in the outbox.
+
+
+  Examples:
+
+  ```json
+  "unstaged_download_requested"
+  ```
+
 
 - **`file_registered_event_topic`** *(string)*: Name of the topic used for events indicating that a file has been registered for download.
 
+
+  Examples:
+
+  ```json
+  "file_downloads"
+  ```
+
+
 - **`file_registered_event_type`** *(string)*: The type used for event indicating that that a file has been registered for download.
+
+
+  Examples:
+
+  ```json
+  "file_registered"
+  ```
+
 
 - **`file_deleted_event_topic`** *(string)*: Name of the topic used for events indicating that a file has been deleted.
 
+
+  Examples:
+
+  ```json
+  "file_downloads"
+  ```
+
+
 - **`file_deleted_event_type`** *(string)*: The type used for events indicating that a file has been deleted.
+
+
+  Examples:
+
+  ```json
+  "file_deleted"
+  ```
+
 
 - **`service_name`** *(string)*: Default: `"dcs"`.
 
 - **`service_instance_id`** *(string)*: A string that uniquely identifies this instance across all instances of this service. A globally unique Kafka client ID will be created by concatenating the service_name and the service_instance_id.
 
+
+  Examples:
+
+  ```json
+  "germany-bw-instance-001"
+  ```
+
+
 - **`kafka_servers`** *(array)*: A list of connection strings to connect to Kafka bootstrap servers.
 
   - **Items** *(string)*
 
+
+  Examples:
+
+  ```json
+  [
+      "localhost:9092"
+  ]
+  ```
+
+
 - **`db_connection_str`** *(string, format: password)*: MongoDB connection string. Might include credentials. For more information see: https://naiveskill.com/mongodb-connection-string/.
 
+
+  Examples:
+
+  ```json
+  "mongodb://localhost:27017"
+  ```
+
+
 - **`db_name`** *(string)*: Name of the database located on the MongoDB server.
+
+
+  Examples:
+
+  ```json
+  "my-database"
+  ```
+
 
 - **`outbox_bucket`** *(string)*
 
 - **`drs_server_uri`** *(string)*: The base of the DRS URI to access DRS objects. Has to start with 'drs://' and end with '/'.
 
+
+  Examples:
+
+  ```json
+  "drs://localhost:8080/"
+  ```
+
+
 - **`retry_access_after`** *(integer)*: When trying to access a DRS object that is not yet in the outbox, instruct to retry after this many seconds. Default: `120`.
 
 - **`ekss_base_url`** *(string)*: URL containing host and port of the EKSS endpoint to retrieve personalized envelope from.
 
+
+  Examples:
+
+  ```json
+  "http://ekss:8080/"
+  ```
+
+
 - **`presigned_url_expires_after`** *(integer)*: Expiration time in seconds for presigned URLS. Positive integer required. Exclusive minimum: `0`.
+
+
+  Examples:
+
+  ```json
+  30
+  ```
+
 
 - **`cache_timeout`** *(integer)*: Time in days since last access after which a file present in the outbox should be unstaged and has to be requested from permanent storage again for the next request. Default: `7`.
 
 - **`s3_endpoint_url`** *(string)*: URL to the S3 API.
 
+
+  Examples:
+
+  ```json
+  "http://localhost:4566"
+  ```
+
+
 - **`s3_access_key_id`** *(string)*: Part of credentials for login into the S3 service. See: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html.
+
+
+  Examples:
+
+  ```json
+  "my-access-key-id"
+  ```
+
 
 - **`s3_secret_access_key`** *(string, format: password)*: Part of credentials for login into the S3 service. See: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html.
 
-- **`s3_session_token`** *(string, format: password)*: Part of credentials for login into the S3 service. See: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html.
 
-- **`aws_config_ini`** *(string, format: path)*: Path to a config file for specifying more advanced S3 parameters. This should follow the format described here: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html#using-a-configuration-file.
+  Examples:
+
+  ```json
+  "my-secret-access-key"
+  ```
+
+
+- **`s3_session_token`**: Part of credentials for login into the S3 service. See: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html. Default: `null`.
+
+  - **Any of**
+
+    - *string, format: password*
+
+    - *null*
+
+
+  Examples:
+
+  ```json
+  "my-session-token"
+  ```
+
+
+- **`aws_config_ini`**: Path to a config file for specifying more advanced S3 parameters. This should follow the format described here: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html#using-a-configuration-file. Default: `null`.
+
+  - **Any of**
+
+    - *string, format: path*
+
+    - *null*
+
+
+  Examples:
+
+  ```json
+  "~/.aws/config"
+  ```
+
 
 - **`auth_key`** *(string)*: The GHGA internal public key for validating the token signature.
+
+
+  Examples:
+
+  ```json
+  "{\"crv\": \"P-256\", \"kty\": \"EC\", \"x\": \"...\", \"y\": \"...\"}"
+  ```
+
 
 - **`auth_algs`** *(array)*: A list of all algorithms used for signing GHGA internal tokens. Default: `["ES256"]`.
 
   - **Items** *(string)*
 
-- **`auth_check_claims`** *(object)*: A dict of all GHGA internal claims that shall be verified. Default: `{"type": null, "file_id": null, "user_id": null, "user_public_crypt4gh_key": null, "full_user_name": null, "email": null, "iat": null, "exp": null}`.
+- **`auth_check_claims`** *(object)*: A dict of all GHGA internal claims that shall be verified. Default: `{"email": null, "exp": null, "file_id": null, "full_user_name": null, "iat": null, "type": null, "user_id": null, "user_public_crypt4gh_key": null}`.
 
 - **`auth_map_claims`** *(object)*: A mapping of claims to attributes in the GHGA auth context. Can contain additional properties. Default: `{}`.
 
@@ -166,19 +380,83 @@ The service requires the following configuration parameters:
 
 - **`docs_url`** *(string)*: Path to host the swagger documentation. This is relative to the specified host and port. Default: `"/docs"`.
 
-- **`cors_allowed_origins`** *(array)*: A list of origins that should be permitted to make cross-origin requests. By default, cross-origin requests are not allowed. You can use ['*'] to allow any origin.
+- **`cors_allowed_origins`**: A list of origins that should be permitted to make cross-origin requests. By default, cross-origin requests are not allowed. You can use ['*'] to allow any origin. Default: `null`.
 
-  - **Items** *(string)*
+  - **Any of**
 
-- **`cors_allow_credentials`** *(boolean)*: Indicate that cookies should be supported for cross-origin requests. Defaults to False. Also, cors_allowed_origins cannot be set to ['*'] for credentials to be allowed. The origins must be explicitly specified.
+    - *array*
 
-- **`cors_allowed_methods`** *(array)*: A list of HTTP methods that should be allowed for cross-origin requests. Defaults to ['GET']. You can use ['*'] to allow all standard methods.
+      - **Items** *(string)*
 
-  - **Items** *(string)*
+    - *null*
 
-- **`cors_allowed_headers`** *(array)*: A list of HTTP request headers that should be supported for cross-origin requests. Defaults to []. You can use ['*'] to allow all headers. The Accept, Accept-Language, Content-Language and Content-Type headers are always allowed for CORS requests.
 
-  - **Items** *(string)*
+  Examples:
+
+  ```json
+  [
+      "https://example.org",
+      "https://www.example.org"
+  ]
+  ```
+
+
+- **`cors_allow_credentials`**: Indicate that cookies should be supported for cross-origin requests. Defaults to False. Also, cors_allowed_origins cannot be set to ['*'] for credentials to be allowed. The origins must be explicitly specified. Default: `null`.
+
+  - **Any of**
+
+    - *boolean*
+
+    - *null*
+
+
+  Examples:
+
+  ```json
+  [
+      "https://example.org",
+      "https://www.example.org"
+  ]
+  ```
+
+
+- **`cors_allowed_methods`**: A list of HTTP methods that should be allowed for cross-origin requests. Defaults to ['GET']. You can use ['*'] to allow all standard methods. Default: `null`.
+
+  - **Any of**
+
+    - *array*
+
+      - **Items** *(string)*
+
+    - *null*
+
+
+  Examples:
+
+  ```json
+  [
+      "*"
+  ]
+  ```
+
+
+- **`cors_allowed_headers`**: A list of HTTP request headers that should be supported for cross-origin requests. Defaults to []. You can use ['*'] to allow all headers. The Accept, Accept-Language, Content-Language and Content-Type headers are always allowed for CORS requests. Default: `null`.
+
+  - **Any of**
+
+    - *array*
+
+      - **Items** *(string)*
+
+    - *null*
+
+
+  Examples:
+
+  ```json
+  []
+  ```
+
 
 - **`api_route`** *(string)*: Default: `"/ga4gh/drs/v1"`.
 

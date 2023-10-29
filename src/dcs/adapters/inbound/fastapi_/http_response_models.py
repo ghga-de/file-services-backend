@@ -14,14 +14,7 @@
 # limitations under the License.
 """Custom composite response models"""
 
-from typing import Union
-
-from pydantic import BaseModel, Field
-
-from dcs.adapters.inbound.fastapi_ import http_exceptions
-
-# get_body_model needs only be called once, else update_openapi_docs.py fails
-ExternalAPIErrorModel = http_exceptions.HttpExternalAPIError.get_body_model()
+from pydantic import BaseModel
 
 
 class DeliveryDelayedModel(BaseModel):
@@ -32,12 +25,3 @@ class EnvelopeResponseModel(BaseModel):
     """Response model for base64 encoded envelope bytes"""
 
     content: str
-
-
-class EnvelopeEndpointErrorModel(BaseModel):
-    """Response model for 404 responses of the envelope endpoint"""
-
-    __root__: Union[  # type: ignore
-        ExternalAPIErrorModel,
-        http_exceptions.HttpEnvelopeNotFoundError.get_body_model(),
-    ] = Field(..., discriminator="exception_id")

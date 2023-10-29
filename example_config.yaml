@@ -48,7 +48,7 @@ s3_access_key_id: test
 s3_endpoint_url: http://dcs:4566
 s3_secret_access_key: '**********'
 s3_session_token: null
-service_instance_id: '1'
+service_instance_id: '001'
 service_name: dcs
 unstaged_download_event_topic: file_downloads
 unstaged_download_event_type: unstaged_download_requested

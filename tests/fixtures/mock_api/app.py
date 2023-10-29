@@ -49,7 +49,7 @@ def httpy_exception_handler(request: httpx.Request, exc: HttpException):
     )
 
 
-router = MockRouter(http_exception_handler=httpy_exception_handler)
+router = MockRouter(httpy_exception_handler)
 
 
 @router.get(

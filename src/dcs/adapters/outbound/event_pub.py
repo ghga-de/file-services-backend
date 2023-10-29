@@ -19,7 +19,8 @@ import json
 
 from ghga_event_schemas import pydantic_ as event_schemas
 from hexkit.protocols.eventpub import EventPublisherProtocol
-from pydantic import BaseSettings, Field
+from pydantic import Field
+from pydantic_settings import BaseSettings
 
 from dcs.core import models
 from dcs.ports.outbound.event_pub import EventPublisherPort
@@ -34,7 +35,7 @@ class EventPubTranslatorConfig(BaseSettings):
             "Name of the topic used for events indicating that a download of a"
             + " specified file happened."
         ),
-        example="file_downloads",
+        examples=["file_downloads"],
     )
     download_served_event_type: str = Field(
         ...,
@@ -42,7 +43,7 @@ class EventPubTranslatorConfig(BaseSettings):
             "The type used for event indicating that a download of a specified"
             + " file happened."
         ),
-        example="donwload_served",
+        examples=["donwload_served"],
     )
     unstaged_download_event_topic: str = Field(
         ...,
@@ -50,7 +51,7 @@ class EventPubTranslatorConfig(BaseSettings):
             "Name of the topic used for events indicating that a download was requested"
             + " for a file that is not yet available in the outbox."
         ),
-        example="file_downloads",
+        examples=["file_downloads"],
     )
     unstaged_download_event_type: str = Field(
         ...,
@@ -58,7 +59,7 @@ class EventPubTranslatorConfig(BaseSettings):
             "The type used for event indicating that a download was requested"
             + " for a file that is not yet available in the outbox."
         ),
-        example="unstaged_download_requested",
+        examples=["unstaged_download_requested"],
     )
     file_registered_event_topic: str = Field(
         ...,
@@ -66,7 +67,7 @@ class EventPubTranslatorConfig(BaseSettings):
             "Name of the topic used for events indicating that a file has"
             + " been registered for download."
         ),
-        exmaple="file_downloads",
+        examples=["file_downloads"],
     )
     file_registered_event_type: str = Field(
         ...,
@@ -74,19 +75,19 @@ class EventPubTranslatorConfig(BaseSettings):
             "The type used for event indicating that that a file has"
             + " been registered for download."
         ),
-        example="file_registered",
+        examples=["file_registered"],
     )
     file_deleted_event_topic: str = Field(
         ...,
         description="Name of the topic used for events indicating that a file has"
         + " been deleted.",
-        example="file_downloads",
+        examples=["file_downloads"],
     )
     file_deleted_event_type: str = Field(
         ...,
         description="The type used for events indicating that a file has"
         + " been deleted.",
-        example="file_deleted",
+        examples=["file_deleted"],
     )
 
 
@@ -109,6 +110,7 @@ class EventPubTranslator(EventPublisherPort):
         auditing purposes.
         """
         payload = event_schemas.FileDownloadServed(
+            s3_endpoint_alias="test",
             file_id=drs_object.file_id,
             target_object_id=drs_object.object_id,
             target_bucket_id=target_bucket_id,
@@ -134,6 +136,7 @@ class EventPubTranslator(EventPublisherPort):
         is not yet available in the outbox.
         """
         payload = event_schemas.NonStagedFileRequested(
+            s3_endpoint_alias="test",
             file_id=drs_object.file_id,
             target_object_id=drs_object.object_id,
             target_bucket_id=target_bucket_id,

@@ -17,7 +17,6 @@
 
 from typing import Any
 
-from ghga_service_commons.api import ApiConfigBase
 from ghga_service_commons.auth.ghga import AuthConfig
 from hexkit.config import config_from_yaml
 from hexkit.providers.akafka import KafkaConfig
@@ -26,6 +25,7 @@ from hexkit.providers.s3 import S3Config
 from pydantic import Field
 
 from dcs.adapters.inbound.event_sub import EventSubTranslatorConfig
+from dcs.adapters.inbound.fastapi_.configure import DrsApiConfig
 from dcs.adapters.outbound.event_pub import EventPubTranslatorConfig
 from dcs.core.data_repository import DataRepositoryConfig
 
@@ -43,7 +43,7 @@ class WorkOrderTokenConfig(AuthConfig):
 
 @config_from_yaml(prefix="dcs")
 class Config(
-    ApiConfigBase,
+    DrsApiConfig,
     WorkOrderTokenConfig,
     S3Config,
     DataRepositoryConfig,
@@ -54,5 +54,4 @@ class Config(
 ):
     """Config parameters and their defaults."""
 
-    api_route: str = "/ga4gh/drs/v1"
     service_name: str = "dcs"

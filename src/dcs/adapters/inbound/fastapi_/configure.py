@@ -13,18 +13,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Utils to customize openAPI script"""
+"""Utils to configure the FastAPI app"""
 from typing import Any
 
+from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
+from ghga_service_commons.api import ApiConfigBase, configure_app
 
 from dcs import __version__
-from dcs.config import Config
-
-config = Config()  # type: ignore
+from dcs.adapters.inbound.fastapi_.routes import router
 
 
-def get_openapi_schema(api) -> dict[str, Any]:
+class DrsApiConfig(ApiConfigBase):
+    """Configuration parameters for the DRS API."""
+
+    api_route: str = "/ga4gh/drs/v1"
+
+
+def get_openapi_schema(app: FastAPI, *, config: DrsApiConfig) -> dict[str, Any]:
     """Generates a custom openapi schema for the service"""
     return get_openapi(
         title="Download Controller Service",
@@ -36,5 +42,23 @@ def get_openapi_schema(api) -> dict[str, Any]:
         + "https://github.com/ga4gh/data-repository-service-schemas",
         servers=[{"url": config.api_route}],
         tags=[{"name": "DownloadControllerService"}],
-        routes=api.routes,
+        routes=app.routes,
     )
+
+
+def get_configured_app(*, config: DrsApiConfig) -> FastAPI:
+    """Create and configure a REST API application."""
+    app = FastAPI()
+    app.include_router(router)
+    configure_app(app, config=config)
+
+    def custom_openapi():
+        if app.openapi_schema:
+            return app.openapi_schema
+        openapi_schema = get_openapi_schema(app, config=config)
+        app.openapi_schema = openapi_schema
+        return app.openapi_schema
+
+    app.openapi = custom_openapi  # type: ignore [method-assign]
+
+    return app

@@ -21,7 +21,8 @@ import uuid
 from datetime import timedelta
 
 from ghga_service_commons.utils import utc_dates
-from pydantic import BaseSettings, Field, PositiveInt, validator
+from pydantic import Field, PositiveInt, field_validator
+from pydantic_settings import BaseSettings
 
 from dcs.adapters.outbound.http import exceptions
 from dcs.adapters.outbound.http.api_calls import (
@@ -43,7 +44,7 @@ class DataRepositoryConfig(BaseSettings):
         ...,
         description="The base of the DRS URI to access DRS objects. Has to start with 'drs://'"
         + " and end with '/'.",
-        example="drs://localhost:8080/",
+        examples=["drs://localhost:8080/"],
     )
     retry_access_after: int = Field(
         120,
@@ -54,12 +55,12 @@ class DataRepositoryConfig(BaseSettings):
         ...,
         description="URL containing host and port of the EKSS endpoint to retrieve"
         + " personalized envelope from",
-        example="http://ekss:8080/",
+        examples=["http://ekss:8080/"],
     )
     presigned_url_expires_after: PositiveInt = Field(
         ...,
         description="Expiration time in seconds for presigned URLS. Positive integer required",
-        example=30,
+        examples=[30],
     )
     cache_timeout: int = Field(
         7,
@@ -68,8 +69,9 @@ class DataRepositoryConfig(BaseSettings):
         + "for the next request.",
     )
 
-    @validator("drs_server_uri")
-    def check_server_uri(cls, value: str):  # noqa: N805
+    @field_validator("drs_server_uri")
+    @classmethod
+    def check_server_uri(cls, value: str):
         """Checks the drs_server_uri."""
         if not re.match(r"^drs://.+/$", value):
             raise ValueError(
