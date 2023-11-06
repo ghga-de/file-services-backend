@@ -19,7 +19,8 @@ from typing import Union
 
 from ghga_service_commons.api import ApiConfigBase
 from hexkit.config import config_from_yaml
-from pydantic import BaseSettings, Field, SecretStr
+from pydantic import Field, SecretStr
+from pydantic_settings import BaseSettings
 
 
 class VaultConfig(BaseSettings):
@@ -27,22 +28,22 @@ class VaultConfig(BaseSettings):
 
     vault_url: str = Field(
         ...,
-        example="http://127.0.0.1.8200",
+        examples=["http://127.0.0.1.8200"],
         description="URL of the vault instance to connect to",
     )
     vault_role_id: SecretStr = Field(
         ...,
-        example="example_role",
+        examples=["example_role"],
         description="Vault role ID to access a specific prefix",
     )
     vault_secret_id: SecretStr = Field(
         ...,
-        example="example_secret",
+        examples=["example_secret"],
         description="Vault secret ID to access a specific prefix",
     )
     vault_verify: Union[bool, str] = Field(
         True,
-        example="/etc/ssl/certs/my_bundle.pem",
+        examples=["/etc/ssl/certs/my_bundle.pem"],
         description="SSL certificates (CA bundle) used to"
         " verify the identity of the vault, or True to"
         " use the default CAs, or False for no verification.",
@@ -61,12 +62,12 @@ class Config(ApiConfigBase, VaultConfig):
     service_name: str = "encryption_key_store"
     server_private_key: SecretStr = Field(
         ...,
-        example="server_private_key",
+        examples=["server_private_key"],
         description="Base64 encoded server Crypt4GH private key",
     )
     server_public_key: str = Field(
         ...,
-        example="server_public_key",
+        examples=["server_public_key"],
         description="Base64 encoded server Crypt4GH public key",
     )
 

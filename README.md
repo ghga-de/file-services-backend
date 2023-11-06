@@ -1,5 +1,5 @@
 
-[![tests](https://github.com/ghga-de/encryption-key-store-service/actions/workflows/unit_and_int_tests.yaml/badge.svg)](https://github.com/ghga-de/encryption-key-store-service/actions/workflows/unit_and_int_tests.yaml)
+[![tests](https://github.com/ghga-de/encryption-key-store-service/actions/workflows/tests.yaml/badge.svg)](https://github.com/ghga-de/encryption-key-store-service/actions/workflows/unit_and_int_tests.yaml)
 [![Coverage Status](https://coveralls.io/repos/github/ghga-de/encryption-key-store-service/badge.svg?branch=main)](https://coveralls.io/github/ghga-de/encryption-key-store-service?branch=main)
 
 # Encryption Key Store Service
@@ -71,13 +71,13 @@ We recommend using the provided Docker container.
 
 A pre-build version is available at [docker hub](https://hub.docker.com/repository/docker/ghga/encryption-key-store-service):
 ```bash
-docker pull ghga/encryption-key-store-service:0.3.10
+docker pull ghga/encryption-key-store-service:1.0.0
 ```
 
 Or you can build the container yourself from the [`./Dockerfile`](./Dockerfile):
 ```bash
 # Execute in the repo's root dir:
-docker build -t ghga/encryption-key-store-service:0.3.10 .
+docker build -t ghga/encryption-key-store-service:1.0.0 .
 ```
 
 For production-ready deployment, we recommend using Kubernetes, however,
@@ -85,7 +85,7 @@ for simple use cases, you could execute the service using docker
 on a single server:
 ```bash
 # The entrypoint is preconfigured:
-docker run -p 8080:8080 ghga/encryption-key-store-service:0.3.10 --help
+docker run -p 8080:8080 ghga/encryption-key-store-service:1.0.0 --help
 ```
 
 If you prefer not to use containers, you may install the service from source:
@@ -104,9 +104,33 @@ ekss --help
 The service requires the following configuration parameters:
 - **`vault_url`** *(string)*: URL of the vault instance to connect to.
 
+
+  Examples:
+
+  ```json
+  "http://127.0.0.1.8200"
+  ```
+
+
 - **`vault_role_id`** *(string, format: password)*: Vault role ID to access a specific prefix.
 
+
+  Examples:
+
+  ```json
+  "example_role"
+  ```
+
+
 - **`vault_secret_id`** *(string, format: password)*: Vault secret ID to access a specific prefix.
+
+
+  Examples:
+
+  ```json
+  "example_secret"
+  ```
+
 
 - **`vault_verify`**: SSL certificates (CA bundle) used to verify the identity of the vault, or True to use the default CAs, or False for no verification. Default: `true`.
 
@@ -115,6 +139,14 @@ The service requires the following configuration parameters:
     - *boolean*
 
     - *string*
+
+
+  Examples:
+
+  ```json
+  "/etc/ssl/certs/my_bundle.pem"
+  ```
+
 
 - **`vault_path`** *(string)*: Path without leading or trailing slashes where secrets should be stored in the vault.
 
@@ -134,25 +166,105 @@ The service requires the following configuration parameters:
 
 - **`docs_url`** *(string)*: Path to host the swagger documentation. This is relative to the specified host and port. Default: `"/docs"`.
 
-- **`cors_allowed_origins`** *(array)*: A list of origins that should be permitted to make cross-origin requests. By default, cross-origin requests are not allowed. You can use ['*'] to allow any origin.
+- **`cors_allowed_origins`**: A list of origins that should be permitted to make cross-origin requests. By default, cross-origin requests are not allowed. You can use ['*'] to allow any origin. Default: `null`.
 
-  - **Items** *(string)*
+  - **Any of**
 
-- **`cors_allow_credentials`** *(boolean)*: Indicate that cookies should be supported for cross-origin requests. Defaults to False. Also, cors_allowed_origins cannot be set to ['*'] for credentials to be allowed. The origins must be explicitly specified.
+    - *array*
 
-- **`cors_allowed_methods`** *(array)*: A list of HTTP methods that should be allowed for cross-origin requests. Defaults to ['GET']. You can use ['*'] to allow all standard methods.
+      - **Items** *(string)*
 
-  - **Items** *(string)*
+    - *null*
 
-- **`cors_allowed_headers`** *(array)*: A list of HTTP request headers that should be supported for cross-origin requests. Defaults to []. You can use ['*'] to allow all headers. The Accept, Accept-Language, Content-Language and Content-Type headers are always allowed for CORS requests.
 
-  - **Items** *(string)*
+  Examples:
+
+  ```json
+  [
+      "https://example.org",
+      "https://www.example.org"
+  ]
+  ```
+
+
+- **`cors_allow_credentials`**: Indicate that cookies should be supported for cross-origin requests. Defaults to False. Also, cors_allowed_origins cannot be set to ['*'] for credentials to be allowed. The origins must be explicitly specified. Default: `null`.
+
+  - **Any of**
+
+    - *boolean*
+
+    - *null*
+
+
+  Examples:
+
+  ```json
+  [
+      "https://example.org",
+      "https://www.example.org"
+  ]
+  ```
+
+
+- **`cors_allowed_methods`**: A list of HTTP methods that should be allowed for cross-origin requests. Defaults to ['GET']. You can use ['*'] to allow all standard methods. Default: `null`.
+
+  - **Any of**
+
+    - *array*
+
+      - **Items** *(string)*
+
+    - *null*
+
+
+  Examples:
+
+  ```json
+  [
+      "*"
+  ]
+  ```
+
+
+- **`cors_allowed_headers`**: A list of HTTP request headers that should be supported for cross-origin requests. Defaults to []. You can use ['*'] to allow all headers. The Accept, Accept-Language, Content-Language and Content-Type headers are always allowed for CORS requests. Default: `null`.
+
+  - **Any of**
+
+    - *array*
+
+      - **Items** *(string)*
+
+    - *null*
+
+
+  Examples:
+
+  ```json
+  []
+  ```
+
 
 - **`service_name`** *(string)*: Default: `"encryption_key_store"`.
 
 - **`server_private_key`** *(string, format: password)*: Base64 encoded server Crypt4GH private key.
 
+
+  Examples:
+
+  ```json
+  "server_private_key"
+  ```
+
+
 - **`server_public_key`** *(string)*: Base64 encoded server Crypt4GH public key.
+
+
+  Examples:
+
+  ```json
+  "server_public_key"
+  ```
+
 
 
 ### Usage:
