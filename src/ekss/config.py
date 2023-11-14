@@ -15,11 +15,12 @@
 
 """Config Parameter Modeling and Parsing"""
 
+from pathlib import Path
 from typing import Union
 
 from ghga_service_commons.api import ApiConfigBase
 from hexkit.config import config_from_yaml
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -53,6 +54,22 @@ class VaultConfig(BaseSettings):
         description="Path without leading or trailing slashes where secrets should"
         + " be stored in the vault.",
     )
+
+    @field_validator("vault_verify")
+    @classmethod
+    def validate_vault_ca(cls, value: Union[bool, str]) -> Union[bool, str]:
+        """Check that the CA bundle can be read if it is specified."""
+        if isinstance(value, str):
+            path = Path(value)
+            if not path.exists():
+                raise ValueError(f"Vault CA bundle not found at: {path}")
+            try:
+                bundle = path.open().read()
+            except OSError as error:
+                raise ValueError("Vault CA bundle cannot be read") from error
+            if "-----BEGIN CERTIFICATE-----" not in bundle:
+                raise ValueError("Vault CA bundle does not contain a certificate")
+        return value
 
 
 @config_from_yaml(prefix="ekss")
