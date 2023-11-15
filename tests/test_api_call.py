@@ -67,7 +67,7 @@ async def test_api_calls(monkeypatch, joint_fixture: JointFixture):  # noqa: F81
         )
         response = await joint_fixture.rest_client.post(
             "/federated/ingest_secret",
-            json=encrypted_secret.dict(),
+            json=encrypted_secret.model_dump(),
             headers=headers,
         )
 
@@ -77,25 +77,27 @@ async def test_api_calls(monkeypatch, joint_fixture: JointFixture):  # noqa: F81
 
     # test missing authorization
     response = await joint_fixture.rest_client.post(
-        "/federated/ingest_metadata", json=encrypted_secret.dict()
+        "/federated/ingest_metadata", json=encrypted_secret.model_dump()
     )
     assert response.status_code == 403
 
     # test malformed payload
-    nonsense_payload = encrypted_secret.copy(update={"payload": "abcdefghijklmn"})
+    nonsense_payload = encrypted_secret.model_copy(update={"payload": "abcdefghijklmn"})
     response = await joint_fixture.rest_client.post(
-        "/federated/ingest_metadata", json=nonsense_payload.dict(), headers=headers
+        "/federated/ingest_metadata",
+        json=nonsense_payload.model_dump(),
+        headers=headers,
     )
     assert response.status_code == 422
 
     # test metadata ingest path
     payload = UploadMetadata(
-        **joint_fixture.payload.dict(),
+        **joint_fixture.payload.model_dump(),
         secret_id=secret_id,
     )
     encrypted_payload = EncryptedPayload(
         payload=encrypt(
-            data=payload.json(),
+            data=payload.model_dump_json(),
             key=joint_fixture.keypair.public,
         )
     )
@@ -108,7 +110,7 @@ async def test_api_calls(monkeypatch, joint_fixture: JointFixture):  # noqa: F81
     async with event_recorder:
         response = await joint_fixture.rest_client.post(
             "/federated/ingest_metadata",
-            json=encrypted_payload.dict(),
+            json=encrypted_payload.model_dump(),
             headers=headers,
         )
 
@@ -124,6 +126,7 @@ async def test_api_calls(monkeypatch, joint_fixture: JointFixture):  # noqa: F81
         file_id=joint_fixture.payload.file_id,
         object_id=joint_fixture.payload.object_id,
         bucket_id=joint_fixture.config.source_bucket_id,
+        s3_endpoint_alias="test",
         decrypted_size=joint_fixture.payload.unencrypted_size,
         decryption_secret_id=secret_id,
         content_offset=0,
@@ -134,7 +137,7 @@ async def test_api_calls(monkeypatch, joint_fixture: JointFixture):  # noqa: F81
     )
 
     expected_event = ExpectedEvent(
-        payload=payload.dict(),
+        payload=payload.model_dump(),
         type_=joint_fixture.config.publisher_type,
         key=joint_fixture.payload.file_id,
     )
@@ -145,14 +148,18 @@ async def test_api_calls(monkeypatch, joint_fixture: JointFixture):  # noqa: F81
 
     # test missing authorization
     response = await joint_fixture.rest_client.post(
-        "/federated/ingest_metadata", json=encrypted_payload.dict()
+        "/federated/ingest_metadata", json=encrypted_payload.model_dump()
     )
     assert response.status_code == 403
 
     # test malformed payload
-    nonsense_payload = encrypted_payload.copy(update={"payload": "abcdefghijklmn"})
+    nonsense_payload = encrypted_payload.model_copy(
+        update={"payload": "abcdefghijklmn"}
+    )
     response = await joint_fixture.rest_client.post(
-        "/federated/ingest_metadata", json=nonsense_payload.dict(), headers=headers
+        "/federated/ingest_metadata",
+        json=nonsense_payload.model_dump(),
+        headers=headers,
     )
     assert response.status_code == 422
 
@@ -161,12 +168,12 @@ async def test_api_calls(monkeypatch, joint_fixture: JointFixture):  # noqa: F81
 async def test_legacy_api_calls(monkeypatch, joint_fixture: JointFixture):  # noqa: F811
     """Test functionality with incoming API call"""
     payload = LegacyUploadMetadata(
-        **joint_fixture.payload.dict(),
+        **joint_fixture.payload.model_dump(),
         file_secret=base64.b64encode(os.urandom(32)).decode("utf-8"),
     )
     encrypted_payload = EncryptedPayload(
         payload=encrypt(
-            data=payload.json(),
+            data=payload.model_dump_json(),
             key=joint_fixture.keypair.public,
         )
     )
@@ -189,7 +196,7 @@ async def test_legacy_api_calls(monkeypatch, joint_fixture: JointFixture):  # no
         async with event_recorder:
             response = await joint_fixture.rest_client.post(
                 "/legacy/ingest",
-                json=encrypted_payload.dict(),
+                json=encrypted_payload.model_dump(),
                 headers=headers,
             )
 
@@ -205,6 +212,7 @@ async def test_legacy_api_calls(monkeypatch, joint_fixture: JointFixture):  # no
         file_id=joint_fixture.payload.file_id,
         object_id=joint_fixture.payload.object_id,
         bucket_id=joint_fixture.config.source_bucket_id,
+        s3_endpoint_alias="test",
         decrypted_size=joint_fixture.payload.unencrypted_size,
         decryption_secret_id=secret_id,
         content_offset=0,
@@ -215,7 +223,7 @@ async def test_legacy_api_calls(monkeypatch, joint_fixture: JointFixture):  # no
     )
 
     expected_event = ExpectedEvent(
-        payload=payload.dict(),
+        payload=payload.model_dump(),
         type_=joint_fixture.config.publisher_type,
         key=joint_fixture.payload.file_id,
     )
@@ -226,13 +234,15 @@ async def test_legacy_api_calls(monkeypatch, joint_fixture: JointFixture):  # no
 
     # test missing authorization
     response = await joint_fixture.rest_client.post(
-        "/legacy/ingest", json=encrypted_payload.dict()
+        "/legacy/ingest", json=encrypted_payload.model_dump()
     )
     assert response.status_code == 403
 
     # test malformed payload
-    nonsense_payload = encrypted_payload.copy(update={"payload": "abcdefghijklmn"})
+    nonsense_payload = encrypted_payload.model_copy(
+        update={"payload": "abcdefghijklmn"}
+    )
     response = await joint_fixture.rest_client.post(
-        "/legacy/ingest", json=nonsense_payload.dict(), headers=headers
+        "/legacy/ingest", json=nonsense_payload.model_dump(), headers=headers
     )
     assert response.status_code == 422

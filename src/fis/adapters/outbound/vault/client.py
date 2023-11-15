@@ -14,12 +14,14 @@
 # limitations under the License.
 """Provides client side functionality for interaction with HashiCorp Vault"""
 
+from pathlib import Path
 from typing import Union
 from uuid import uuid4
 
 import hvac
 import hvac.exceptions
-from pydantic import BaseSettings, Field, SecretStr
+from pydantic import Field, SecretStr, field_validator
+from pydantic_settings import BaseSettings
 
 from fis.ports.outbound.vault.client import VaultAdapterPort
 
@@ -29,22 +31,22 @@ class VaultConfig(BaseSettings):
 
     vault_url: str = Field(
         ...,
-        example="http://127.0.0.1.8200",
+        examples=["http://127.0.0.1.8200"],
         description="URL of the vault instance to connect to",
     )
     vault_role_id: SecretStr = Field(
         ...,
-        example="example_role",
+        examples=["example_role"],
         description="Vault role ID to access a specific prefix",
     )
     vault_secret_id: SecretStr = Field(
         ...,
-        example="example_secret",
+        examples=["example_secret"],
         description="Vault secret ID to access a specific prefix",
     )
     vault_verify: Union[bool, str] = Field(
         True,
-        example="/etc/ssl/certs/my_bundle.pem",
+        examples=["/etc/ssl/certs/my_bundle.pem"],
         description="SSL certificates (CA bundle) used to"
         " verify the identity of the vault, or True to"
         " use the default CAs, or False for no verification.",
@@ -95,3 +97,19 @@ class VaultAdapter(VaultAdapterPort):
         except hvac.exceptions.InvalidRequest as exc:
             raise self.SecretInsertionError() from exc
         return key
+
+    @field_validator("vault_verify")
+    @classmethod
+    def validate_vault_ca(cls, value: Union[bool, str]) -> Union[bool, str]:
+        """Check that the CA bundle can be read if it is specified."""
+        if isinstance(value, str):
+            path = Path(value)
+            if not path.exists():
+                raise ValueError(f"Vault CA bundle not found at: {path}")
+            try:
+                bundle = path.open().read()
+            except OSError as error:
+                raise ValueError("Vault CA bundle cannot be read") from error
+            if "-----BEGIN CERTIFICATE-----" not in bundle:
+                raise ValueError("Vault CA bundle does not contain a certificate")
+        return value

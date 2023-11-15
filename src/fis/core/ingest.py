@@ -19,7 +19,8 @@ from typing import Generic
 
 from ghga_service_commons.utils.crypt import decrypt
 from nacl.exceptions import CryptoError
-from pydantic import BaseSettings, Field, ValidationError
+from pydantic import Field, ValidationError
+from pydantic_settings import BaseSettings
 
 from fis.core import models
 from fis.ports.inbound.ingest import UploadMetadataModel, UploadMetadataProcessorPort

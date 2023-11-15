@@ -19,7 +19,8 @@ import json
 from ghga_event_schemas.pydantic_ import FileUploadValidationSuccess
 from ghga_service_commons.utils.utc_dates import now_as_utc
 from hexkit.protocols.eventpub import EventPublisherProtocol
-from pydantic import BaseSettings, Field
+from pydantic import Field
+from pydantic_settings import BaseSettings
 
 from fis.core.models import UploadMetadataBase
 from fis.ports.outbound.event_pub import EventPublisherPort
@@ -34,7 +35,7 @@ class EventPubTranslatorConfig(BaseSettings):
             "Topic name expected by downstream services. Use the topic name from the "
             + "interrogation room service."
         ),
-        example="file_interrogation",
+        examples=["file_interrogation"],
     )
     publisher_type: str = Field(
         ...,
@@ -42,12 +43,12 @@ class EventPubTranslatorConfig(BaseSettings):
             "Type expected by downstream services. Use the type from the interrogation "
             + "room service."
         ),
-        example="file_validation_success",
+        examples=["file_validation_success"],
     )
 
 
 class EventPubTranslator(EventPublisherPort):
-    """A translator according to  the triple hexagonal architecture implementing
+    """A translator according to the triple hexagonal architecture implementing
     the EventPublisherPort.
     """
 
@@ -71,6 +72,7 @@ class EventPubTranslator(EventPublisherPort):
             file_id=upload_metadata.file_id,
             object_id=upload_metadata.object_id,
             bucket_id=source_bucket_id,
+            s3_endpoint_alias="test",
             decrypted_size=upload_metadata.unencrypted_size,
             decryption_secret_id=secret_id,
             content_offset=0,
@@ -80,7 +82,7 @@ class EventPubTranslator(EventPublisherPort):
             decrypted_sha256=upload_metadata.unencrypted_checksum,
         )
 
-        payload_dict = json.loads(payload.json())
+        payload_dict = json.loads(payload.model_dump_json())
 
         await self._provider.publish(
             payload=payload_dict,

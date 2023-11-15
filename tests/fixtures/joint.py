@@ -68,7 +68,6 @@ async def joint_fixture(
     private_key = encode_key(key=keypair.private)
 
     token, token_hash = generate_token_and_hash()
-
     service_config = ServiceConfig(
         source_bucket_id="test-staging",
         private_key=private_key,
@@ -82,7 +81,6 @@ async def joint_fixture(
             "fis.adapters.inbound.fastapi_.routes",
         ]
     )
-
     api = get_rest_api(config=config)
 
     async with AsyncTestClient(app=api) as rest_client:

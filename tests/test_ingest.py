@@ -38,13 +38,13 @@ async def test_decryption_happy(joint_fixture: JointFixture):  # noqa: F811
     )
 
     payload = UploadMetadata(
-        **joint_fixture.payload.dict(),
+        **joint_fixture.payload.model_dump(),
         secret_id="test_secret_id",
     )
 
     encrypted_payload = EncryptedPayload(
         payload=encrypt(
-            data=payload.json(),
+            data=payload.model_dump_json(),
             key=joint_fixture.keypair.public,
         )
     )
@@ -63,13 +63,13 @@ async def test_legacy_decryption_happy(joint_fixture: JointFixture):  # noqa: F8
     )
 
     payload = LegacyUploadMetadata(
-        **joint_fixture.payload.dict(),
+        **joint_fixture.payload.model_dump(),
         file_secret=base64.b64encode(os.urandom(32)).decode("utf-8"),
     )
 
     encrypted_payload = EncryptedPayload(
         payload=encrypt(
-            data=payload.json(),
+            data=payload.model_dump_json(),
             key=joint_fixture.keypair.public,
         )
     )
@@ -90,7 +90,7 @@ async def test_decryption_sad(joint_fixture: JointFixture):  # noqa: F811
     # test faulty payload
     encrypted_payload = EncryptedPayload(
         payload=encrypt(
-            data=joint_fixture.payload.json(),
+            data=joint_fixture.payload.model_dump_json(),
             key=joint_fixture.keypair.public,
         )
     )
@@ -102,12 +102,12 @@ async def test_decryption_sad(joint_fixture: JointFixture):  # noqa: F811
     keypair2 = generate_key_pair()
 
     payload = UploadMetadata(
-        **joint_fixture.payload.dict(),
+        **joint_fixture.payload.model_dump(),
         secret_id="test_secret_id",
     )
 
     encrypted_payload = EncryptedPayload(
-        payload=encrypt(data=payload.json(), key=keypair2.public)
+        payload=encrypt(data=payload.model_dump_json(), key=keypair2.public)
     )
 
     with pytest.raises(upload_metadata_processor.DecryptionError):
@@ -124,7 +124,7 @@ async def test_legacy_decryption_sad(joint_fixture: JointFixture):  # noqa: F811
     # test faulty payload
     encrypted_payload = EncryptedPayload(
         payload=encrypt(
-            data=joint_fixture.payload.json(),
+            data=joint_fixture.payload.model_dump_json(),
             key=joint_fixture.keypair.public,
         )
     )
@@ -136,12 +136,12 @@ async def test_legacy_decryption_sad(joint_fixture: JointFixture):  # noqa: F811
     keypair2 = generate_key_pair()
 
     payload = LegacyUploadMetadata(
-        **joint_fixture.payload.dict(),
+        **joint_fixture.payload.model_dump(),
         file_secret=base64.b64encode(os.urandom(32)).decode("utf-8"),
     )
 
     encrypted_payload = EncryptedPayload(
-        payload=encrypt(data=payload.json(), key=keypair2.public)
+        payload=encrypt(data=payload.model_dump_json(), key=keypair2.public)
     )
 
     with pytest.raises(upload_metadata_processor.DecryptionError):

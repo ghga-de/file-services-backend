@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fis"
-version = "0.1.6"
+version = "1.0.0"
 description = "File Ingest Service - A lightweight service to propagate file upload metadata to the GHGA file backend services"
 readme = "README.md"
 authors = [
@@ -24,9 +24,9 @@ classifiers = [
 ]
 dependencies = [
     "typer>=0.7.0",
-    "ghga-service-commons[api,crypt]>=0.4.1",
-    "ghga-event-schemas==0.13.4",
-    "hexkit[akafka,s3,mongodb]>=0.10.0",
+    "ghga-service-commons[api,crypt]>=1.1.1",
+    "ghga-event-schemas==1.0.0",
+    "hexkit[akafka,s3,mongodb]>=1.0.0",
     "hvac>=1.0.2",
 ]
 
