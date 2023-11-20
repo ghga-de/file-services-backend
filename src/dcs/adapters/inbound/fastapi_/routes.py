@@ -16,7 +16,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from dcs.adapters.inbound.fastapi_ import (
     dummies,
@@ -120,6 +120,11 @@ async def get_drs_object(
         raise http_exceptions.HttpObjectNotFoundError(
             object_id=object_id
         ) from object_not_found_error
+
+    except data_repository.StorageAliasNotConfiguredError as configuration_error:
+        raise HTTPException(
+            status_code=500, detail="Internal Server Error"
+        ) from configuration_error
 
 
 @router.get(

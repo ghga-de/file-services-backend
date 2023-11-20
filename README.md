@@ -1,5 +1,5 @@
 
-[![tests](https://github.com/ghga-de/download-controller-service/actions/workflows/unit_and_int_tests.yaml/badge.svg)](https://github.com/ghga-de/download-controller-service/actions/workflows/unit_and_int_tests.yaml)
+[![tests](https://github.com/ghga-de/download-controller-service/actions/workflows/tests.yaml/badge.svg)](https://github.com/ghga-de/download-controller-service/actions/workflows/tests.yaml)
 [![Coverage Status](https://coveralls.io/repos/github/ghga-de/download-controller-service/badge.svg?branch=main)](https://coveralls.io/github/ghga-de/download-controller-service?branch=main)
 
 # Download Controller Service
@@ -80,6 +80,10 @@ dcs --help
 ### Parameters
 
 The service requires the following configuration parameters:
+- **`object_storages`** *(object)*: Can contain additional properties.
+
+  - **Additional Properties**: Refer to *[#/$defs/S3ObjectStorageNodeConfig](#$defs/S3ObjectStorageNodeConfig)*.
+
 - **`files_to_register_topic`** *(string)*: The name of the topic to receive events informing about new files that shall be made available for download.
 
 
@@ -246,8 +250,6 @@ The service requires the following configuration parameters:
   ```
 
 
-- **`outbox_bucket`** *(string)*
-
 - **`drs_server_uri`** *(string)*: The base of the DRS URI to access DRS objects. Has to start with 'drs://' and end with '/'.
 
 
@@ -281,68 +283,6 @@ The service requires the following configuration parameters:
 
 
 - **`cache_timeout`** *(integer)*: Time in days since last access after which a file present in the outbox should be unstaged and has to be requested from permanent storage again for the next request. Default: `7`.
-
-- **`s3_endpoint_url`** *(string)*: URL to the S3 API.
-
-
-  Examples:
-
-  ```json
-  "http://localhost:4566"
-  ```
-
-
-- **`s3_access_key_id`** *(string)*: Part of credentials for login into the S3 service. See: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html.
-
-
-  Examples:
-
-  ```json
-  "my-access-key-id"
-  ```
-
-
-- **`s3_secret_access_key`** *(string, format: password)*: Part of credentials for login into the S3 service. See: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html.
-
-
-  Examples:
-
-  ```json
-  "my-secret-access-key"
-  ```
-
-
-- **`s3_session_token`**: Part of credentials for login into the S3 service. See: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html. Default: `null`.
-
-  - **Any of**
-
-    - *string, format: password*
-
-    - *null*
-
-
-  Examples:
-
-  ```json
-  "my-session-token"
-  ```
-
-
-- **`aws_config_ini`**: Path to a config file for specifying more advanced S3 parameters. This should follow the format described here: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html#using-a-configuration-file. Default: `null`.
-
-  - **Any of**
-
-    - *string, format: path*
-
-    - *null*
-
-
-  Examples:
-
-  ```json
-  "~/.aws/config"
-  ```
-
 
 - **`auth_key`** *(string)*: The GHGA internal public key for validating the token signature.
 

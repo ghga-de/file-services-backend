@@ -71,6 +71,16 @@ class DataRepositoryPort(ABC):
 
             super().__init__(message)
 
+    class StorageAliasNotConfiguredError(RuntimeError):
+        """Raised when looking up an object storage configuration by alias fails."""
+
+        def __init__(self, *, alias: str):
+            message = (
+                f"Could not find a storage configuration for alias {alias}.\n"
+                + "Check íf your multi node configuration contains a corresponding entry."
+            )
+            super().__init__(message)
+
     class UnexpectedAPIResponseError(RuntimeError):
         """Raise when API call returns unexpected return code"""
 
@@ -90,7 +100,7 @@ class DataRepositoryPort(ABC):
         ...
 
     @abstractmethod
-    async def cleanup_outbox(self):
+    async def cleanup_outbox(self, *, s3_endpoint_alias: str):
         """
         Check if files present in the outbox have outlived their allocated time and remove
         all that do.

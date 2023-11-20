@@ -48,7 +48,7 @@ def generate_work_order_token(
         full_user_name="John Doe",
         email="john.doe@test.com",
     )
-    claims = wot.dict()
+    claims = wot.model_dump()
 
     signed_token = jwt_helpers.sign_and_serialize_token(
         claims=claims, key=jwk, valid_seconds=valid_seconds

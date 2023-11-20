@@ -52,6 +52,7 @@ class DrsObjectBase(BaseModel):
     decrypted_sha256: str
     decrypted_size: int
     creation_date: str
+    s3_endpoint_alias: str
 
 
 class DrsObject(DrsObjectBase):

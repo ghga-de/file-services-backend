@@ -14,7 +14,6 @@ auth_check_claims:
 auth_key: '{}'
 auth_map_claims: {}
 auto_reload: true
-aws_config_ini: null
 cache_timeout: 7
 cors_allow_credentials: false
 cors_allowed_headers: []
@@ -39,15 +38,19 @@ host: 127.0.0.1
 kafka_servers:
 - kafka:9092
 log_level: info
+object_storages:
+  test:
+    bucket: outbox
+    credentials:
+      aws_config_ini: null
+      s3_access_key_id: test
+      s3_endpoint_url: http://dcs:4566
+      s3_secret_access_key: '**********'
+      s3_session_token: null
 openapi_url: /openapi.json
-outbox_bucket: outbox
 port: 8080
 presigned_url_expires_after: 30
 retry_access_after: 120
-s3_access_key_id: test
-s3_endpoint_url: http://dcs:4566
-s3_secret_access_key: '**********'
-s3_session_token: null
 service_instance_id: '001'
 service_name: dcs
 unstaged_download_event_topic: file_downloads

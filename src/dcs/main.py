@@ -41,9 +41,11 @@ async def consume_events(run_forever: bool = True):
         await event_subscriber.run(forever=run_forever)
 
 
-async def run_outbox_cleanup():
+async def run_outbox_cleanup(s3_endpoint_alias: str):
     """Check if outbox contains files that should be cleaned up and perform clean-up"""
     config = Config()  # type: ignore
 
-    async with prepare_outbox_cleaner(config=config) as cleanup_outbox:
-        await cleanup_outbox()
+    async with prepare_outbox_cleaner(
+        config=config, s3_endpoint_alias=s3_endpoint_alias
+    ) as cleanup_outbox:
+        await cleanup_outbox

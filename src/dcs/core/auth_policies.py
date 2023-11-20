@@ -30,23 +30,27 @@ class WorkOrderContext(BaseModel):
     """Work order token model"""
 
     type: Union[Literal["download"], Literal["upload"]] = Field(
-        ..., title="Type", help="Work type"
+        ..., title="Type", description="Work type"
     )
     file_id: str = Field(
         ...,
         title="File ID",
-        help="The ID of the file that shall be downloaded or uploaded",
+        description="The ID of the file that shall be downloaded or uploaded",
     )
-    user_id: str = Field(..., title="User ID", help="The internal ID of the user")
+    user_id: str = Field(
+        ..., title="User ID", description="The internal ID of the user"
+    )
     user_public_crypt4gh_key: str = Field(
-        ..., help="Base64 encoded Crypt4GH public key of the user"
+        ..., description="Base64 encoded Crypt4GH public key of the user"
     )
     full_user_name: str = Field(
         ...,
         title="Full user name",
-        help="The full name of the user (with academic title)",
+        description="The full name of the user (with academic title)",
     )
-    email: EmailStr = Field(..., title="E-Mail", help="The email address of the user")
+    email: EmailStr = Field(
+        ..., title="E-Mail", description="The email address of the user"
+    )
 
     @field_validator("type")
     @classmethod

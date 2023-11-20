@@ -11,13 +11,15 @@ cors_allowed_headers: []
 drs_server_uri: drs://localhost:8080/
 api_route: /ga4gh/drs/v1
 
-outbox_bucket: outbox
-
 presigned_url_expires_after: 30
 
-s3_endpoint_url: http://dcs:4566
-s3_access_key_id: test
-s3_secret_access_key: test
+object_storages:
+  test:
+    bucket: outbox
+    credentials:
+      s3_endpoint_url: http://dcs:4566
+      s3_access_key_id: test
+      s3_secret_access_key: test
 
 db_connection_str: "mongodb://mongodb:27017"
 db_name: "dev_db"

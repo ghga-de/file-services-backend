@@ -88,6 +88,7 @@ class EventSubTranslator(EventSubscriberProtocol):
             decrypted_sha256=validated_payload.decrypted_sha256,
             decrypted_size=validated_payload.decrypted_size,
             creation_date=validated_payload.upload_date,
+            s3_endpoint_alias=validated_payload.s3_endpoint_alias,
         )
 
         await self._data_repository.register_new_file(file=file)
