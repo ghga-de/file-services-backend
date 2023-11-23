@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 # please adapt to package name
 name = "dcs"
-version = "1.0.0"
+version = "1.1.0"
 description = "Download Controller Service - a GA4GH DRS-compliant service for delivering files from S3 encrypted according to the GA4GH Crypt4GH standard."
 readme = "README.md"
 authors = [
@@ -25,9 +25,9 @@ classifiers = [
     "Intended Audience :: Developers",
 ]
 dependencies = [
-    "ghga-service-commons[all]>=1.1.0",
-    "ghga-event-schemas~=1.0.0",
-    "hexkit[mongodb,s3,akafka]>=0.11.0",
+    "ghga-service-commons[all]>=1.2.0",
+    "ghga-event-schemas==1.0.0",
+    "hexkit[mongodb,s3,akafka]>=1.0.0",
     "typer>=0.6.0",
 ]
 

@@ -64,7 +64,7 @@ class DrsObject(DrsObjectBase):
 class AccessTimeDrsObject(DrsObject):
     """DRS Model with information for outbox caching strategy"""
 
-    last_accessed: utc_dates.DateTimeUTC
+    last_accessed: utc_dates.UTCDatetime
 
 
 class DrsObjectWithUri(DrsObject):

@@ -35,6 +35,18 @@ class HttpEnvelopeNotFoundError(HttpCustomExceptionBase):
         )
 
 
+class HttpInternalServerError(HttpCustomExceptionBase):
+    """Thrown when an error is raised with details that should not be propagated to a client"""
+
+    exception_id = "internalServerError"
+
+    def __init__(self, *, status_code: int = 500):
+        """Construct message and init the exception."""
+        super().__init__(
+            status_code=status_code, description="Internal Server Error.", data={}
+        )
+
+
 class HttpExternalAPIError(HttpCustomExceptionBase):
     """Thrown when communication with an external API produces an error"""
 

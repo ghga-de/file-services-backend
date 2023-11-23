@@ -35,8 +35,13 @@ files_to_delete_type: file_deletion_requested
 files_to_register_topic: internal_file_registry
 files_to_register_type: file_registered
 host: 127.0.0.1
+kafka_security_protocol: PLAINTEXT
 kafka_servers:
 - kafka:9092
+kafka_ssl_cafile: ''
+kafka_ssl_certfile: ''
+kafka_ssl_keyfile: ''
+kafka_ssl_password: ''
 log_level: info
 object_storages:
   test:

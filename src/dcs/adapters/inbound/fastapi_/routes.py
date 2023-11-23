@@ -16,7 +16,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 
 from dcs.adapters.inbound.fastapi_ import (
     dummies,
@@ -33,13 +33,12 @@ router = APIRouter()
 
 
 RESPONSES = {
-    "entryNotFoundError": {
+    "internalServerError": {
         "description": (
-            "Exceptions by ID:"
-            + "\n- envelopeNotFoundError: The requested envelope could not be retrieved"
-            + "\n- noSuchObject: The requested DrsObject was not found"
+            "A configuration or external communication error has occurred and details "
+            + "should not be communicated to the client"
         ),
-        "model": http_exceptions.HttpObjectNotFoundError.get_body_model(),
+        "model": http_exceptions.HttpInternalServerError.get_body_model(),
     },
     "noSuchObject": {
         "description": (
@@ -90,6 +89,7 @@ async def health():
         status.HTTP_202_ACCEPTED: RESPONSES["objectNotInOutbox"],
         status.HTTP_403_FORBIDDEN: RESPONSES["wrongFileAuthorizationError"],
         status.HTTP_404_NOT_FOUND: RESPONSES["noSuchObject"],
+        status.HTTP_500_INTERNAL_SERVER_ERROR: RESPONSES["internalServerError"],
     },
 )
 async def get_drs_object(
@@ -122,9 +122,7 @@ async def get_drs_object(
         ) from object_not_found_error
 
     except data_repository.StorageAliasNotConfiguredError as configuration_error:
-        raise HTTPException(
-            status_code=500, detail="Internal Server Error"
-        ) from configuration_error
+        raise http_exceptions.HttpInternalServerError() from configuration_error
 
 
 @router.get(
@@ -137,7 +135,8 @@ async def get_drs_object(
     response_description="Successfully delivered envelope.",
     responses={
         status.HTTP_403_FORBIDDEN: RESPONSES["wrongFileAuthorizationError"],
-        status.HTTP_404_NOT_FOUND: RESPONSES["entryNotFoundError"],
+        status.HTTP_404_NOT_FOUND: RESPONSES["noSuchObject"],
+        status.HTTP_500_INTERNAL_SERVER_ERROR: RESPONSES["internalServerError"],
     },
 )
 async def get_envelope(
@@ -165,9 +164,10 @@ async def get_envelope(
         raise http_exceptions.HttpObjectNotFoundError(
             object_id=object_id
         ) from object_not_found_error
-    except data_repository.EnvelopeNotFoundError as envelope_not_found_error:
-        raise http_exceptions.HttpEnvelopeNotFoundError(
-            description=str(envelope_not_found_error)
-        ) from envelope_not_found_error
+    except (
+        data_repository.APICommunicationError,
+        data_repository.EnvelopeNotFoundError,
+    ) as communication_error:
+        raise http_exceptions.HttpInternalServerError() from communication_error
 
     return http_responses.HttpEnvelopeResponse(envelope=envelope)

@@ -32,7 +32,7 @@ __all__ = [
 import json
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import httpx
 import pytest_asyncio
@@ -76,7 +76,7 @@ EXAMPLE_FILE = models.AccessTimeDrsObject(
     file_id="examplefile001",
     object_id="object001",
     decrypted_sha256="0677de3685577a06862f226bb1bfa8f889e96e59439d915543929fb4f011d096",
-    creation_date=datetime.now().isoformat(),
+    creation_date=utc_dates.now_as_utc().isoformat(),
     decrypted_size=12345,
     decryption_secret_id="some-secret",
     s3_endpoint_alias=S3_ENDPOINT_ALIASES[0],
