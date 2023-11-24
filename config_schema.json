@@ -11,6 +11,7 @@
       "type": "string"
     },
     "vault_role_id": {
+      "default": null,
       "description": "Vault role ID to access a specific prefix",
       "examples": [
         "example_role"
@@ -21,6 +22,7 @@
       "writeOnly": true
     },
     "vault_secret_id": {
+      "default": null,
       "description": "Vault secret ID to access a specific prefix",
       "examples": [
         "example_secret"
@@ -49,6 +51,22 @@
     "vault_path": {
       "description": "Path without leading or trailing slashes where secrets should be stored in the vault.",
       "title": "Vault Path",
+      "type": "string"
+    },
+    "vault_kube_role": {
+      "default": null,
+      "description": "Vault role name used for Kubernetes authentication",
+      "examples": [
+        "file-ingest-role"
+      ],
+      "title": "Vault Kube Role",
+      "type": "string"
+    },
+    "service_account_token_path": {
+      "default": "/var/run/secrets/kubernetes.io/serviceaccount/token",
+      "description": "Path to service account token used by kube auth adapter.",
+      "format": "path",
+      "title": "Service Account Token Path",
       "type": "string"
     },
     "private_key": {
@@ -285,8 +303,6 @@
   },
   "required": [
     "vault_url",
-    "vault_role_id",
-    "vault_secret_id",
     "vault_path",
     "private_key",
     "source_bucket_id",

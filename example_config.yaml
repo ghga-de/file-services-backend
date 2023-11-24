@@ -19,12 +19,14 @@ port: 8080
 private_key: dummy-key
 publisher_topic: file_interrogation
 publisher_type: file_validation_success
+service_account_token_path: /var/run/secrets/kubernetes.io/serviceaccount/token
 service_instance_id: '1'
 service_name: fis
 source_bucket_id: test-staging
 token_hashes:
 - abcdef
 - ghijkl
+vault_kube_role: dummy-role
 vault_path: ekss
 vault_role_id: '**********'
 vault_secret_id: '**********'

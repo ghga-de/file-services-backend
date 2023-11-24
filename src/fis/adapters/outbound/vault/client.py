@@ -20,6 +20,7 @@ from uuid import uuid4
 
 import hvac
 import hvac.exceptions
+from hvac.api.auth_methods import Kubernetes
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings
 
@@ -35,12 +36,12 @@ class VaultConfig(BaseSettings):
         description="URL of the vault instance to connect to",
     )
     vault_role_id: SecretStr = Field(
-        ...,
+        None,
         examples=["example_role"],
         description="Vault role ID to access a specific prefix",
     )
     vault_secret_id: SecretStr = Field(
-        ...,
+        None,
         examples=["example_secret"],
         description="Vault secret ID to access a specific prefix",
     )
@@ -56,6 +57,15 @@ class VaultConfig(BaseSettings):
         description="Path without leading or trailing slashes where secrets should"
         + " be stored in the vault.",
     )
+    vault_kube_role: str = Field(
+        None,
+        examples=["file-ingest-role"],
+        description="Vault role name used for Kubernetes authentication",
+    )
+    service_account_token_path: Path = Field(
+        "/var/run/secrets/kubernetes.io/serviceaccount/token",
+        description="Path to service account token used by kube auth adapter.",
+    )
 
 
 class VaultAdapter(VaultAdapterPort):
@@ -66,8 +76,22 @@ class VaultAdapter(VaultAdapterPort):
         self._client = hvac.Client(url=config.vault_url, verify=config.vault_verify)
         self._path = config.vault_path
 
-        self._role_id = config.vault_role_id.get_secret_value()
-        self._secret_id = config.vault_secret_id.get_secret_value()
+        kube_role = config.vault_kube_role
+        if kube_role:
+            # use kube role and service account token
+            self._kube_role = kube_role
+            self._kube_adapter = Kubernetes(self._client.adapter)
+            self._service_account_token_path = config.service_account_token_path
+        else:
+            # use role and secret ID instead
+            self._role_id = config.vault_role_id.get_secret_value()
+            self._secret_id = config.vault_secret_id.get_secret_value()
+
+            if not all((self._role_id, self._secret_id)):
+                raise ValueError(
+                    "There is no way to log in to vault:\n"
+                    + "Neither kube role nor both role and secret ID were provided."
+                )
 
     def _check_auth(self):
         """Check if authentication timed out and re-authenticate if needed"""
@@ -75,10 +99,16 @@ class VaultAdapter(VaultAdapterPort):
             self._login()
 
     def _login(self):
-        """Log in using role ID and secret ID"""
-        self._client.auth.approle.login(
-            role_id=self._role_id, secret_id=self._secret_id
-        )
+        """Log in using Kubernetes Auth or AppRole"""
+        if self._kube_role:
+            with self._service_account_token_path.open() as token_file:
+                jwt = token_file.read()
+            self._kube_adapter.login(role=self._kube_role, jwt=jwt)
+
+        else:
+            self._client.auth.approle.login(
+                role_id=self._role_id, secret_id=self._secret_id
+            )
 
     def store_secret(self, *, secret: str) -> str:
         """

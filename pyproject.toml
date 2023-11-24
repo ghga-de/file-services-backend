@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fis"
-version = "1.0.0"
+version = "1.1.0"
 description = "File Ingest Service - A lightweight service to propagate file upload metadata to the GHGA file backend services"
 readme = "README.md"
 authors = [
