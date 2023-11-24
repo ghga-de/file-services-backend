@@ -29,5 +29,6 @@ class EventPublisherPort(ABC):
         upload_metadata: UploadMetadataBase,
         source_bucket_id: str,
         secret_id: str,
+        s3_endpoint_alias: str,
     ):
         """Send FileUploadValidationSuccess event to downstream services"""

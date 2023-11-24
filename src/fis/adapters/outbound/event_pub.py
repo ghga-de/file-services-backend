@@ -65,6 +65,7 @@ class EventPubTranslator(EventPublisherPort):
         upload_metadata: UploadMetadataBase,
         source_bucket_id: str,
         secret_id: str,
+        s3_endpoint_alias: str,
     ):
         """Send FileUploadValidationSuccess event to downstream services"""
         payload = FileUploadValidationSuccess(
@@ -72,7 +73,7 @@ class EventPubTranslator(EventPublisherPort):
             file_id=upload_metadata.file_id,
             object_id=upload_metadata.object_id,
             bucket_id=source_bucket_id,
-            s3_endpoint_alias="test",
+            s3_endpoint_alias=s3_endpoint_alias,
             decrypted_size=upload_metadata.unencrypted_size,
             decryption_secret_id=secret_id,
             content_offset=0,

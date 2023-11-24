@@ -120,6 +120,8 @@ The service requires the following configuration parameters:
 
   - **Items** *(string)*
 
+- **`selected_storage_alias`** *(string)*: S3 endpoint alias of the object storage node the bucket and object(s) corresponding to the upload metadata have been uploaded to. This should point to a node containing a staging bucket.
+
 - **`service_name`** *(string)*: Default: `"fis"`.
 
 - **`service_instance_id`** *(string)*: A string that uniquely identifies this instance across all instances of this service. A globally unique Kafka client ID will be created by concatenating the service_name and the service_instance_id.

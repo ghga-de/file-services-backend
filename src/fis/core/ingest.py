@@ -46,6 +46,12 @@ class ServiceConfig(BaseSettings):
         description="List of token hashes corresponding to the tokens that can be used "
         + "to authenticate calls to this service.",
     )
+    selected_storage_alias: str = Field(
+        ...,
+        description="S3 endpoint alias of the object storage node the bucket and "
+        + "object(s) corresponding to the upload metadata have been uploaded to. "
+        + "This should point to a node containing a staging bucket.",
+    )
 
 
 class UploadMetadataProcessorBase(
@@ -75,6 +81,7 @@ class UploadMetadataProcessorBase(
             secret_id=secret_id,
             source_bucket_id=self._config.source_bucket_id,
             upload_metadata=upload_metadata,
+            s3_endpoint_alias=self._config.selected_storage_alias,
         )
 
     async def store_secret(self, *, file_secret: str) -> str:

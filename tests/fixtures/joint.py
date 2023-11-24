@@ -28,7 +28,7 @@ from ghga_service_commons.utils.crypt import (
 from ghga_service_commons.utils.simple_token import generate_token_and_hash
 from hexkit.providers.akafka.testutils import KafkaFixture, kafka_fixture  # noqa: F401
 
-from fis.config import Config, ServiceConfig
+from fis.config import Config
 from fis.container import Container
 from fis.core.models import UploadMetadataBase
 from fis.main import get_configured_container, get_rest_api
@@ -57,6 +57,7 @@ class JointFixture:
     payload: UploadMetadataBase
     kafka: KafkaFixture
     rest_client: httpx.AsyncClient
+    s3_endpoint_alias: str
 
 
 @pytest_asyncio.fixture
@@ -68,12 +69,12 @@ async def joint_fixture(
     private_key = encode_key(key=keypair.private)
 
     token, token_hash = generate_token_and_hash()
-    service_config = ServiceConfig(
-        source_bucket_id="test-staging",
-        private_key=private_key,
-        token_hashes=[token_hash],
+
+    config = get_config(sources=[kafka_fixture.config])
+    # cannot update inplace, copy and update instead
+    config = config.model_copy(
+        update={"private_key": private_key, "token_hashes": [token_hash]}
     )
-    config = get_config(sources=[kafka_fixture.config, service_config])
     container = get_configured_container(config=config)
     container.wire(
         modules=[
@@ -92,4 +93,5 @@ async def joint_fixture(
             token=token,
             kafka=kafka_fixture,
             rest_client=rest_client,
+            s3_endpoint_alias=config.selected_storage_alias,
         )
