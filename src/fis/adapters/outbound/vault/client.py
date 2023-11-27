@@ -76,10 +76,9 @@ class VaultAdapter(VaultAdapterPort):
         self._client = hvac.Client(url=config.vault_url, verify=config.vault_verify)
         self._path = config.vault_path
 
-        kube_role = config.vault_kube_role
-        if kube_role:
+        self._kube_role = config.vault_kube_role
+        if self._kube_role:
             # use kube role and service account token
-            self._kube_role = kube_role
             self._kube_adapter = Kubernetes(self._client.adapter)
             self._service_account_token_path = config.service_account_token_path
         else:
