@@ -11,26 +11,40 @@
       "type": "string"
     },
     "vault_role_id": {
+      "anyOf": [
+        {
+          "format": "password",
+          "type": "string",
+          "writeOnly": true
+        },
+        {
+          "type": "null"
+        }
+      ],
       "default": null,
       "description": "Vault role ID to access a specific prefix",
       "examples": [
         "example_role"
       ],
-      "format": "password",
-      "title": "Vault Role Id",
-      "type": "string",
-      "writeOnly": true
+      "title": "Vault Role Id"
     },
     "vault_secret_id": {
+      "anyOf": [
+        {
+          "format": "password",
+          "type": "string",
+          "writeOnly": true
+        },
+        {
+          "type": "null"
+        }
+      ],
       "default": null,
       "description": "Vault secret ID to access a specific prefix",
       "examples": [
         "example_secret"
       ],
-      "format": "password",
-      "title": "Vault Secret Id",
-      "type": "string",
-      "writeOnly": true
+      "title": "Vault Secret Id"
     },
     "vault_verify": {
       "anyOf": [
@@ -54,13 +68,20 @@
       "type": "string"
     },
     "vault_kube_role": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
       "default": null,
       "description": "Vault role name used for Kubernetes authentication",
       "examples": [
         "file-ingest-role"
       ],
-      "title": "Vault Kube Role",
-      "type": "string"
+      "title": "Vault Kube Role"
     },
     "service_account_token_path": {
       "default": "/var/run/secrets/kubernetes.io/serviceaccount/token",

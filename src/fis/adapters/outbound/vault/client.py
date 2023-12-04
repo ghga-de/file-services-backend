@@ -15,7 +15,7 @@
 """Provides client side functionality for interaction with HashiCorp Vault"""
 
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 from uuid import uuid4
 
 import hvac
@@ -35,13 +35,13 @@ class VaultConfig(BaseSettings):
         examples=["http://127.0.0.1.8200"],
         description="URL of the vault instance to connect to",
     )
-    vault_role_id: SecretStr = Field(
-        None,
+    vault_role_id: Optional[SecretStr] = Field(
+        default=None,
         examples=["example_role"],
         description="Vault role ID to access a specific prefix",
     )
-    vault_secret_id: SecretStr = Field(
-        None,
+    vault_secret_id: Optional[SecretStr] = Field(
+        default=None,
         examples=["example_secret"],
         description="Vault secret ID to access a specific prefix",
     )
@@ -57,13 +57,13 @@ class VaultConfig(BaseSettings):
         description="Path without leading or trailing slashes where secrets should"
         + " be stored in the vault.",
     )
-    vault_kube_role: str = Field(
-        None,
+    vault_kube_role: Optional[str] = Field(
+        default=None,
         examples=["file-ingest-role"],
         description="Vault role name used for Kubernetes authentication",
     )
     service_account_token_path: Path = Field(
-        "/var/run/secrets/kubernetes.io/serviceaccount/token",
+        default="/var/run/secrets/kubernetes.io/serviceaccount/token",
         description="Path to service account token used by kube auth adapter.",
     )
 
@@ -81,16 +81,15 @@ class VaultAdapter(VaultAdapterPort):
             # use kube role and service account token
             self._kube_adapter = Kubernetes(self._client.adapter)
             self._service_account_token_path = config.service_account_token_path
-        else:
+        elif config.vault_role_id and config.vault_secret_id:
             # use role and secret ID instead
             self._role_id = config.vault_role_id.get_secret_value()
             self._secret_id = config.vault_secret_id.get_secret_value()
-
-            if not all((self._role_id, self._secret_id)):
-                raise ValueError(
-                    "There is no way to log in to vault:\n"
-                    + "Neither kube role nor both role and secret ID were provided."
-                )
+        else:
+            raise ValueError(
+                "There is no way to log in to vault:\n"
+                + "Neither kube role nor both role and secret ID were provided."
+            )
 
     def _check_auth(self):
         """Check if authentication timed out and re-authenticate if needed"""
