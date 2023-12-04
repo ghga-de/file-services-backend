@@ -11,7 +11,9 @@ openapi_url: /openapi.json
 port: 8080
 server_private_key: '**********'
 server_public_key: HsKvfHsAFNGykFi/zMssay0xajoHvY30IcYPGDCXrGU=
+service_account_token_path: /var/run/secrets/kubernetes.io/serviceaccount/token
 service_name: encryption_key_store
+vault_kube_role: dummy-role
 vault_path: ekss
 vault_role_id: '**********'
 vault_secret_id: '**********'

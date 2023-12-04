@@ -112,7 +112,13 @@ The service requires the following configuration parameters:
   ```
 
 
-- **`vault_role_id`** *(string, format: password)*: Vault role ID to access a specific prefix.
+- **`vault_role_id`**: Vault role ID to access a specific prefix. Default: `null`.
+
+  - **Any of**
+
+    - *string, format: password*
+
+    - *null*
 
 
   Examples:
@@ -122,7 +128,13 @@ The service requires the following configuration parameters:
   ```
 
 
-- **`vault_secret_id`** *(string, format: password)*: Vault secret ID to access a specific prefix.
+- **`vault_secret_id`**: Vault secret ID to access a specific prefix. Default: `null`.
+
+  - **Any of**
+
+    - *string, format: password*
+
+    - *null*
 
 
   Examples:
@@ -149,6 +161,24 @@ The service requires the following configuration parameters:
 
 
 - **`vault_path`** *(string)*: Path without leading or trailing slashes where secrets should be stored in the vault.
+
+- **`vault_kube_role`**: Vault role name used for Kubernetes authentication. Default: `null`.
+
+  - **Any of**
+
+    - *string*
+
+    - *null*
+
+
+  Examples:
+
+  ```json
+  "file-ingest-role"
+  ```
+
+
+- **`service_account_token_path`** *(string, format: path)*: Path to service account token used by kube auth adapter. Default: `"/var/run/secrets/kubernetes.io/serviceaccount/token"`.
 
 - **`host`** *(string)*: IP of the host. Default: `"127.0.0.1"`.
 

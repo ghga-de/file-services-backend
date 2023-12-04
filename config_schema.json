@@ -11,24 +11,40 @@
       "type": "string"
     },
     "vault_role_id": {
+      "anyOf": [
+        {
+          "format": "password",
+          "type": "string",
+          "writeOnly": true
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
       "description": "Vault role ID to access a specific prefix",
       "examples": [
         "example_role"
       ],
-      "format": "password",
-      "title": "Vault Role Id",
-      "type": "string",
-      "writeOnly": true
+      "title": "Vault Role Id"
     },
     "vault_secret_id": {
+      "anyOf": [
+        {
+          "format": "password",
+          "type": "string",
+          "writeOnly": true
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
       "description": "Vault secret ID to access a specific prefix",
       "examples": [
         "example_secret"
       ],
-      "format": "password",
-      "title": "Vault Secret Id",
-      "type": "string",
-      "writeOnly": true
+      "title": "Vault Secret Id"
     },
     "vault_verify": {
       "anyOf": [
@@ -49,6 +65,29 @@
     "vault_path": {
       "description": "Path without leading or trailing slashes where secrets should be stored in the vault.",
       "title": "Vault Path",
+      "type": "string"
+    },
+    "vault_kube_role": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Vault role name used for Kubernetes authentication",
+      "examples": [
+        "file-ingest-role"
+      ],
+      "title": "Vault Kube Role"
+    },
+    "service_account_token_path": {
+      "default": "/var/run/secrets/kubernetes.io/serviceaccount/token",
+      "description": "Path to service account token used by kube auth adapter.",
+      "format": "path",
+      "title": "Service Account Token Path",
       "type": "string"
     },
     "host": {
@@ -214,8 +253,6 @@
   },
   "required": [
     "vault_url",
-    "vault_role_id",
-    "vault_secret_id",
     "vault_path",
     "server_private_key",
     "server_public_key"

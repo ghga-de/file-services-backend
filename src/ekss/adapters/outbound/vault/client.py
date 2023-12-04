@@ -19,6 +19,7 @@ from uuid import uuid4
 
 import hvac
 import hvac.exceptions
+from hvac.api.auth_methods import Kubernetes
 
 from ekss.adapters.outbound.vault import exceptions
 from ekss.config import VaultConfig
@@ -32,8 +33,21 @@ class VaultAdapter:
         self._client = hvac.Client(url=config.vault_url, verify=config.vault_verify)
         self._path = config.vault_path
 
-        self._role_id = config.vault_role_id.get_secret_value()
-        self._secret_id = config.vault_secret_id.get_secret_value()
+        self._kube_role = config.vault_kube_role
+        if self._kube_role:
+            # use kube role and service account token
+            self._kube_role = self._kube_role
+            self._kube_adapter = Kubernetes(self._client.adapter)
+            self._service_account_token_path = config.service_account_token_path
+        elif config.vault_role_id and config.vault_secret_id:
+            # use role and secret ID instead
+            self._role_id = config.vault_role_id.get_secret_value()
+            self._secret_id = config.vault_secret_id.get_secret_value()
+        else:
+            raise ValueError(
+                "There is no way to log in to vault:\n"
+                + "Neither kube role nor both role and secret ID were provided."
+            )
 
     def _check_auth(self):
         """Check if authentication timed out and re-authenticate if needed"""
@@ -41,10 +55,16 @@ class VaultAdapter:
             self._login()
 
     def _login(self):
-        """Log in using role ID and secret ID"""
-        self._client.auth.approle.login(
-            role_id=self._role_id, secret_id=self._secret_id
-        )
+        """Log in using Kubernetes Auth or AppRole"""
+        if self._kube_role:
+            with self._service_account_token_path.open() as token_file:
+                jwt = token_file.read()
+            self._kube_adapter.login(role=self._kube_role, jwt=jwt)
+
+        else:
+            self._client.auth.approle.login(
+                role_id=self._role_id, secret_id=self._secret_id
+            )
 
     def store_secret(self, *, secret: bytes) -> str:
         """
