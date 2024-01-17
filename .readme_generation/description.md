@@ -1,5 +1,3 @@
-<!-- Please provide a short overview of the features of this service.-->
-
 This service implements the
 [GA4GH DRS](https://github.com/ga4gh/data-repository-service-schemas) v1.0.0 for
 serving files that where encrypted according to the

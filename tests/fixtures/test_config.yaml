@@ -4,7 +4,6 @@ auto_reload: true
 docs_url: /docs
 drs_server_uri: drs://localhost:8080/
 host: 127.0.0.1
-log_level: info
 openapi_url: /openapi.json
 port: 8080
 retry_access_after: 120
@@ -20,7 +19,7 @@ service_name: dcs
 db_connection_str: "mongodb://mongodb:27017"
 db_name: "dev_db"
 ekss_base_url: http://localhost:8000
-service_instance_id: 001
+service_instance_id: "001"
 kafka_servers: ["kafka:9092"]
 download_served_event_topic: file_downloads
 download_served_event_type: donwload_served

@@ -76,7 +76,7 @@
     },
     "S3ObjectStorageNodeConfig": {
       "additionalProperties": false,
-      "description": "Configuration for one specific object storage node",
+      "description": "Configuration for one specific object storage node and one bucket in it.\n\nThe bucket is the main bucket that the service is responsible for.",
       "properties": {
         "bucket": {
           "title": "Bucket",
@@ -238,7 +238,7 @@
     },
     "kafka_ssl_cafile": {
       "default": "",
-      "description": "Certificate Authority file path containing certificates used to sign broker certificates. If a CA not specified, the default system CA will be used if found by OpenSSL.",
+      "description": "Certificate Authority file path containing certificates used to sign broker certificates. If a CA is not specified, the default system CA will be used if found by OpenSSL.",
       "title": "Kafka Ssl Cafile",
       "type": "string"
     },
@@ -259,6 +259,16 @@
       "description": "Optional password to be used for the client private key.",
       "title": "Kafka Ssl Password",
       "type": "string"
+    },
+    "generate_correlation_id": {
+      "default": true,
+      "description": "A flag, which, if False, will result in an error when inbound requests don't possess a correlation ID. If True, requests without a correlation ID will be assigned a newly generated ID in the correlation ID middleware function.",
+      "examples": [
+        true,
+        false
+      ],
+      "title": "Generate Correlation Id",
+      "type": "boolean"
     },
     "db_connection_str": {
       "description": "MongoDB connection string. Might include credentials. For more information see: https://naiveskill.com/mongodb-connection-string/",
@@ -369,20 +379,6 @@
       "description": "Port to expose the server on the specified host",
       "title": "Port",
       "type": "integer"
-    },
-    "log_level": {
-      "default": "info",
-      "description": "Controls the verbosity of the log.",
-      "enum": [
-        "critical",
-        "error",
-        "warning",
-        "info",
-        "debug",
-        "trace"
-      ],
-      "title": "Log Level",
-      "type": "string"
     },
     "auto_reload": {
       "default": false,
