@@ -18,6 +18,7 @@
 import asyncio
 
 from ghga_service_commons.api import run_server
+from hexkit.log import configure_logging
 
 from ekss.adapters.inbound.fastapi_.main import (
     setup_app,
@@ -29,6 +30,7 @@ app = setup_app(CONFIG)
 
 def run(config: Config = CONFIG):
     """Run the service"""
+    configure_logging(config=CONFIG)
     asyncio.run(run_server(app="ekss.__main__:app", config=config))
 
 

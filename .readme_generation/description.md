@@ -1,5 +1,3 @@
-<!-- Please provide a short overview of the features of this service.-->
-
 This service implements an interface to extract file encryption secrects from a
 [GA4GH Crypt4GH](https://www.ga4gh.org/news/crypt4gh-a-secure-method-for-sharing-human-genetic-data/)
 encrypted file into a HashiCorp Vault and produce user-specific file envelopes

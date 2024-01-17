@@ -20,6 +20,7 @@ from typing import Optional, Union
 
 from ghga_service_commons.api import ApiConfigBase
 from hexkit.config import config_from_yaml
+from hexkit.log import LoggingConfig
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings
 
@@ -82,7 +83,7 @@ class VaultConfig(BaseSettings):
 
 
 @config_from_yaml(prefix="ekss")
-class Config(ApiConfigBase, VaultConfig):
+class Config(ApiConfigBase, VaultConfig, LoggingConfig):
     """Config parameters and their defaults."""
 
     service_name: str = "encryption_key_store"
