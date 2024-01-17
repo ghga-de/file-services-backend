@@ -32,7 +32,7 @@ class SecretNotFoundError(KnownError):
     """Thrown when the secret with the id was not found"""
 
     def __init__(self, *, secret_id):
-        message = f"The screct with the id {secret_id} was not found."
+        message = f"The secret with the id {secret_id} was not found."
         super().__init__(message)
 
 

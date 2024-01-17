@@ -16,6 +16,7 @@
 """In this module object construction and dependency injection is carried out."""
 
 from ghga_service_commons.api import run_server
+from hexkit.log import configure_logging
 
 from dcs.config import Config
 from dcs.inject import (
@@ -28,6 +29,7 @@ from dcs.inject import (
 async def run_rest_app():
     """Run the HTTP REST API."""
     config = Config()  # type: ignore
+    configure_logging(config=config)
 
     async with prepare_rest_app(config=config) as app:
         await run_server(app=app, config=config)
@@ -36,6 +38,7 @@ async def run_rest_app():
 async def consume_events(run_forever: bool = True):
     """Run an event consumer listening to the specified topic."""
     config = Config()  # type: ignore
+    configure_logging(config=config)
 
     async with prepare_event_subscriber(config=config) as event_subscriber:
         await event_subscriber.run(forever=run_forever)
@@ -44,6 +47,7 @@ async def consume_events(run_forever: bool = True):
 async def run_outbox_cleanup(s3_endpoint_alias: str):
     """Check if outbox contains files that should be cleaned up and perform clean-up"""
     config = Config()  # type: ignore
+    configure_logging(config=config)
 
     async with prepare_outbox_cleaner(
         config=config, s3_endpoint_alias=s3_endpoint_alias

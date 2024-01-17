@@ -46,13 +46,13 @@ We recommend using the provided Docker container.
 
 A pre-build version is available at [docker hub](https://hub.docker.com/repository/docker/ghga/download-controller-service):
 ```bash
-docker pull ghga/download-controller-service:1.1.0
+docker pull ghga/download-controller-service:1.2.0
 ```
 
 Or you can build the container yourself from the [`./Dockerfile`](./Dockerfile):
 ```bash
 # Execute in the repo's root dir:
-docker build -t ghga/download-controller-service:1.1.0 .
+docker build -t ghga/download-controller-service:1.2.0 .
 ```
 
 For production-ready deployment, we recommend using Kubernetes, however,
@@ -60,7 +60,7 @@ for simple use cases, you could execute the service using docker
 on a single server:
 ```bash
 # The entrypoint is preconfigured:
-docker run -p 8080:8080 ghga/download-controller-service:1.1.0 --help
+docker run -p 8080:8080 ghga/download-controller-service:1.2.0 --help
 ```
 
 If you prefer not to use containers, you may install the service from source:
@@ -77,6 +77,41 @@ dcs --help
 ### Parameters
 
 The service requires the following configuration parameters:
+- **`log_level`** *(string)*: The minimum log level to capture. Must be one of: `["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "TRACE"]`. Default: `"INFO"`.
+
+- **`service_name`** *(string)*: Default: `"dcs"`.
+
+- **`service_instance_id`** *(string)*: A string that uniquely identifies this instance across all instances of this service. A globally unique Kafka client ID will be created by concatenating the service_name and the service_instance_id.
+
+
+  Examples:
+
+  ```json
+  "germany-bw-instance-001"
+  ```
+
+
+- **`log_format`**: If set, will replace JSON formatting with the specified string format. If not set, has no effect. In addition to the standard attributes, the following can also be specified: timestamp, service, instance, level, correlation_id, and details. Default: `null`.
+
+  - **Any of**
+
+    - *string*
+
+    - *null*
+
+
+  Examples:
+
+  ```json
+  "%(timestamp)s - %(service)s - %(level)s - %(message)s"
+  ```
+
+
+  ```json
+  "%(asctime)s - Severity: %(levelno)s - %(msg)s"
+  ```
+
+
 - **`object_storages`** *(object)*: Can contain additional properties.
 
   - **Additional properties**: Refer to *[#/$defs/S3ObjectStorageNodeConfig](#%24defs/S3ObjectStorageNodeConfig)*.
@@ -198,18 +233,6 @@ The service requires the following configuration parameters:
 
   ```json
   "file_deleted"
-  ```
-
-
-- **`service_name`** *(string)*: Default: `"dcs"`.
-
-- **`service_instance_id`** *(string)*: A string that uniquely identifies this instance across all instances of this service. A globally unique Kafka client ID will be created by concatenating the service_name and the service_instance_id.
-
-
-  Examples:
-
-  ```json
-  "germany-bw-instance-001"
   ```
 
 

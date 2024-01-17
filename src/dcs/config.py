@@ -20,6 +20,7 @@ from typing import Any
 from ghga_service_commons.auth.ghga import AuthConfig
 from ghga_service_commons.utils.multinode_storage import S3ObjectStoragesConfig
 from hexkit.config import config_from_yaml
+from hexkit.log import LoggingConfig
 from hexkit.providers.akafka import KafkaConfig
 from hexkit.providers.mongodb import MongoDbConfig
 from pydantic import Field
@@ -41,7 +42,10 @@ class WorkOrderTokenConfig(AuthConfig):
     )
 
 
-@config_from_yaml(prefix="dcs")
+SERVICE_NAME = "dcs"
+
+
+@config_from_yaml(prefix=SERVICE_NAME)
 class Config(
     DrsApiConfig,
     WorkOrderTokenConfig,
@@ -51,7 +55,8 @@ class Config(
     EventPubTranslatorConfig,
     EventSubTranslatorConfig,
     S3ObjectStoragesConfig,
+    LoggingConfig,
 ):
     """Config parameters and their defaults."""
 
-    service_name: str = "dcs"
+    service_name: str = SERVICE_NAME
