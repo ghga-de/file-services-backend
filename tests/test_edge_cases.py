@@ -25,12 +25,13 @@ from fastapi import status
 from ghga_service_commons.api.mock_router import (  # noqa: F401
     assert_all_responses_were_requested,
 )
+from ghga_service_commons.utils.utc_dates import now_as_utc
 from pytest_httpx import HTTPXMock, httpx_mock  # noqa: F401
 
 from dcs.core import models
 from dcs.ports.outbound.dao import DrsObjectDaoPort
 from tests.fixtures.joint import *  # noqa: F403
-from tests.fixtures.joint import EXAMPLE_FILE, JointFixture
+from tests.fixtures.joint import EXAMPLE_FILE, JointFixture, PopulatedFixture
 from tests.fixtures.mock_api.app import router
 from tests.fixtures.utils import generate_token_signing_keys, generate_work_order_token
 
@@ -178,3 +179,24 @@ async def test_drs_config_error(
         f"/objects/{drs_id}", timeout=5
     )
     assert response.status_code == 500
+
+
+@pytest.mark.asyncio
+async def test_register_file_twice(populated_fixture: PopulatedFixture, caplog):
+    """Assure that files cannot be registered twice"""
+    joint_fixture = populated_fixture.joint_fixture
+    example_file = populated_fixture.first_example_file
+
+    file = models.DrsObjectBase(
+        file_id=example_file.file_id,
+        decryption_secret_id=example_file.decryption_secret_id,
+        decrypted_sha256=example_file.decrypted_sha256,
+        decrypted_size=example_file.decrypted_size,
+        creation_date=now_as_utc().isoformat(),
+        s3_endpoint_alias=example_file.s3_endpoint_alias,
+    )
+
+    caplog.clear()
+    await joint_fixture.data_repository.register_new_file(file=file)
+    failure_message = f"Could not register file with id '{example_file.file_id}' as an entry already exists for this id."
+    assert failure_message in caplog.messages
