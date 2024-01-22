@@ -28,17 +28,17 @@ class BadResponseCodeError(KnownError):
         super().__init__(message)
 
 
-class SecretNotFoundError(KnownError):
-    """Thrown when the secret with the id was not found"""
-
-    def __init__(self, *, secret_id):
-        message = f"The secret with the id {secret_id} was not found."
-        super().__init__(message)
-
-
 class RequestFailedError(KnownError):
     """Thrown when a request fails without returning a response code"""
 
     def __init__(self, *, url: str):
         message = f"The request to {url} failed."
+        super().__init__(message)
+
+
+class SecretNotFoundError(KnownError):
+    """Thrown when the secret with the id was not found"""
+
+    def __init__(self, *, secret_id):
+        message = f"The secret with the id {secret_id} was not found."
         super().__init__(message)
