@@ -17,6 +17,8 @@
 
 from abc import ABC, abstractmethod
 
+from ghga_service_commons.utils.multinode_storage import S3ObjectStoragesConfig
+
 from dcs.core import models
 
 
@@ -100,7 +102,14 @@ class DataRepositoryPort(ABC):
         ...
 
     @abstractmethod
-    async def cleanup_outbox(self, *, s3_endpoint_alias: str):
+    async def cleanup_outbox_buckets(
+        self, *, object_storages_config: S3ObjectStoragesConfig
+    ):
+        """Run cleanup task for all outbox buckets configured in the service config."""
+        ...
+
+    @abstractmethod
+    async def cleanup_outbox(self, *, storage_alias: str):
         """
         Check if files present in the outbox have outlived their allocated time and remove
         all that do.

@@ -22,7 +22,10 @@ import uuid
 from datetime import timedelta
 
 from ghga_service_commons.utils import utc_dates
-from ghga_service_commons.utils.multinode_storage import S3ObjectStorages
+from ghga_service_commons.utils.multinode_storage import (
+    S3ObjectStorages,
+    S3ObjectStoragesConfig,
+)
 from hexkit.protocols.objstorage import ObjectStorageProtocol
 from pydantic import Field, PositiveInt, field_validator
 from pydantic_settings import BaseSettings
@@ -154,15 +157,13 @@ class DataRepository(DataRepositoryPort):
 
         drs_object_with_uri = self._get_model_with_self_uri(drs_object=drs_object)
 
-        s3_endpoint_alias = drs_object.s3_endpoint_alias
+        storage_alias = drs_object.s3_endpoint_alias
 
         try:
-            bucket_id, object_storage = self._object_storages.for_alias(
-                s3_endpoint_alias
-            )
+            bucket_id, object_storage = self._object_storages.for_alias(storage_alias)
         except KeyError as exc:
             storage_alias_not_configured = self.StorageAliasNotConfiguredError(
-                alias=s3_endpoint_alias
+                alias=storage_alias
             )
             log.critical(storage_alias_not_configured)
             raise storage_alias_not_configured from exc
@@ -207,7 +208,14 @@ class DataRepository(DataRepositoryPort):
         )
         return drs_object_with_access.convert_to_drs_response_model(size=encrypted_size)
 
-    async def cleanup_outbox(self, *, s3_endpoint_alias: str):
+    async def cleanup_outbox_buckets(
+        self, *, object_storages_config: S3ObjectStoragesConfig
+    ):
+        """Run cleanup task for all outbox buckets configured in the service config."""
+        for storage_alias in object_storages_config.object_storages:
+            await self.cleanup_outbox(storage_alias=storage_alias)
+
+    async def cleanup_outbox(self, *, storage_alias: str):
         """
         Check if files present in the outbox have outlived their allocated time and remove
         all that do.
@@ -217,15 +225,13 @@ class DataRepository(DataRepositoryPort):
         """
         # Run on demand through CLI, so crashing should be ok if the alias is not configured
         log.info(
-            f"Starting outbox cleanup for storage identified by alias '{s3_endpoint_alias}'."
+            f"Starting outbox cleanup for storage identified by alias '{storage_alias}'."
         )
         try:
-            bucket_id, object_storage = self._object_storages.for_alias(
-                s3_endpoint_alias
-            )
+            bucket_id, object_storage = self._object_storages.for_alias(storage_alias)
         except KeyError as exc:
             storage_alias_not_configured = self.StorageAliasNotConfiguredError(
-                alias=s3_endpoint_alias
+                alias=storage_alias
             )
             log.critical(storage_alias_not_configured)
             raise storage_alias_not_configured from exc
@@ -235,7 +241,7 @@ class DataRepository(DataRepositoryPort):
         # filter to get all files in outbox that should be removed
         object_ids = await object_storage.list_all_object_ids(bucket_id=bucket_id)
         log.debug(
-            f"Retrieved list of deletion candidates for storage '{s3_endpoint_alias}'"
+            f"Retrieved list of deletion candidates for storage '{storage_alias}'"
         )
 
         for object_id in object_ids:
@@ -251,7 +257,7 @@ class DataRepository(DataRepositoryPort):
             # only remove file if last access is later than cache timeout days ago
             if drs_object.last_accessed <= threshold:
                 log.info(
-                    f"Deleting object '{object_id}' from storage '{s3_endpoint_alias}'."
+                    f"Deleting object '{object_id}' from storage '{storage_alias}'."
                 )
                 try:
                     await object_storage.delete_object(
