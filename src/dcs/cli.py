@@ -37,6 +37,6 @@ def sync_consume_events(run_forever: bool = True):
 
 
 @cli.command(name="cleanup-outbox")
-def sync_run_cleanup(s3_endpoint_alias: str):
+def sync_run_cleanup():
     """Run outbox cleanup"""
-    asyncio.run(run_outbox_cleanup(s3_endpoint_alias=s3_endpoint_alias))
+    asyncio.run(run_outbox_cleanup())

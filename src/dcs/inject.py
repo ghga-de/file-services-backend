@@ -125,7 +125,6 @@ async def prepare_event_subscriber(
 async def prepare_outbox_cleaner(
     *,
     config: Config,
-    s3_endpoint_alias: str,
     data_repo_override: Optional[DataRepositoryPort] = None,
 ) -> AsyncGenerator[OutboxCleaner, None]:
     """Construct and initialize a coroutine that cleans the outbox once invoked.
@@ -135,4 +134,4 @@ async def prepare_outbox_cleaner(
     async with prepare_core_with_override(
         config=config, data_repo_override=data_repo_override
     ) as data_repository:
-        yield data_repository.cleanup_outbox(s3_endpoint_alias=s3_endpoint_alias)
+        yield data_repository.cleanup_outbox_buckets(object_storages_config=config)

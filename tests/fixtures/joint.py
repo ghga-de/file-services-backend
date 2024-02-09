@@ -70,7 +70,7 @@ from dcs.ports.outbound.dao import DrsObjectDaoPort
 from tests.fixtures.config import get_config
 from tests.fixtures.utils import generate_token_signing_keys, generate_work_order_token
 
-S3_ENDPOINT_ALIASES = ("test", "test2")
+STORAGE_ALIASES = ("test", "test2")
 
 EXAMPLE_FILE = models.AccessTimeDrsObject(
     file_id="examplefile001",
@@ -79,7 +79,7 @@ EXAMPLE_FILE = models.AccessTimeDrsObject(
     creation_date=utc_dates.now_as_utc().isoformat(),
     decrypted_size=12345,
     decryption_secret_id="some-secret",
-    s3_endpoint_alias=S3_ENDPOINT_ALIASES[0],
+    s3_endpoint_alias=STORAGE_ALIASES[0],
     last_accessed=utc_dates.now_as_utc(),
 )
 EXAMPLE_FILE_2 = EXAMPLE_FILE.model_copy(
@@ -87,7 +87,7 @@ EXAMPLE_FILE_2 = EXAMPLE_FILE.model_copy(
     update={
         "file_id": "examplefile002",
         "object_id": "object002",
-        "s3_endpoint_alias": S3_ENDPOINT_ALIASES[1],
+        "s3_endpoint_alias": STORAGE_ALIASES[1],
     },
 )
 
@@ -96,9 +96,9 @@ second_s3_fixture = s3_fixture
 
 @dataclass
 class EndpointAliases:
-    node1: str = S3_ENDPOINT_ALIASES[0]
-    node2: str = S3_ENDPOINT_ALIASES[1]
-    fake: str = f"{S3_ENDPOINT_ALIASES[0]}_fake"
+    node1: str = STORAGE_ALIASES[0]
+    node2: str = STORAGE_ALIASES[1]
+    fake: str = f"{STORAGE_ALIASES[0]}_fake"
 
 
 class EKSSBaseInjector(BaseSettings):
@@ -180,7 +180,6 @@ async def joint_fixture(
             ) as event_subscriber,
             prepare_outbox_cleaner(
                 config=config,
-                s3_endpoint_alias=endpoint_aliases.node1,
                 data_repo_override=data_repository,
             ) as outbox_cleaner,
         ):
@@ -293,8 +292,8 @@ class CleanupFixture:
 
     mongodb_dao: DrsObjectDaoPort
     joint: JointFixture
-    cached_id: str
-    expired_id: str
+    cached_file_ids: list[str]
+    expired_file_ids: list[str]
 
 
 @pytest_asyncio.fixture
@@ -302,42 +301,59 @@ async def cleanup_fixture(
     joint_fixture: JointFixture,
 ) -> AsyncGenerator[CleanupFixture, None]:
     """Set up state for and populate CleanupFixture"""
-    # create AccessTimeDrsObjects for valid cached and expired cached file
-    test_file_cached = EXAMPLE_FILE.model_copy(deep=True)
-    test_file_cached.file_id = "cached"
-    test_file_cached.object_id = "cached"
-    test_file_cached.last_accessed = utc_dates.now_as_utc()
-
-    test_file_expired = EXAMPLE_FILE.model_copy(deep=True)
-    test_file_expired.file_id = "expired"
-    test_file_expired.object_id = "expired"
-    test_file_expired.last_accessed = utc_dates.now_as_utc() - timedelta(
-        days=joint_fixture.config.cache_timeout
-    )
-
-    # populate DB entries
+    # create common db dao to insert test data
     mongodb_dao = await joint_fixture.mongodb.dao_factory.get_dao(
         name="drs_objects",
         dto_model=models.AccessTimeDrsObject,
         id_field="file_id",
     )
-    await mongodb_dao.insert(test_file_cached)
-    await mongodb_dao.insert(test_file_expired)
+    cached_file_ids = []
+    expired_file_ids = []
 
-    # populate storage
-    with temp_file_object(
-        bucket_id=joint_fixture.bucket_id,
-        object_id=test_file_cached.object_id,
-    ) as cached_file:
+    for s3, file in (
+        (joint_fixture.s3, EXAMPLE_FILE),
+        (joint_fixture.second_s3, EXAMPLE_FILE_2),
+    ):
+        # create AccessTimeDrsObjects for valid cached and expired cached file
+
+        cached_file_id = file.file_id + "_cached"
+        cached_object_id = file.object_id + "-cached"
+        cached_file_ids.append(cached_file_id)
+
+        test_file_cached = file.model_copy(deep=True)
+        test_file_cached.file_id = cached_file_id
+        test_file_cached.object_id = cached_object_id
+        test_file_cached.last_accessed = utc_dates.now_as_utc()
+
+        expired_file_id = file.file_id + "_expired"
+        expired_object_id = file.object_id + "-expired"
+        expired_file_ids.append(expired_file_id)
+
+        test_file_expired = file.model_copy(deep=True)
+        test_file_expired.file_id = expired_file_id
+        test_file_expired.object_id = expired_object_id
+        test_file_expired.last_accessed = utc_dates.now_as_utc() - timedelta(
+            days=joint_fixture.config.cache_timeout
+        )
+
+        # populate DB entries
+        await mongodb_dao.insert(test_file_cached)
+        await mongodb_dao.insert(test_file_expired)
+
+        # populate storage
         with temp_file_object(
             bucket_id=joint_fixture.bucket_id,
-            object_id=test_file_expired.object_id,
-        ) as expired_file:
-            await joint_fixture.s3.populate_file_objects([cached_file, expired_file])
+            object_id=test_file_cached.object_id,
+        ) as cached_file:
+            with temp_file_object(
+                bucket_id=joint_fixture.bucket_id,
+                object_id=test_file_expired.object_id,
+            ) as expired_file:
+                await s3.populate_file_objects([cached_file, expired_file])
 
     yield CleanupFixture(
         mongodb_dao=mongodb_dao,
         joint=joint_fixture,
-        cached_id=test_file_cached.file_id,
-        expired_id=test_file_expired.file_id,
+        cached_file_ids=cached_file_ids,
+        expired_file_ids=expired_file_ids,
     )

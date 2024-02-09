@@ -230,32 +230,36 @@ async def test_happy_deletion(
 
 
 @pytest.mark.asyncio
-async def test_cleanup(cleanup_fixture: CleanupFixture):
-    """Test outbox cleanup handling"""
+async def test_bucket_cleanup(cleanup_fixture: CleanupFixture):
+    """Test multiple outbox bucket cleanup handling."""
     data_repository = cleanup_fixture.joint.data_repository
-    await data_repository.cleanup_outbox(
-        s3_endpoint_alias=cleanup_fixture.joint.endpoint_aliases.node1
-    )
 
-    # check if object within threshold is still there
-    cached_object = await cleanup_fixture.mongodb_dao.get_by_id(
-        cleanup_fixture.cached_id
+    await data_repository.cleanup_outbox_buckets(
+        object_storages_config=cleanup_fixture.joint.config
     )
-    assert await cleanup_fixture.joint.s3.storage.does_object_exist(
-        bucket_id=cleanup_fixture.joint.bucket_id,
-        object_id=cached_object.object_id,
-    )
+    for cached_id, s3 in zip(
+        cleanup_fixture.cached_file_ids,
+        (cleanup_fixture.joint.s3, cleanup_fixture.joint.second_s3),
+    ):
+        # check if object within threshold is still there
+        cached_object = await cleanup_fixture.mongodb_dao.get_by_id(cached_id)
+        assert await s3.storage.does_object_exist(
+            bucket_id=cleanup_fixture.joint.bucket_id,
+            object_id=cached_object.object_id,
+        )
 
-    # check if expired object has been removed from outbox
-    expired_object = await cleanup_fixture.mongodb_dao.get_by_id(
-        cleanup_fixture.expired_id
-    )
-    assert not await cleanup_fixture.joint.s3.storage.does_object_exist(
-        bucket_id=cleanup_fixture.joint.bucket_id,
-        object_id=expired_object.object_id,
-    )
+    for expired_id, s3 in zip(
+        cleanup_fixture.expired_file_ids,
+        (cleanup_fixture.joint.s3, cleanup_fixture.joint.second_s3),
+    ):
+        # check if expired object has been removed from outbox
+        expired_object = await cleanup_fixture.mongodb_dao.get_by_id(expired_id)
+        assert not await s3.storage.does_object_exist(
+            bucket_id=cleanup_fixture.joint.bucket_id,
+            object_id=expired_object.object_id,
+        )
 
     with pytest.raises(data_repository.StorageAliasNotConfiguredError):
         await data_repository.cleanup_outbox(
-            s3_endpoint_alias=cleanup_fixture.joint.endpoint_aliases.fake
+            storage_alias=cleanup_fixture.joint.endpoint_aliases.fake
         )
