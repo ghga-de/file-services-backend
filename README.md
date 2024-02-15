@@ -1,4 +1,3 @@
-
 [![tests](https://github.com/ghga-de/file-ingest-service/actions/workflows/tests.yaml/badge.svg)](https://github.com/ghga-de/file-ingest-service/actions/workflows/tests.yaml)
 [![Coverage Status](https://coveralls.io/repos/github/ghga-de/file-ingest-service/badge.svg?branch=main)](https://coveralls.io/github/ghga-de/file-ingest-service?branch=main)
 
@@ -7,8 +6,6 @@
 File Ingest Service - A lightweight service to propagate file upload metadata to the GHGA file backend services
 
 ## Description
-
-<!-- Please provide a short overview of the features of this service.-->
 
 The File Ingest Service provides an endpoint to populate the Encryption Key Store,
 Internal File Registry and Download Controller with output metadata from the S3 upload
@@ -21,13 +18,13 @@ We recommend using the provided Docker container.
 
 A pre-build version is available at [docker hub](https://hub.docker.com/repository/docker/ghga/file-ingest-service):
 ```bash
-docker pull ghga/file-ingest-service:1.1.1
+docker pull ghga/file-ingest-service:1.1.2
 ```
 
 Or you can build the container yourself from the [`./Dockerfile`](./Dockerfile):
 ```bash
 # Execute in the repo's root dir:
-docker build -t ghga/file-ingest-service:1.1.1 .
+docker build -t ghga/file-ingest-service:1.1.2 .
 ```
 
 For production-ready deployment, we recommend using Kubernetes, however,
@@ -35,7 +32,7 @@ for simple use cases, you could execute the service using docker
 on a single server:
 ```bash
 # The entrypoint is preconfigured:
-docker run -p 8080:8080 ghga/file-ingest-service:1.1.1 --help
+docker run -p 8080:8080 ghga/file-ingest-service:1.1.2 --help
 ```
 
 If you prefer not to use containers, you may install the service from source:
@@ -168,13 +165,28 @@ The service requires the following configuration parameters:
 
 - **`kafka_security_protocol`** *(string)*: Protocol used to communicate with brokers. Valid values are: PLAINTEXT, SSL. Must be one of: `["PLAINTEXT", "SSL"]`. Default: `"PLAINTEXT"`.
 
-- **`kafka_ssl_cafile`** *(string)*: Certificate Authority file path containing certificates used to sign broker certificates. If a CA not specified, the default system CA will be used if found by OpenSSL. Default: `""`.
+- **`kafka_ssl_cafile`** *(string)*: Certificate Authority file path containing certificates used to sign broker certificates. If a CA is not specified, the default system CA will be used if found by OpenSSL. Default: `""`.
 
 - **`kafka_ssl_certfile`** *(string)*: Optional filename of client certificate, as well as any CA certificates needed to establish the certificate's authenticity. Default: `""`.
 
 - **`kafka_ssl_keyfile`** *(string)*: Optional filename containing the client private key. Default: `""`.
 
 - **`kafka_ssl_password`** *(string)*: Optional password to be used for the client private key. Default: `""`.
+
+- **`generate_correlation_id`** *(boolean)*: A flag, which, if False, will result in an error when inbound requests don't possess a correlation ID. If True, requests without a correlation ID will be assigned a newly generated ID in the correlation ID middleware function. Default: `true`.
+
+
+  Examples:
+
+  ```json
+  true
+  ```
+
+
+  ```json
+  false
+  ```
+
 
 - **`publisher_topic`** *(string)*: Topic name expected by downstream services. Use the topic name from the interrogation room service.
 
@@ -200,13 +212,11 @@ The service requires the following configuration parameters:
 
 - **`port`** *(integer)*: Port to expose the server on the specified host. Default: `8080`.
 
-- **`log_level`** *(string)*: Controls the verbosity of the log. Must be one of: `["critical", "error", "warning", "info", "debug", "trace"]`. Default: `"info"`.
-
 - **`auto_reload`** *(boolean)*: A development feature. Set to `True` to automatically reload the server upon code changes. Default: `false`.
 
 - **`workers`** *(integer)*: Number of workers processes to run. Default: `1`.
 
-- **`api_root_path`** *(string)*: Root path at which the API is reachable. This is relative to the specified host and port. Default: `"/"`.
+- **`api_root_path`** *(string)*: Root path at which the API is reachable. This is relative to the specified host and port. Default: `""`.
 
 - **`openapi_url`** *(string)*: Path to get the openapi specification in JSON format. This is relative to the specified host and port. Default: `"/openapi.json"`.
 

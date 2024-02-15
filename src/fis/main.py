@@ -14,55 +14,15 @@
 # limitations under the License.
 """REST API configuration and function for CLI"""
 
-from fastapi import FastAPI
-from ghga_service_commons.api import configure_app, run_server
+from ghga_service_commons.api import run_server
 
-from fis.adapters.inbound.fastapi_.custom_openapi import get_openapi_schema
-from fis.adapters.inbound.fastapi_.routes import router
 from fis.config import Config
-from fis.container import Container
-
-
-def get_configured_container(*, config: Config) -> Container:
-    """Create and configure a DI container."""
-    container = Container()
-    container.config.load_config(config)
-
-    return container
-
-
-def get_rest_api(*, config: Config) -> FastAPI:
-    """
-    Creates a FastAPI app.
-    For full functionality of the api, run in the context of an CI container with
-    correct wireing and initialized resources (see the run_api function below).
-    """
-    api = FastAPI()
-    api.include_router(router)
-    configure_app(api, config=config)
-
-    def custom_openapi():
-        if api.openapi_schema:
-            return api.openapi_schema
-        openapi_schema = get_openapi_schema(api)
-        api.openapi_schema = openapi_schema
-        return api.openapi_schema
-
-    api.openapi = custom_openapi  # type: ignore [method-assign]
-
-    return api
+from fis.inject import prepare_rest_app
 
 
 async def run_rest():
     """Run the HTTP REST API."""
     config = Config()  # type: ignore [call-arg]
 
-    async with get_configured_container(config=config) as container:
-        container.wire(
-            modules=[
-                "fis.adapters.inbound.fastapi_.http_authorization",
-                "fis.adapters.inbound.fastapi_.routes",
-            ]
-        )
-        api = get_rest_api(config=config)
-        await run_server(app=api, config=config)
+    async with prepare_rest_app(config=config) as app:
+        await run_server(app=app, config=config)

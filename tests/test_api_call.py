@@ -193,6 +193,7 @@ async def test_legacy_api_calls(monkeypatch, joint_fixture: JointFixture):  # no
             "fis.adapters.outbound.vault.client.VaultAdapter.store_secret",
             lambda self, secret: secret_id,
         )
+
         async with event_recorder:
             response = await joint_fixture.rest_client.post(
                 "/legacy/ingest",

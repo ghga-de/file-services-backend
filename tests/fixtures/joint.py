@@ -29,9 +29,12 @@ from ghga_service_commons.utils.simple_token import generate_token_and_hash
 from hexkit.providers.akafka.testutils import KafkaFixture, kafka_fixture  # noqa: F401
 
 from fis.config import Config
-from fis.container import Container
 from fis.core.models import UploadMetadataBase
-from fis.main import get_configured_container, get_rest_api
+from fis.inject import prepare_core, prepare_rest_app
+from fis.ports.inbound.ingest import (
+    LegacyUploadMetadataProcessorPort,
+    UploadMetadataProcessorPort,
+)
 from tests.fixtures.config import get_config
 
 TEST_PAYLOAD = UploadMetadataBase(
@@ -51,13 +54,14 @@ class JointFixture:
     """Holds generated test keypair and configured container"""
 
     config: Config
-    container: Container
     keypair: KeyPair
     token: str
     payload: UploadMetadataBase
     kafka: KafkaFixture
     rest_client: httpx.AsyncClient
     s3_endpoint_alias: str
+    upload_metadata_processor: UploadMetadataProcessorPort
+    legacy_upload_metadata_processor: LegacyUploadMetadataProcessorPort
 
 
 @pytest_asyncio.fixture
@@ -75,23 +79,23 @@ async def joint_fixture(
     config = config.model_copy(
         update={"private_key": private_key, "token_hashes": [token_hash]}
     )
-    container = get_configured_container(config=config)
-    container.wire(
-        modules=[
-            "fis.adapters.inbound.fastapi_.http_authorization",
-            "fis.adapters.inbound.fastapi_.routes",
-        ]
-    )
-    api = get_rest_api(config=config)
-
-    async with AsyncTestClient(app=api) as rest_client:
-        yield JointFixture(
+    async with prepare_core(config=config) as (
+        upload_metadata_processor,
+        legacy_upload_metadata_processor,
+    ):
+        async with prepare_rest_app(
             config=config,
-            container=container,
-            keypair=keypair,
-            payload=TEST_PAYLOAD,
-            token=token,
-            kafka=kafka_fixture,
-            rest_client=rest_client,
-            s3_endpoint_alias=config.selected_storage_alias,
-        )
+            core_override=(upload_metadata_processor, legacy_upload_metadata_processor),
+        ) as app:
+            async with AsyncTestClient(app=app) as rest_client:
+                yield JointFixture(
+                    config=config,
+                    keypair=keypair,
+                    payload=TEST_PAYLOAD,
+                    token=token,
+                    kafka=kafka_fixture,
+                    rest_client=rest_client,
+                    s3_endpoint_alias=config.selected_storage_alias,
+                    upload_metadata_processor=upload_metadata_processor,
+                    legacy_upload_metadata_processor=legacy_upload_metadata_processor,
+                )

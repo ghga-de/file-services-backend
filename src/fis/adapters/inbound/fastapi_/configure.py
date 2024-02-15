@@ -12,13 +12,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+#
 """Utils to customize openAPI script"""
 from typing import Any
 
+from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
+from ghga_service_commons.api import ApiConfigBase, configure_app
 
 from fis import __version__
+from fis.adapters.inbound.fastapi_.routes import router
 from fis.config import Config
 
 config = Config()  # type: ignore [call-arg]
@@ -34,3 +37,21 @@ def get_openapi_schema(api) -> dict[str, Any]:
         tags=[{"name": "FileIngestService"}],
         routes=api.routes,
     )
+
+
+def get_configured_app(*, config: ApiConfigBase) -> FastAPI:
+    """Create and configure a REST API application."""
+    app = FastAPI()
+    app.include_router(router)
+    configure_app(app, config=config)
+
+    def custom_openapi():
+        if app.openapi_schema:
+            return app.openapi_schema
+        openapi_schema = get_openapi_schema(app)
+        app.openapi_schema = openapi_schema
+        return app.openapi_schema
+
+    app.openapi = custom_openapi  # type: ignore [method-assign]
+
+    return app

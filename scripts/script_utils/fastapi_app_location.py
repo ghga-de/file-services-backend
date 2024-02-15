@@ -23,7 +23,7 @@ from typing import Any, Dict
 
 from fastapi import FastAPI
 
-from fis.adapters.inbound.fastapi_.custom_openapi import get_openapi_schema
+from fis.adapters.inbound.fastapi_.configure import get_openapi_schema
 from fis.adapters.inbound.fastapi_.routes import router
 
 app = FastAPI()

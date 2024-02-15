@@ -14,16 +14,21 @@
 # limitations under the License.
 """FastAPI routes for S3 upload metadata ingest"""
 
-from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from typing import Annotated
 
+from fastapi import APIRouter, HTTPException, Response, status
+
+from fis.adapters.inbound.fastapi_ import dummies
 from fis.adapters.inbound.fastapi_.http_authorization import (
     IngestTokenAuthContext,
     require_token,
 )
-from fis.container import Container
-from fis.core.ingest import LegacyUploadMetadataProcessor, UploadMetadataProcessor
 from fis.core.models import EncryptedPayload
+from fis.ports.inbound.ingest import (
+    DecryptionError,
+    VaultCommunicationError,
+    WrongDecryptedFormatError,
+)
 
 router = APIRouter()
 
@@ -49,23 +54,17 @@ async def health():
     response_description="Received and decrypted data successfully.",
     deprecated=True,
 )
-@inject
 async def ingest_legacy_metadata(
     encrypted_payload: EncryptedPayload,
-    upload_metadata_processor: LegacyUploadMetadataProcessor = Depends(
-        Provide[Container.legacy_upload_metadata_processor]
-    ),
-    _token: IngestTokenAuthContext = require_token,
+    upload_metadata_processor: dummies.LegacyUploadProcessor,
+    _token: Annotated[IngestTokenAuthContext, require_token],
 ):
     """Decrypt payload, process metadata, file secret and send success event"""
     try:
         decrypted_metadata = await upload_metadata_processor.decrypt_payload(
             encrypted=encrypted_payload
         )
-    except (
-        upload_metadata_processor.DecryptionError,
-        upload_metadata_processor.WrongDecryptedFormatError,
-    ) as error:
+    except (DecryptionError, WrongDecryptedFormatError) as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
 
     file_secret = decrypted_metadata.file_secret
@@ -74,7 +73,7 @@ async def ingest_legacy_metadata(
         secret_id = await upload_metadata_processor.store_secret(
             file_secret=file_secret
         )
-    except upload_metadata_processor.VaultCommunicationError as error:
+    except VaultCommunicationError as error:
         raise HTTPException(status_code=500, detail=str(error)) from error
 
     await upload_metadata_processor.populate_by_event(
@@ -93,23 +92,17 @@ async def ingest_legacy_metadata(
     status_code=status.HTTP_202_ACCEPTED,
     response_description="Received and decrypted data successfully.",
 )
-@inject
 async def ingest_metadata(
     encrypted_payload: EncryptedPayload,
-    upload_metadata_processor: UploadMetadataProcessor = Depends(
-        Provide[Container.upload_metadata_processor]
-    ),
-    _token: IngestTokenAuthContext = require_token,
+    upload_metadata_processor: dummies.UploadProcessorPort,
+    _token: Annotated[IngestTokenAuthContext, require_token],
 ):
     """Decrypt payload, process metadata, file secret id and send success event"""
     try:
         decrypted_metadata = await upload_metadata_processor.decrypt_payload(
             encrypted=encrypted_payload
         )
-    except (
-        upload_metadata_processor.DecryptionError,
-        upload_metadata_processor.WrongDecryptedFormatError,
-    ) as error:
+    except (DecryptionError, WrongDecryptedFormatError) as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
 
     secret_id = decrypted_metadata.secret_id
@@ -129,13 +122,10 @@ async def ingest_metadata(
     status_code=status.HTTP_200_OK,
     response_description="Received and stored secret successfully.",
 )
-@inject
 async def ingest_secret(
     encrypted_payload: EncryptedPayload,
-    upload_metadata_processor: UploadMetadataProcessor = Depends(
-        Provide[Container.upload_metadata_processor]
-    ),
-    _token: IngestTokenAuthContext = require_token,
+    upload_metadata_processor: dummies.UploadProcessorPort,
+    _token: Annotated[IngestTokenAuthContext, require_token],
 ):
     """Decrypt payload and deposit file secret in exchange for a secret id"""
     file_secret = await upload_metadata_processor.decrypt_secret(
