@@ -15,6 +15,7 @@
 """REST API configuration and function for CLI"""
 
 from ghga_service_commons.api import run_server
+from hexkit.log import configure_logging
 
 from fis.config import Config
 from fis.inject import prepare_rest_app
@@ -23,6 +24,7 @@ from fis.inject import prepare_rest_app
 async def run_rest():
     """Run the HTTP REST API."""
     config = Config()  # type: ignore [call-arg]
+    configure_logging(config=config)
 
     async with prepare_rest_app(config=config) as app:
         await run_server(app=app, config=config)

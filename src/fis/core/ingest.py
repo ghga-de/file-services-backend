@@ -15,6 +15,7 @@
 """Functionality relating to S3 upload metadata processing"""
 
 import json
+import logging
 
 from ghga_service_commons.utils.crypt import decrypt
 from nacl.exceptions import CryptoError
@@ -31,6 +32,8 @@ from fis.ports.inbound.ingest import (
 )
 from fis.ports.outbound.event_pub import EventPublisherPort
 from fis.ports.outbound.vault.client import VaultAdapterPort
+
+log = logging.getLogger(__name__)
 
 
 class ServiceConfig(BaseSettings):
@@ -80,14 +83,18 @@ class LegacyUploadMetadataProcessor(LegacyUploadMetadataProcessorPort):
         try:
             decrypted = decrypt(data=encrypted.payload, key=self._config.private_key)
         except (ValueError, CryptoError) as error:
-            raise DecryptionError() from error
+            decrypt_error = DecryptionError()
+            log.error(decrypt_error)
+            raise decrypt_error from error
 
         upload_metadata = json.loads(decrypted)
 
         try:
             return models.LegacyUploadMetadata(**upload_metadata)
         except ValidationError as error:
-            raise WrongDecryptedFormatError(cause=str(error)) from error
+            format_error = WrongDecryptedFormatError(cause=str(error))
+            log.error(format_error)
+            raise format_error from error
 
     async def populate_by_event(
         self, *, upload_metadata: models.LegacyUploadMetadata, secret_id: str
@@ -105,7 +112,9 @@ class LegacyUploadMetadataProcessor(LegacyUploadMetadataProcessorPort):
         try:
             return self._vault_adapter.store_secret(secret=file_secret)
         except self._vault_adapter.SecretInsertionError as error:
-            raise VaultCommunicationError(message=str(error)) from error
+            comms_error = VaultCommunicationError(message=str(error))
+            log.error(comms_error)
+            raise comms_error from error
 
 
 class UploadMetadataProcessor(UploadMetadataProcessorPort):
@@ -129,21 +138,26 @@ class UploadMetadataProcessor(UploadMetadataProcessorPort):
         try:
             decrypted = decrypt(data=encrypted.payload, key=self._config.private_key)
         except (ValueError, CryptoError) as error:
-            raise DecryptionError() from error
+            decrypt_error = DecryptionError()
+            log.error(decrypt_error)
+            raise decrypt_error from error
 
         upload_metadata = json.loads(decrypted)
 
         try:
             return models.UploadMetadata(**upload_metadata)
         except ValidationError as error:
-            raise WrongDecryptedFormatError(cause=str(error)) from error
+            format_error = WrongDecryptedFormatError(cause=str(error))
+            log.error(format_error)
+            raise format_error from error
 
     async def decrypt_secret(self, *, encrypted: models.EncryptedPayload) -> str:
         """Decrypt file secret payload"""
         try:
             decrypted = decrypt(data=encrypted.payload, key=self._config.private_key)
         except (ValueError, CryptoError) as error:
-            raise DecryptionError() from error
+            decrypt_error = DecryptionError()
+            raise decrypt_error from error
 
         return decrypted
 
@@ -163,4 +177,6 @@ class UploadMetadataProcessor(UploadMetadataProcessorPort):
         try:
             return self._vault_adapter.store_secret(secret=file_secret)
         except self._vault_adapter.SecretInsertionError as error:
-            raise VaultCommunicationError(message=str(error)) from error
+            comms_error = VaultCommunicationError(message=str(error))
+            log.error(comms_error)
+            raise comms_error from error
