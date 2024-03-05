@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 """Bundle test fixtures together"""
+
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass
 

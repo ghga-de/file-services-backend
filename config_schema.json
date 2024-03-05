@@ -111,6 +111,15 @@
       "title": "Vault Path",
       "type": "string"
     },
+    "vault_secrets_mount_point": {
+      "default": "secret",
+      "description": "Name used to address the secret engine under a custom mount path.",
+      "examples": [
+        "secret"
+      ],
+      "title": "Vault Secrets Mount Point",
+      "type": "string"
+    },
     "vault_kube_role": {
       "anyOf": [
         {
