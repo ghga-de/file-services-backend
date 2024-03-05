@@ -14,6 +14,7 @@
 # limitations under the License.
 
 """Utils to customize openAPI script"""
+
 from typing import Any
 
 from fastapi.openapi.utils import get_openapi

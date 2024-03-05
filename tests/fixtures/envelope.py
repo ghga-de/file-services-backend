@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 """Envelope test fixture for public keys/secrets"""
+
 import os
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass

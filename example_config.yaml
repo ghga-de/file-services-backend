@@ -1,4 +1,4 @@
-api_root_path: /
+api_root_path: ''
 auto_reload: false
 cors_allow_credentials: null
 cors_allowed_headers: null
@@ -20,6 +20,7 @@ vault_kube_role: dummy-role
 vault_path: ekss
 vault_role_id: '**********'
 vault_secret_id: '**********'
+vault_secrets_mount_point: secret
 vault_url: http://127.0.0.1:8200
 vault_verify: true
 workers: 1

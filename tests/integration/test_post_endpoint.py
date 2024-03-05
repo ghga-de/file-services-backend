@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Checking if POST on /secrets works correctly"""
+
 import base64
 import io
 

@@ -1,6 +1,6 @@
 [project]
 name = "ekss"
-version = "1.1.0"
+version = "1.2.0"
 description = "Encryption Key Store Sevice - providing crypt4gh file secret extraction, storage and envelope generation"
 dependencies = [
     "ghga-service-commons[all]>=2.0.0",

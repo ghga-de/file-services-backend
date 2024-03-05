@@ -55,6 +55,11 @@ class VaultConfig(BaseSettings):
         description="Path without leading or trailing slashes where secrets should"
         + " be stored in the vault.",
     )
+    vault_secrets_mount_point: str = Field(
+        default="secret",
+        examples=["secret"],
+        description="Name used to address the secret engine under a custom mount path.",
+    )
     vault_kube_role: Optional[str] = Field(
         default=None,
         examples=["file-ingest-role"],

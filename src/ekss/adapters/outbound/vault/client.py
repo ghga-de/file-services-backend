@@ -32,6 +32,7 @@ class VaultAdapter:
         """Initialized approle based client and login"""
         self._client = hvac.Client(url=config.vault_url, verify=config.vault_verify)
         self._path = config.vault_path
+        self._secrets_mount_point = config.vault_secrets_mount_point
 
         self._kube_role = config.vault_kube_role
         if self._kube_role:
@@ -79,7 +80,10 @@ class VaultAdapter:
         try:
             # set cas to 0 as we only want a static secret
             self._client.secrets.kv.v2.create_or_update_secret(
-                path=f"{self._path}/{key}", secret={key: value}, cas=0
+                path=f"{self._path}/{key}",
+                secret={key: value},
+                cas=0,
+                mount_point=self._secrets_mount_point,
             )
         except hvac.exceptions.InvalidRequest as exc:
             raise exceptions.SecretInsertionError() from exc
@@ -96,6 +100,7 @@ class VaultAdapter:
             response = self._client.secrets.kv.v2.read_secret_version(
                 path=f"{self._path}/{key}",
                 raise_on_deleted_version=True,
+                mount_point=self._secrets_mount_point,
             )
         except hvac.exceptions.InvalidPath as exc:
             raise exceptions.SecretRetrievalError() from exc
@@ -110,7 +115,9 @@ class VaultAdapter:
 
         try:
             self._client.secrets.kv.v2.read_secret_version(
-                path=path, raise_on_deleted_version=True
+                path=path,
+                raise_on_deleted_version=True,
+                mount_point=self._secrets_mount_point,
             )
         except hvac.exceptions.InvalidPath as exc:
             raise exceptions.SecretRetrievalError() from exc
