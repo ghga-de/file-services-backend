@@ -1,0 +1,46 @@
+#!/bin/bash
+
+cd /workspace
+
+# upgrade pip
+python -m pip install --upgrade pip
+
+# Define the base directory for projects
+projects_path="./projects"
+
+# Check if the projects directory exists
+if [ ! -d "$projects_path" ]; then
+    echo "Projects directory does not exist."
+    exit 1
+fi
+
+# Loop through all project directories in /projects/
+for project_dir in "$projects_path"/*/; do
+    # Extract the project name from the directory path
+    project_name=$(basename "$project_dir")
+
+    # Define the path for the virtual environment
+    venv_path="./.venvs/$project_name"
+
+    echo "Setting up virtual environment for $project_name..."
+
+    # Create a virtual environment within the project directory if it doesn't exist
+    if [ ! -d "$venv_path" ]; then
+        python3 -m venv "$venv_path"
+        echo "Virtual environment created for $project_name."
+    else
+        echo "Virtual environment already exists for $project_name."
+    fi
+
+    # Install development dependencies
+    echo "Installing development dependencies for $project_name..."
+    source "$venv_path/bin/activate"
+    python3 -m pip install --upgrade pip
+    python3 -m pip install --no-deps -r "$project_dir/lock/requirements-dev.txt"
+    deactivate
+
+    echo "Setup complete for $project_name."
+    echo "--------------------------------"
+done
+
+echo "All project virtual environments are set up. Remember to activate the appropriate one before working on a project."

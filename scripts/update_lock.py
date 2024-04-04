@@ -32,12 +32,26 @@ import tomli_w
 from script_utils import cli, deps
 
 REPO_ROOT_DIR = Path(__file__).parent.parent.resolve()
+SERVICES_DIR = REPO_ROOT_DIR / "projects"
 LOCK_DIR = REPO_ROOT_DIR / "lock"
 
-PYPROJECT_TOML_PATH = REPO_ROOT_DIR / "pyproject.toml"
+# maintained at the root level, only one exists.
 DEV_DEPS_PATH = LOCK_DIR / "requirements-dev.in"
+
+# following are maintained per service/project
+PYPROJECT_TOML_PATH = REPO_ROOT_DIR / "pyproject.toml"
 OUTPUT_LOCK_PATH = LOCK_DIR / "requirements.txt"
 OUTPUT_DEV_LOCK_PATH = LOCK_DIR / "requirements-dev.txt"
+
+
+def set_paths_for_service(service: str):
+    """Update the global paths with the service being updated."""
+    global PYPROJECT_TOML_PATH, OUTPUT_LOCK_PATH, OUTPUT_DEV_LOCK_PATH
+    service_dir = SERVICES_DIR / service
+    service_lock_dir = service_dir / "lock"
+    PYPROJECT_TOML_PATH = service_dir / "pyproject.toml"
+    OUTPUT_LOCK_PATH = service_lock_dir / "requirements.txt"
+    OUTPUT_DEV_LOCK_PATH = service_lock_dir / "requirements-dev.txt"
 
 
 def fix_temp_dir_comments(file_path: Path):
@@ -144,7 +158,7 @@ def ensure_lock_files_exist():
             return
 
 
-def main(upgrade: bool = False, check: bool = False):
+def main(service: str, upgrade: bool = False, check: bool = False):
     """Update the dependency lock files located at 'requirements.txt' and
     'requirements-dev.txt'.
 
@@ -155,9 +169,12 @@ def main(upgrade: bool = False, check: bool = False):
     For the 'requirements-dev.txt', in addition to the filtered 'pyproject.toml' the
     'requirements-dev.in' is considered.
 
+    The `service` parameter specifies a specific service to evaluate, e.g. 'dcs'.
+
     The `upgrade` parameter can be used to indicate that dependencies found in existing
     lock files should be upgraded. Default pip-compile behavior is to leave them as is.
     """
+    set_paths_for_service(service)
 
     # if --check is used, quickly ensure that there is something to compare against
     if check:

@@ -31,8 +31,8 @@ services:
 
     # define environment variables
     environment:
-      # Please adapt to package name:
       DCS_CONFIG_YAML: /workspace/projects/dcs/.dev/.dev_config.yaml
+      IFRS_CONFIG_YAML: /workspace/projects/ifrs/.dev/.dev_config.yaml
       # Used by db migration:
       DB_URL: postgresql://postgres:postgres@postgresql/postgres
     # Use "forwardPorts" in **devcontainer.json** to forward an app port locally.
