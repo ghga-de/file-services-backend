@@ -32,7 +32,7 @@ REPO_ROOT_DIR = Path(__file__).parent.parent.resolve()
 SERVICES_DIR = REPO_ROOT_DIR / "projects"
 
 PYPROJECT_GENERATION_DIR = REPO_ROOT_DIR / ".pyproject_generation"
-
+SERVICE_TEMPLATE_PATH = PYPROJECT_GENERATION_DIR / "service_template.toml"
 PYPROJECT_TEMPLATE_PATH = PYPROJECT_GENERATION_DIR / "pyproject_template.toml"
 pyproject_custom_path = PYPROJECT_GENERATION_DIR / "pyproject_custom.toml"
 pyproject_toml = REPO_ROOT_DIR / "pyproject.toml"
@@ -70,6 +70,12 @@ def read_template_pyproject() -> dict[str, object]:
 def read_custom_pyproject() -> dict[str, object]:
     """Read the pyproject_custom.toml."""
     with open(pyproject_custom_path, "rb") as file:
+        return tomli.load(file)
+
+
+def read_supplemental_pyproject() -> dict[str, object]:
+    """Read the service_template.toml."""
+    with open(SERVICE_TEMPLATE_PATH, "rb") as file:
         return tomli.load(file)
 
 
@@ -120,12 +126,16 @@ def merge_pyprojects(inputs: list[dict[str, object]]) -> dict[str, object]:
     return pyproject
 
 
-def process_pyproject(*, check: bool):
+def process_pyproject(*, root: bool, check: bool):
     """Update the pyproject.toml or checks for updates if the check flag is specified."""
 
     template_pyproject = read_template_pyproject()
     custom_pyproject = read_custom_pyproject()
-    merged_pyproject = merge_pyprojects([template_pyproject, custom_pyproject])
+    sources = [custom_pyproject, template_pyproject]
+    if not root:
+        sources.append(read_supplemental_pyproject())
+        template_pyproject.pop("tool", "")
+    merged_pyproject = merge_pyprojects(sources)
 
     if check:
         current_pyproject = read_current_pyproject()
@@ -142,11 +152,11 @@ def process_pyproject(*, check: bool):
 
 def main(*, check: bool = False):
     """Update the pyproject.toml or checks for updates if the check flag is specified."""
-    process_pyproject(check=check)
+    process_pyproject(root=True, check=check)
 
     for service in os.listdir(SERVICES_DIR):
         with set_service_specific_vars(service=service):
-            process_pyproject(check=check)
+            process_pyproject(root=False, check=check)
     cli.echo_success("Successfully updated all pyproject.toml files.")
 
 

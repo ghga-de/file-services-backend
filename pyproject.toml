@@ -1,10 +1,7 @@
-[build-system]
-requires = [
-    "setuptools>=67.7.2",
-]
-build-backend = "setuptools.build_meta"
-
 [project]
+name = "fsb"
+version = "0.1.0"
+description = "File Services Backend - monorepo housing file services"
 readme = "README.md"
 authors = [
     { name = "German Human Genome Phenome Archive (GHGA)", email = "contact@ghga.de" },
@@ -28,20 +25,12 @@ dependencies = [
     "hexkit[akafka,s3,mongodb] >= 2, <3",
     "crypt4gh>=1.6",
 ]
-name = "fsb"
-version = "0.1.0"
-description = "File Services Backend - monorepo housing file services"
-
-[project.license]
-text = "Apache 2.0"
 
 [project.urls]
 Repository = "https://github.com/ghga-de/file-services-backend"
 
-[tool.setuptools.packages.find]
-where = [
-    "src",
-]
+[project.license]
+text = "Apache 2.0"
 
 [tool.ruff]
 exclude = [
