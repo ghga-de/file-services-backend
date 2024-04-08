@@ -1,0 +1,32 @@
+db_connection_str: '**********'
+db_name: dev_db
+ekss_base_url: http://ekss:8080/
+file_registered_event_topic: internal_file_registry
+file_registered_event_type: file_registered
+generate_correlation_id: true
+interrogation_failure_type: file_validation_failure
+interrogation_success_type: file_validation_success
+interrogation_topic: file_interrogation
+kafka_security_protocol: PLAINTEXT
+kafka_servers:
+- kafka:9092
+kafka_ssl_cafile: ''
+kafka_ssl_certfile: ''
+kafka_ssl_keyfile: ''
+kafka_ssl_password: ''
+log_format: null
+log_level: INFO
+object_stale_after_minutes: 1440
+object_storages:
+  test:
+    bucket: staging
+    credentials:
+      aws_config_ini: null
+      s3_access_key_id: test
+      s3_endpoint_url: http://irs:4566
+      s3_secret_access_key: '**********'
+      s3_session_token: null
+service_instance_id: '001'
+service_name: irs
+upload_received_event_topic: file_uploads
+upload_received_event_type: file_upload_received
