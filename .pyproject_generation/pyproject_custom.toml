@@ -1,19 +1,14 @@
 [project]
-# please adapt to package name
-name = "my_microservice"
+name = "fsb"
 version = "0.1.0"
-description = "My-Microservice - a short description"
+description = "File Services Backend - monorepo housing file services"
 dependencies = [
     "typer >= 0.9.0",
-    "ghga-service-commons[api] >= 1.2.0",
-    "ghga-event-schemas >= 1.0.0",
-    "hexkit[akafka,s3,mongodb] >= 1.1.0"
+    "ghga-service-commons[api] >= 3.0.0, <4",
+    "ghga-event-schemas >= 3.0.0, <4",
+    "hexkit[akafka,s3,mongodb] >= 2, <3",
+    "crypt4gh>=1.6",
 ]
 
 [project.urls]
-# please adapt to package name
-Repository = "https://github.com/ghga-de/my-microservice"
-
-[project.scripts]
-# please adapt to package name
-my-microservice = "my_microservice.__main__:run"
+Repository = "https://github.com/ghga-de/file-services-backend"

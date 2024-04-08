@@ -27,7 +27,7 @@ else:
     update_template()
 
 try:
-    from update_pyproject import main as update_pyproject
+    from update_pyproject import process_pyproject as update_pyproject
 except ImportError:
     print("update_pyproject script not found")
 else:

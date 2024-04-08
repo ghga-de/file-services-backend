@@ -1,3 +1,9 @@
+[build-system]
+requires = [
+    "setuptools>=67.7.2",
+]
+build-backend = "setuptools.build_meta"
+
 [project]
 readme = "README.md"
 authors = [
@@ -15,9 +21,6 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
     "Intended Audience :: Developers",
 ]
-name = "fsb"
-version = "0.1.0"
-description = "File Services Backend - monorepo housing file services"
 dependencies = [
     "typer >= 0.9.0",
     "ghga-service-commons[api] >= 3.0.0, <4",
@@ -25,12 +28,20 @@ dependencies = [
     "hexkit[akafka,s3,mongodb] >= 2, <3",
     "crypt4gh>=1.6",
 ]
+name = "fsb"
+version = "0.1.0"
+description = "File Services Backend - monorepo housing file services"
 
 [project.license]
 text = "Apache 2.0"
 
 [project.urls]
 Repository = "https://github.com/ghga-de/file-services-backend"
+
+[tool.setuptools.packages.find]
+where = [
+    "src",
+]
 
 [tool.ruff]
 exclude = [

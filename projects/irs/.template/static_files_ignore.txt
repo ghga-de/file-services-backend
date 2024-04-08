@@ -1,3 +1,0 @@
-.github/workflows/check_openapi_spec.yaml
-
-scripts/update_openapi_docs.py

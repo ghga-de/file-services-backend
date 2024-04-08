@@ -18,7 +18,9 @@
 
 """A script to update the pyproject.toml."""
 
+import os
 import sys
+from contextlib import contextmanager
 from pathlib import Path
 
 import tomli
@@ -27,11 +29,36 @@ import tomli_w
 from script_utils import cli
 
 REPO_ROOT_DIR = Path(__file__).parent.parent.resolve()
+SERVICES_DIR = REPO_ROOT_DIR / "projects"
+
 PYPROJECT_GENERATION_DIR = REPO_ROOT_DIR / ".pyproject_generation"
 
 PYPROJECT_TEMPLATE_PATH = PYPROJECT_GENERATION_DIR / "pyproject_template.toml"
-PYPROJECT_CUSTOM_PATH = PYPROJECT_GENERATION_DIR / "pyproject_custom.toml"
-PYPROJECT_TOML = REPO_ROOT_DIR / "pyproject.toml"
+pyproject_custom_path = PYPROJECT_GENERATION_DIR / "pyproject_custom.toml"
+pyproject_toml = REPO_ROOT_DIR / "pyproject.toml"
+
+
+@contextmanager
+def set_service_specific_vars(service: str):
+    """Adjust global vars for service."""
+    global pyproject_custom_path, pyproject_toml
+
+    # verify that the folder exists
+    service_dir = SERVICES_DIR / service
+    if not service_dir.exists():
+        cli.echo_failure(f"{service_dir} does not exist")
+        exit(1)
+
+    # set the vars
+    service_dev_dir = service_dir / ".dev"
+    pyproject_custom_path = service_dev_dir / "pyproject_custom.toml"
+    pyproject_toml = service_dir / "pyproject.toml"
+
+    yield
+
+    # reset the vars
+    pyproject_custom_path = PYPROJECT_GENERATION_DIR / "pyproject_custom.toml"
+    pyproject_toml = REPO_ROOT_DIR / "pyproject.toml"
 
 
 def read_template_pyproject() -> dict[str, object]:
@@ -42,19 +69,19 @@ def read_template_pyproject() -> dict[str, object]:
 
 def read_custom_pyproject() -> dict[str, object]:
     """Read the pyproject_custom.toml."""
-    with open(PYPROJECT_CUSTOM_PATH, "rb") as file:
+    with open(pyproject_custom_path, "rb") as file:
         return tomli.load(file)
 
 
 def read_current_pyproject() -> dict[str, object]:
     """Read the current pyproject.toml."""
-    with open(PYPROJECT_TOML, "rb") as file:
+    with open(pyproject_toml, "rb") as file:
         return tomli.load(file)
 
 
 def write_pyproject(pyproject: dict[str, object]) -> None:
     """Write the given pyproject dict into the pyproject.toml."""
-    with open(PYPROJECT_TOML, "wb") as file:
+    with open(pyproject_toml, "wb") as file:
         tomli_w.dump(pyproject, file)
 
 
@@ -93,8 +120,9 @@ def merge_pyprojects(inputs: list[dict[str, object]]) -> dict[str, object]:
     return pyproject
 
 
-def main(*, check: bool = False):
+def process_pyproject(*, check: bool):
     """Update the pyproject.toml or checks for updates if the check flag is specified."""
+
     template_pyproject = read_template_pyproject()
     custom_pyproject = read_custom_pyproject()
     merged_pyproject = merge_pyprojects([template_pyproject, custom_pyproject])
@@ -110,7 +138,16 @@ def main(*, check: bool = False):
         return
 
     write_pyproject(merged_pyproject)
-    cli.echo_success("Successfully updated the pyproject.toml.")
+
+
+def main(*, check: bool = False):
+    """Update the pyproject.toml or checks for updates if the check flag is specified."""
+    process_pyproject(check=check)
+
+    for service in os.listdir(SERVICES_DIR):
+        with set_service_specific_vars(service=service):
+            process_pyproject(check=check)
+    cli.echo_success("Successfully updated all pyproject.toml files.")
 
 
 if __name__ == "__main__":
