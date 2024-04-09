@@ -29,7 +29,7 @@ import tomli_w
 from script_utils import cli
 
 REPO_ROOT_DIR = Path(__file__).parent.parent.resolve()
-SERVICES_DIR = REPO_ROOT_DIR / "projects"
+SERVICES_DIR = REPO_ROOT_DIR / "services"
 
 PYPROJECT_GENERATION_DIR = REPO_ROOT_DIR / ".pyproject_generation"
 SERVICE_TEMPLATE_PATH = PYPROJECT_GENERATION_DIR / "service_template.toml"

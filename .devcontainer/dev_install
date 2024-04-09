@@ -10,7 +10,7 @@ python -m pip install --upgrade pip
 pip install --no-deps -r ./lock/requirements-dev.txt
 
 # install the package itself in edit mode:
-for dir in ./projects/*; do
+for dir in ./services/*; do
     pip install --no-deps -e $dir
 done
 
