@@ -18,7 +18,6 @@
 
 """A script to update the pyproject.toml."""
 
-import os
 import sys
 from contextlib import contextmanager
 from pathlib import Path
@@ -27,6 +26,7 @@ import tomli
 import tomli_w
 
 from script_utils import cli
+from script_utils.list_service_dirs import list_service_dirs
 
 REPO_ROOT_DIR = Path(__file__).parent.parent.resolve()
 SERVICES_DIR = REPO_ROOT_DIR / "services"
@@ -154,8 +154,8 @@ def main(*, check: bool = False):
     """Update the pyproject.toml or checks for updates if the check flag is specified."""
     process_pyproject(root=True, check=check)
 
-    for service in os.listdir(SERVICES_DIR):
-        with set_service_specific_vars(service=service):
+    for service in list_service_dirs():
+        with set_service_specific_vars(service=service.name):
             process_pyproject(root=False, check=check)
     cli.echo_success("Successfully updated all pyproject.toml files.")
 
