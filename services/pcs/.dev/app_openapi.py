@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # Copyright 2021 - 2023 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
 # for the German Human Genome-Phenome Archive (GHGA)
 #
@@ -13,18 +15,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""Returns a list of all the service directories."""
 
-import os
-from pathlib import Path
+"""Used to define the location of the main FastAPI app object."""
 
-SERVICES_DIR = Path(__file__).parent.parent.parent.resolve() / "services"
+import json
+from typing import Any
+
+from fastapi import FastAPI
+from pcs.adapters.inbound.fastapi_.configure import get_openapi_schema
+from pcs.adapters.inbound.fastapi_.routes import router
+
+app = FastAPI()
+app.include_router(router)
 
 
-def list_service_dirs() -> list[Path]:
-    """Return a list of directories under the services folder."""
-    service_dirs = []
-    for folder in [SERVICES_DIR / path for path in os.listdir(SERVICES_DIR)]:
-        if folder.is_dir():
-            service_dirs.append(folder)
-    return service_dirs
+def custom_openapi() -> dict[str, Any]:  # noqa: D103
+    if app.openapi_schema:
+        return app.openapi_schema
+    openapi_schema = get_openapi_schema(app)
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+
+def main():
+    """Print the openapi"""
+    print(json.dumps(custom_openapi()))
+
+
+if __name__ == "__main__":
+    main()

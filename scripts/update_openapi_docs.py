@@ -17,30 +17,68 @@
 
 """Updates OpenAPI-based documentation"""
 
+from __future__ import annotations
+
+import json
+import subprocess
 import sys
+from contextlib import contextmanager
 from difflib import unified_diff
 from pathlib import Path
 
 import yaml
 
 from script_utils.cli import echo_failure, echo_success, run
-from script_utils.fastapi_app_location import app
 
 HERE = Path(__file__).parent.resolve()
 REPO_ROOT_DIR = HERE.parent
-OPENAPI_YAML = REPO_ROOT_DIR / "openapi.yaml"
+SERVICES_DIR = REPO_ROOT_DIR / "services"
+
+openapi_yaml = REPO_ROOT_DIR / "openapi.yaml"
+app_openapi_script = REPO_ROOT_DIR / "app_openapi.py"
 
 
 class ValidationError(RuntimeError):
     """Raised when validation of OpenAPI documentation fails."""
 
 
+@contextmanager
+def set_service_specific_vars(service: str):
+    """Adjust global vars for service."""
+    global openapi_yaml, app_openapi_script
+
+    # verify that the folder exists
+    service_dir = SERVICES_DIR / service
+    if not service_dir.exists():
+        echo_failure(f"{service_dir} does not exist")
+        exit(1)
+
+    # set the vars
+    openapi_yaml = service_dir / "openapi.yaml"
+    app_openapi_script = service_dir / ".dev" / "app_openapi.py"
+
+    yield
+
+    # reset the vars
+    openapi_yaml = REPO_ROOT_DIR / "openapi.yaml"
+    app_openapi_script = REPO_ROOT_DIR / "app_openapi.py"
+
+
 def get_openapi_spec() -> str:
     """Get an OpenAPI spec in YAML format from the main FastAPI app as defined in the
     fastapi_app_location.py file.
     """
+    with subprocess.Popen(
+        args=[app_openapi_script],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+    ) as process:
+        assert (
+            process.wait() == 0 and process.stdout is not None
+        ), "Failed to get openapi."
+        raw_openapi = process.stdout.read().decode("utf-8").strip("\n")
 
-    openapi_spec = app.openapi()
+    openapi_spec = json.loads(raw_openapi)
     return yaml.safe_dump(openapi_spec)
 
 
@@ -48,7 +86,7 @@ def update_docs():
     """Update the OpenAPI YAML file located in the repository's root dir."""
 
     openapi_spec = get_openapi_spec()
-    with open(OPENAPI_YAML, "w", encoding="utf-8") as openapi_file:
+    with open(openapi_yaml, "w", encoding="utf-8") as openapi_file:
         openapi_file.write(openapi_spec)
 
 
@@ -73,30 +111,36 @@ def check_docs():
     """
 
     openapi_expected = get_openapi_spec()
-    with open(OPENAPI_YAML, encoding="utf-8") as openapi_file:
+    with open(openapi_yaml, encoding="utf-8") as openapi_file:
         openapi_observed = openapi_file.read()
 
     if openapi_expected != openapi_observed:
         print_diff(openapi_expected, openapi_observed)
         raise ValidationError(
-            f"The OpenAPI YAML at '{OPENAPI_YAML}' is not up to date."
+            f"The OpenAPI YAML at '{openapi_yaml}' is not up to date."
         )
 
 
-def main(check: bool = False):
+def main(*, service: str, check: bool = False):
     """Update or check the OpenAPI documentation."""
+    with set_service_specific_vars(service):
+        # only act on services that use openapi
+        if not app_openapi_script.exists():
+            relative_location = app_openapi_script.relative_to(SERVICES_DIR / service)
+            echo_failure(f"{service}: skipping, {relative_location} not found")
+            return
 
-    if check:
-        try:
-            check_docs()
-        except ValidationError as error:
-            echo_failure(f"Validation failed: {error}")
-            sys.exit(1)
-        echo_success("OpenAPI docs are up to date.")
-        return
+        if check:
+            try:
+                check_docs()
+            except ValidationError as error:
+                echo_failure(f"Validation failed: {error}")
+                sys.exit(1)
+            echo_success(f"{service}: OpenAPI docs are up to date.")
+            return
 
-    update_docs()
-    echo_success("Successfully updated the OpenAPI docs.")
+        update_docs()
+        echo_success(f"{service}: Successfully updated the OpenAPI docs.")
 
 
 if __name__ == "__main__":

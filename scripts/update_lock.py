@@ -30,7 +30,7 @@ from tempfile import TemporaryDirectory
 import tomli_w
 
 from script_utils import cli, deps
-from script_utils.list_service_dirs import list_service_dirs
+from scripts.script_utils.utils import list_service_dirs
 
 REPO_ROOT_DIR = Path(__file__).parent.parent.resolve()
 LOCK_DIR = REPO_ROOT_DIR / "lock"

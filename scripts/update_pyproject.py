@@ -18,6 +18,8 @@
 
 """A script to update the pyproject.toml."""
 
+from __future__ import annotations
+
 import sys
 from contextlib import contextmanager
 from pathlib import Path
@@ -26,7 +28,6 @@ import tomli
 import tomli_w
 
 from script_utils import cli
-from script_utils.list_service_dirs import list_service_dirs
 
 REPO_ROOT_DIR = Path(__file__).parent.parent.resolve()
 SERVICES_DIR = REPO_ROOT_DIR / "services"
@@ -126,8 +127,11 @@ def merge_pyprojects(inputs: list[dict[str, object]]) -> dict[str, object]:
     return pyproject
 
 
-def process_pyproject(*, root: bool, check: bool):
-    """Update the pyproject.toml or checks for updates if the check flag is specified."""
+def process_pyproject(*, root: bool, check: bool) -> bool:
+    """Update the pyproject.toml or checks for updates if the check flag is specified.
+
+    Returns True if updates were made, False otherwise.
+    """
 
     template_pyproject = read_template_pyproject()
     custom_pyproject = read_custom_pyproject()
@@ -136,28 +140,40 @@ def process_pyproject(*, root: bool, check: bool):
         sources.append(read_supplemental_pyproject())
         template_pyproject.pop("tool", "")
     merged_pyproject = merge_pyprojects(sources)
+    current_pyproject = read_current_pyproject()
 
-    if check:
-        current_pyproject = read_current_pyproject()
-
-        if current_pyproject != merged_pyproject:
+    if current_pyproject != merged_pyproject:
+        if check:
             cli.echo_failure("The pyproject.toml is not up to date.")
             sys.exit(1)
-
-        cli.echo_success("The pyproject.toml is up to date.")
-        return
-
-    write_pyproject(merged_pyproject)
+        write_pyproject(merged_pyproject)
+        return True
+    return False
 
 
-def main(*, check: bool = False):
+def main(*, service: str, check: bool = False, root_only: bool = False):
     """Update the pyproject.toml or checks for updates if the check flag is specified."""
-    process_pyproject(root=True, check=check)
+    root_updated = process_pyproject(root=True, check=check)
+    if root_updated:
+        cli.echo_success("Root pyproject.toml updated.")
 
-    for service in list_service_dirs():
-        with set_service_specific_vars(service=service.name):
-            process_pyproject(root=False, check=check)
-    cli.echo_success("Successfully updated all pyproject.toml files.")
+    if root_only:
+        if not root_updated:
+            cli.echo_success("Root pyproject.toml is up to date.")
+        exit(0)
+
+    with set_service_specific_vars(service=service):
+        updated = process_pyproject(root=False, check=check)
+        if check:
+            cli.echo_success(f"{service}: Pyproject.toml is already up to date.")
+        else:
+            success_msg = (
+                f"Successfully updated pyproject.toml for {service}."
+                if updated
+                else f"{service}: Pyproject.toml is already up to date."
+            )
+
+            cli.echo_success(success_msg)
 
 
 if __name__ == "__main__":

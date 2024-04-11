@@ -22,7 +22,6 @@ from pathlib import Path
 from string import Template
 
 from script_utils import cli
-from script_utils.list_service_dirs import list_service_dirs
 
 REPO_ROOT_DIR = Path(__file__).parent.parent.resolve()
 TEMPLATE_PATH = REPO_ROOT_DIR / "template-Dockerfile"
@@ -41,33 +40,24 @@ def read_dockerfile_template():
     return Template(raw_template)
 
 
-def main(*, check: bool = False):
+def main(*, service: str, check: bool = False):
     """Update the deployment Dockerfiles for each service to keep them consistent."""
     template = read_dockerfile_template()
 
-    outdated = []
+    service_path = SERVICES_DIR / service
 
-    # Iterate through the service directories and process the Dockerfiles
-    for service_path in list_service_dirs():
-        expected = template.substitute({"entrypoint": service_path.name})
-        if check:
-            current = read_file(service_path / "Dockerfile")
-            if current.strip() != expected.strip():  # don't fail only for trailing ws
-                outdated.append(service_path.name)
-        else:
-            with open(service_path / "Dockerfile", "w") as file:
-                file.write(expected)
-
+    expected = template.substitute({"entrypoint": service_path.name})
     if check:
-        if outdated:
-            cli.echo_failure("Dockerfiles for the following services are outdated:")
-            for service in outdated:
-                cli.echo_failure(f" - {service}")
+        current = read_file(service_path / "Dockerfile")
+        if current.strip() != expected.strip():  # don't fail only for trailing ws
+            cli.echo_failure(f"Dockerfile for {service} is outdated.")
             sys.exit(1)
         else:
-            cli.echo_success("Dockerfiles are up to date.")
+            return
     else:
-        cli.echo_success("Successfully updated all Dockerfiles.")
+        with open(service_path / "Dockerfile", "w") as file:
+            file.write(expected)
+        cli.echo_success(f"Successfully updated Dockerfile for {service}.")
 
 
 if __name__ == "__main__":
