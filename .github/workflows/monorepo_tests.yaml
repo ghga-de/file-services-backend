@@ -1,0 +1,35 @@
+name: Monorepo Tests
+
+on: push
+
+jobs:
+  check-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.affected }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - id: install-typer
+        run: pip install typer>=0.9.0
+
+      - id: set-matrix
+        run: |
+          RESULTS=$(python3 ./scripts/affected_services.py)
+          echo "affected=$(jq -cn --argjson services \
+          "$RESULTS" '{service: $services}')" >> $GITHUB_OUTPUT
+
+  test:
+    needs: check-changes
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJson(needs.check-changes.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: setup
+        run: pip install --no-deps -r ./lock/requirements-dev.txt
+
+      - run: echo ${{matrix.service}}
+      - name: run-tests
+        run: pytest ./services/${{matrix.service}}/

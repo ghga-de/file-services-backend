@@ -17,6 +17,7 @@
 
 """Determine which services are impacted by current changes."""
 
+import json
 import subprocess
 from pathlib import Path
 
@@ -123,7 +124,7 @@ def main(
         if must_run_all(non_service_changes)
         else modified_services
     )
-    print(",".join(affected_services))
+    print(json.dumps(affected_services))
 
 
 if __name__ == "__main__":
