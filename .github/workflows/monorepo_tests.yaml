@@ -30,6 +30,7 @@ jobs:
             .github
             .lock
             .services/${{matrix.service}}
+          fetch-depth: 2
 
       - name: setup
         run: pip install --no-deps -r ./lock/requirements-dev.txt && pip install --upgrade ./services/${{matrix.service}}/
