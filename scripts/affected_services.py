@@ -69,7 +69,7 @@ def get_top_level_changes(files: list[str]) -> list[str]:
 def files_in_diff(full: bool, target: str) -> list[str]:
     """List files in diff."""
     # Command to list names of changed files
-    change_range = f"{target}...HEAD" if full else "HEAD HEAD~1"
+    change_range = f"{target}...HEAD" if full else "HEAD..HEAD^1"
     command = f"git diff --name-only {change_range}"
 
     # Execute the command and capture the output
