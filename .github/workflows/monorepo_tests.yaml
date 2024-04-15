@@ -15,21 +15,24 @@ jobs:
 
       - id: set-matrix
         run: |
-          RESULTS=$(python3 ./scripts/affected_services.py)
-          echo "affected=$(jq -cn --argjson services \
-          "$RESULTS" '{service: $services}')" >> $GITHUB_OUTPUT
+          echo "affected=$(python3 ./scripts/affected_services.py)" >> $GITHUB_OUTPUT
 
   test:
     needs: check-changes
     runs-on: ubuntu-latest
     strategy:
-      matrix: ${{ fromJson(needs.check-changes.outputs.matrix) }}
+      matrix:
+        service: ${{ fromJson(needs.check-changes.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v3
+        with:
+          sparse-checkout: |
+            .github
+            .lock
+            .services/${{matrix.service}}
 
       - name: setup
-        run: pip install --no-deps -r ./lock/requirements-dev.txt
+        run: pip install --no-deps -r ./lock/requirements-dev.txt && pip install --upgrade ./services/${{matrix.service}}/
 
-      - run: echo ${{matrix.service}}
-      - name: run-tests
+      - name: run tests for specific service
         run: pytest ./services/${{matrix.service}}/
