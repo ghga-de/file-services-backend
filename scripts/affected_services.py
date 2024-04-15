@@ -69,7 +69,7 @@ def get_top_level_changes(files: list[str]) -> list[str]:
 def files_in_diff(full: bool, target: str) -> list[str]:
     """List files in diff."""
     # Command to list names of changed files
-    change_range = f"{target}...HEAD" if full else "HEAD..HEAD^1"
+    change_range = f"{target}...HEAD" if full else "HEAD^1..HEAD"
     command = f"git diff --name-only {change_range}"
 
     # Execute the command and capture the output
@@ -97,7 +97,7 @@ def on_main_branch() -> bool:
 def main(
     *,
     full: bool = typer.Option(
-        False,
+        True,
         help="If set, runs for all changes in branch. Otherwise runs for current commit.",
     ),
     target: str = typer.Option(
