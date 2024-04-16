@@ -97,7 +97,7 @@ def on_main_branch() -> bool:
 def main(
     *,
     full: bool = typer.Option(
-        True,
+        False,
         help="If set, runs for all changes in branch. Otherwise runs for current commit.",
     ),
     target: str = typer.Option(
