@@ -20,7 +20,7 @@ jobs:
       - id: fetch-latest-main
         run: git fetch --depth=1 origin main:main
 
-      - id: write history
+      - id: write-history
         run: git rebase ${GITHUB_REF##*/} main
 
       - id: install-typer
