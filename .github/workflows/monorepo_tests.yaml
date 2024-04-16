@@ -15,10 +15,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          sparse-checkout: |
-            .github
-            scripts
-            services/${{matrix.service}}
           fetch-depth: 2
 
       - id: fetch-latest-main
@@ -40,10 +36,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          sparse-checkout: |
-            .github
-            .lock
-            services/${{matrix.service}}
           fetch-depth: 1
 
       - name: update pip
