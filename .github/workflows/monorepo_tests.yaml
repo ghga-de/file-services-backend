@@ -13,7 +13,8 @@ jobs:
     outputs:
       services: ${{ steps.services-changed.outputs.affected }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout ${{matrix.service}}
+        uses: actions/checkout@v4
         with:
           filter: tree:0
           fetch-depth: 0
@@ -39,7 +40,8 @@ jobs:
         service: ${{ fromJson(needs.check-changes.outputs.services) }}
       fail-fast: false
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout ${{matrix.service}}
+        uses: actions/checkout@v4
         with:
           filter: tree:0
           fetch-depth: 0
