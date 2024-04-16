@@ -8,8 +8,7 @@ docs_url: /docs
 files_to_delete_topic: file_deletions
 files_to_delete_type: file_deletion_requested
 host: 127.0.0.1
-kafka_servers:
-  - kafka:9092
+kafka_servers: ["kafka:9092"]
 openapi_url: /openapi.json
 port: 8080
 service_instance_id: "1"
