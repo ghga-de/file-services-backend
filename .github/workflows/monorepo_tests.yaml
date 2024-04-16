@@ -13,10 +13,11 @@ jobs:
     outputs:
       services: ${{ steps.services-changed.outputs.affected }}
     steps:
-      - name: Checkout repository
+      - name: Checkout ${{matrix.service}}
         uses: actions/checkout@v4
         with:
           filter: tree:0
+          fetch-depth: 0
 
       - name: Fetch latest main for comparison
         id: fetch-latest-main
@@ -43,6 +44,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           filter: tree:0
+          fetch-depth: 0
 
       - name: Update pip and pyopenssl
         id: pip-update
