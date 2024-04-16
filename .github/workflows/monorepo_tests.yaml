@@ -17,8 +17,8 @@ jobs:
         with:
           sparse-checkout: |
             .github
-            .scripts
-            .services/${{matrix.service}}
+            scripts
+            services/${{matrix.service}}
           fetch-depth: 2
 
       - id: fetch-latest-main
@@ -43,7 +43,7 @@ jobs:
           sparse-checkout: |
             .github
             .lock
-            .services/${{matrix.service}}
+            services/${{matrix.service}}
           fetch-depth: 1
 
       - name: update pip
