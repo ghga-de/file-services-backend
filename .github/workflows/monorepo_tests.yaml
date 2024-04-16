@@ -2,11 +2,6 @@ name: Monorepo Tests
 
 on: push
 
-env:
-  IFRS_CONFIG_YAML: ./services/ifrs/.dev/.dev_config.yaml
-  IRS_CONFIG_YAML: ./services/irs/.dev/.dev_config.yaml
-  PCS_CONFIG_YAML: ./services/pcs/.dev/.dev_config.yaml
-
 jobs:
   check-changes:
     runs-on: ubuntu-latest
@@ -40,6 +35,10 @@ jobs:
       matrix:
         service: ${{ fromJson(needs.check-changes.outputs.services) }}
       fail-fast: false
+    env:
+      IFRS_CONFIG_YAML: ./services/ifrs/.dev/.dev_config.yaml
+      IRS_CONFIG_YAML: ./services/irs/.dev/.dev_config.yaml
+      PCS_CONFIG_YAML: ./services/pcs/.dev/.dev_config.yaml
     steps:
       - name: Checkout ${{matrix.service}}
         uses: actions/checkout@v4
