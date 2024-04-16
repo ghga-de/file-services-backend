@@ -70,7 +70,7 @@ def files_in_diff(full: bool, target: str) -> list[str]:
     """List files in diff."""
     # Command to list names of changed files
     change_range = f"{target}...HEAD" if full else "HEAD^1..HEAD"
-    command = f"git diff --merge-base --name-only {change_range}"
+    command = f"git diff --name-only {change_range}"
 
     # Execute the command and capture the output
     result = subprocess.run(
