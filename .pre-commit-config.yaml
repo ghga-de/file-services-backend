@@ -31,10 +31,10 @@ repos:
       - id: check-added-large-files
       - id: check-ast
       - id: check-json
-        exclude: devcontainer.json
+        exclude: (.devcontainer/|.vscode/).*.json
       - id: pretty-format-json
         args: [--autofix]
-        exclude: devcontainer.json|config_schema.json
+        exclude: (.devcontainer/|.vscode/).*.json|config_schema.json
       - id: check-merge-conflict
       - id: check-symlinks
       - id: check-executables-have-shebangs

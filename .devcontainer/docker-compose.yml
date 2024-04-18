@@ -17,14 +17,13 @@ services:
         USER_GID: 1000
 
     init: true
-    privileged: true
-
+    extra_hosts:
+      - host.docker.internal:host-gateway
     volumes:
       - ..:/workspace:cached
 
     # Overrides default command so things don't shut down after the process ends.
     command: sleep infinity
-
     # Uncomment the next line to use a non-root user for all processes.
     user: vscode
 
@@ -33,5 +32,76 @@ services:
       IFRS_CONFIG_YAML: /workspace/services/ifrs/.dev/.dev_config.yaml
       IRS_CONFIG_YAML: /workspace/services/irs/.dev/.dev_config.yaml
       PCS_CONFIG_YAML: /workspace/services/pcs/.dev/.dev_config.yaml
-    # Use "forwardPorts" in **devcontainer.json** to forward an app port locally.
-    # (Adding the "ports" property to this file will not forward from a Codespace.)
+
+  ifrs:
+    build:
+      context: ..
+      dockerfile: ./services/ifrs/.devcontainer/Dockerfile
+      args:
+        VARIANT: 3.9
+        INSTALL_NODE: "true"
+        NODE_VERSION: "lts/*"
+        PACKAGE_NAME: "file-services-backend"
+        USER_UID: 1000
+        USER_GID: 1000
+
+    init: true
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    volumes:
+      - ..:/workspace:cached
+
+    command: sleep infinity
+    user: vscode
+
+    environment:
+      IFRS_CONFIG_YAML: /workspace/services/ifrs/.dev/.dev_config.yaml
+
+
+  irs:
+    build:
+      context: ..
+      dockerfile: ./services/irs/.devcontainer/Dockerfile
+      args:
+        VARIANT: 3.9
+        INSTALL_NODE: "true"
+        NODE_VERSION: "lts/*"
+        PACKAGE_NAME: "file-services-backend"
+        USER_UID: 1000
+        USER_GID: 1000
+
+    init: true
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    volumes:
+      - ..:/workspace:cached
+
+    command: sleep infinity
+    user: vscode
+
+    environment:
+      IRS_CONFIG_YAML: /workspace/services/irs/.dev/.dev_config.yaml
+
+  pcs:
+    build:
+      context: ..
+      dockerfile: ./services/pcs/.devcontainer/Dockerfile
+      args:
+        VARIANT: 3.9
+        INSTALL_NODE: "true"
+        NODE_VERSION: "lts/*"
+        PACKAGE_NAME: "file-services-backend"
+        USER_UID: 1000
+        USER_GID: 1000
+
+    init: true
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    volumes:
+      - ..:/workspace:cached
+
+    command: sleep infinity
+    user: vscode
+
+    environment:
+      PCS_CONFIG_YAML: /workspace/services/pcs/.dev/.dev_config.yaml

@@ -50,8 +50,7 @@ async def test_journey(joint_fixture: JointFixture):  # noqa: F811
         response = await joint_fixture.rest_client.delete(
             f"/files/{file_id}", headers=headers, timeout=5
         )
-
-    assert response.status_code == status.HTTP_202_ACCEPTED
+        assert response.status_code == status.HTTP_202_ACCEPTED
 
     headers = Headers({"Authorization": "Bearer not-a-valid-token"})
     response = await joint_fixture.rest_client.delete(

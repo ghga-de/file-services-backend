@@ -130,9 +130,6 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# ignore VS Code settings:
-.vscode/
-
 # key stores
 *.key
 *.rnd
