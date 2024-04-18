@@ -6,6 +6,7 @@
 	"dockerComposeFile": ["../../../.devcontainer/docker-compose.yml"],
 	"service": "irs",
 	"workspaceFolder": "irs",
+	"shutdownAction":"none",
 	"customizations": {
 		"vscode": {
 			// Set *default* container specific settings.json values on container create.

@@ -2,4 +2,6 @@
     "files.exclude": {
         "services/**": true
     },
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": false
 }
