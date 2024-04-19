@@ -21,8 +21,8 @@ import pytest
 from hexkit.providers.s3.testutils import FileObject, file_fixture  # noqa: F401
 from ifrs.ports.inbound.file_registry import FileRegistryPort
 
-from tests.fixtures.example_data import EXAMPLE_METADATA, EXAMPLE_METADATA_BASE
-from tests.fixtures.module_scope_fixtures import (  # noqa: F401
+from .fixtures.example_data import EXAMPLE_METADATA, EXAMPLE_METADATA_BASE
+from .fixtures.module_scope_fixtures import (  # noqa: F401
     JointFixture,
     joint_fixture,
     kafka_fixture,
