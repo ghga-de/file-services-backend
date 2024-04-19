@@ -19,11 +19,12 @@ from datetime import timedelta
 
 import pytest
 from ghga_service_commons.utils.utc_dates import now_as_utc
+
 from irs.adapters.outbound.dao import StagingObjectDaoConstructor
 from irs.core.models import StagingObject
 from irs.inject import prepare_storage_inspector
-
-from .fixtures.joint import (
+from tests.irs_fixtures.files import create_test_file
+from tests.irs_fixtures.joint import (
     STAGING_BUCKET_ID,
     JointFixture,
     joint_fixture,  # noqa: F401
@@ -33,7 +34,6 @@ from .fixtures.joint import (
     s3_fixture,  # noqa: F401
     second_s3_fixture,  # noqa: F401
 )
-from .fixtures.test_files import create_test_file
 
 
 @pytest.mark.asyncio(scope="session")

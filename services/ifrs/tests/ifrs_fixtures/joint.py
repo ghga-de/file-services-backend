@@ -33,14 +33,14 @@ from hexkit.providers.akafka.testutils import KafkaFixture
 from hexkit.providers.mongodb import MongoDbDaoFactory
 from hexkit.providers.mongodb.testutils import MongoDbFixture
 from hexkit.providers.s3.testutils import S3Fixture
+from pytest_asyncio.plugin import _ScopeName
+
 from ifrs.adapters.outbound.dao import FileMetadataDaoConstructor
 from ifrs.config import Config
 from ifrs.inject import prepare_core
 from ifrs.ports.inbound.file_registry import FileRegistryPort
 from ifrs.ports.outbound.dao import FileMetadataDaoPort
-from pytest_asyncio.plugin import _ScopeName
-
-from .config import get_config
+from tests.ifrs_fixtures.config import get_config
 
 OUTBOX_BUCKET = "outbox"
 PERMANENT_BUCKET = "permanent"

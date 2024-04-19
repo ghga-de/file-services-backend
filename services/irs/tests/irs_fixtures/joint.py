@@ -30,12 +30,12 @@ from hexkit.providers.akafka import KafkaEventSubscriber
 from hexkit.providers.akafka.testutils import KafkaFixture, get_kafka_fixture
 from hexkit.providers.mongodb.testutils import MongoDbFixture, get_mongodb_fixture
 from hexkit.providers.s3.testutils import S3Fixture, get_s3_fixture
+
 from irs.config import Config
 from irs.inject import prepare_core, prepare_event_subscriber
 from irs.ports.inbound.interrogator import InterrogatorPort
-
-from tests.fixtures.config import get_config
-from tests.fixtures.keypair_fixtures import (
+from tests.irs_fixtures.config import get_config
+from tests.irs_fixtures.keypair_fixtures import (
     KeypairFixture,
     keypair_fixture,  # noqa: F401
 )

@@ -1,7 +1,6 @@
 {
-    "files.exclude": {
-        "services/**": true
-    },
     "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true
+    "python.testing.pytestEnabled": true,
+    "python.testing.cwd": "/workspace/services",
+    "python.testing.pytestArgs": ["ifrs", "irs", "pcs"]
 }

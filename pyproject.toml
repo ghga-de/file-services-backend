@@ -46,6 +46,7 @@ src = [
     "tests",
     "examples",
     "scripts",
+    "services"
 ]
 target-version = "py39"
 

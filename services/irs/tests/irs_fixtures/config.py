@@ -18,10 +18,10 @@
 from pathlib import Path
 from typing import Any, Optional
 
-from irs.config import Config
 from pydantic_settings import BaseSettings
 
-from tests.fixtures.utils import BASE_DIR
+from irs.config import Config
+from tests.irs_fixtures.utils import BASE_DIR
 
 TEST_CONFIG_YAML = BASE_DIR / "test_config.yaml"
 

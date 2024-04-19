@@ -24,7 +24,7 @@ from ghga_event_schemas import pydantic_ as event_schemas
 from hexkit.providers.akafka.testutils import ExpectedEvent
 from httpx import Headers
 
-from .fixtures.joint import (  # noqa: F401
+from tests.pcs_fixtures.joint import (  # noqa: F401
     JointFixture,
     joint_fixture,
     kafka_fixture,

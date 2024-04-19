@@ -26,14 +26,15 @@ from ghga_service_commons.utils.utc_dates import now_as_utc
 from hexkit.protocols.dao import ResourceNotFoundError
 from hexkit.providers.akafka.testutils import ExpectedEvent
 from hexkit.utils import calc_part_size
+
 from irs.adapters.outbound.dao import (
     FingerprintDaoConstructor,
     StagingObjectDaoConstructor,
 )
 from irs.core.models import InterrogationSubject, UploadReceivedFingerprint
-
-from .fixtures.config import Config
-from .fixtures.joint import (
+from tests.irs_fixtures.config import Config
+from tests.irs_fixtures.files import EncryptedData, create_test_file
+from tests.irs_fixtures.joint import (
     INBOX_BUCKET_ID,
     STAGING_BUCKET_ID,
     JointFixture,
@@ -44,7 +45,6 @@ from .fixtures.joint import (
     s3_fixture,  # noqa: F401
     second_s3_fixture,  # noqa: F401
 )
-from .fixtures.test_files import EncryptedData, create_test_file
 
 EKSS_NEW_SECRET = os.urandom(32)
 
