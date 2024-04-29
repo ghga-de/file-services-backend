@@ -32,8 +32,8 @@ from irs.adapters.outbound.dao import (
 )
 from irs.core.models import InterrogationSubject, UploadReceivedFingerprint
 
-from tests.fixtures.config import Config
-from tests.fixtures.joint import (
+from tests_irs.fixtures.config import Config
+from tests_irs.fixtures.joint import (
     INBOX_BUCKET_ID,
     STAGING_BUCKET_ID,
     JointFixture,
@@ -44,7 +44,7 @@ from tests.fixtures.joint import (
     s3_fixture,  # noqa: F401
     second_s3_fixture,  # noqa: F401
 )
-from tests.fixtures.test_files import EncryptedData, create_test_file
+from tests_irs.fixtures.test_files import EncryptedData, create_test_file
 
 EKSS_NEW_SECRET = os.urandom(32)
 

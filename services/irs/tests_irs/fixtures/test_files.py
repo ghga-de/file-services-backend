@@ -28,7 +28,7 @@ from ghga_service_commons.utils.temp_files import big_temp_file
 from ghga_service_commons.utils.utc_dates import now_as_utc
 from hexkit.providers.s3.testutils import FileObject
 
-from tests.fixtures.joint import FILE_SIZE, S3Fixture
+from tests_irs.fixtures.joint import FILE_SIZE, S3Fixture
 
 
 @dataclass

@@ -34,8 +34,8 @@ from irs.config import Config
 from irs.inject import prepare_core, prepare_event_subscriber
 from irs.ports.inbound.interrogator import InterrogatorPort
 
-from tests.fixtures.config import get_config
-from tests.fixtures.keypair_fixtures import (
+from tests_irs.fixtures.config import get_config
+from tests_irs.fixtures.keypair_fixtures import (
     KeypairFixture,
     keypair_fixture,  # noqa: F401
 )

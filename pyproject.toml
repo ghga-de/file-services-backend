@@ -43,7 +43,7 @@ exclude = [
 line-length = 88
 src = [
     "src",
-    "tests",
+    "tests_*",
     "examples",
     "scripts",
 ]
@@ -96,7 +96,7 @@ max-complexity = 10
     "SIM",
     "D",
 ]
-"services/*/tests/*" = [
+"services/*/tests_*/*" = [
     "S",
     "SIM",
     "PLR",

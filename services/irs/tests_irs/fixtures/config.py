@@ -16,12 +16,12 @@
 """Test config"""
 
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
-from pcs.config import Config
+from irs.config import Config
 from pydantic_settings import BaseSettings
 
-from tests.fixtures.utils import BASE_DIR
+from tests_irs.fixtures.utils import BASE_DIR
 
 TEST_CONFIG_YAML = BASE_DIR / "test_config.yaml"
 
@@ -33,10 +33,10 @@ def get_config(
     """Merges parameters from the default TEST_CONFIG_YAML with params inferred
     from testcontainers.
     """
-    sources_dict: dict[str, object] = {}
+    sources_dict: dict[str, Any] = {}
 
     if sources is not None:
         for source in sources:
             sources_dict.update(**source.model_dump())
 
-    return Config(config_yaml=default_config_yaml, **sources_dict)  # type: ignore
+    return Config(config_yaml=default_config_yaml, **sources_dict)
