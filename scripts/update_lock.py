@@ -30,7 +30,6 @@ from tempfile import TemporaryDirectory
 import tomli_w
 
 from script_utils import cli, deps
-from scripts.script_utils.utils import list_service_dirs
 
 REPO_ROOT_DIR = Path(__file__).parent.parent.resolve()
 LOCK_DIR = REPO_ROOT_DIR / "lock"
@@ -98,8 +97,6 @@ def compile_lock_file(
     and write it to the specified output location.
     """
 
-    production_reqs = output.name == OUTPUT_LOCK_PATH.name
-
     print(f"Updating '{output.name}'...")
 
     command = [
@@ -121,7 +118,7 @@ def compile_lock_file(
     command.extend([str(source.absolute()) for source in sources])
 
     # constrain the production deps by what's pinned in requirements-dev.txt
-    if production_reqs:
+    if output.name == OUTPUT_LOCK_PATH.name:
         command.extend(["-c", str(OUTPUT_DEV_LOCK_PATH)])
 
     completed_process = subprocess.run(
@@ -136,13 +133,6 @@ def compile_lock_file(
         raise RuntimeError(f"Failed to compile lock file:\n{log}")
 
     fix_temp_dir_comments(output.absolute())
-
-    if production_reqs:
-        # copy production lock files to services and delete from root lock folder
-
-        for service_dir in list_service_dirs():
-            os.system(f"cp {OUTPUT_LOCK_PATH} {service_dir.absolute()}")
-        os.remove(OUTPUT_LOCK_PATH)
 
 
 def ensure_lock_files_exist():
@@ -216,10 +206,9 @@ def main(upgrade: bool = False, check: bool = False):
         cli.echo_success("Lock files are up to date.")
     else:
         cli.echo_success(
-            f"Successfully updated the lock files at '{OUTPUT_DEV_LOCK_PATH}' and:"
+            f"Successfully updated lock files at '{OUTPUT_LOCK_PATH}' and"
+            + f" '{OUTPUT_DEV_LOCK_PATH}'."
         )
-        for service in list_service_dirs():
-            cli.echo_success(f" - '{service.absolute()}/{OUTPUT_LOCK_PATH.name}'")
 
 
 if __name__ == "__main__":
