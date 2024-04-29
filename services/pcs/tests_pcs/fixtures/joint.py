@@ -28,7 +28,7 @@ from pcs.adapters.inbound.fastapi_.config import TokenHashConfig
 from pcs.config import Config
 from pcs.inject import prepare_core, prepare_rest_app
 from pcs.ports.inbound.file_deletion import FileDeletionPort
-from tests.pcs_fixtures.config import get_config
+from tests_pcs.fixtures.config import get_config
 
 __all__ = [
     "joint_fixture",

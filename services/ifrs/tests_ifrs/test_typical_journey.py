@@ -25,8 +25,8 @@ from hexkit.providers.s3.testutils import (
     file_fixture,  # noqa: F401
 )
 
-from tests.ifrs_fixtures.example_data import EXAMPLE_METADATA, EXAMPLE_METADATA_BASE
-from tests.ifrs_fixtures.module_scope_fixtures import (  # noqa: F401
+from tests_ifrs.fixtures.example_data import EXAMPLE_METADATA, EXAMPLE_METADATA_BASE
+from tests_ifrs.fixtures.module_scope_fixtures import (  # noqa: F401
     JointFixture,
     joint_fixture,
     kafka_fixture,

@@ -32,9 +32,9 @@ from irs.adapters.outbound.dao import (
     StagingObjectDaoConstructor,
 )
 from irs.core.models import InterrogationSubject, UploadReceivedFingerprint
-from tests.irs_fixtures.config import Config
-from tests.irs_fixtures.files import EncryptedData, create_test_file
-from tests.irs_fixtures.joint import (
+from tests_irs.fixtures.config import Config
+from tests_irs.fixtures.files import EncryptedData, create_test_file
+from tests_irs.fixtures.joint import (
     INBOX_BUCKET_ID,
     STAGING_BUCKET_ID,
     JointFixture,

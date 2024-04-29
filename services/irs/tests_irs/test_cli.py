@@ -23,8 +23,8 @@ from ghga_service_commons.utils.utc_dates import now_as_utc
 from irs.adapters.outbound.dao import StagingObjectDaoConstructor
 from irs.core.models import StagingObject
 from irs.inject import prepare_storage_inspector
-from tests.irs_fixtures.files import create_test_file
-from tests.irs_fixtures.joint import (
+from tests_irs.fixtures.files import create_test_file
+from tests_irs.fixtures.joint import (
     STAGING_BUCKET_ID,
     JointFixture,
     joint_fixture,  # noqa: F401

@@ -40,7 +40,7 @@ from ifrs.config import Config
 from ifrs.inject import prepare_core
 from ifrs.ports.inbound.file_registry import FileRegistryPort
 from ifrs.ports.outbound.dao import FileMetadataDaoPort
-from tests.ifrs_fixtures.config import get_config
+from tests_ifrs.fixtures.config import get_config
 
 OUTBOX_BUCKET = "outbox"
 PERMANENT_BUCKET = "permanent"
