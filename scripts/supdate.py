@@ -23,7 +23,6 @@ import typer
 
 from script_utils import utils
 from update_config_docs import main as update_config
-from update_dockerfile import main as update_dockerfile
 from update_hook_revs import main as update_hooks
 from update_openapi_docs import main as update_openapi
 from update_pyproject import main as update_pyproject
@@ -59,13 +58,6 @@ def run_for_service_or_all(func: Callable) -> Callable:
     return wrapper
 
 
-@app.command(name="docker")
-@run_for_service_or_all
-def docker(service: str = ServiceArg, check: bool = CheckFlag):
-    """Run scripts/update_dockerfile.py for one or all services."""
-    update_dockerfile(service=service, check=check)
-
-
 @app.command(name="pyproject")
 @run_for_service_or_all
 def pyproject(
@@ -96,12 +88,11 @@ def openapi(service: str = ServiceArg, check: bool = CheckFlag):
 def update_one_service(service: str = ServiceArg, check: bool = CheckFlag):
     """Run all service-specific update scripts for one or all services.
 
-    This will update the config, pyproject, dockerfile, openapi, and lock file.
+    This will update the config, pyproject, and openapi.
     """
     print(f"Updating all for {service}")
     update_pyproject(service=service, check=check)
     update_config(service=service, check=check)
-    update_dockerfile(service=service, check=check)
     update_openapi(service=service, check=check)
 
 

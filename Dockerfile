@@ -22,8 +22,8 @@ RUN pip install build
 # copy code
 COPY . /service
 WORKDIR /service
-# build wheel
-RUN python -m build
+# build wheels
+RUN for svc in ./services/*; do python -m build $svc --outdir ./dist; done
 
 # creating running container
 FROM python:3.10.9-slim-bullseye
@@ -32,7 +32,7 @@ RUN apt update
 RUN apt upgrade -y
 # copy and install requirements and wheel
 WORKDIR /service
-COPY --from=builder /service/requirements.txt /service
+COPY --from=builder /service/lock/requirements.txt /service
 RUN pip install --no-deps -r requirements.txt
 RUN rm requirements.txt
 COPY --from=builder /service/dist/ /service
@@ -44,4 +44,3 @@ WORKDIR /home/appuser
 USER appuser
 # set environment
 ENV PYTHONUNBUFFERED=1
-ENTRYPOINT ["$entrypoint"]
