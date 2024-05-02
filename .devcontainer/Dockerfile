@@ -14,6 +14,6 @@ RUN if [ "${INSTALL_NODE}" = "true" ]; then su vscode -c "umask 0002 && . /usr/l
 
 # Copy install and launcher script to bin:
 COPY ./dev_install /bin
-COPY ./supdate /bin
+COPY ./update_service_files /bin
 
 CMD ["sleep", "infinity"]

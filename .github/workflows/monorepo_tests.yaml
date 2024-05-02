@@ -1,0 +1,55 @@
+name: Monorepo Tests
+
+on: push
+
+jobs:
+  check-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.services-changed.outputs.affected }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          filter: tree:0
+          fetch-depth: 0
+
+      - name: Install Typer to check changed services
+        id: install-typer
+        run: pip install typer>=0.9.0
+
+      - name: Generate list of changed services
+        id: services-changed
+        run: |
+          echo "affected=$(python3 ./scripts/get_affected_services.py)" >> $GITHUB_OUTPUT
+
+  test:
+    if: ${{needs.check-changes.outputs.services}} != "[]"
+    needs: check-changes
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.check-changes.outputs.services) }}
+      fail-fast: false
+    env:
+      IFRS_CONFIG_YAML: ./services/ifrs/dev_config.yaml
+      IRS_CONFIG_YAML: ./services/irs/dev_config.yaml
+      PCS_CONFIG_YAML: ./services/pcs/dev_config.yaml
+    steps:
+      - name: Checkout ${{matrix.service}}
+        uses: actions/checkout@v4
+        with:
+          filter: tree:0
+          fetch-depth: 0
+
+      - name: Update pip and pyopenssl
+        id: pip-update
+        run: python -m pip install --upgrade pip && pip install --upgrade pyopenssl
+
+      - name: Install global and local dependencies for ${{matrix.service}}
+        id: install-dependencies
+        run: pip install --no-deps -r ./lock/requirements-dev.txt && pip install --no-deps ./services/${{matrix.service}}
+
+      - name: Run tests for ${{matrix.service}}
+        id: run-tests
+        run: pytest ./services/${{matrix.service}}
