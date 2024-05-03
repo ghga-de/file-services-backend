@@ -1,7 +1,7 @@
-[![tests](https://github.com/ghga-de/interrogation-room-service/actions/workflows/tests.yaml/badge.svg)](https://github.com/ghga-de/interrogation-room-service/actions/workflows/tests.yaml)
-[![Coverage Status](https://coveralls.io/repos/github/ghga-de/interrogation-room-service/badge.svg?branch=main)](https://coveralls.io/github/ghga-de/interrogation-room-service?branch=main)
+[![tests](https://github.com/ghga-de/TODO/actions/workflows/tests.yaml/badge.svg)](https://github.com/ghga-de/TODO/actions/workflows/tests.yaml)
+[![Coverage Status](https://coveralls.io/repos/github/ghga-de/TODO/badge.svg?branch=main)](https://coveralls.io/github/ghga-de/TODO?branch=main)
 
-# Interrogation Room Service
+# TODO
 
 Interrogation Room Service
 
@@ -15,15 +15,15 @@ The IRS splits off the file envelope, computes part checksums over the encrypted
 
 We recommend using the provided Docker container.
 
-A pre-build version is available at [docker hub](https://hub.docker.com/repository/docker/ghga/interrogation-room-service):
+A pre-build version is available at [docker hub](https://hub.docker.com/repository/docker/ghga/TODO):
 ```bash
-docker pull ghga/interrogation-room-service:2.1.0
+docker pull ghga/TODO:2.1.0
 ```
 
 Or you can build the container yourself from the [`./Dockerfile`](./Dockerfile):
 ```bash
 # Execute in the repo's root dir:
-docker build -t ghga/interrogation-room-service:2.1.0 .
+docker build -t ghga/TODO:2.1.0 .
 ```
 
 For production-ready deployment, we recommend using Kubernetes, however,
@@ -31,7 +31,7 @@ for simple use cases, you could execute the service using docker
 on a single server:
 ```bash
 # The entrypoint is preconfigured:
-docker run -p 8080:8080 ghga/interrogation-room-service:2.1.0 --help
+docker run -p 8080:8080 ghga/TODO:2.1.0 --help
 ```
 
 If you prefer not to use containers, you may install the service from source:

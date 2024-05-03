@@ -1,33 +1,21 @@
-[![tests](https://github.com/ghga-de/file-services-backend/actions/workflows/tests.yaml/badge.svg)](https://github.com/ghga-de/file-services-backend/actions/workflows/tests.yaml)
-[![Coverage Status](https://coveralls.io/repos/github/ghga-de/file-services-backend/badge.svg?branch=main)](https://coveralls.io/github/ghga-de/file-services-backend?branch=main)
+[![tests](https://github.com/ghga-de/$repo_name/actions/workflows/tests.yaml/badge.svg)](https://github.com/ghga-de/$repo_name/actions/workflows/tests.yaml)
+[![Coverage Status](https://coveralls.io/repos/github/ghga-de/$repo_name/badge.svg?branch=main)](https://coveralls.io/github/ghga-de/$repo_name?branch=main)
 
-# File Services Backend
+# $title
 
-File Services Backend - monorepo housing file services
+$summary
 
 ## Description
 
-<!-- Please provide a short overview of the features of this service. -->
-
-Here you should provide a short summary of the purpose of this microservice.
-
+$description
 
 ## Architecture and Design:
 
-<!-- Please provide an overview of the architecture and design of the code base.
-Mention anything that deviates from the standard triple hexagonal architecture and
-the corresponding structure. -->
-
-This is monorepo containing Python-based services following the Triple Hexagonal Architecture pattern.
-It uses protocol/provider pairs and dependency injection mechanisms provided by the
-[hexkit](https://github.com/ghga-de/hexkit) library.
-
+$design_description
 
 ## Services:
 
-[Internal-File-Registry-Service - This service acts as a registry for the internal location and representation of files.](services/ifrs/README.md)
-[Interrogation Room Service](services/irs/README.md)
-[Purge Controller Service - a service to commission file deletions](services/pcs/README.md)
+$service_readmes
 
 ## Development:
 

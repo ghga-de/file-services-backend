@@ -67,7 +67,7 @@ else:
     update_openapi()
 
 try:
-    from update_readme import main as update_readme
+    from scripts.update_readme_services import main as update_readme
 except ImportError:
     print("update_readme script not found")
 else:
