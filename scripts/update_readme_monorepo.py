@@ -27,6 +27,7 @@ from pydantic import BaseModel, Field
 from stringcase import spinalcase, titlecase
 
 from script_utils.cli import echo_failure, echo_success, run
+from script_utils.utils import list_service_dirs
 
 ROOT_DIR = Path(__file__).parent.parent.resolve()
 PYPROJECT_TOML_PATH = ROOT_DIR / "pyproject.toml"
@@ -142,9 +143,8 @@ def get_service_readmes() -> str:
     """TODO"""
 
     service_readme_links = []
-    service_dirs = [service for service in SERVICE_ROOT.iterdir() if service.is_dir()]
 
-    for service_dir in sorted(service_dirs):
+    for service_dir in sorted(list_service_dirs()):
         service_description = read_service_description(service_dir)
         readme_link = service_dir.relative_to(ROOT_DIR) / "README.md"
         service_readme_links.append(f"[{service_description}]({readme_link})")

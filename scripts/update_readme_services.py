@@ -27,10 +27,10 @@ import tomli
 from pydantic import BaseModel, Field
 
 from script_utils.cli import echo_failure, echo_success, run
+from script_utils.utils import list_service_dirs
 
 ROOT_DIR = Path(__file__).parent.parent.resolve()
 README_TEMPLATE_PATH = ROOT_DIR / ".readme_generation" / "readme_template_service.md"
-SERVICE_ROOT = ROOT_DIR / "services"
 
 
 class PackageHeader(BaseModel):
@@ -181,10 +181,7 @@ def generate_single_readme(*, details: PackageDetails) -> str:
 def main(check: bool = False) -> None:
     """Update the readme markdown."""
 
-    for service_dir in SERVICE_ROOT.iterdir():
-        if not service_dir.is_dir():
-            continue
-
+    for service_dir in list_service_dirs():
         service_name = service_dir.name
         service_details = ServiceDetails(service_dir=service_dir)
 
