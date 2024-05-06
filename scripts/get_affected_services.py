@@ -65,10 +65,14 @@ def get_top_level_changes(files: list[str]) -> list[str]:
     return [file for file in files if not file.startswith("services/")]
 
 
-def files_in_diff(full: bool, target: str) -> list[str]:
+def files_in_diff(full: bool) -> list[str]:
     """List files in diff."""
     # Command to list names of changed files
-    change_range = f"{target}...HEAD" if full else "HEAD HEAD~1"
+    if full:
+        base = get_parent_branch()
+    else:
+        base = "HEAD~1"
+    change_range = f"{base}...HEAD"
     command = f"git diff --name-only {change_range}"
 
     # Execute the command and capture the output
@@ -93,15 +97,21 @@ def on_main_branch() -> bool:
     return branch_name == "main"
 
 
+def get_parent_branch() -> str:
+    """Get parent branch name"""
+    command = r'git show-branch | sed "s/].*//" | grep "\*" | grep -v "$(git rev-parse --abbrev-ref HEAD)" | head -n1 | sed "s/^.*\[//"'
+    output = subprocess.run(
+        command, shell=True, text=True, capture_output=True, check=True
+    )
+    branch_name = output.stdout.strip()
+    return branch_name
+
+
 def main(
     *,
     full: bool = typer.Option(
-        True,
+        False,
         help="If set, runs for all changes in branch. Otherwise runs for current commit.",
-    ),
-    target: str = typer.Option(
-        "main",
-        help='Which branch to compare against. Defaults to "main". Has no effect if full=False.',
     ),
 ):
     """Determine if changes require running CI checks for all or a subset of services.
@@ -111,7 +121,7 @@ def main(
     if on_main_branch():
         return
 
-    files = files_in_diff(full=full, target=target)
+    files = files_in_diff(full)
 
     # In practice, changes should affect either one or all services, but that is not
     # assumed to always hold true.
