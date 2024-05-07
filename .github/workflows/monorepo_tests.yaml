@@ -30,7 +30,7 @@ jobs:
 
   test:
     needs: get-changed-services
-    if: ${{needs.get-changed-services.outputs.services}} != ""
+    if: ${{needs.get-changed-services.outputs.services}} != "[]"
     runs-on: ubuntu-latest
     strategy:
       matrix:
