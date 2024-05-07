@@ -15,7 +15,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          filter: tree:0
           fetch-depth: 2
 
       - name: Changed Files
@@ -33,7 +32,7 @@ jobs:
 
   test:
     needs: get-changed-services
-    if: ${{needs.get-changed-services.outputs.services}} != "[]"
+    if: ${{ needs.get-changed-services.outputs.services != '' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -47,8 +46,7 @@ jobs:
       - name: Checkout ${{matrix.service}}
         uses: actions/checkout@v4
         with:
-          filter: tree:0
-          fetch-depth: 0
+          fetch-depth: 2
 
       - name: Update pip and pyopenssl
         id: pip-update
