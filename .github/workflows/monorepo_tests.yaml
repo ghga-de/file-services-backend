@@ -24,7 +24,7 @@ jobs:
           echo "affected=$(python3 ./scripts/get_affected_services.py --full)" >> $GITHUB_OUTPUT
 
   test:
-    if: ${{needs.check-changes.outputs.services}} != "[]"
+    if: ${{needs.check-changes.outputs.services}} != "" && ${{needs.check-changes.outputs.services}} != "[]"
     needs: check-changes
     runs-on: ubuntu-latest
     strategy:
