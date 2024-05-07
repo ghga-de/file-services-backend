@@ -69,7 +69,7 @@ def files_in_diff(full: bool) -> list[str]:
     """List files in diff."""
     # Command to list names of changed files
     if full:
-        base = get_parent_branch()
+        base = "origin/main"
     else:
         base = "HEAD~1"
     change_range = f"{base}...HEAD"
@@ -95,16 +95,6 @@ def on_main_branch() -> bool:
     )
     branch_name = output.stdout.strip()
     return branch_name == "main"
-
-
-def get_parent_branch() -> str:
-    """Get parent branch name"""
-    command = r'git show-branch | sed "s/].*//" | grep "\*" | grep -v "$(git rev-parse --abbrev-ref HEAD)" | head -n1 | sed "s/^.*\[//"'
-    output = subprocess.run(
-        command, shell=True, text=True, capture_output=True, check=True
-    )
-    branch_name = output.stdout.strip()
-    return branch_name
 
 
 def main(
