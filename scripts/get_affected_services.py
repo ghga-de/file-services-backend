@@ -65,7 +65,7 @@ def get_top_level_changes(files: list[str]) -> list[str]:
     return [file for file in files if not file.startswith("services/")]
 
 
-def main(*, changed_files: list[str] = typer.Option(..., help="")):
+def main(changed_files: list[str]):
     """Determine if changes require running CI checks for all or a subset of services.
 
     Output is a comma-delimited string of affected services.

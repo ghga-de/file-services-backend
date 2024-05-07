@@ -28,7 +28,7 @@ jobs:
       - name: Generate list of changed services
         id: services-changed
         run: |
-          echo "affected=$(python3 ./scripts/get_affected_services.py --changed-files ${{ steps.changed-files.outputs.all_changed_files }} )" >> $GITHUB_OUTPUT
+          echo "affected=$(python3 ./scripts/get_affected_services.py ${{ steps.changed-files.outputs.all_changed_files }} )" >> $GITHUB_OUTPUT
 
   test:
     needs: get-changed-services
