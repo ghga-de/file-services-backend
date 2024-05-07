@@ -3,16 +3,21 @@ name: Monorepo Tests
 on: push
 
 jobs:
-  check-changes:
+  get-changed-services:
     runs-on: ubuntu-latest
     outputs:
       services: ${{ steps.services-changed.outputs.affected }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           filter: tree:0
           fetch-depth: 0
+
+      - name: Changed Files
+        id: changed-files
+        uses: tj-actions/changed-files@v44.3.0
 
       - name: Install Typer to check changed services
         id: install-typer
@@ -21,15 +26,15 @@ jobs:
       - name: Generate list of changed services
         id: services-changed
         run: |
-          echo "affected=$(python3 ./scripts/get_affected_services.py --full)" >> $GITHUB_OUTPUT
+          echo "affected=$(python3 ./scripts/get_affected_services.py --changed-files ${{ steps.changed-files.outputs.all_changed_files }} )" >> $GITHUB_OUTPUT
 
   test:
-    if: ${{needs.check-changes.outputs.services}} != "" && ${{needs.check-changes.outputs.services}} != "[]"
-    needs: check-changes
+    needs: get-changed-services
+    if: ${{needs.get-changed-services.outputs.services}} != ""
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: ${{ fromJson(needs.check-changes.outputs.services) }}
+        service: ${{ fromJson(needs.get-changed-services.outputs.services) }}
       fail-fast: false
     env:
       IFRS_CONFIG_YAML: ./services/ifrs/dev_config.yaml
