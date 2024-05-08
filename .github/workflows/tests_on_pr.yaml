@@ -1,6 +1,6 @@
 name: Monorepo Tests
 
-on: pull_request
+on: pull_request_target
 
 jobs:
   get-changed-services:
@@ -18,7 +18,7 @@ jobs:
         id: changed-files
         uses: tj-actions/changed-files@v44.3.0
         with:
-          since_last_remote_commit: true
+          base_sha: ${{github.base_ref}}
 
       - name: Install Typer to check changed services
         id: install-typer
