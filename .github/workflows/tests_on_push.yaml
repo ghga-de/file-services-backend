@@ -1,4 +1,4 @@
-name: Monorepo Tests
+name: Monorepo Push Tests
 
 on:
   push:
