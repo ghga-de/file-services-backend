@@ -1,6 +1,6 @@
 name: Monorepo Tests
 
-on: pull_request_target
+on: pull_request
 
 jobs:
   get-changed-services:
@@ -12,13 +12,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Changed Files
         id: changed-files
-        uses: tj-actions/changed-files@v44.3.0
-        with:
-          base_sha: ${{github.base_ref}}
+        uses: tj-actions/changed-files@v44
 
       - name: Install Typer to check changed services
         id: install-typer
@@ -45,8 +43,7 @@ jobs:
       - name: Checkout ${{matrix.service}}
         uses: actions/checkout@v4
         with:
-          filter: tree:0
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Update pip and pyopenssl
         id: pip-update
