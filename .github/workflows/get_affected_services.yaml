@@ -1,9 +1,5 @@
 name: Get services affected by changes
 
-concurrency:
-  group: diff-services
-  cancel-in-progress: true
-
 on:
   workflow_call:
     outputs:
