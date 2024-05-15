@@ -12,8 +12,8 @@ This is a monorepo containing all GHGA file backend microservices.
 
 ## Services:
 
-[Internal File Registry Service](services/ifrs/README.md)
-[Interrogation Room Service](services/irs/README.md)
+[Internal File Registry Service](services/ifrs/README.md)  
+[Interrogation Room Service](services/irs/README.md)  
 [Purge Controller Service](services/pcs/README.md)
 
 ## Development:
