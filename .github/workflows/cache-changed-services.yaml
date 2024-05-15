@@ -33,13 +33,14 @@ jobs:
       - name: Check for cache hit
         id: check-cache
         run: |
-          if [ -f services.txt ]; then
+          if ls -f services.txt; then
             echo "Cache hit, reading services.txt"
             CHANGED_SERVICES=$(cat services.txt)
             echo "services=$CHANGED_SERVICES" >> $GITHUB_ENV
           else
             echo "Cache miss, no services.txt found"
             echo "services=none" >> $GITHUB_ENV
+          fi
 
       - name: Run get-changed-services if cache miss
         id: run-get-changed-services
