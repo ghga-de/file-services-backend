@@ -1,0 +1,62 @@
+name: Cache and Retrieve Changed Services
+
+on:
+  workflow_call:
+    inputs:
+      cache-key:
+        description: 'Cache key to use for retrieving the changed services'
+        required: true
+        type: string
+    outputs:
+      services:
+        description: 'List of changed services'
+        value: ${{ steps.read-cached-result.outputs.services }}
+
+jobs:
+  cache-and-retrieve:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Restore cache
+        id: cache-changed-services
+        uses: actions/cache@v3
+        with:
+          path: services.txt
+          key: ${{ inputs.cache-key }}
+          restore-keys: |
+            changed-services
+
+      - name: Check for cache hit
+        id: check-cache
+        run: |
+          if [ -f services.txt ]; then
+            echo "Cache hit, reading services.txt"
+            CHANGED_SERVICES=$(cat services.txt)
+            echo "services=$CHANGED_SERVICES" >> $GITHUB_ENV
+          else
+            echo "Cache miss, no services.txt found"
+            echo "services=none" >> $GITHUB_ENV
+
+      - name: Run get-changed-services if cache miss
+        if: env.services == 'none'
+        run: |
+          echo "Running get-changed-services"
+          CHANGED_SERVICES=$(python3 ./scripts/get_target_services.py)
+          echo $CHANGED_SERVICES > services.txt
+          echo "services=$CHANGED_SERVICES" >> $GITHUB_ENV
+
+      - name: Cache the result
+        if: env.services != 'none'
+        uses: actions/cache@v3
+        with:
+          path: services.txt
+          key: ${{ inputs.cache-key }}
+          restore-keys: |
+            changed-services
+
+      - name: Set output
+        id: set-output
+        run: |
+          echo "services=${{env.services}}" >> $GITHUB_OUTPUT

@@ -6,37 +6,16 @@ on:
       - main
 
 jobs:
-  get-changed-services:
-    runs-on: ubuntu-latest
-    outputs:
-      services: ${{ steps.services-changed.outputs.affected }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
-
-      - name: Changed Files
-        id: changed-files
-        uses: tj-actions/changed-files@v44
-
-      - name: Install Typer to check changed services
-        id: install-typer
-        run: pip install typer>=0.9.0
-
-      - name: Generate list of changed services
-        id: services-changed
-        run: |
-          echo "affected=$(python3 ./scripts/get_affected_services.py ${{ steps.changed-files.outputs.all_changed_files }} )" >> $GITHUB_OUTPUT
+  setup-matrix:
+    uses: ./.github/workflows/cache-changed-services.yml
+    with:
+      cache-key: ${{ github.sha }}-changed-services
 
   test:
-    needs: get-changed-services
-    if: ${{ needs.get-changed-services.outputs.services != '' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: ${{ fromJson(needs.get-changed-services.outputs.services) }}
+        service: ${{ fromJson(needs.setup-matrix.outputs.services) }}
       fail-fast: false
     env:
       IFRS_CONFIG_YAML: ./services/ifrs/dev_config.yaml
