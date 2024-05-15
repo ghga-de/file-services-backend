@@ -101,11 +101,16 @@ class ServiceDetails:
         """Get details required to build documentation for the package."""
 
         header = self.read_toml_package_header()
-        # parse from pyproject
         description = self.read_package_description()
-        service_name = spinalcase(description)
+
+        service_name = header.summary
+        if "-" in service_name:
+            service_name, summary = service_name.split("-")
+            header.summary = summary.strip()
+        service_name = spinalcase(service_name.strip())
         title = titlecase(service_name)
         name = PackageName(name=service_name, title=title)
+
         config_description = self.generate_config_docs()
         return PackageDetails(
             **header.model_dump(),

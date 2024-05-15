@@ -1,6 +1,6 @@
-# This Service Provides Functionality To Administer Files Stored In An  S3 Compatible Object Storage   All File Related Metadata Is Stored In An Internal Mongodb Database, Owned And Controlled By This Service   It Exposes No  R E S T  A P I Enpoints And Communicates With Other Services Via Events   ###  Events Consumed:  #### Files To Register  This Event Signals That There Is A File To Register In The Database   The File Related Metadata From This Event Gets Saved In The Database And The File Is Moved From The Incoming Staging Bucket To The Permanent Storage   #### Files To Stage  This Event Signals That There Is A File That Needs To Be Staged For Download   The File Is Then Copied From The Permanent Storage To The Outbox For The Actual Download  ###  Events Published:  #### File Internally Registered  This Event Is Published After A File Was Registered In The Database   It Contains All The File Related Metadata That Was Provided By The Files To Register Event   #### File Staged For Download  This Event Is Published After A File Was Successfully Staged To The Outbox
+# Internal  File  Registry  Service
 
-Internal File Registry Service - This service acts as a registry for the internal location and representation of files.
+This service acts as a registry for the internal location and representation of files.
 
 ## Description
 
@@ -34,15 +34,15 @@ This event is published after a file was successfully staged to the outbox.
 
 We recommend using the provided Docker container.
 
-A pre-build version is available at [docker hub](https://hub.docker.com/repository/docker/ghga/this-service-provides-functionality-to-administer-files-stored-in-an--s3-compatible-object-storage---all-file-related-metadata-is-stored-in-an-internal-mongodb-database,-owned-and-controlled-by-this-service---it-exposes-no--r-e-s-t--a-p-i-enpoints-and-communicates-with-other-services-via-events---###--events-consumed:--####-files-to-register--this-event-signals-that-there-is-a-file-to-register-in-the-database---the-file-related-metadata-from-this-event-gets-saved-in-the-database-and-the-file-is-moved-from-the-incoming-staging-bucket-to-the-permanent-storage---####-files-to-stage--this-event-signals-that-there-is-a-file-that-needs-to-be-staged-for-download---the-file-is-then-copied-from-the-permanent-storage-to-the-outbox-for-the-actual-download--###--events-published:--####-file-internally-registered--this-event-is-published-after-a-file-was-registered-in-the-database---it-contains-all-the-file-related-metadata-that-was-provided-by-the-files-to-register-event---####-file-staged-for-download--this-event-is-published-after-a-file-was-successfully-staged-to-the-outbox--):
+A pre-build version is available at [docker hub](https://hub.docker.com/repository/docker/ghga/internal--file--registry--service):
 ```bash
-docker pull ghga/this-service-provides-functionality-to-administer-files-stored-in-an--s3-compatible-object-storage---all-file-related-metadata-is-stored-in-an-internal-mongodb-database,-owned-and-controlled-by-this-service---it-exposes-no--r-e-s-t--a-p-i-enpoints-and-communicates-with-other-services-via-events---###--events-consumed:--####-files-to-register--this-event-signals-that-there-is-a-file-to-register-in-the-database---the-file-related-metadata-from-this-event-gets-saved-in-the-database-and-the-file-is-moved-from-the-incoming-staging-bucket-to-the-permanent-storage---####-files-to-stage--this-event-signals-that-there-is-a-file-that-needs-to-be-staged-for-download---the-file-is-then-copied-from-the-permanent-storage-to-the-outbox-for-the-actual-download--###--events-published:--####-file-internally-registered--this-event-is-published-after-a-file-was-registered-in-the-database---it-contains-all-the-file-related-metadata-that-was-provided-by-the-files-to-register-event---####-file-staged-for-download--this-event-is-published-after-a-file-was-successfully-staged-to-the-outbox--:1.3.0
+docker pull ghga/internal--file--registry--service:1.3.0
 ```
 
 Or you can build the container yourself from the [`./Dockerfile`](./Dockerfile):
 ```bash
 # Execute in the repo's root dir:
-docker build -t ghga/this-service-provides-functionality-to-administer-files-stored-in-an--s3-compatible-object-storage---all-file-related-metadata-is-stored-in-an-internal-mongodb-database,-owned-and-controlled-by-this-service---it-exposes-no--r-e-s-t--a-p-i-enpoints-and-communicates-with-other-services-via-events---###--events-consumed:--####-files-to-register--this-event-signals-that-there-is-a-file-to-register-in-the-database---the-file-related-metadata-from-this-event-gets-saved-in-the-database-and-the-file-is-moved-from-the-incoming-staging-bucket-to-the-permanent-storage---####-files-to-stage--this-event-signals-that-there-is-a-file-that-needs-to-be-staged-for-download---the-file-is-then-copied-from-the-permanent-storage-to-the-outbox-for-the-actual-download--###--events-published:--####-file-internally-registered--this-event-is-published-after-a-file-was-registered-in-the-database---it-contains-all-the-file-related-metadata-that-was-provided-by-the-files-to-register-event---####-file-staged-for-download--this-event-is-published-after-a-file-was-successfully-staged-to-the-outbox--:1.3.0 .
+docker build -t ghga/internal--file--registry--service:1.3.0 .
 ```
 
 For production-ready deployment, we recommend using Kubernetes, however,
@@ -50,7 +50,7 @@ for simple use cases, you could execute the service using docker
 on a single server:
 ```bash
 # The entrypoint is preconfigured:
-docker run -p 8080:8080 ghga/this-service-provides-functionality-to-administer-files-stored-in-an--s3-compatible-object-storage---all-file-related-metadata-is-stored-in-an-internal-mongodb-database,-owned-and-controlled-by-this-service---it-exposes-no--r-e-s-t--a-p-i-enpoints-and-communicates-with-other-services-via-events---###--events-consumed:--####-files-to-register--this-event-signals-that-there-is-a-file-to-register-in-the-database---the-file-related-metadata-from-this-event-gets-saved-in-the-database-and-the-file-is-moved-from-the-incoming-staging-bucket-to-the-permanent-storage---####-files-to-stage--this-event-signals-that-there-is-a-file-that-needs-to-be-staged-for-download---the-file-is-then-copied-from-the-permanent-storage-to-the-outbox-for-the-actual-download--###--events-published:--####-file-internally-registered--this-event-is-published-after-a-file-was-registered-in-the-database---it-contains-all-the-file-related-metadata-that-was-provided-by-the-files-to-register-event---####-file-staged-for-download--this-event-is-published-after-a-file-was-successfully-staged-to-the-outbox--:1.3.0 --help
+docker run -p 8080:8080 ghga/internal--file--registry--service:1.3.0 --help
 ```
 
 If you prefer not to use containers, you may install the service from source:

@@ -1,6 +1,6 @@
-# This Service Exposes An External  A P I To Commission File Deletions From The Whole File Backend   ###  A P I Endpoints:  #### ` D E L E T E /files/{file Id}`:   This Endpoint Takes A File Id   It Commissions The Deletion Of The File With The Given Id From The Whole File Backend  ###  Events Published:  #### File Deletion Requested  This Event Is Published After A File Deletion Was Requested Via An  A P I Call   It Contains The File Id Of The File That Should Be Deleted
+# Purge  Controller  Service
 
-Purge Controller Service - a service to commission file deletions
+a service to commission file deletions
 
 ## Description
 
@@ -24,15 +24,15 @@ It contains the file_id of the file that should be deleted.
 
 We recommend using the provided Docker container.
 
-A pre-build version is available at [docker hub](https://hub.docker.com/repository/docker/ghga/this-service-exposes-an-external--a-p-i-to-commission-file-deletions-from-the-whole-file-backend---###--a-p-i-endpoints:--####-`-d-e-l-e-t-e-/files/{file-id}`:---this-endpoint-takes-a-file-id---it-commissions-the-deletion-of-the-file-with-the-given-id-from-the-whole-file-backend--###--events-published:--####-file-deletion-requested--this-event-is-published-after-a-file-deletion-was-requested-via-an--a-p-i-call---it-contains-the-file-id-of-the-file-that-should-be-deleted--):
+A pre-build version is available at [docker hub](https://hub.docker.com/repository/docker/ghga/purge--controller--service):
 ```bash
-docker pull ghga/this-service-exposes-an-external--a-p-i-to-commission-file-deletions-from-the-whole-file-backend---###--a-p-i-endpoints:--####-`-d-e-l-e-t-e-/files/{file-id}`:---this-endpoint-takes-a-file-id---it-commissions-the-deletion-of-the-file-with-the-given-id-from-the-whole-file-backend--###--events-published:--####-file-deletion-requested--this-event-is-published-after-a-file-deletion-was-requested-via-an--a-p-i-call---it-contains-the-file-id-of-the-file-that-should-be-deleted--:1.2.0
+docker pull ghga/purge--controller--service:1.2.0
 ```
 
 Or you can build the container yourself from the [`./Dockerfile`](./Dockerfile):
 ```bash
 # Execute in the repo's root dir:
-docker build -t ghga/this-service-exposes-an-external--a-p-i-to-commission-file-deletions-from-the-whole-file-backend---###--a-p-i-endpoints:--####-`-d-e-l-e-t-e-/files/{file-id}`:---this-endpoint-takes-a-file-id---it-commissions-the-deletion-of-the-file-with-the-given-id-from-the-whole-file-backend--###--events-published:--####-file-deletion-requested--this-event-is-published-after-a-file-deletion-was-requested-via-an--a-p-i-call---it-contains-the-file-id-of-the-file-that-should-be-deleted--:1.2.0 .
+docker build -t ghga/purge--controller--service:1.2.0 .
 ```
 
 For production-ready deployment, we recommend using Kubernetes, however,
@@ -40,7 +40,7 @@ for simple use cases, you could execute the service using docker
 on a single server:
 ```bash
 # The entrypoint is preconfigured:
-docker run -p 8080:8080 ghga/this-service-exposes-an-external--a-p-i-to-commission-file-deletions-from-the-whole-file-backend---###--a-p-i-endpoints:--####-`-d-e-l-e-t-e-/files/{file-id}`:---this-endpoint-takes-a-file-id---it-commissions-the-deletion-of-the-file-with-the-given-id-from-the-whole-file-backend--###--events-published:--####-file-deletion-requested--this-event-is-published-after-a-file-deletion-was-requested-via-an--a-p-i-call---it-contains-the-file-id-of-the-file-that-should-be-deleted--:1.2.0 --help
+docker run -p 8080:8080 ghga/purge--controller--service:1.2.0 --help
 ```
 
 If you prefer not to use containers, you may install the service from source:
