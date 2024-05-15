@@ -10,17 +10,19 @@ on:
     outputs:
       services:
         description: 'List of changed services'
-        value: ${{ steps.read-cached-result.outputs.services }}
+        value: ${{ jobs.cache-and-retrieve.outputs.services }}
 
 jobs:
   cache-and-retrieve:
+    outputs:
+      services: ${{ steps.set-output.outputs.services }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Restore cache
-        id: cache-changed-services
+        id: restore-cache
         uses: actions/cache@v3
         with:
           path: services.txt
@@ -40,6 +42,7 @@ jobs:
             echo "services=none" >> $GITHUB_ENV
 
       - name: Run get-changed-services if cache miss
+        id: run-get-changed-services
         if: env.services == 'none'
         run: |
           echo "Running get-changed-services"
@@ -48,6 +51,7 @@ jobs:
           echo "services=$CHANGED_SERVICES" >> $GITHUB_ENV
 
       - name: Cache the result
+        id: cache-results
         if: env.services != 'none'
         uses: actions/cache@v3
         with:
