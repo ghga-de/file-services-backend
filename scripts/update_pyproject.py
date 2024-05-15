@@ -21,7 +21,6 @@
 from __future__ import annotations
 
 import sys
-from contextlib import contextmanager
 from pathlib import Path
 
 import tomli
@@ -30,36 +29,11 @@ import tomli_w
 from script_utils import cli
 
 REPO_ROOT_DIR = Path(__file__).parent.parent.resolve()
-SERVICES_DIR = REPO_ROOT_DIR / "services"
 
 PYPROJECT_GENERATION_DIR = REPO_ROOT_DIR / ".pyproject_generation"
-SERVICE_TEMPLATE_PATH = PYPROJECT_GENERATION_DIR / "service_template.toml"
 PYPROJECT_TEMPLATE_PATH = PYPROJECT_GENERATION_DIR / "pyproject_template.toml"
 pyproject_custom_path = PYPROJECT_GENERATION_DIR / "pyproject_custom.toml"
 pyproject_toml = REPO_ROOT_DIR / "pyproject.toml"
-
-
-@contextmanager
-def set_service_specific_vars(service: str):
-    """Adjust global vars for service."""
-    global pyproject_custom_path, pyproject_toml
-
-    # verify that the folder exists
-    service_dir = SERVICES_DIR / service
-    if not service_dir.exists():
-        cli.echo_failure(f"{service_dir} does not exist")
-        exit(1)
-
-    # set the vars
-    service_dev_dir = service_dir / ".dev"
-    pyproject_custom_path = service_dev_dir / "pyproject_custom.toml"
-    pyproject_toml = service_dir / "pyproject.toml"
-
-    yield
-
-    # reset the vars
-    pyproject_custom_path = PYPROJECT_GENERATION_DIR / "pyproject_custom.toml"
-    pyproject_toml = REPO_ROOT_DIR / "pyproject.toml"
 
 
 def read_template_pyproject() -> dict[str, object]:
@@ -71,12 +45,6 @@ def read_template_pyproject() -> dict[str, object]:
 def read_custom_pyproject() -> dict[str, object]:
     """Read the pyproject_custom.toml."""
     with open(pyproject_custom_path, "rb") as file:
-        return tomli.load(file)
-
-
-def read_supplemental_pyproject() -> dict[str, object]:
-    """Read the service_template.toml."""
-    with open(SERVICE_TEMPLATE_PATH, "rb") as file:
         return tomli.load(file)
 
 
@@ -127,7 +95,7 @@ def merge_pyprojects(inputs: list[dict[str, object]]) -> dict[str, object]:
     return pyproject
 
 
-def process_pyproject(*, root: bool, check: bool) -> bool:
+def process_pyproject(*, check: bool) -> bool:
     """Update the pyproject.toml or checks for updates if the check flag is specified.
 
     Returns True if updates were made, False otherwise.
@@ -136,9 +104,6 @@ def process_pyproject(*, root: bool, check: bool) -> bool:
     template_pyproject = read_template_pyproject()
     custom_pyproject = read_custom_pyproject()
     sources = [custom_pyproject, template_pyproject]
-    if not root:
-        sources.append(read_supplemental_pyproject())
-        template_pyproject.pop("tool", "")
     merged_pyproject = merge_pyprojects(sources)
     current_pyproject = read_current_pyproject()
 
@@ -151,29 +116,19 @@ def process_pyproject(*, root: bool, check: bool) -> bool:
     return False
 
 
-def main(*, service: str, check: bool = False, root_only: bool = False):
+def main(*, check: bool = False):
     """Update the pyproject.toml or checks for updates if the check flag is specified."""
-    root_updated = process_pyproject(root=True, check=check)
-    if root_updated:
-        cli.echo_success("Root pyproject.toml updated.")
+    updated = process_pyproject(check=check)
+    if check:
+        cli.echo_success("Pyproject.toml is already up to date.")
+    else:
+        success_msg = (
+            "Successfully updated pyproject.toml."
+            if updated
+            else "Pyproject.toml is already up to date."
+        )
 
-    if root_only:
-        if not root_updated:
-            cli.echo_success("Root pyproject.toml is up to date.")
-        exit(0)
-
-    with set_service_specific_vars(service=service):
-        updated = process_pyproject(root=False, check=check)
-        if check:
-            cli.echo_success(f"{service}: Pyproject.toml is already up to date.")
-        else:
-            success_msg = (
-                f"Successfully updated pyproject.toml for {service}."
-                if updated
-                else f"{service}: Pyproject.toml is already up to date."
-            )
-
-            cli.echo_success(success_msg)
+        cli.echo_success(success_msg)
 
 
 if __name__ == "__main__":

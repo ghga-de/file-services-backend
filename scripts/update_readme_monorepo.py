@@ -17,29 +17,25 @@
 
 """Generate documentation for this package using different sources."""
 
-import json
 import subprocess  # nosec
 import sys
 from pathlib import Path
 from string import Template
 
-import jsonschema2md
 import tomli
 from pydantic import BaseModel, Field
 from stringcase import spinalcase, titlecase
 
 from script_utils.cli import echo_failure, echo_success, run
+from script_utils.utils import list_service_dirs
 
 ROOT_DIR = Path(__file__).parent.parent.resolve()
 PYPROJECT_TOML_PATH = ROOT_DIR / "pyproject.toml"
 README_GENERATION_DIR = ROOT_DIR / ".readme_generation"
-TEMPLATE_OVERVIEW_PATH = README_GENERATION_DIR / "template_overview.md"
 DESCRIPTION_PATH = README_GENERATION_DIR / "description.md"
-DESIGN_PATH = README_GENERATION_DIR / "design.md"
-README_TEMPLATE_PATH = README_GENERATION_DIR / "readme_template.md"
-CONFIG_SCHEMA_PATH = ROOT_DIR / "config_schema.json"
-OPENAPI_YAML_REL_PATH = "./openapi.yaml"
+README_TEMPLATE_PATH = README_GENERATION_DIR / "readme_template_monorepo.md"
 README_PATH = ROOT_DIR / "README.md"
+SERVICE_ROOT = ROOT_DIR / "services"
 
 
 class PackageHeader(BaseModel):
@@ -71,32 +67,13 @@ class PackageDetails(PackageHeader, PackageName):
     description: str = Field(
         ..., description="A markdown-formatted description of the package."
     )
-    design_description: str = Field(
-        ...,
-        description=(
-            "A markdown-formatted description of overall architecture and design of"
-            + " the package."
-        ),
-    )
-    config_description: str = Field(
-        ...,
-        description=(
-            "A markdown-formatted list of all configuration parameters of this package."
-        ),
-    )
-    openapi_doc: str = Field(
-        ...,
-        description=(
-            "A markdown-formatted description rendering or linking to an OpenAPI"
-            " specification of the package."
-        ),
-    )
+    service_readmes: str = Field(..., description="")
 
 
 def read_toml_package_header() -> PackageHeader:
     """Read basic information about the package from the pyproject.toml"""
 
-    with open(PYPROJECT_TOML_PATH, "rb") as pyproject_toml:
+    with PYPROJECT_TOML_PATH.open("rb") as pyproject_toml:
         pyproject = tomli.load(pyproject_toml)
         pyproject_project = pyproject["project"]
         return PackageHeader(
@@ -104,6 +81,16 @@ def read_toml_package_header() -> PackageHeader:
             version=pyproject_project["version"],
             summary=pyproject_project["description"],
         )
+
+
+def read_service_description(service_dir: Path) -> str:
+    """Read service name from a service pyproject.toml"""
+
+    service_pyproject_toml_path = service_dir / "pyproject.toml"
+    with service_pyproject_toml_path.open("rb") as pyproject_toml:
+        pyproject = tomli.load(pyproject_toml)
+        pyproject_project = pyproject["project"]
+        return pyproject_project["description"]
 
 
 def read_package_name() -> PackageName:
@@ -132,59 +119,25 @@ def read_package_name() -> PackageName:
     return PackageName(repo_name=repo_name, name=name, title=title)
 
 
-def read_template_overview() -> str:
-    """Read the template_overview."""
-
-    return TEMPLATE_OVERVIEW_PATH.read_text()
-
-
 def read_package_description() -> str:
     """Read the package description."""
 
     return DESCRIPTION_PATH.read_text()
 
 
-def read_design_description() -> str:
-    """Read the design description."""
+def get_service_readmes() -> str:
+    """Get links to all service readmes."""
 
-    return DESIGN_PATH.read_text()
+    service_readme_links = []
 
+    for service_dir in sorted(list_service_dirs()):
+        service_description = read_service_description(service_dir)
+        readme_link = service_dir.relative_to(ROOT_DIR) / "README.md"
+        if "-" in service_description:
+            service_description = service_description.split("-")[0].strip()
+        service_readme_links.append(f"[{service_description}]({readme_link})")
 
-def generate_config_docs() -> str:
-    """Generate markdown-formatted documentation for the configration parameters
-    listed in the config schema."""
-
-    parser = jsonschema2md.Parser(
-        examples_as_yaml=False,
-        show_examples="all",
-    )
-    with open(CONFIG_SCHEMA_PATH, encoding="utf-8") as json_file:
-        config_schema = json.load(json_file)
-
-    md_lines = parser.parse_schema(config_schema)
-
-    # ignore everything before the properties header:
-    properties_index = md_lines.index("## Properties\n\n")
-    md_lines = md_lines[properties_index + 1 :]
-
-    return "\n".join(md_lines)
-
-
-def generate_openapi_docs() -> str:
-    """Generate markdown-formatted documentation linking to or rendering an OpenAPI
-    specification of the package. If no OpenAPI specification is present, return an
-    empty string."""
-
-    open_api_yaml_path = ROOT_DIR / OPENAPI_YAML_REL_PATH
-
-    if not open_api_yaml_path.exists():
-        return ""
-
-    return (
-        "## HTTP API\n"
-        + "An OpenAPI specification for this service can be found"
-        + f" [here]({OPENAPI_YAML_REL_PATH})."
-    )
+    return "  \n".join(service_readme_links)
 
 
 def get_package_details() -> PackageDetails:
@@ -193,14 +146,11 @@ def get_package_details() -> PackageDetails:
     header = read_toml_package_header()
     name = read_package_name()
     description = read_package_description()
-    config_description = generate_config_docs()
     return PackageDetails(
-        **header.dict(),
-        **name.dict(),
+        **header.model_dump(),
+        **name.model_dump(),
         description=description,
-        config_description=config_description,
-        design_description=read_design_description(),
-        openapi_doc=generate_openapi_docs(),
+        service_readmes=get_service_readmes(),
     )
 
 
@@ -210,7 +160,7 @@ def generate_single_readme(*, details: PackageDetails) -> str:
 
     template_content = README_TEMPLATE_PATH.read_text()
     template = Template(template_content)
-    return template.substitute(details.dict())
+    return template.substitute(details.model_dump())
 
 
 def main(check: bool = False) -> None:
@@ -218,10 +168,6 @@ def main(check: bool = False) -> None:
 
     details = get_package_details()
     readme_content = generate_single_readme(details=details)
-
-    if details.repo_name == "microservice-repository-template":
-        template_overview = read_template_overview()
-        readme_content = template_overview + readme_content
 
     if check:
         if README_PATH.read_text() != readme_content:

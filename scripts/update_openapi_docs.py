@@ -55,7 +55,7 @@ def set_service_specific_vars(service: str):
 
     # set the vars
     openapi_yaml = service_dir / "openapi.yaml"
-    app_openapi_script = service_dir / ".dev" / "app_openapi.py"
+    app_openapi_script = service_dir / "scripts" / "app_openapi.py"
 
     yield
 

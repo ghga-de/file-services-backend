@@ -1,20 +1,17 @@
-[![tests](https://github.com/ghga-de/file-services-backend/actions/workflows/tests.yaml/badge.svg)](https://github.com/ghga-de/file-services-backend/actions/workflows/tests.yaml)
-[![Coverage Status](https://coveralls.io/repos/github/ghga-de/file-services-backend/badge.svg?branch=main)](https://coveralls.io/github/ghga-de/file-services-backend?branch=main)
+[![tests](https://github.com/ghga-de/$repo_name/actions/workflows/tests.yaml/badge.svg)](https://github.com/ghga-de/$repo_name/actions/workflows/tests.yaml)
+[![Coverage Status](https://coveralls.io/repos/github/ghga-de/$repo_name/badge.svg?branch=main)](https://coveralls.io/github/ghga-de/$repo_name?branch=main)
 
-# File Services Backend
+# $title
 
-File Services Backend - monorepo housing file services
+$summary
 
 ## Description
 
-This is a monorepo containing all GHGA file backend microservices.
-
+$description
 
 ## Services:
 
-[Internal File Registry Service](services/ifrs/README.md)  
-[Interrogation Room Service](services/irs/README.md)  
-[Purge Controller Service](services/pcs/README.md)
+$service_readmes
 
 ## Development:
 

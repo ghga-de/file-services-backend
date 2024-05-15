@@ -25,7 +25,7 @@ from script_utils import utils
 from update_config_docs import main as update_config
 from update_hook_revs import main as update_hooks
 from update_openapi_docs import main as update_openapi
-from update_pyproject import main as update_pyproject
+from update_readme_services import main as update_readmes
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 
@@ -58,17 +58,6 @@ def run_for_service_or_all(func: Callable) -> Callable:
     return wrapper
 
 
-@app.command(name="pyproject")
-@run_for_service_or_all
-def pyproject(
-    service: str = ServiceArg,
-    check: bool = CheckFlag,
-    root_only: bool = typer.Option(False, "--root-only"),
-):
-    """Run scripts/update_pyproject.py for one or all services."""
-    update_pyproject(service=service, check=check, root_only=root_only)
-
-
 @app.command(name="config")
 @run_for_service_or_all
 def config(service: str = ServiceArg, check: bool = CheckFlag):
@@ -91,7 +80,6 @@ def update_one_service(service: str = ServiceArg, check: bool = CheckFlag):
     This will update the config, pyproject, and openapi.
     """
     print(f"Updating all for {service}")
-    update_pyproject(service=service, check=check)
     update_config(service=service, check=check)
     update_openapi(service=service, check=check)
 
@@ -107,6 +95,7 @@ def update_everything(check: bool = CheckFlag):
     """Run all update scripts. Service-specific scripts are run for all services."""
     hooks(check=check)
     update_one_service(service="", check=check)
+    update_readmes()
 
 
 if __name__ == "__main__":

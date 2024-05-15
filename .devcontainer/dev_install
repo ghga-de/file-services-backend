@@ -6,10 +6,10 @@ cd /workspace
 # upgrade pip
 python -m pip install --upgrade pip
 
-# install or upgrade dependencies for development and testing
+# install global depencies for all services
 pip install --no-deps -r ./lock/requirements-dev.txt
 
-# install the package itself in edit mode:
+# install services as packages in edit mode:
 for dir in ./services/*; do
     pip install --no-deps -e $dir
 done
