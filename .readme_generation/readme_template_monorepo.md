@@ -9,10 +9,6 @@ $summary
 
 $description
 
-## Architecture and Design:
-
-$design_description
-
 ## Services:
 
 $service_readmes

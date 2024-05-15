@@ -1,7 +1,4 @@
-[![tests](https://github.com/ghga-de/TODO/actions/workflows/tests.yaml/badge.svg)](https://github.com/ghga-de/TODO/actions/workflows/tests.yaml)
-[![Coverage Status](https://coveralls.io/repos/github/ghga-de/TODO/badge.svg?branch=main)](https://coveralls.io/github/ghga-de/TODO?branch=main)
-
-# TODO
+# This Service Exposes An External  A P I To Commission File Deletions From The Whole File Backend   ###  A P I Endpoints:  #### ` D E L E T E /files/{file Id}`:   This Endpoint Takes A File Id   It Commissions The Deletion Of The File With The Given Id From The Whole File Backend  ###  Events Published:  #### File Deletion Requested  This Event Is Published After A File Deletion Was Requested Via An  A P I Call   It Contains The File Id Of The File That Should Be Deleted
 
 Purge Controller Service - a service to commission file deletions
 
@@ -27,15 +24,15 @@ It contains the file_id of the file that should be deleted.
 
 We recommend using the provided Docker container.
 
-A pre-build version is available at [docker hub](https://hub.docker.com/repository/docker/ghga/TODO):
+A pre-build version is available at [docker hub](https://hub.docker.com/repository/docker/ghga/this-service-exposes-an-external--a-p-i-to-commission-file-deletions-from-the-whole-file-backend---###--a-p-i-endpoints:--####-`-d-e-l-e-t-e-/files/{file-id}`:---this-endpoint-takes-a-file-id---it-commissions-the-deletion-of-the-file-with-the-given-id-from-the-whole-file-backend--###--events-published:--####-file-deletion-requested--this-event-is-published-after-a-file-deletion-was-requested-via-an--a-p-i-call---it-contains-the-file-id-of-the-file-that-should-be-deleted--):
 ```bash
-docker pull ghga/TODO:1.2.0
+docker pull ghga/this-service-exposes-an-external--a-p-i-to-commission-file-deletions-from-the-whole-file-backend---###--a-p-i-endpoints:--####-`-d-e-l-e-t-e-/files/{file-id}`:---this-endpoint-takes-a-file-id---it-commissions-the-deletion-of-the-file-with-the-given-id-from-the-whole-file-backend--###--events-published:--####-file-deletion-requested--this-event-is-published-after-a-file-deletion-was-requested-via-an--a-p-i-call---it-contains-the-file-id-of-the-file-that-should-be-deleted--:1.2.0
 ```
 
 Or you can build the container yourself from the [`./Dockerfile`](./Dockerfile):
 ```bash
 # Execute in the repo's root dir:
-docker build -t ghga/TODO:1.2.0 .
+docker build -t ghga/this-service-exposes-an-external--a-p-i-to-commission-file-deletions-from-the-whole-file-backend---###--a-p-i-endpoints:--####-`-d-e-l-e-t-e-/files/{file-id}`:---this-endpoint-takes-a-file-id---it-commissions-the-deletion-of-the-file-with-the-given-id-from-the-whole-file-backend--###--events-published:--####-file-deletion-requested--this-event-is-published-after-a-file-deletion-was-requested-via-an--a-p-i-call---it-contains-the-file-id-of-the-file-that-should-be-deleted--:1.2.0 .
 ```
 
 For production-ready deployment, we recommend using Kubernetes, however,
@@ -43,7 +40,7 @@ for simple use cases, you could execute the service using docker
 on a single server:
 ```bash
 # The entrypoint is preconfigured:
-docker run -p 8080:8080 ghga/TODO:1.2.0 --help
+docker run -p 8080:8080 ghga/this-service-exposes-an-external--a-p-i-to-commission-file-deletions-from-the-whole-file-backend---###--a-p-i-endpoints:--####-`-d-e-l-e-t-e-/files/{file-id}`:---this-endpoint-takes-a-file-id---it-commissions-the-deletion-of-the-file-with-the-given-id-from-the-whole-file-backend--###--events-published:--####-file-deletion-requested--this-event-is-published-after-a-file-deletion-was-requested-via-an--a-p-i-call---it-contains-the-file-id-of-the-file-that-should-be-deleted--:1.2.0 --help
 ```
 
 If you prefer not to use containers, you may install the service from source:
@@ -141,7 +138,7 @@ The service requires the following configuration parameters:
 
 - **`kafka_ssl_keyfile`** *(string)*: Optional filename containing the client private key. Default: `""`.
 
-- **`kafka_ssl_password`** *(string)*: Optional password to be used for the client private key. Default: `""`.
+- **`kafka_ssl_password`** *(string, format: password)*: Optional password to be used for the client private key. Default: `""`.
 
 - **`generate_correlation_id`** *(boolean)*: A flag, which, if False, will result in an error when inbound requests don't possess a correlation ID. If True, requests without a correlation ID will be assigned a newly generated ID in the correlation ID middleware function. Default: `true`.
 

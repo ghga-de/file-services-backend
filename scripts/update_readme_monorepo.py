@@ -33,7 +33,6 @@ ROOT_DIR = Path(__file__).parent.parent.resolve()
 PYPROJECT_TOML_PATH = ROOT_DIR / "pyproject.toml"
 README_GENERATION_DIR = ROOT_DIR / ".readme_generation"
 DESCRIPTION_PATH = README_GENERATION_DIR / "description.md"
-DESIGN_PATH = README_GENERATION_DIR / "design.md"
 README_TEMPLATE_PATH = README_GENERATION_DIR / "readme_template_monorepo.md"
 README_PATH = ROOT_DIR / "README.md"
 SERVICE_ROOT = ROOT_DIR / "services"
@@ -67,13 +66,6 @@ class PackageDetails(PackageHeader, PackageName):
 
     description: str = Field(
         ..., description="A markdown-formatted description of the package."
-    )
-    design_description: str = Field(
-        ...,
-        description=(
-            "A markdown-formatted description of overall architecture and design of"
-            + " the package."
-        ),
     )
     service_readmes: str = Field(..., description="")
 
@@ -133,20 +125,16 @@ def read_package_description() -> str:
     return DESCRIPTION_PATH.read_text()
 
 
-def read_design_description() -> str:
-    """Read the design description."""
-
-    return DESIGN_PATH.read_text()
-
-
 def get_service_readmes() -> str:
-    """TODO"""
+    """Get links to all service readmes."""
 
     service_readme_links = []
 
     for service_dir in sorted(list_service_dirs()):
         service_description = read_service_description(service_dir)
         readme_link = service_dir.relative_to(ROOT_DIR) / "README.md"
+        if "-" in service_description:
+            service_description = service_description.split("-")[0].strip()
         service_readme_links.append(f"[{service_description}]({readme_link})")
 
     return "  \n".join(service_readme_links)
@@ -162,7 +150,6 @@ def get_package_details() -> PackageDetails:
         **header.model_dump(),
         **name.model_dump(),
         description=description,
-        design_description=read_design_description(),
         service_readmes=get_service_readmes(),
     )
 

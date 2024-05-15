@@ -35,7 +35,6 @@ from script_utils.cli import echo_failure, echo_success, run
 HERE = Path(__file__).parent.resolve()
 REPO_ROOT_DIR = HERE.parent
 SERVICES_DIR = REPO_ROOT_DIR / "services"
-DEV_FOLDER_NAME = ".dev"
 GET_PACKAGE_NAME_SCRIPT = HERE / "get_package_name.py"
 
 dev_config_yaml = REPO_ROOT_DIR / ".devcontainer" / ".dev_config.yaml"
@@ -59,7 +58,7 @@ def set_service_specific_vars(service: str):
         exit(1)
 
     # set the vars
-    dev_config_yaml = service_dir / DEV_FOLDER_NAME / ".dev_config.yaml"
+    dev_config_yaml = service_dir / "dev_config.yaml"
     config_schema_json = service_dir / "config_schema.json"
     example_config_yaml = service_dir / "example_config.yaml"
 

@@ -25,6 +25,7 @@ from string import Template
 import jsonschema2md
 import tomli
 from pydantic import BaseModel, Field
+from stringcase import spinalcase, titlecase
 
 from script_utils.cli import echo_failure, echo_success, run
 from script_utils.utils import list_service_dirs
@@ -51,7 +52,6 @@ class PackageHeader(BaseModel):
 class PackageName(BaseModel):
     """The name of a package and it's different representations."""
 
-    repo_name: str = Field(..., description="The name of the repo")
     name: str = Field(..., description="The full name of the package in spinal case.")
     title: str = Field(..., description="The name of the package formatted as title.")
 
@@ -85,7 +85,7 @@ class PackageDetails(PackageHeader, PackageName):
 
 
 class ServiceDetails:
-    """TODO"""
+    """Container class for service specific paths and functionality relying on them."""
 
     def __init__(self, service_dir: Path):
         self.service_dir = service_dir
@@ -101,8 +101,11 @@ class ServiceDetails:
         """Get details required to build documentation for the package."""
 
         header = self.read_toml_package_header()
-        name = PackageName(repo_name="TODO", name="TODO", title="TODO")
+        # parse from pyproject
         description = self.read_package_description()
+        service_name = spinalcase(description)
+        title = titlecase(service_name)
+        name = PackageName(name=service_name, title=title)
         config_description = self.generate_config_docs()
         return PackageDetails(
             **header.model_dump(),

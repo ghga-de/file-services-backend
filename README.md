@@ -7,27 +7,14 @@ File Services Backend - monorepo housing file services
 
 ## Description
 
-<!-- Please provide a short overview of the features of this service. -->
-
-Here you should provide a short summary of the purpose of this microservice.
-
-
-## Architecture and Design:
-
-<!-- Please provide an overview of the architecture and design of the code base.
-Mention anything that deviates from the standard triple hexagonal architecture and
-the corresponding structure. -->
-
-This is monorepo containing Python-based services following the Triple Hexagonal Architecture pattern.
-It uses protocol/provider pairs and dependency injection mechanisms provided by the
-[hexkit](https://github.com/ghga-de/hexkit) library.
+This is a monorepo containing all GHGA file backend microservices.
 
 
 ## Services:
 
-[Internal-File-Registry-Service - This service acts as a registry for the internal location and representation of files.](services/ifrs/README.md)
+[Internal File Registry Service](services/ifrs/README.md)
 [Interrogation Room Service](services/irs/README.md)
-[Purge Controller Service - a service to commission file deletions](services/pcs/README.md)
+[Purge Controller Service](services/pcs/README.md)
 
 ## Development:
 
