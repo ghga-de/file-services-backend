@@ -7,7 +7,7 @@ on:
 
 jobs:
   setup-matrix:
-    uses: ./.github/workflows/cache-changed-services.yml
+    uses: ./cache-changed-services.yml
     with:
       cache-key: ${{ github.sha }}-changed-services
 
