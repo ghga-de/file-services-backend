@@ -1,15 +1,35 @@
-# Copyright 2021 - 2023 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
-# for the German Human Genome-Phenome Archive (GHGA)
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
+name: Static Code Analysis
+
+on: push
+
+jobs:
+  static-code-analysis:
+    name: Static Code Analysis
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        id: checkout
+        uses: actions/checkout@v4
+
+      - name: Run pre-commit
+        uses: pre-commit/action@v3.0.1
+        env:
+          SKIP: no-commit-to-branch
+
+      - name: Run ruff
+        id: ruff
+        run: |
+          ruff check --output-format=github .
+          ruff format --check .
+
+      - name: Run mypy
+        id: mypy
+        run: |
+          mypy .
+
+      - name: Check license header and file
+        id: license-checker
+        run: |
+          ./scripts/check_license.py
