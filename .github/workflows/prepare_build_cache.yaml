@@ -1,4 +1,19 @@
-name: Get services affected by changes
+# Copyright 2022-2024 Universität Tübingen, DKFZ and EMBL
+# for the German Human Genome-Phenome Archive (GHGA)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Build cache
 
 on:
   workflow_call:
@@ -17,9 +32,6 @@ on:
       services:
         description: "Services affected by changes"
         value: ${{ jobs.build-cache.outputs.services }}
-      python-location:
-        description: "Location of the prebuilt python environment"
-        value: ${{ jobs.build-cache.outputs.python-location }}
 
 jobs:
   build-cache:
@@ -45,7 +57,6 @@ jobs:
         with:
           path: |
             ${{ env.python-location }}
-            ${{ github.repository }}
             services.txt
           key: ${{ inputs.cache-key }}
 
@@ -91,7 +102,6 @@ jobs:
         with:
           path: |
             ${{ env.pythonLocation }}
-            ${{ github.repository }}
             services.txt
           key: ${{ inputs.cache-key }}
 
@@ -99,4 +109,3 @@ jobs:
         id: set-output
         run: |
           echo "services=${{toJson(env.services)}}" >> $GITHUB_OUTPUT
-          echo "python-location=$(dirname $(dirname $(which python)))" >> $GITHUB_OUTPUT
