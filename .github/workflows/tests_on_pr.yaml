@@ -55,9 +55,7 @@ jobs:
         id: restore-cache
         uses: actions/cache@v4
         with:
-          path: |
-            ${{ github.repository }}
-            ${{ env.pythonLocation }}
+          path: ${{ env.pythonLocation }}
           key: ${{ github.sha }}
 
       - name: Run tests for ${{matrix.service}}
