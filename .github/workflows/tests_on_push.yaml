@@ -6,14 +6,13 @@ on:
       - main
 
 jobs:
-
   setup-matrix:
     uses: ./.github/workflows/cache-changed-services.yaml
     with:
       cache-key: ${{ github.sha }}-changed-services
 
-
   test:
+    needs: setup-matrix
     runs-on: ubuntu-latest
     strategy:
       matrix:

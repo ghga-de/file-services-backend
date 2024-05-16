@@ -11,6 +11,7 @@ jobs:
       cache-key: ${{ github.sha }}-changed-services
 
   test:
+    needs: setup-matrix
     runs-on: ubuntu-latest
     strategy:
       matrix:
