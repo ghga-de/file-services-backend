@@ -18,6 +18,7 @@ name: Check if OpenAPI spec is up to date
 on: push
 
 env:
+  PYTHON_VERSION: '3.9'
   IFRS_CONFIG_YAML: ./services/ifrs/dev_config.yaml
   IRS_CONFIG_YAML: ./services/irs/dev_config.yaml
   PCS_CONFIG_YAML: ./services/pcs/dev_config.yaml
@@ -40,11 +41,18 @@ jobs:
       fail-fast: false
 
     steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
       - name: Restore cache
         id: restore-cache
         uses: actions/cache@v4
         with:
-          path: ${{ needs.build-cache.outputs.python-location }}
+          path: |
+            ${{ github.repository }}
+            ${{ env.pythonLocation }}
           key: ${{ github.sha }}
 
       - name: Check openapi.yaml

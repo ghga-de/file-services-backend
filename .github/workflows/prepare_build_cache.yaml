@@ -2,6 +2,7 @@ name: Get services affected by changes
 
 concurrency:
     group: ${{ github.sha }}-build-cache
+    cancel-in-progress: false
 
 on:
   workflow_call:
@@ -37,20 +38,20 @@ jobs:
         with:
           fetch-depth: 2
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+
       - name: Restore cache
         id: restore-cache
         uses: actions/cache/restore@v4
         with:
           path: |
-            ${{ env.pythonLocation }}
+            ${{ env.python-location }}
+            ${{ github.repository }}
             services.txt
           key: ${{ inputs.cache-key }}
-
-      - name: Set up Python
-        if: steps.restore-cache.outputs.cache-hit != 'true'
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ inputs.python-version }}
 
       - name: Update pip, pyopenssl and install dependencies
         id: pip-update
@@ -94,11 +95,12 @@ jobs:
         with:
           path: |
             ${{ env.pythonLocation }}
+            ${{ github.repository }}
             services.txt
           key: ${{ inputs.cache-key }}
 
       - name: Set output
         id: set-output
         run: |
-          echo "python-location=${{env.pythonLocation}}" >> $GITHUB_OUTPUT
           echo "services=${{toJson(env.services)}}" >> $GITHUB_OUTPUT
+          echo "python-location=$(dirname $(dirname $(which python)))" >> $GITHUB_OUTPUT

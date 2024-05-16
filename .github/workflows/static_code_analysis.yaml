@@ -17,6 +17,9 @@ name: Static Code Analysis
 
 on: push
 
+env:
+  PYTHON_VERSION: '3.9'
+
 jobs:
   build-cache:
     uses: ./.github/workflows/prepare_build_cache.yaml
@@ -29,12 +32,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
       - name: Restore cache
         id: restore-cache
         uses: actions/cache@v4
         with:
-          path: ${{ needs.build-cache.outputs.python-location }}
+          path: |
+            ${{ github.repository }}
+            ${{ env.pythonLocation }}
           key: ${{ github.sha }}
+
 
       - name: Run pre-commit
         uses: pre-commit/action@v3.0.1
