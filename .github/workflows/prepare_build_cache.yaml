@@ -1,9 +1,5 @@
 name: Get services affected by changes
 
-concurrency:
-    group: ${{ github.sha }}-build-cache
-    cancel-in-progress: false
-
 on:
   workflow_call:
     inputs:
@@ -28,6 +24,10 @@ on:
 jobs:
   build-cache:
     runs-on: ubuntu-latest
+
+    concurrency:
+      group: ${{ github.sha }}-build-cache
+      cancel-in-progress: false
 
     outputs:
       services: ${{ steps.set-output.outputs.services }}
