@@ -1,0 +1,103 @@
+name: Get services affected by changes
+
+concurrency:
+    group: ${{ github.sha }}-build-cache
+
+on:
+  workflow_call:
+    inputs:
+      cache-key:
+        description: 'Cache key to use for retrieving the names of changed services'
+        required: true
+        default: ${{ github.sha }}
+        type: string
+      python-version:
+        description: 'The Python version to use'
+        required: false
+        default: '3.9'
+        type: string
+    outputs:
+      services:
+        description: "Services affected by changes"
+        value: ${{ jobs.build-cache.outputs.services }}
+      python-location:
+        description: "Location of the prebuilt python environment"
+        value: ${{ env.pythonLocation }}
+
+jobs:
+  build-cache:
+    runs-on: ubuntu-latest
+
+    outputs:
+      services: ${{ steps.set-output.outputs.services }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Restore cache
+        id: restore-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ${{ env.pythonLocation }}
+            services.txt
+          key: ${{ inputs.cache-key }}
+
+      - name: Set up Python
+        if: steps.restore-cache.outputs.cache-hit != 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Update pip, pyopenssl and install dependencies
+        id: pip-update
+        if: steps.restore-cache.outputs.cache-hit != 'true'
+        run: |
+          python -m pip install --upgrade pip && pip install --upgrade pyopenssl
+          pip install --no-deps -r ./lock/requirements-dev.txt
+          for service_dir in $(find ./services/ -mindepth 1 -maxdepth 1 -type d)
+            do pip install --no-deps $service_dir
+          done
+
+      - name: Set output variables on cache hit
+        id: on-cache-hit
+        if: steps.restore-cache.outputs.cache-hit == 'true'
+        run: |
+          echo "Cache hit, reading services.txt"
+          CHANGED_SERVICES=$(cat services.txt)
+          echo "services=$CHANGED_SERVICES" >> $GITHUB_ENV
+
+      - name: Changed Files
+        id: changed-files
+        if: steps.restore-cache.outputs.cache-hit != 'true'
+        uses: tj-actions/changed-files@v44
+
+      - name: Install Typer to check changed services
+        id: install-typer
+        if: steps.restore-cache.outputs.cache-hit != 'true'
+        run: pip install typer>=0.9.0
+
+      - name: Generate list of changed services
+        id: services-changed
+        if: steps.restore-cache.outputs.cache-hit != 'true'
+        run: |
+          CHANGED_SERVICES=$(python3 ./scripts/get_affected_services.py ${{ steps.changed-files.outputs.all_changed_files }} )
+          echo "$CHANGED_SERVICES" > services.txt
+          echo "services=$CHANGED_SERVICES" >> $GITHUB_ENV
+
+      - name: Cache the result
+        id: cache-results
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ${{ env.pythonLocation }}
+            services.txt
+          key: ${{ inputs.cache-key }}
+
+      - name: Set output
+        id: set-output
+        run: |
+          echo "services=${{toJson(env.services)}}" >> $GITHUB_OUTPUT
