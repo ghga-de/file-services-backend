@@ -22,7 +22,7 @@ on:
         value: ${{ jobs.build-cache.outputs.services }}
       python-location:
         description: "Location of the prebuilt python environment"
-        value: ${{ env.pythonLocation }}
+        value: ${{ jobs.build-cache.outputs.python-location }}
 
 jobs:
   build-cache:
@@ -100,4 +100,5 @@ jobs:
       - name: Set output
         id: set-output
         run: |
+          echo "python-location=${{env.pythonLocation}}" >> $GITHUB_OUTPUT
           echo "services=${{toJson(env.services)}}" >> $GITHUB_OUTPUT
