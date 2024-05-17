@@ -27,9 +27,13 @@ jobs:
         id: checkout
         uses: actions/checkout@v4
 
-      - name: Update pip and install dependencies
+      - name: Update pip and pyopenssl
+        id: pip-update
+        run: python -m pip install --upgrade pip && pip install --upgrade pyopenssl
+
+      - name: Install dependencies
         id: install-dependencies
-        run: python -m pip install --upgrade pip && pip install --no-deps -r ./lock/requirements-dev.txt && pip install --no-deps ./services/${{matrix.service}}
+        run: pip install --no-deps -r ./lock/requirements-dev.txt && pip install --no-deps ./services/${{matrix.service}}
 
       - name: Check config docs
         id: check-config-docs
