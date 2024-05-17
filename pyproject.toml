@@ -96,7 +96,7 @@ max-complexity = 10
     "SIM",
     "D",
 ]
-"services/*/tests/*" = [
+"services/*/tests_*" = [
     "S",
     "SIM",
     "PLR",

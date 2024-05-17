@@ -1,0 +1,23 @@
+name: Check if pyproject.toml file is up to date
+
+on: push
+
+jobs:
+  static-code-analysis:
+    name: Check pyproject file
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        id: checkout
+        uses: actions/checkout@v4
+
+      - name: Update pip and install dependencies
+        id: install-dependencies
+        run: python -m pip install --upgrade pip && pip install --no-deps -r ./lock/requirements-dev.txt
+
+      - name: Check pyproject.toml
+        id: check-pyproject
+        run: |
+          ./scripts/update_pyproject.py --check

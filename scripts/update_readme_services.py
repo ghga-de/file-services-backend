@@ -18,7 +18,6 @@
 """Generate documentation for this package using different sources."""
 
 import json
-import sys
 from pathlib import Path
 from string import Template
 
@@ -186,10 +185,15 @@ def generate_single_readme(*, details: PackageDetails) -> str:
     return template.substitute(details.model_dump())
 
 
-def main(check: bool = False) -> None:
+def main(service: str = "", check: bool = False) -> None:
     """Update the readme markdown."""
 
-    for service_dir in list_service_dirs():
+    if service:
+        services_to_check = [Path(f"./services/{service}")]
+    else:
+        services_to_check = list_service_dirs()
+
+    for service_dir in services_to_check:
         service_name = service_dir.name
         service_details = ServiceDetails(service_dir=service_dir)
 
@@ -197,11 +201,10 @@ def main(check: bool = False) -> None:
         readme_content = generate_single_readme(details=details)
 
         if check:
-            if service_details.readme_path.read_text() != readme_content:
-                echo_failure(f"{service_name}: README.md is not up to date.")
-                sys.exit(1)
-            echo_success(f"{service_name}: README.md is up to date.")
-            return
+            if service_details.readme_path.read_text() == readme_content:
+                echo_success(f"{service_name}: README.md is up to date.")
+                continue
+            echo_failure(f"{service_name}: README.md is not up to date.")
 
         service_details.readme_path.write_text(readme_content)
         echo_success(f"{service_name}: Successfully updated README.md.")

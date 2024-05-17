@@ -1,0 +1,53 @@
+name: Check if the README files are up to date
+
+on: push
+
+jobs:
+  get-changed-services:
+    uses: ./.github/workflows/get_affected_services.yaml
+
+  check-repo-readme:
+    name: Check repository README file
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        id: checkout
+        uses: actions/checkout@v4
+
+      - name: Update pip and install dependencies
+        id: install-dependencies
+        run: python -m pip install --upgrade pip && pip install --no-deps -r ./lock/requirements-dev.txt
+
+      - name: Check top level README
+        id: check-main-readme
+        run: |
+          python3 scripts/update_readme_monorepo.py --check
+
+  check-service-readme:
+    name: Check README file for ${{matrix.service}}
+    needs: get-changed-services
+    if: ${{ needs.get-changed-services.outputs.all-changes != '' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.get-changed-services.outputs.since-last-commit) }}
+      fail-fast: false
+    env:
+      IFRS_CONFIG_YAML: ./services/ifrs/dev_config.yaml
+      IRS_CONFIG_YAML: ./services/irs/dev_config.yaml
+      PCS_CONFIG_YAML: ./services/pcs/dev_config.yaml
+
+    steps:
+      - name: Checkout repository
+        id: checkout
+        uses: actions/checkout@v4
+
+      - name: Update pip and install dependencies
+        id: install-dependencies
+        run: python -m pip install --upgrade pip && pip install --no-deps -r ./lock/requirements-dev.txt
+
+      - name: Check service level READMEs
+        id: check-service-readmes
+        run: |
+          python3 scripts/update_readme_services.py --check --service ${{matrix.service}}

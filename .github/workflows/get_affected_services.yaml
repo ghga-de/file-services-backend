@@ -1,0 +1,60 @@
+name: Get services affected by changes
+
+on:
+  workflow_call:
+    outputs:
+      all-changes:
+        description: "Services affected by changes for all commits on branch"
+        value: ${{ jobs.get_changed_services_pr.outputs.services }}
+      since-last-commit:
+        description: "Services affected by changes since last commit"
+        value: ${{ jobs.get_changed_services_commit.outputs.services }}
+
+jobs:
+  get_changed_services_commit:
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.services-changed.outputs.affected }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Changed Files
+        id: changed-files
+        uses: tj-actions/changed-files@v44
+
+      - name: Install Typer to check changed services
+        id: install-typer
+        run: pip install typer>=0.9.0
+
+      - name: Generate list of changed services
+        id: services-changed
+        run: |
+          echo "affected=$(python3 ./scripts/get_affected_services.py ${{ steps.changed-files.outputs.all_changed_files }} )" >> $GITHUB_OUTPUT
+
+  get_changed_services_pr:
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.services-changed.outputs.affected }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Changed Files
+        id: changed-files
+        uses: tj-actions/changed-files@v44
+
+      - name: Install Typer to check changed services
+        id: install-typer
+        run: pip install typer>=0.9.0
+
+      - name: Generate list of changed services
+        id: services-changed
+        run: |
+          echo "affected=$(python3 ./scripts/get_affected_services.py ${{ steps.changed-files.outputs.all_changed_files }} )" >> $GITHUB_OUTPUT
