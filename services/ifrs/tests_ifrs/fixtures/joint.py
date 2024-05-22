@@ -83,23 +83,23 @@ class JointFixture:
         await self.s3.empty_buckets()
         await self.second_s3.empty_buckets()
         self.mongodb.empty_collections()
-        self.kafka.clear_topics()
+        await self.kafka.clear_topics()
 
 
 async def joint_fixture_function(
-    mongodb_fixture: MongoDbFixture,
-    s3_fixture: S3Fixture,
-    second_s3_fixture: S3Fixture,
-    kafka_fixture: KafkaFixture,
+    mongodb: MongoDbFixture,
+    s3: S3Fixture,
+    second_s3: S3Fixture,
+    kafka: KafkaFixture,
 ) -> AsyncGenerator[JointFixture, None]:
     """A fixture that embeds all other fixtures for API-level integration testing"""
     # merge configs from different sources with the default one:
 
     node_config = S3ObjectStorageNodeConfig(
-        bucket=PERMANENT_BUCKET, credentials=s3_fixture.config
+        bucket=PERMANENT_BUCKET, credentials=s3.config
     )
     second_node_config = S3ObjectStorageNodeConfig(
-        bucket=PERMANENT_BUCKET, credentials=second_s3_fixture.config
+        bucket=PERMANENT_BUCKET, credentials=second_s3.config
     )
 
     endpoint_aliases = EndpointAliases()
@@ -110,9 +110,7 @@ async def joint_fixture_function(
             endpoint_aliases.node2: second_node_config,
         }
     )
-    config = get_config(
-        sources=[mongodb_fixture.config, object_storage_config, kafka_fixture.config]
-    )
+    config = get_config(sources=[mongodb.config, object_storage_config, kafka.config])
     dao_factory = MongoDbDaoFactory(config=config)
     file_metadata_dao = await FileMetadataDaoConstructor.construct(
         dao_factory=dao_factory
@@ -121,14 +119,15 @@ async def joint_fixture_function(
     # create a DI container instance:translators
     async with prepare_core(config=config) as file_registry:
         # create storage entities:
-        await s3_fixture.populate_buckets(
+
+        await s3.populate_buckets(
             buckets=[
                 OUTBOX_BUCKET,
                 STAGING_BUCKET,
                 PERMANENT_BUCKET,
             ]
         )
-        await second_s3_fixture.populate_buckets(
+        await second_s3.populate_buckets(
             buckets=[
                 OUTBOX_BUCKET,
                 STAGING_BUCKET,
@@ -138,12 +137,12 @@ async def joint_fixture_function(
 
         yield JointFixture(
             config=config,
-            mongodb=mongodb_fixture,
-            s3=s3_fixture,
-            second_s3=second_s3_fixture,
+            mongodb=mongodb,
+            s3=s3,
+            second_s3=second_s3,
             file_metadata_dao=file_metadata_dao,
             file_registry=file_registry,
-            kafka=kafka_fixture,
+            kafka=kafka,
             outbox_bucket=OUTBOX_BUCKET,
             staging_bucket=STAGING_BUCKET,
             endpoint_aliases=endpoint_aliases,

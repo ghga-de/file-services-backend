@@ -2,7 +2,7 @@
 # See https://pre-commit.com/hooks.html for more hooks
 
 default_language_version:
-  python: python3.9
+  python: python3.12
 
 minimum_pre_commit_version: 3.6.0
 
@@ -49,7 +49,7 @@ repos:
       - id: no-commit-to-branch
         args: [--branch, dev, --branch, int, --branch, main]
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.2
+    rev: v0.4.4
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]

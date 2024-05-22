@@ -33,16 +33,19 @@ from irs.adapters.outbound.dao import (
 from irs.core.models import InterrogationSubject, UploadReceivedFingerprint
 
 from tests_irs.fixtures.config import Config
-from tests_irs.fixtures.joint import (
+from tests_irs.fixtures.joint import (  # noqa: F401
     INBOX_BUCKET_ID,
     STAGING_BUCKET_ID,
     JointFixture,
-    joint_fixture,  # noqa: F401
-    kafka_fixture,  # noqa: F401
-    keypair_fixture,  # noqa: F401
-    mongodb_fixture,  # noqa: F401
-    s3_fixture,  # noqa: F401
-    second_s3_fixture,  # noqa: F401
+    joint_fixture,
+    kafka_container_fixture,
+    kafka_fixture,
+    keypair_fixture,
+    mongodb_container_fixture,
+    mongodb_fixture,
+    s3_container_fixture,
+    s3_fixture,
+    second_s3_fixture,
 )
 from tests_irs.fixtures.test_files import EncryptedData, create_test_file
 

@@ -23,7 +23,7 @@ from irs.inject import prepare_event_subscriber, prepare_storage_inspector
 
 async def consume_events(run_forever: bool = True):
     """Run the event consumer"""
-    config = Config()  # type: ignore [call-arg]
+    config = Config()
     configure_logging(config=config)
 
     async with prepare_event_subscriber(config=config) as event_subscriber:
@@ -36,7 +36,7 @@ async def check_staging_buckets():
     For now this only logs objects that should no longer remain in their respective bucket,
     but have not been removed by the mechanisms in place.
     """
-    config = Config()  # type: ignore [call-arg]
+    config = Config()
     configure_logging(config=config)
 
     async with prepare_storage_inspector(config=config) as staging_inspector:

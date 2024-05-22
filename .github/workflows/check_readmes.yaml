@@ -27,11 +27,11 @@ jobs:
   check-service-readme:
     name: Check README file for ${{matrix.service}}
     needs: get-changed-services
-    if: ${{ needs.get-changed-services.outputs.all-changes != '' }}
+    if: ${{ needs.get-changed-services.outputs.services != '' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: ${{ fromJson(needs.get-changed-services.outputs.since-last-commit) }}
+        service: ${{ fromJson(needs.get-changed-services.outputs.services) }}
       fail-fast: false
     env:
       IFRS_CONFIG_YAML: ./services/ifrs/dev_config.yaml

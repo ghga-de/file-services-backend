@@ -27,9 +27,21 @@ from ghga_service_commons.utils.multinode_storage import (
     S3ObjectStoragesConfig,
 )
 from hexkit.providers.akafka import KafkaEventSubscriber
-from hexkit.providers.akafka.testutils import KafkaFixture, get_kafka_fixture
-from hexkit.providers.mongodb.testutils import MongoDbFixture, get_mongodb_fixture
-from hexkit.providers.s3.testutils import S3Fixture, get_s3_fixture
+from hexkit.providers.akafka.testutils import (
+    KafkaFixture,
+    get_clean_kafka_fixture,
+    kafka_container_fixture,  # noqa: F401
+)
+from hexkit.providers.mongodb.testutils import (
+    MongoDbFixture,
+    get_clean_mongodb_fixture,
+    mongodb_container_fixture,  # noqa: F401
+)
+from hexkit.providers.s3.testutils import (
+    S3Fixture,
+    get_clean_s3_fixture,
+    s3_container_fixture,  # noqa: F401
+)
 from irs.config import Config
 from irs.inject import prepare_core, prepare_event_subscriber
 from irs.ports.inbound.interrogator import InterrogatorPort
@@ -45,10 +57,10 @@ INBOX_BUCKET_ID = "test-inbox"
 STAGING_BUCKET_ID = "test-staging"
 
 
-kafka_fixture = get_kafka_fixture(scope="session")
-mongodb_fixture = get_mongodb_fixture(scope="session")
-s3_fixture = get_s3_fixture(scope="session")
-second_s3_fixture = get_s3_fixture(scope="session")
+kafka_fixture = get_clean_kafka_fixture(scope="session")
+mongodb_fixture = get_clean_mongodb_fixture(scope="session")
+s3_fixture = get_clean_s3_fixture(scope="session")
+second_s3_fixture = get_clean_s3_fixture(scope="session", name="second_s3")
 
 
 @dataclass
@@ -78,24 +90,24 @@ class JointFixture:
         await self.s3.empty_buckets()
         await self.second_s3.empty_buckets()
         self.mongodb.empty_collections()
-        self.kafka.clear_topics()
+        await self.kafka.clear_topics()
         self.keypair.regenerate()
 
 
 @pytest_asyncio.fixture(scope="session")
 async def joint_fixture(
     keypair_fixture: KeypairFixture,  # noqa: F811
-    kafka_fixture: KafkaFixture,
-    mongodb_fixture: MongoDbFixture,
-    s3_fixture: S3Fixture,
-    second_s3_fixture: S3Fixture,
+    kafka: KafkaFixture,
+    mongodb: MongoDbFixture,
+    s3: S3Fixture,
+    second_s3: S3Fixture,
 ) -> AsyncGenerator[JointFixture, None]:
     """A fixture that embeds all other fixtures for integration testing"""
     node_config = S3ObjectStorageNodeConfig(
-        bucket=STAGING_BUCKET_ID, credentials=s3_fixture.config
+        bucket=STAGING_BUCKET_ID, credentials=s3.config
     )
     second_node_config = S3ObjectStorageNodeConfig(
-        bucket=STAGING_BUCKET_ID, credentials=second_s3_fixture.config
+        bucket=STAGING_BUCKET_ID, credentials=second_s3.config
     )
 
     endpoint_aliases = EndpointAliases()
@@ -106,12 +118,10 @@ async def joint_fixture(
             endpoint_aliases.node2: second_node_config,
         }
     )
-    config = get_config(
-        sources=[kafka_fixture.config, mongodb_fixture.config, object_storage_config]
-    )
+    config = get_config(sources=[kafka.config, mongodb.config, object_storage_config])
 
-    await s3_fixture.populate_buckets([INBOX_BUCKET_ID, STAGING_BUCKET_ID])
-    await second_s3_fixture.populate_buckets([INBOX_BUCKET_ID, STAGING_BUCKET_ID])
+    await s3.populate_buckets([INBOX_BUCKET_ID, STAGING_BUCKET_ID])
+    await second_s3.populate_buckets([INBOX_BUCKET_ID, STAGING_BUCKET_ID])
 
     # Create joint_fixure using the injection
     async with (
@@ -124,11 +134,11 @@ async def joint_fixture(
             config=config,
             event_subscriber=event_subscriber,
             interrogator=interrogator,
-            kafka=kafka_fixture,
+            kafka=kafka,
             keypair=keypair_fixture,
-            mongodb=mongodb_fixture,
-            s3=s3_fixture,
-            second_s3=second_s3_fixture,
+            mongodb=mongodb,
+            s3=s3,
+            second_s3=second_s3,
             endpoint_aliases=endpoint_aliases,
         )
 

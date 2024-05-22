@@ -22,14 +22,16 @@ from hexkit.providers.s3.testutils import FileObject, file_fixture  # noqa: F401
 from ifrs.ports.inbound.file_registry import FileRegistryPort
 
 from tests_ifrs.fixtures.example_data import EXAMPLE_METADATA, EXAMPLE_METADATA_BASE
-from tests_ifrs.fixtures.module_scope_fixtures import (  # noqa: F401
+from tests_ifrs.fixtures.session_scope_fixtures import (  # noqa: F401
     JointFixture,
     joint_fixture,
-    kafka_fixture,
-    mongodb_fixture,
-    reset_state,
-    s3_fixture,
-    second_s3_fixture,
+    kafka,
+    kafka_container_fixture,
+    mongodb,
+    mongodb_container_fixture,
+    s3,
+    s3_container_fixture,
+    second_s3,
 )
 
 
@@ -47,23 +49,23 @@ async def test_register_with_empty_staging(joint_fixture: JointFixture):  # noqa
 @pytest.mark.asyncio(scope="session")
 async def test_reregistration(
     joint_fixture: JointFixture,  # noqa: F811
-    file_fixture: FileObject,  # noqa: F811
+    tmp_file: FileObject,
 ):
     """Test the re-registration of a file with identical metadata (should not result in
     an exception). Test PR/Push workflow message
     """
-    for s3, storage_alias in (
+    for storage, storage_alias in (
         (joint_fixture.s3, joint_fixture.endpoint_aliases.node1),
         (joint_fixture.second_s3, joint_fixture.endpoint_aliases.node2),
     ):
         # place example content in the staging:
-        file_object = file_fixture.model_copy(
+        file_object = tmp_file.model_copy(
             update={
                 "bucket_id": joint_fixture.staging_bucket,
                 "object_id": EXAMPLE_METADATA.object_id,
             }
         )
-        await s3.populate_file_objects(file_objects=[file_object])
+        await storage.populate_file_objects(file_objects=[file_object])
 
         # register new file from the staging:
         # (And check if an event informing about the new registration has been published.)
@@ -104,23 +106,23 @@ async def test_reregistration(
 async def test_reregistration_with_updated_metadata(
     caplog,
     joint_fixture: JointFixture,  # noqa: F811
-    file_fixture: FileObject,  # noqa: F811
+    tmp_file: FileObject,
 ):
     """Check that a re-registration of a file with updated metadata fails with the
     expected exception.
     """
-    for s3, storage_alias in (
+    for storage, storage_alias in (
         (joint_fixture.s3, joint_fixture.endpoint_aliases.node1),
         (joint_fixture.second_s3, joint_fixture.endpoint_aliases.node2),
     ):
         # place example content in the staging:
-        file_object = file_fixture.model_copy(
+        file_object = tmp_file.model_copy(
             update={
                 "bucket_id": joint_fixture.staging_bucket,
                 "object_id": EXAMPLE_METADATA.object_id,
             }
         )
-        await s3.populate_file_objects(file_objects=[file_object])
+        await storage.populate_file_objects(file_objects=[file_object])
 
         # register new file from the staging:
         # (And check if an event informing about the new registration has been published.)
@@ -180,7 +182,7 @@ async def test_stage_non_existing_file(joint_fixture: JointFixture):  # noqa: F8
 @pytest.mark.asyncio(scope="session")
 async def test_stage_checksum_mismatch(
     joint_fixture: JointFixture,  # noqa: F811
-    file_fixture: FileObject,  # noqa: F811
+    tmp_file: FileObject,
 ):
     """Check that requesting to stage a registered file to the outbox by specifying the
     wrong checksum fails with the expected exception.
@@ -188,19 +190,19 @@ async def test_stage_checksum_mismatch(
     # populate the database with a corresponding file metadata entry:
     await joint_fixture.file_metadata_dao.insert(EXAMPLE_METADATA)
 
-    for s3, storage_alias in (
+    for storage, storage_alias in (
         (joint_fixture.s3, joint_fixture.endpoint_aliases.node1),
         (joint_fixture.second_s3, joint_fixture.endpoint_aliases.node2),
     ):
         bucket_id = joint_fixture.config.object_storages[storage_alias].bucket
         # place the content for an example file in the permanent storage:
-        file_object = file_fixture.model_copy(
+        file_object = tmp_file.model_copy(
             update={
                 "bucket_id": bucket_id,
                 "object_id": EXAMPLE_METADATA.object_id,
             }
         )
-        await s3.populate_file_objects(file_objects=[file_object])
+        await storage.populate_file_objects(file_objects=[file_object])
 
         # request a stage for the registered file to the outbox by specifying a wrong checksum:
         with pytest.raises(FileRegistryPort.ChecksumMismatchError):
