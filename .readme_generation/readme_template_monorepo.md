@@ -38,6 +38,9 @@ The installation is performed automatically when you build the devcontainer. How
 if you update dependencies in the [`./pyproject.toml`](./pyproject.toml) or the
 [`./requirements-dev.txt`](./requirements-dev.txt), please run it again.
 
+For more information on development with this monorepo, please see the 
+[Developer Guide](./.readme_generation/dev_guide.md).
+
 ## License
 
 This repository is free to use and modify according to the
