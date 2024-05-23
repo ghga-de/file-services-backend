@@ -31,17 +31,18 @@ example, to use hexkit v2 in one service and hexkit v3 in another.
 There is a templating system in place that allows for cleaner control over dependencies.
 Here's how it works:
 1. In `/lock`, there are several `requirements-*` files:
-  - `requirements-dev-template.in`: Contains *uncapped* (no upper bound) dependencies
-  that are controlled by the Microservice Template Repository and used for development
-  in all GHGA microservice projects (including monorepos).
-  - `requirements-dev.in`: Contains any other dependencies required for development of
-  this repository specifically.
-  - `requirements-dev.txt`: Lock file containing production *and* development dependencies.
-  - `requirements.txt`: Lock file containing *only* production dependencies.
+   - `requirements-dev-template.in`: Contains *uncapped* (no upper bound) dependencies
+     that are controlled by the Microservice Template Repository and used for development
+     in all GHGA microservice projects (including monorepos).
+   - `requirements-dev.in`: Contains any other dependencies required for development of
+     this repository specifically.
+   - `requirements-dev.txt`: Lock file containing application *and* development dependencies.
+   - `requirements.txt`: Lock file containing *only* application dependencies.
 
-2. `.pyproject_generation/pyproject_custom.toml` is used to define production-specific
-python dependencies. When changes are made, `scripts/update_pyproject.py` must be
-run to update the `pyproject.toml` file at the root level.
+2. `.pyproject_generation/pyproject_custom.toml` is used to define core application
+dependencies, without which the service cannot run. When changes are made,
+`scripts/update_pyproject.py` must be run to update the `pyproject.toml` file at the
+root level.
 
 3. `scripts/update_lock.py --upgrade` is used to combine information from `requirements-dev-template.in`,
 `requirements-dev.in`, and `pyproject.toml` to build the two lock files listed above.
