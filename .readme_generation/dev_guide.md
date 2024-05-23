@@ -15,7 +15,6 @@ each service. Services are located in the [`services`](/services) folder in the 
 |-----------|-------------|
 | [`/.github`](/.github)  | Workflows to be executed on GitHub |
 | [`/.readme_generation`](/.readme_generation) | Template files required to build the root-level README |
-| [`/example_data`](/example_data) | Can be used to populate the application with data for test/dev |
 | [`/lock`](/lock) | Dependency specifications and resulting lock files |
 | [`/scripts`](/scripts) | Custom scripts for common tasks such as updating lock files or config docs |
 | [`/services`](/services) | Application code for each of the microservices in the monorepo |
@@ -41,7 +40,7 @@ Here's how it works:
   - `requirements.txt`: Lock file containing *only* production dependencies.
 
 2. `.pyproject_generation/pyproject_custom.toml` is used to define production-specific
-python dependencies. When changes are made, `scripts/update_pyproject.py` is
+python dependencies. When changes are made, `scripts/update_pyproject.py` must be
 run to update the `pyproject.toml` file at the root level.
 
 3. `scripts/update_lock.py --upgrade` is used to combine information from `requirements-dev-template.in`,
@@ -50,13 +49,14 @@ run to update the `pyproject.toml` file at the root level.
 
 ### Monorepo Configuration
 
-Outside of the services, there are two primary points of configuration: `pyproject.toml`
-and `.pre-commit-config.yaml`. Three, if you include the contents of `.devcontainer`.
+Outside of the services, there are three primary points of configuration: `pyproject.toml`, 
+`.pre-commit-config.yaml` and the contents of `.devcontainer`.
 
-The root-level pyproject.toml file is updated not directly, but rather through the files
-in the `.pyproject_generation` folder. Tooling configuration for ruff, mypy, pytest, etc.
-are contained in `pyproject_template.toml`. When making changes, remember to run the
-update script to ensure changes are reflected in the actual pyproject.toml file.
+The root-level pyproject.toml file should not be updated directly. Instead the files
+in the `.pyproject_generation` folder should be adjusted. Tooling configuration for ruff,
+mypy, pytest, etc. are contained in `pyproject_template.toml`. When making changes,
+remember to run the update script to ensure changes are reflected in the actual
+pyproject.toml file.
 
 Pre-commit is configured through the .pre-commit-config.yaml found in the root directory.
 There are standard pre-commit checks as well as 3rd party checks from ruff and mypy. 
@@ -94,16 +94,13 @@ to examine git history and only run workflows for services affected by the curre
 
 ### Docker
 
-Services are deployed in production via docker. In a polyrepo setup, each service maintains
-its own production Dockerfile, but in this monorepo setup there is only one Dockerfile
-for all services. When a release is made, the Dockerfile is used to build a docker image,
-which is then pushed to Docker Hub.
+TBD
 
 ## Service Structure
 
 Services consist of the following high-level parts:
 - `.readme_generation/`: Template components required to build the service-specific README.
-- `scripts/`: Required only if the service uses FastAPI for a REST API. 
+- `scripts/app_openapi.py`: Required only if the service uses FastAPI for a REST API. 
 - `src`: Application code stored here in a subdirectory labeled with the service abbreviation.
 - `tests_<service_name>`: E.g. `tests_pcs`. All service-specific tests are stored here.
 - Config Files: `config_schema.json`, `dev_config.yaml`, `example_config.yaml`
@@ -113,9 +110,8 @@ Services consist of the following high-level parts:
 
 ### Service Configuration
 
-Configuration is stored in `.yaml` format at the service level. I.e., there is one config
-file for each directory under `services/` called `dev_config.yaml`. The config
-is defined in application code using Pydantic, and the `scripts/update_config_docs.py`
+There is one config file for each directory under `services/` called `dev_config.yaml`.
+The config is defined in application code using Pydantic, and the `scripts/update_config_docs.py`
 script uses the code (a class called `Config`) and the dev_config.yaml file to compile
 both `config_schema.json` and `example_config.yaml`. 
 
@@ -130,7 +126,9 @@ Testing is performed with `pytest`, which is configured in the pyproject.toml at
 root. At the service level, tests are stored in the folder named `tests_<service_name>`, 
 e.g. `tests_ifrs` for the ifrs project or `tests_pcs` for the pcs project. The tests
 folder lives at the root of the service-specific directory, i.e. 
-`services/<service_name>/tests_<service_name>`. 
+`services/<service_name>/tests_<service_name>`. This naming convention prevents namespace
+confusion, allowing for cleanly divided service-specific test directories. Otherwise,
+import errors occur and pytest has difficulty collecting tests.
 
 Tests can be run for all services with the command `pytest`. For a specific service only,
 add the service directory: `pytest services/ifrs`. 
