@@ -25,18 +25,21 @@ Then open this repository in VS Code and run the command
 `Remote-Containers: Reopen in Container` from the VS Code "Command Palette".
 
 This will give you a full-fledged, pre-configured development environment including:
-- infrastructural dependencies of the service (databases, etc.)
+- infrastructural dependencies of the services (databases, etc.)
 - all relevant VS Code extensions pre-installed
 - pre-configured linting and auto-formatting
 - a pre-configured debugger
 - automatic license-header insertion
 
-Moreover, inside the devcontainer, a convenience commands `dev_install` is available.
-It installs the service with all development dependencies, installs pre-commit.
+Moreover, inside the devcontainer, a convenience command `dev_install` is available.
+It installs the services with all development dependencies and installs pre-commit.
 
 The installation is performed automatically when you build the devcontainer. However,
 if you update dependencies in the [`./pyproject.toml`](./pyproject.toml) or the
 [`./requirements-dev.txt`](./requirements-dev.txt), please run it again.
+
+For more information on development with this monorepo, please see the 
+[Developer Guide](./.readme_generation/dev_guide.md).
 
 ## License
 
