@@ -26,18 +26,14 @@ from irs.inject import prepare_storage_inspector
 from tests_irs.fixtures.joint import (
     STAGING_BUCKET_ID,
     JointFixture,
-    joint_fixture,  # noqa: F401
-    kafka_fixture,  # noqa: F401
     keypair_fixture,  # noqa: F401
-    mongodb_fixture,  # noqa: F401
-    s3_fixture,  # noqa: F401
-    second_s3_fixture,  # noqa: F401
 )
 from tests_irs.fixtures.test_files import create_test_file
 
+pytestmark = pytest.mark.asyncio()
 
-@pytest.mark.asyncio(scope="session")
-async def test_staging_inspector(caplog, joint_fixture: JointFixture):  # noqa: F811
+
+async def test_staging_inspector(caplog, joint_fixture: JointFixture):
     """Check storage inspector functionality."""
     # prepare storage entries
     file_1 = await create_test_file(
@@ -50,7 +46,7 @@ async def test_staging_inspector(caplog, joint_fixture: JointFixture):  # noqa: 
         bucket_id=STAGING_BUCKET_ID,
         private_key=joint_fixture.keypair.private,
         public_key=joint_fixture.keypair.public,
-        s3=joint_fixture.second_s3,
+        s3=joint_fixture.s3,
     )
     file_3 = await create_test_file(
         bucket_id=STAGING_BUCKET_ID,
@@ -68,7 +64,7 @@ async def test_staging_inspector(caplog, joint_fixture: JointFixture):  # noqa: 
     staging_object_2 = StagingObject(
         file_id=file_2.file_id,
         object_id=file_2.file_object.object_id,
-        storage_alias=joint_fixture.endpoint_aliases.node2,
+        storage_alias=joint_fixture.endpoint_aliases.node1,
     )
 
     # modify second object to be recognized as stale
@@ -94,7 +90,7 @@ async def test_staging_inspector(caplog, joint_fixture: JointFixture):  # noqa: 
 
     assert len(caplog.messages) == 2
     assert (
-        f"Stale object '{file_2.file_object.object_id}' found for file '{file_2.file_id}' in bucket '{STAGING_BUCKET_ID}' of storage '{joint_fixture.endpoint_aliases.node2}'."
+        f"Stale object '{file_2.file_object.object_id}' found for file '{file_2.file_id}' in bucket '{STAGING_BUCKET_ID}' of storage '{joint_fixture.endpoint_aliases.node1}'."
         in caplog.messages
     )
     assert (

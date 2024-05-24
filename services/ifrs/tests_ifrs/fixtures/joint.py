@@ -17,10 +17,11 @@
 
 __all__ = [
     "JointFixture",
-    "get_joint_fixture",
+    "OUTBOX_BUCKET",
+    "PERMANENT_BUCKET",
+    "STAGING_BUCKET",
 ]
 
-import socket
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass
 
@@ -38,7 +39,6 @@ from ifrs.config import Config
 from ifrs.inject import prepare_core
 from ifrs.ports.inbound.file_registry import FileRegistryPort
 from ifrs.ports.outbound.dao import FileMetadataDaoPort
-from pytest_asyncio.plugin import _ScopeName
 
 from tests_ifrs.fixtures.config import get_config
 
@@ -56,13 +56,6 @@ class EndpointAliases:
     fake: str = f"{STORAGE_ALIASES[0]}_fake"
 
 
-def get_free_port() -> int:
-    """Finds and returns a free port on localhost."""
-    sock = socket.socket()
-    sock.bind(("", 0))
-    return int(sock.getsockname()[1])
-
-
 @dataclass
 class JointFixture:
     """Returned by the `joint_fixture`."""
@@ -70,7 +63,6 @@ class JointFixture:
     config: Config
     mongodb: MongoDbFixture
     s3: S3Fixture
-    second_s3: S3Fixture
     file_metadata_dao: FileMetadataDaoPort
     file_registry: FileRegistryPort
     kafka: KafkaFixture
@@ -78,18 +70,11 @@ class JointFixture:
     staging_bucket: str
     endpoint_aliases: EndpointAliases
 
-    async def reset_state(self):
-        """Completely reset fixture states"""
-        await self.s3.empty_buckets()
-        await self.second_s3.empty_buckets()
-        self.mongodb.empty_collections()
-        await self.kafka.clear_topics()
 
-
-async def joint_fixture_function(
+@pytest_asyncio.fixture(scope="function")
+async def joint_fixture(
     mongodb: MongoDbFixture,
     s3: S3Fixture,
-    second_s3: S3Fixture,
     kafka: KafkaFixture,
 ) -> AsyncGenerator[JointFixture, None]:
     """A fixture that embeds all other fixtures for API-level integration testing"""
@@ -98,16 +83,12 @@ async def joint_fixture_function(
     node_config = S3ObjectStorageNodeConfig(
         bucket=PERMANENT_BUCKET, credentials=s3.config
     )
-    second_node_config = S3ObjectStorageNodeConfig(
-        bucket=PERMANENT_BUCKET, credentials=second_s3.config
-    )
 
     endpoint_aliases = EndpointAliases()
 
     object_storage_config = S3ObjectStoragesConfig(
         object_storages={
             endpoint_aliases.node1: node_config,
-            endpoint_aliases.node2: second_node_config,
         }
     )
     config = get_config(sources=[mongodb.config, object_storage_config, kafka.config])
@@ -116,30 +97,12 @@ async def joint_fixture_function(
         dao_factory=dao_factory
     )
 
-    # create a DI container instance:translators
+    # Prepare the file registry (core)
     async with prepare_core(config=config) as file_registry:
-        # create storage entities:
-
-        await s3.populate_buckets(
-            buckets=[
-                OUTBOX_BUCKET,
-                STAGING_BUCKET,
-                PERMANENT_BUCKET,
-            ]
-        )
-        await second_s3.populate_buckets(
-            buckets=[
-                OUTBOX_BUCKET,
-                STAGING_BUCKET,
-                PERMANENT_BUCKET,
-            ]
-        )
-
         yield JointFixture(
             config=config,
             mongodb=mongodb,
             s3=s3,
-            second_s3=second_s3,
             file_metadata_dao=file_metadata_dao,
             file_registry=file_registry,
             kafka=kafka,
@@ -147,8 +110,3 @@ async def joint_fixture_function(
             staging_bucket=STAGING_BUCKET,
             endpoint_aliases=endpoint_aliases,
         )
-
-
-def get_joint_fixture(scope: _ScopeName = "function"):
-    """Produce a joint fixture with desired scope"""
-    return pytest_asyncio.fixture(joint_fixture_function, scope=scope)
