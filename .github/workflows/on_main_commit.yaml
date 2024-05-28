@@ -68,7 +68,7 @@ jobs:
 
       - name: Build and push ${{ matrix.service }} to Docker hub
         id: docker-push
-        uses: ./reusable_workflows/docker_debug.yaml
+        uses: ./reusable_workflows/docker_debug
         with:
           working_directory: services/${{ matrix.service }}
           service_name: ${{ steps.extract-service-name.outputs.service-name }}
