@@ -15,11 +15,15 @@
 
 name: "Push to docker on new commit to main"
 
-on: push
+on:
+  push:
+    branches:
+      - main
 
 env:
   DOCKERHUB_NAMESPACE: ghga
   DOCKERHUB_PLATFORMS: "linux/amd64,linux/arm64"
+  TRIVY_SEVERITY: "CRITICAL,HIGH"
   IFRS_CONFIG_YAML: ./services/ifrs/dev_config.yaml
   IRS_CONFIG_YAML: ./services/irs/dev_config.yaml
   PCS_CONFIG_YAML: ./services/pcs/dev_config.yaml
@@ -48,7 +52,7 @@ jobs:
         with:
           python-version: 3.12
 
-      - name: Install stringcase
+      - name: Install stringcase and typer
         id: setup-stringcase
         run: pip install stringcase typer
 
@@ -78,6 +82,12 @@ jobs:
       - uses: docker/setup-buildx-action@v3
         name: Set up Docker Buildx
 
+      - uses: docker/login-action@v3
+        name: Login to DockerHub
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - uses: docker/build-push-action@v5
         name: Build and push
         id: docker_build
@@ -85,6 +95,16 @@ jobs:
           platforms: "${{ env.DOCKERHUB_PLATFORMS }}"
           tags: "${{ env.DOCKERHUB_NAMESPACE }}/${{ steps.extract-service-name.outputs.name }}:${{ steps.extract-service-version.outputs.version }}"
           context: "services/${{ matrix.service }}"
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "docker.io/${{ env.DOCKERHUB_NAMESPACE }}/${{ steps.extract-service-name.outputs.name }}:${{ steps.extract-service-version.outputs.version }}"
+          format: "table"
+          exit-code: "1"
+          ignore-unfixed: true
+          vuln-type: "os,library"
+          severity: ${{ env.TRIVY_SEVERITY }}
 
       - name: Image digest
         shell: bash
