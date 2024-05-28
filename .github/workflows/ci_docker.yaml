@@ -48,7 +48,7 @@ jobs:
 
       - name: Install stringcase
         id: setup-stringcase
-        run: pip install stringcase
+        run: pip install stringcase typer
 
       - name: Extract service name for ${{ matrix.service }}
         id: extract-service-name
