@@ -156,7 +156,7 @@ async def test_failure_event(monkeypatch, joint_fixture: JointFixture):
 
     assert len(recorded_events) == 1
     assert recorded_events[0].payload["object_id"] != ""
-    expected_event_out.payload["object_id"] = recorded_events[0].payload["object_id"]
+    expected_event_out.payload["object_id"] = recorded_events[0].payload["object_id"]  # type: ignore[index]
     assert recorded_events[0].payload == expected_event_out.payload
 
     # check staging object dao state
@@ -246,7 +246,7 @@ async def test_success_event(monkeypatch, joint_fixture: JointFixture):
     assert len(recorded_events) == 1
     event = recorded_events[0]
 
-    expected_event_out.payload["object_id"] = event.payload["object_id"]
+    expected_event_out.payload["object_id"] = event.payload["object_id"]  # type: ignore[index]
     for key in payload_out:
         assert event.payload[key] == expected_event_out.payload[key]
 

@@ -34,6 +34,7 @@ jobs:
 
   push-to-docker:
     runs-on: ubuntu-latest
+    if: ${{ needs.get-changed-services.outputs.services != '' }}
     needs: get-changed-services
     strategy:
       matrix:

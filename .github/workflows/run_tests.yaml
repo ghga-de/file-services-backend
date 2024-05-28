@@ -1,9 +1,14 @@
-name: Monorepo Push Tests
+name: Run tests on non main branch
 
 on:
   push:
     branches-ignore:
       - main
+
+env:
+  IFRS_CONFIG_YAML: ./services/ifrs/dev_config.yaml
+  IRS_CONFIG_YAML: ./services/irs/dev_config.yaml
+  PCS_CONFIG_YAML: ./services/pcs/dev_config.yaml
 
 jobs:
   get-changed-services:
@@ -17,11 +22,6 @@ jobs:
       matrix:
         service: ${{ fromJson(needs.get-changed-services.outputs.services) }}
       fail-fast: false
-
-    env:
-      IFRS_CONFIG_YAML: ./services/ifrs/dev_config.yaml
-      IRS_CONFIG_YAML: ./services/irs/dev_config.yaml
-      PCS_CONFIG_YAML: ./services/pcs/dev_config.yaml
 
     steps:
       - name: Checkout ${{matrix.service}}
