@@ -15,10 +15,7 @@
 
 name: "Steps to run on new commit to main"
 
-on:
-  push:
-    branches:
-      - main
+on: push
 
 jobs:
   get-changed-services:
