@@ -13,9 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: "Steps to run on new commit to main"
+name: "Push to docker on new commit to main"
 
 on: push
+
+env:
+  IFRS_CONFIG_YAML: ./services/ifrs/dev_config.yaml
+  IRS_CONFIG_YAML: ./services/irs/dev_config.yaml
+  PCS_CONFIG_YAML: ./services/pcs/dev_config.yaml
 
 jobs:
   get-changed-services:
@@ -29,11 +34,6 @@ jobs:
         service: ${{ fromJson(needs.get-changed-services.outputs.services) }}
       fail-fast: false
 
-    env:
-      IFRS_CONFIG_YAML: ./services/ifrs/dev_config.yaml
-      IRS_CONFIG_YAML: ./services/irs/dev_config.yaml
-      PCS_CONFIG_YAML: ./services/pcs/dev_config.yaml
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -46,11 +46,15 @@ jobs:
         with:
           python-version: 3.12
 
+      - name: Install stringcase
+        id: setup-stringcase
+        run: pip install stringcase
+
       - name: Extract service name for ${{ matrix.service }}
         id: extract-service-name
         shell: bash
         run: |
-          echo service-name=$(python3 scripts/service_name.py ${{ matrix.service }}) >> $GITHUB_OUTPUT
+          echo name=$(python3 scripts/service_name.py ${{ matrix.service }}) >> $GITHUB_OUTPUT
 
       - name: Extract service version for ${{ matrix.service }}
         id: extract-service-version
@@ -71,5 +75,5 @@ jobs:
         uses: ./reusable_workflows/docker_debug
         with:
           working_directory: services/${{ matrix.service }}
-          service_name: ${{ steps.extract-service-name.outputs.service-name }}
+          service_name: ${{ steps.extract-service-name.outputs.name }}
           version: ${{ steps.extract-service-version.outputs.version }}
