@@ -14,7 +14,7 @@
 # limitations under the License.
 
 ## creating building container
-FROM python:3.10.9-slim-bullseye AS builder
+FROM python:3.12-slim-bookworm AS builder
 # update and install dependencies
 RUN apt update
 RUN apt upgrade -y
@@ -22,11 +22,11 @@ RUN pip install build
 # copy code
 COPY . /service
 WORKDIR /service
-# build wheels
-RUN for svc in ./services/*; do python -m build $svc --outdir ./dist; done
+# build wheel
+RUN python -m build
 
 # creating running container
-FROM python:3.10.9-slim-bullseye
+FROM python:3.12-slim-bookworm
 # update and install dependencies
 RUN apt update
 RUN apt upgrade -y
@@ -43,4 +43,6 @@ RUN useradd --create-home appuser
 WORKDIR /home/appuser
 USER appuser
 # set environment
-ENV PYTHONUNBUFFERED=1
+ENV PYTHONUNBUFFERED=1s
+
+ENTRYPOINT []

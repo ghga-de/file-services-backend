@@ -1,0 +1,86 @@
+# Copyright 2022-2023 Universität Tübingen, DKFZ and EMBL
+# for the German Human Genome-Phenome Archive (GHGA)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: "GHGA CI action tasks"
+description: "Tasks that are executed in our CI pipeline for GHGA microservices"
+inputs:
+  dockerhub_username:
+    description: "The DockerHub username"
+    required: true
+    default: "ghga"
+  dockerhub_token:
+    description: "The DockerHub token used to authenticate"
+    required: true
+  dockerhub_namespace:
+    description: "The namespace used to publish to the registry."
+    required: true
+    default: ghga
+  dockerhub_platforms:
+    description: "Platforms passed to DockerHub build and push action."
+    default: "linux/amd64,linux/arm64"
+  working_directory:
+    description: "Directory which contains Dockerfile and project configuration files."
+    required: true
+  trivy_severity:
+    description: "Severities of vulnerabilities to scanned for and displayed."
+    default: "CRITICAL,HIGH"
+  service_name:
+    description: "Full, lower case hypehenated service name"
+    required: true
+  version:
+    description: "The version to publish to the registry."
+    required: true
+
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v3
+      name: Check out code
+
+    - uses: docker/setup-qemu-action@v2
+      name: Set up QEMU
+
+    - uses: docker/setup-buildx-action@v2
+      name: Set up Docker Buildx
+
+    - uses: docker/login-action@v2
+      name: Login to DockerHub
+      with:
+        username: ${{ inputs.dockerhub_username }}
+        password: ${{ inputs.dockerhub_token }}
+
+    - uses: docker/build-push-action@v4
+      name: Build and push
+      id: docker_build
+      with:
+        push: true
+        platforms: "${{ inputs.dockerhub_platforms }}"
+        tags: "${{ inputs.dockerhub_namespace }}/${{ inputs.service_name }}:${{ inputs.version }}"
+        context: "${{ inputs.working_directory }}"
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: "docker.io/${{ inputs.dockerhub_namespace }}/${{ inputs.service_name }}:${{ inputs.version }}"
+        format: "table"
+        exit-code: "1"
+        ignore-unfixed: true
+        vuln-type: "os,library"
+        severity: ${{ inputs.trivy_severity }}
+
+    - name: Image digest
+      shell: bash
+      run: echo ${{ steps.docker_build.outputs.digest }}

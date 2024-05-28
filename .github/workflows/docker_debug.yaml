@@ -1,0 +1,59 @@
+# Copyright 2022-2023 Universität Tübingen, DKFZ and EMBL
+# for the German Human Genome-Phenome Archive (GHGA)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: "GHGA CI action tasks"
+description: "Tasks that are executed in our CI pipeline for GHGA microservices"
+inputs:
+  dockerhub_namespace:
+    description: "The namespace used to publish to the registry."
+    required: true
+    default: ghga
+  dockerhub_platforms:
+    description: "Platforms passed to DockerHub build and push action."
+    default: "linux/amd64,linux/arm64"
+  working_directory:
+    description: "Directory which contains Dockerfile and project configuration files."
+    required: true
+  service_name:
+    description: "Full, lower case hypehenated service name"
+    required: true
+  version:
+    description: "The version to publish to the registry."
+    required: true
+
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+      name: Check out code
+
+    - uses: docker/setup-qemu-action@v2
+      name: Set up QEMU
+
+    - uses: docker/setup-buildx-action@v2
+      name: Set up Docker Buildx
+
+    - uses: docker/build-push-action@v4
+      name: Build and push
+      id: docker_build
+      with:
+        platforms: "${{ inputs.dockerhub_platforms }}"
+        tags: "${{ inputs.dockerhub_namespace }}/${{ inputs.service_name }}:${{ inputs.version }}"
+        context: "${{ inputs.working_directory }}"
+
+    - name: Image digest
+      shell: bash
+      run: echo ${{ steps.docker_build.outputs.digest }}
