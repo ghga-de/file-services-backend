@@ -64,6 +64,7 @@ EXCLUDE = [
     ".mypy.ini",
     ".pytest_cache",
     ".editorconfig",
+    "monorepo.code-workspace",
     ".template/.static_files.txt",
     ".template/.static_files_ignore.txt",
     ".template/.mandatory_files.txt",
