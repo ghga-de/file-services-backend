@@ -25,7 +25,7 @@ def main(*, service: str):
         description: str = tomllib.load(pyproject)["project"]["description"]
         if "-" in description:
             description = description.split("-")[0]
-        description = description.replace(" ", "")
+        description = description.title().replace(" ", "")
         print(spinalcase(description))
 
 
