@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Retrieve the full name of the service, as opposed to the abbreviation."""
 
 import tomllib
 from stringcase import spinalcase
