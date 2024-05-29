@@ -69,6 +69,11 @@ jobs:
         run: |
           echo version=$(python3.12 -c "import tomllib; print(tomllib.load(open('services/${{ matrix.service }}/pyproject.toml', 'rb'))['project']['version'])") >> $GITHUB_OUTPUT
 
+      - name: Ensure that tag complies with semantic versioning.
+        uses: matt-usurp/validate-semver@v2
+        with:
+          version: ${{ steps.extract-service-version.outputs.version }}
+
       - name: Symlink requirement files
         id: symlink-requirements
         run: ln -sf lock services/${{ matrix.service }}/lock
