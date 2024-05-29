@@ -16,20 +16,18 @@
 
 """Provides multiple fixtures in one spot"""
 
-import asyncio
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass
 
-import pytest
 import pytest_asyncio
 from ghga_service_commons.utils.multinode_storage import (
     S3ObjectStorageNodeConfig,
     S3ObjectStoragesConfig,
 )
 from hexkit.providers.akafka import KafkaEventSubscriber
-from hexkit.providers.akafka.testutils import KafkaFixture, get_kafka_fixture
-from hexkit.providers.mongodb.testutils import MongoDbFixture, get_mongodb_fixture
-from hexkit.providers.s3.testutils import S3Fixture, get_s3_fixture
+from hexkit.providers.akafka.testutils import KafkaFixture
+from hexkit.providers.mongodb.testutils import MongoDbFixture
+from hexkit.providers.s3.testutils import S3Fixture
 from irs.config import Config
 from irs.inject import prepare_core, prepare_event_subscriber
 from irs.ports.inbound.interrogator import InterrogatorPort
@@ -43,12 +41,6 @@ from tests_irs.fixtures.keypair_fixtures import (
 FILE_SIZE = 50 * 1024**2
 INBOX_BUCKET_ID = "test-inbox"
 STAGING_BUCKET_ID = "test-staging"
-
-
-kafka_fixture = get_kafka_fixture(scope="session")
-mongodb_fixture = get_mongodb_fixture(scope="session")
-s3_fixture = get_s3_fixture(scope="session")
-second_s3_fixture = get_s3_fixture(scope="session")
 
 
 @dataclass
@@ -70,32 +62,19 @@ class JointFixture:
     keypair: KeypairFixture
     mongodb: MongoDbFixture
     s3: S3Fixture
-    second_s3: S3Fixture
     endpoint_aliases: EndpointAliases
 
-    async def reset_state(self):
-        """Completely reset fixture states"""
-        await self.s3.empty_buckets()
-        await self.second_s3.empty_buckets()
-        self.mongodb.empty_collections()
-        self.kafka.clear_topics()
-        self.keypair.regenerate()
 
-
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="function")
 async def joint_fixture(
     keypair_fixture: KeypairFixture,  # noqa: F811
-    kafka_fixture: KafkaFixture,
-    mongodb_fixture: MongoDbFixture,
-    s3_fixture: S3Fixture,
-    second_s3_fixture: S3Fixture,
+    kafka: KafkaFixture,
+    mongodb: MongoDbFixture,
+    s3: S3Fixture,
 ) -> AsyncGenerator[JointFixture, None]:
     """A fixture that embeds all other fixtures for integration testing"""
     node_config = S3ObjectStorageNodeConfig(
-        bucket=STAGING_BUCKET_ID, credentials=s3_fixture.config
-    )
-    second_node_config = S3ObjectStorageNodeConfig(
-        bucket=STAGING_BUCKET_ID, credentials=second_s3_fixture.config
+        bucket=STAGING_BUCKET_ID, credentials=s3.config
     )
 
     endpoint_aliases = EndpointAliases()
@@ -103,17 +82,11 @@ async def joint_fixture(
     object_storage_config = S3ObjectStoragesConfig(
         object_storages={
             endpoint_aliases.node1: node_config,
-            endpoint_aliases.node2: second_node_config,
         }
     )
-    config = get_config(
-        sources=[kafka_fixture.config, mongodb_fixture.config, object_storage_config]
-    )
+    config = get_config(sources=[kafka.config, mongodb.config, object_storage_config])
 
-    await s3_fixture.populate_buckets([INBOX_BUCKET_ID, STAGING_BUCKET_ID])
-    await second_s3_fixture.populate_buckets([INBOX_BUCKET_ID, STAGING_BUCKET_ID])
-
-    # Create joint_fixure using the injection
+    # Create joint_fixture using the inject module
     async with (
         prepare_core(config=config) as interrogator,
         prepare_event_subscriber(
@@ -124,20 +97,9 @@ async def joint_fixture(
             config=config,
             event_subscriber=event_subscriber,
             interrogator=interrogator,
-            kafka=kafka_fixture,
+            kafka=kafka,
             keypair=keypair_fixture,
-            mongodb=mongodb_fixture,
-            s3=s3_fixture,
-            second_s3=second_s3_fixture,
+            mongodb=mongodb,
+            s3=s3,
             endpoint_aliases=endpoint_aliases,
         )
-
-
-@pytest.fixture(autouse=True, scope="function")
-def reset_state(joint_fixture: JointFixture):
-    """Clear joint_fixture state before tests that use this fixture.
-
-    This is a function-level fixture because it needs to run in each test.
-    """
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(joint_fixture.reset_state())

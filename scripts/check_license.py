@@ -64,6 +64,7 @@ EXCLUDE = [
     ".mypy.ini",
     ".pytest_cache",
     ".editorconfig",
+    "monorepo.code-workspace",
     ".template/.static_files.txt",
     ".template/.static_files_ignore.txt",
     ".template/.mandatory_files.txt",
@@ -292,7 +293,7 @@ def validate_year_string(year_string: str, min_year: int = MIN_YEAR) -> bool:
         return int(year_string) == current_year
 
     # Otherwise, a range (e.g. 2021 - 2023) is expected:
-    match = re.match("(\d+) - (\d+)", year_string)
+    match = re.match(r"(\d+) - (\d+)", year_string)
 
     if not match:
         return False

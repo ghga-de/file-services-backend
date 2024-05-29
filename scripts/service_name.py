@@ -12,20 +12,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Retrieve the full name of the service, as opposed to the abbreviation."""
 
-"""In this module object construction and dependency injection is carried out."""
+import tomllib
+from stringcase import spinalcase
 
-from ghga_service_commons.api import run_server
-from hexkit.log import configure_logging
-
-from pcs.config import Config
-from pcs.inject import prepare_rest_app
+from script_utils.cli import run
 
 
-async def run_rest_app():
-    """Run the HTTP REST API."""
-    config = Config()
-    configure_logging(config=config)
+def main(*, service: str):
+    with open(f"services/{service}/pyproject.toml", "rb") as pyproject:
+        description: str = tomllib.load(pyproject)["project"]["description"]
+        if "-" in description:
+            description = description.split("-")[0]
+        description = description.title().replace(" ", "")
+        print(spinalcase(description))
 
-    async with prepare_rest_app(config=config) as app:
-        await run_server(app=app, config=config)
+
+if __name__ == "__main__":
+    run(main)

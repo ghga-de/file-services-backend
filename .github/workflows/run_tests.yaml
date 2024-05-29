@@ -1,9 +1,14 @@
-name: Monorepo Push Tests
+name: Run tests on non main branch
 
 on:
   push:
     branches-ignore:
       - main
+
+env:
+  IFRS_CONFIG_YAML: ./services/ifrs/dev_config.yaml
+  IRS_CONFIG_YAML: ./services/irs/dev_config.yaml
+  PCS_CONFIG_YAML: ./services/pcs/dev_config.yaml
 
 jobs:
   get-changed-services:
@@ -11,23 +16,24 @@ jobs:
 
   test:
     needs: get-changed-services
-    if: ${{ needs.get-changed-services.outputs.since-last-commit != '' }}
+    if: ${{ needs.get-changed-services.outputs.services != '' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: ${{ fromJson(needs.get-changed-services.outputs.since-last-commit) }}
+        service: ${{ fromJson(needs.get-changed-services.outputs.services) }}
       fail-fast: false
-
-    env:
-      IFRS_CONFIG_YAML: ./services/ifrs/dev_config.yaml
-      IRS_CONFIG_YAML: ./services/irs/dev_config.yaml
-      PCS_CONFIG_YAML: ./services/pcs/dev_config.yaml
 
     steps:
       - name: Checkout ${{matrix.service}}
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
+
+      - name: Set up Python 3.12
+        id: setup-python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
 
       - name: Update pip and pyopenssl
         id: pip-update

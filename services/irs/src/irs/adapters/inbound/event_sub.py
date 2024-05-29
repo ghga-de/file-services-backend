@@ -76,7 +76,7 @@ class EventSubTranslator(EventSubscriberProtocol):
         ]
 
     async def _consume_validated(
-        self, *, payload: JsonObject, type_: Ascii, topic: Ascii
+        self, *, payload: JsonObject, type_: Ascii, topic: Ascii, key: str
     ) -> None:
         """
         Receive and process an event with already validated topic and type.
