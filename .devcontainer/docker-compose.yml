@@ -32,3 +32,4 @@ services:
       IFRS_CONFIG_YAML: /workspace/services/ifrs/dev_config.yaml
       IRS_CONFIG_YAML: /workspace/services/irs/dev_config.yaml
       PCS_CONFIG_YAML: /workspace/services/pcs/dev_config.yaml
+      UCS_CONFIG_YAML: /workspace/services/ucs/dev_config.yaml

@@ -16,5 +16,9 @@
 			"name": "Purge Controller",
 			"path": "services/pcs"
 		},
+		{
+			"name": "Upload Controller",
+			"path": "services/ucs"
+		},
 	]
 }
