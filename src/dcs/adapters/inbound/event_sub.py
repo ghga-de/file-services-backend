@@ -1,4 +1,4 @@
-# Copyright 2021 - 2023 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
+# Copyright 2021 - 2024 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +14,6 @@
 # limitations under the License.
 
 """Adapter for receiving events providing metadata on files"""
-
 
 from ghga_event_schemas import pydantic_ as event_schemas
 from ghga_event_schemas.validation import get_validated_payload
@@ -104,11 +103,7 @@ class EventSubTranslator(EventSubscriberProtocol):
         )
 
     async def _consume_validated(
-        self,
-        *,
-        payload: JsonObject,
-        type_: Ascii,
-        topic: Ascii,
+        self, *, payload: JsonObject, type_: Ascii, topic: Ascii, key: str
     ) -> None:
         """Consume events from the topics of interest."""
         if type_ == self._config.files_to_register_type:

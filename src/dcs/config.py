@@ -1,4 +1,4 @@
-# Copyright 2021 - 2023 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
+# Copyright 2021 - 2024 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,7 +35,7 @@ class WorkOrderTokenConfig(AuthConfig):
     """Overwrite checked claims"""
 
     auth_check_claims: dict[str, Any] = Field(
-        dict.fromkeys(
+        default=dict.fromkeys(
             "type file_id user_id user_public_crypt4gh_key full_user_name email iat exp".split()
         ),
         description="A dict of all GHGA internal claims that shall be verified.",

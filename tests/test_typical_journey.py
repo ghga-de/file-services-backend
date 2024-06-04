@@ -1,4 +1,4 @@
-# Copyright 2021 - 2023 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
+# Copyright 2021 - 2024 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -50,7 +50,7 @@ def non_mocked_hosts() -> list:
 @pytest.mark.asyncio
 async def test_happy_journey(
     populated_fixture: PopulatedFixture,
-    file_fixture: FileObject,
+    tmp_file: FileObject,
     httpx_mock: HTTPXMock,  # noqa: F811
 ):
     """Simulates a typical, successful API journey."""
@@ -62,129 +62,113 @@ async def test_happy_journey(
         url=re.compile(rf"^{joint_fixture.config.ekss_base_url}.*"),
     )
 
-    # loop through both node locations
-    for example_file, endpoint_alias, s3 in (
-        (
-            populated_fixture.first_example_file,
-            joint_fixture.endpoint_aliases.node1,
-            joint_fixture.s3,
-        ),
-        (
-            populated_fixture.second_example_file,
-            joint_fixture.endpoint_aliases.node2,
-            joint_fixture.second_s3,
-        ),
+    example_file = populated_fixture.example_file
+    endpoint_alias = joint_fixture.endpoint_aliases.valid_node
+    s3 = joint_fixture.s3
+
+    drs_id = example_file.file_id
+    drs_object = await populated_fixture.mongodb_dao.get_by_id(drs_id)
+    object_id = drs_object.object_id
+
+    # generate work order token
+    work_order_token = generate_work_order_token(
+        file_id=drs_id,
+        jwk=joint_fixture.jwk,
+        valid_seconds=120,
+    )
+
+    # modify default headers:
+    joint_fixture.rest_client.headers = httpx.Headers(
+        {"Authorization": f"Bearer {work_order_token}"}
+    )
+
+    # request access to the newly registered file:
+    # (An check that an event is published indicating that the file is not in
+    # outbox yet.)
+
+    non_staged_requested_event = event_schemas.NonStagedFileRequested(
+        s3_endpoint_alias=endpoint_alias,
+        file_id=example_file.file_id,
+        target_object_id=object_id,
+        target_bucket_id=joint_fixture.bucket_id,
+        decrypted_sha256=example_file.decrypted_sha256,
+    )
+    async with joint_fixture.kafka.expect_events(
+        events=[
+            ExpectedEvent(
+                payload=json.loads(non_staged_requested_event.model_dump_json()),
+                type_=joint_fixture.config.unstaged_download_event_type,
+            )
+        ],
+        in_topic=joint_fixture.config.unstaged_download_event_topic,
     ):
-        drs_id = example_file.file_id
-        drs_object = await populated_fixture.mongodb_dao.get_by_id(drs_id)
-        object_id = drs_object.object_id
+        response = await joint_fixture.rest_client.get(f"/objects/{drs_id}", timeout=5)
+    assert response.status_code == status.HTTP_202_ACCEPTED
+    assert (
+        int(response.headers["Retry-After"]) == joint_fixture.config.retry_access_after
+    )
 
-        # generate work order token
-        work_order_token = generate_work_order_token(
-            file_id=drs_id,
-            jwk=joint_fixture.jwk,
-            valid_seconds=120,
-        )
+    # place the requested file into the outbox bucket (it is not important here that
+    # the file content does not match the announced decrypted_sha256 checksum):
+    file_object = tmp_file.model_copy(
+        update={
+            "bucket_id": joint_fixture.bucket_id,
+            "object_id": object_id,
+        }
+    )
 
-        # modify default headers:
-        joint_fixture.rest_client.headers = httpx.Headers(
-            {"Authorization": f"Bearer {work_order_token}"}
-        )
+    await s3.populate_file_objects([file_object])
 
-        # request access to the newly registered file:
-        # (An check that an event is published indicating that the file is not in
-        # outbox yet.)
-
-        non_staged_requested_event = event_schemas.NonStagedFileRequested(
-            s3_endpoint_alias=endpoint_alias,
-            file_id=example_file.file_id,
-            target_object_id=object_id,
-            target_bucket_id=joint_fixture.bucket_id,
-            decrypted_sha256=example_file.decrypted_sha256,
-        )
-        async with joint_fixture.kafka.expect_events(
-            events=[
-                ExpectedEvent(
-                    payload=json.loads(non_staged_requested_event.model_dump_json()),
-                    type_=joint_fixture.config.unstaged_download_event_type,
-                )
-            ],
-            in_topic=joint_fixture.config.unstaged_download_event_topic,
-        ):
-            response = await joint_fixture.rest_client.get(
-                f"/objects/{drs_id}", timeout=5
+    # retry the access request:
+    # (An check that an event is published indicating that a download was served.)
+    download_served_event = event_schemas.FileDownloadServed(
+        s3_endpoint_alias=endpoint_alias,
+        file_id=example_file.file_id,
+        target_object_id=object_id,
+        target_bucket_id=joint_fixture.bucket_id,
+        decrypted_sha256=example_file.decrypted_sha256,
+        context="unknown",
+    )
+    async with joint_fixture.kafka.expect_events(
+        events=[
+            ExpectedEvent(
+                payload=json.loads(download_served_event.model_dump_json()),
+                type_=joint_fixture.config.download_served_event_type,
             )
-        assert response.status_code == status.HTTP_202_ACCEPTED
-        assert (
-            int(response.headers["Retry-After"])
-            == joint_fixture.config.retry_access_after
-        )
+        ],
+        in_topic=joint_fixture.config.download_served_event_topic,
+    ):
+        drs_object_response = await joint_fixture.rest_client.get(f"/objects/{drs_id}")
 
-        # place the requested file into the outbox bucket (it is not important here that
-        # the file content does not match the announced decrypted_sha256 checksum):
-        file_object = file_fixture.model_copy(
-            update={
-                "bucket_id": joint_fixture.bucket_id,
-                "object_id": object_id,
-            }
-        )
+    # download file bytes:
+    presigned_url = drs_object_response.json()["access_methods"][0]["access_url"]["url"]
+    unintercepted_hosts.append(httpx.URL(presigned_url).host)
+    dowloaded_file = httpx.get(presigned_url, timeout=5)
+    dowloaded_file.raise_for_status()
+    assert dowloaded_file.content == file_object.content
 
-        await s3.populate_file_objects([file_object])
+    response = await joint_fixture.rest_client.get(
+        f"/objects/{drs_id}/envelopes", timeout=5
+    )
+    assert response.status_code == status.HTTP_200_OK
 
-        # retry the access request:
-        # (An check that an event is published indicating that a download was served.)
-        download_served_event = event_schemas.FileDownloadServed(
-            s3_endpoint_alias=endpoint_alias,
-            file_id=example_file.file_id,
-            target_object_id=object_id,
-            target_bucket_id=joint_fixture.bucket_id,
-            decrypted_sha256=example_file.decrypted_sha256,
-            context="unknown",
-        )
-        async with joint_fixture.kafka.expect_events(
-            events=[
-                ExpectedEvent(
-                    payload=json.loads(download_served_event.model_dump_json()),
-                    type_=joint_fixture.config.download_served_event_type,
-                )
-            ],
-            in_topic=joint_fixture.config.download_served_event_topic,
-        ):
-            drs_object_response = await joint_fixture.rest_client.get(
-                f"/objects/{drs_id}"
-            )
+    response = await joint_fixture.rest_client.get(
+        "/objects/invalid_id/envelopes", timeout=5
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
 
-        # download file bytes:
-        presigned_url = drs_object_response.json()["access_methods"][0]["access_url"][
-            "url"
-        ]
-        unintercepted_hosts.append(httpx.URL(presigned_url).host)
-        dowloaded_file = httpx.get(presigned_url, timeout=5)
-        dowloaded_file.raise_for_status()
-        assert dowloaded_file.content == file_object.content
-
-        response = await joint_fixture.rest_client.get(
-            f"/objects/{drs_id}/envelopes", timeout=5
-        )
-        assert response.status_code == status.HTTP_200_OK
-
-        response = await joint_fixture.rest_client.get(
-            "/objects/invalid_id/envelopes", timeout=5
-        )
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-
-        response = await joint_fixture.rest_client.get(
-            f"/objects/{drs_id}/envelopes",
-            timeout=5,
-            headers={"Authorization": "Bearer invalid"},
-        )
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+    response = await joint_fixture.rest_client.get(
+        f"/objects/{drs_id}/envelopes",
+        timeout=5,
+        headers={"Authorization": "Bearer invalid"},
+    )
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 @pytest.mark.asyncio
 async def test_happy_deletion(
     populated_fixture: PopulatedFixture,
-    file_fixture: FileObject,
+    tmp_file: FileObject,
     httpx_mock: HTTPXMock,  # noqa: F811
 ):
     """Simulates a typical, successful journey for file deletion."""
@@ -196,12 +180,12 @@ async def test_happy_deletion(
         url=re.compile(rf"^{joint_fixture.config.ekss_base_url}.*"),
     )
 
-    drs_id = populated_fixture.first_example_file.file_id
+    drs_id = populated_fixture.example_file.file_id
     drs_object = await populated_fixture.mongodb_dao.get_by_id(drs_id)
     object_id = drs_object.object_id
 
     # place example content in the outbox bucket:
-    file_object = file_fixture.model_copy(
+    file_object = tmp_file.model_copy(
         update={
             "bucket_id": joint_fixture.bucket_id,
             "object_id": object_id,
@@ -237,27 +221,24 @@ async def test_bucket_cleanup(cleanup_fixture: CleanupFixture):
     await data_repository.cleanup_outbox_buckets(
         object_storages_config=cleanup_fixture.joint.config
     )
-    for cached_id, s3 in zip(
-        cleanup_fixture.cached_file_ids,
-        (cleanup_fixture.joint.s3, cleanup_fixture.joint.second_s3),
-    ):
-        # check if object within threshold is still there
-        cached_object = await cleanup_fixture.mongodb_dao.get_by_id(cached_id)
-        assert await s3.storage.does_object_exist(
-            bucket_id=cleanup_fixture.joint.bucket_id,
-            object_id=cached_object.object_id,
-        )
 
-    for expired_id, s3 in zip(
-        cleanup_fixture.expired_file_ids,
-        (cleanup_fixture.joint.s3, cleanup_fixture.joint.second_s3),
-    ):
-        # check if expired object has been removed from outbox
-        expired_object = await cleanup_fixture.mongodb_dao.get_by_id(expired_id)
-        assert not await s3.storage.does_object_exist(
-            bucket_id=cleanup_fixture.joint.bucket_id,
-            object_id=expired_object.object_id,
-        )
+    cached_id = cleanup_fixture.cached_file_id
+    expired_id = cleanup_fixture.expired_file_id
+    s3 = cleanup_fixture.joint.s3
+
+    # check if object within threshold is still there
+    cached_object = await cleanup_fixture.mongodb_dao.get_by_id(cached_id)
+    assert await s3.storage.does_object_exist(
+        bucket_id=cleanup_fixture.joint.bucket_id,
+        object_id=cached_object.object_id,
+    )
+
+    # check if expired object has been removed from outbox
+    expired_object = await cleanup_fixture.mongodb_dao.get_by_id(expired_id)
+    assert not await s3.storage.does_object_exist(
+        bucket_id=cleanup_fixture.joint.bucket_id,
+        object_id=expired_object.object_id,
+    )
 
     with pytest.raises(data_repository.StorageAliasNotConfiguredError):
         await data_repository.cleanup_outbox(

@@ -1,4 +1,4 @@
-# Copyright 2021 - 2023 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
+# Copyright 2021 - 2024 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,11 +16,11 @@
 """General testing utilities"""
 
 from pathlib import Path
+from typing import TypeAlias
 
 from ghga_service_commons.utils import jwt_helpers
 from ghga_service_commons.utils.crypt import encode_key, generate_key_pair
 from jwcrypto.jwk import JWK
-from typing_extensions import TypeAlias
 
 from dcs.core import auth_policies
 

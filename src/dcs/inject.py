@@ -1,4 +1,4 @@
-# Copyright 2021 - 2023 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
+# Copyright 2021 - 2024 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,7 +17,7 @@
 
 from collections.abc import AsyncGenerator, Coroutine
 from contextlib import asynccontextmanager
-from typing import Any, Optional
+from typing import Any, TypeAlias
 
 from fastapi import FastAPI
 from ghga_service_commons.auth.jwt_auth import JWTAuthContextProvider
@@ -25,7 +25,6 @@ from ghga_service_commons.utils.context import asyncnullcontext
 from ghga_service_commons.utils.multinode_storage import S3ObjectStorages
 from hexkit.providers.akafka import KafkaEventPublisher, KafkaEventSubscriber
 from hexkit.providers.mongodb import MongoDbDaoFactory
-from typing_extensions import TypeAlias
 
 from dcs.adapters.inbound.event_sub import EventSubTranslator
 from dcs.adapters.inbound.fastapi_ import dummies
@@ -62,7 +61,7 @@ OutboxCleaner: TypeAlias = Coroutine[Any, Any, None]
 def prepare_core_with_override(
     *,
     config: Config,
-    data_repo_override: Optional[DataRepositoryPort] = None,
+    data_repo_override: DataRepositoryPort | None = None,
 ):
     """Resolve the data_repo context manager based on config and override (if any)."""
     return (
@@ -76,7 +75,7 @@ def prepare_core_with_override(
 async def prepare_rest_app(
     *,
     config: Config,
-    data_repo_override: Optional[DataRepositoryPort] = None,
+    data_repo_override: DataRepositoryPort | None = None,
 ) -> AsyncGenerator[FastAPI, None]:
     """Construct and initialize an REST API app along with all its dependencies.
     By default, the core dependencies are automatically prepared but you can also
@@ -101,7 +100,7 @@ async def prepare_rest_app(
 async def prepare_event_subscriber(
     *,
     config: Config,
-    data_repo_override: Optional[DataRepositoryPort] = None,
+    data_repo_override: DataRepositoryPort | None = None,
 ) -> AsyncGenerator[KafkaEventSubscriber, None]:
     """Construct and initialize an event subscriber with all its dependencies.
     By default, the core dependencies are automatically prepared but you can also
@@ -125,7 +124,7 @@ async def prepare_event_subscriber(
 async def prepare_outbox_cleaner(
     *,
     config: Config,
-    data_repo_override: Optional[DataRepositoryPort] = None,
+    data_repo_override: DataRepositoryPort | None = None,
 ) -> AsyncGenerator[OutboxCleaner, None]:
     """Construct and initialize a coroutine that cleans the outbox once invoked.
     By default, the core dependencies are automatically prepared but you can also
