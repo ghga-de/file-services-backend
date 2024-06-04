@@ -1,4 +1,4 @@
-# Copyright 2021 - 2023 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
+# Copyright 2021 - 2024 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -80,9 +80,11 @@ class DataRepositoryConfig(BaseSettings):
     def check_server_uri(cls, value: str):
         """Checks the drs_server_uri."""
         if not re.match(r"^drs://.+/$", value):
-            raise ValueError(
-                f"The drs_server_uri has to start with 'drs://' and end with '/', got : {value}"
+            message = (
+                "The drs_server_uri has to start with 'drs://' and end with '/'"
+                + f", got : {value}"
             )
+            raise ValueError(message)
 
         return value
 
@@ -225,7 +227,8 @@ class DataRepository(DataRepositoryPort):
         """
         # Run on demand through CLI, so crashing should be ok if the alias is not configured
         log.info(
-            f"Starting outbox cleanup for storage identified by alias '{storage_alias}'."
+            f"Starting outbox cleanup for storage identified by alias '{
+                storage_alias}'."
         )
         try:
             bucket_id, object_storage = self._object_storages.for_alias(storage_alias)
@@ -241,7 +244,8 @@ class DataRepository(DataRepositoryPort):
         # filter to get all files in outbox that should be removed
         object_ids = await object_storage.list_all_object_ids(bucket_id=bucket_id)
         log.debug(
-            f"Retrieved list of deletion candidates for storage '{storage_alias}'"
+            f"Retrieved list of deletion candidates for storage '{
+                storage_alias}'"
         )
 
         for object_id in object_ids:
@@ -257,7 +261,8 @@ class DataRepository(DataRepositoryPort):
             # only remove file if last access is later than cache timeout days ago
             if drs_object.last_accessed <= threshold:
                 log.info(
-                    f"Deleting object '{object_id}' from storage '{storage_alias}'."
+                    f"Deleting object '{object_id}' from storage '{
+                        storage_alias}'."
                 )
                 try:
                     await object_storage.delete_object(
@@ -280,7 +285,8 @@ class DataRepository(DataRepositoryPort):
         with contextlib.suppress(ResourceNotFoundError):
             await self._drs_object_dao.get_by_id(file.file_id)
             log.error(
-                f"Could not register file with id '{file.file_id}' as an entry already exists for this id."
+                f"Could not register file with id '{
+                    file.file_id}' as an entry already exists for this id."
             )
             return
 
@@ -293,13 +299,15 @@ class DataRepository(DataRepositoryPort):
         # write file entry to database
         await self._drs_object_dao.insert(file_with_access_time)
         log.info(
-            f"Successfully registered file with id '{file.file_id}' in the database."
+            f"Successfully registered file with id '{
+                file.file_id}' in the database."
         )
 
         # publish message that the drs file has been registered
         drs_object_with_uri = self._get_model_with_self_uri(drs_object=drs_object)
         await self._event_publisher.file_registered(drs_object=drs_object_with_uri)
-        log.info(f"Sent successful registration event for file id '{file.file_id}'.")
+        log.info(f"Sent successful registration event for file id '{
+                 file.file_id}'.")
 
     async def serve_envelope(self, *, drs_id: str, public_key: str) -> str:
         """
@@ -362,7 +370,8 @@ class DataRepository(DataRepositoryPort):
                 secret_id=drs_object.decryption_secret_id,
                 api_base=self._config.ekss_base_url,
             )
-            log.debug(f"Successfully deleted secret for '{file_id}' from EKSS.")
+            log.debug(f"Successfully deleted secret for '{
+                      file_id}' from EKSS.")
 
         # At this point the alias is contained in the database and this is not a user
         # error, but a configuration issue. Is crashing the REST service ok here or do we
@@ -383,7 +392,8 @@ class DataRepository(DataRepositoryPort):
                 bucket_id=bucket_id, object_id=drs_object.object_id
             )
             log.debug(
-                f"Successfully deleted file object for '{file_id}' from object storage identified by '{alias}'."
+                f"Successfully deleted file object for '{
+                    file_id}' from object storage identified by '{alias}'."
             )
 
         # Remove file from database and send success event

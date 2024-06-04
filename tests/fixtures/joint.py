@@ -1,4 +1,4 @@
-# Copyright 2021 - 2023 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
+# Copyright 2021 - 2024 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,9 +21,11 @@ __all__ = [
     "joint_fixture",
     "JointFixture",
     "mongodb_fixture",
+    "mongodb_container_fixture",
     "s3_fixture",
-    "second_s3_fixture",
+    "s3_container_fixture",
     "kafka_fixture",
+    "kafka_container_fixture",
     "populated_fixture",
     "PopulatedFixture",
     "generate_work_order_token",
@@ -31,7 +33,7 @@ __all__ = [
 
 import json
 from collections.abc import AsyncGenerator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import timedelta
 
 import httpx
@@ -44,11 +46,20 @@ from ghga_service_commons.utils.multinode_storage import (
     S3ObjectStoragesConfig,
 )
 from hexkit.providers.akafka import KafkaEventSubscriber
-from hexkit.providers.akafka.testutils import KafkaFixture, kafka_fixture
-from hexkit.providers.mongodb.testutils import MongoDbFixture, mongodb_fixture
+from hexkit.providers.akafka.testutils import (
+    KafkaFixture,
+    kafka_container_fixture,
+    kafka_fixture,
+)
+from hexkit.providers.mongodb.testutils import (
+    MongoDbFixture,
+    mongodb_container_fixture,
+    mongodb_fixture,
+)
 from hexkit.providers.s3.testutils import (
     S3Fixture,
     file_fixture,
+    s3_container_fixture,
     s3_fixture,
     temp_file_object,
 )
@@ -70,7 +81,7 @@ from dcs.ports.outbound.dao import DrsObjectDaoPort
 from tests.fixtures.config import get_config
 from tests.fixtures.utils import generate_token_signing_keys, generate_work_order_token
 
-STORAGE_ALIASES = ("test", "test2")
+STORAGE_ALIAS = "test"
 
 EXAMPLE_FILE = models.AccessTimeDrsObject(
     file_id="examplefile001",
@@ -79,26 +90,15 @@ EXAMPLE_FILE = models.AccessTimeDrsObject(
     creation_date=utc_dates.now_as_utc().isoformat(),
     decrypted_size=12345,
     decryption_secret_id="some-secret",
-    s3_endpoint_alias=STORAGE_ALIASES[0],
+    s3_endpoint_alias=STORAGE_ALIAS,
     last_accessed=utc_dates.now_as_utc(),
 )
-EXAMPLE_FILE_2 = EXAMPLE_FILE.model_copy(
-    deep=True,
-    update={
-        "file_id": "examplefile002",
-        "object_id": "object002",
-        "s3_endpoint_alias": STORAGE_ALIASES[1],
-    },
-)
-
-second_s3_fixture = s3_fixture
 
 
 @dataclass
 class EndpointAliases:
-    node1: str = STORAGE_ALIASES[0]
-    node2: str = STORAGE_ALIASES[1]
-    fake: str = f"{STORAGE_ALIASES[0]}_fake"
+    valid_node: str = STORAGE_ALIAS
+    fake: str = f"{STORAGE_ALIAS}_fake"
 
 
 class EKSSBaseInjector(BaseSettings):
@@ -119,7 +119,6 @@ class JointFixture:
     outbox_cleaner: OutboxCleaner
     mongodb: MongoDbFixture
     s3: S3Fixture
-    second_s3: S3Fixture
     kafka: KafkaFixture
     jwk: JWK
     endpoint_aliases: EndpointAliases
@@ -127,10 +126,9 @@ class JointFixture:
 
 @pytest_asyncio.fixture
 async def joint_fixture(
-    mongodb_fixture: MongoDbFixture,
-    s3_fixture: S3Fixture,
-    second_s3_fixture: S3Fixture,
-    kafka_fixture: KafkaFixture,
+    mongodb: MongoDbFixture,
+    s3: S3Fixture,
+    kafka: KafkaFixture,
 ) -> AsyncGenerator[JointFixture, None]:
     """A fixture that embeds all other fixtures for API-level integration testing"""
     jwk = generate_token_signing_keys()
@@ -142,35 +140,28 @@ async def joint_fixture(
 
     bucket_id = "test-outbox"
 
-    node_config = S3ObjectStorageNodeConfig(
-        bucket=bucket_id, credentials=s3_fixture.config
-    )
-    second_node_config = S3ObjectStorageNodeConfig(
-        bucket=bucket_id, credentials=second_s3_fixture.config
-    )
+    node_config = S3ObjectStorageNodeConfig(bucket=bucket_id, credentials=s3.config)
 
     endpoint_aliases = EndpointAliases()
 
     object_storage_config = S3ObjectStoragesConfig(
         object_storages={
-            endpoint_aliases.node1: node_config,
-            endpoint_aliases.node2: second_node_config,
+            endpoint_aliases.valid_node: node_config,
         }
     )
 
     config = get_config(
         sources=[
-            mongodb_fixture.config,
+            mongodb.config,
             object_storage_config,
-            kafka_fixture.config,
+            kafka.config,
             ekss_config,
             auth_config,
         ]
     )
 
     # create storage entities:
-    await s3_fixture.populate_buckets(buckets=[bucket_id])
-    await second_s3_fixture.populate_buckets(buckets=[bucket_id])
+    await s3.populate_buckets(buckets=[bucket_id])
 
     async with prepare_core(config=config) as data_repository:
         async with (
@@ -191,23 +182,23 @@ async def joint_fixture(
                     rest_client=rest_client,
                     event_subscriber=event_subscriber,
                     outbox_cleaner=outbox_cleaner,
-                    mongodb=mongodb_fixture,
-                    s3=s3_fixture,
-                    second_s3=second_s3_fixture,
-                    kafka=kafka_fixture,
+                    mongodb=mongodb,
+                    s3=s3,
+                    kafka=kafka,
                     jwk=jwk,
                     endpoint_aliases=endpoint_aliases,
                 )
 
 
-@dataclass
+@dataclass(frozen=True)
 class PopulatedFixture:
     """Returned by `populated_fixture()`."""
 
     mongodb_dao: DrsObjectDaoPort
     joint_fixture: JointFixture
-    first_example_file: models.AccessTimeDrsObject = EXAMPLE_FILE
-    second_example_file: models.AccessTimeDrsObject = EXAMPLE_FILE_2
+    example_file: models.AccessTimeDrsObject = field(
+        default_factory=lambda: EXAMPLE_FILE
+    )
 
 
 @pytest_asyncio.fixture
@@ -217,7 +208,7 @@ async def populated_fixture(
     """Prepopulate state for an existing DRS object"""
     # publish an event to register a new file for download:
     file_to_register_event = event_schemas.FileInternallyRegistered(
-        s3_endpoint_alias=joint_fixture.endpoint_aliases.node1,
+        s3_endpoint_alias=joint_fixture.endpoint_aliases.valid_node,
         file_id=EXAMPLE_FILE.file_id,
         object_id=EXAMPLE_FILE.object_id,
         bucket_id=joint_fixture.bucket_id,
@@ -230,22 +221,9 @@ async def populated_fixture(
         content_offset=1234,
         decryption_secret_id="some-secret",
     )
-    second_file_to_register_event = file_to_register_event.model_copy(
-        deep=True,
-        update={
-            "s3_endpoint_alias": joint_fixture.endpoint_aliases.node2,
-            "file_id": EXAMPLE_FILE_2.file_id,
-            "object_id": EXAMPLE_FILE_2.object_id,
-        },
-    )
 
     await joint_fixture.kafka.publish_event(
         payload=json.loads(file_to_register_event.model_dump_json()),
-        type_=joint_fixture.config.files_to_register_type,
-        topic=joint_fixture.config.files_to_register_topic,
-    )
-    await joint_fixture.kafka.publish_event(
-        payload=json.loads(second_file_to_register_event.model_dump_json()),
         type_=joint_fixture.config.files_to_register_type,
         topic=joint_fixture.config.files_to_register_topic,
     )
@@ -254,21 +232,15 @@ async def populated_fixture(
     async with joint_fixture.kafka.record_events(
         in_topic=joint_fixture.config.file_registered_event_topic
     ) as recorder:
-        # run twice to consume both events
-        await joint_fixture.event_subscriber.run(forever=False)
         await joint_fixture.event_subscriber.run(forever=False)
 
     # check that an event informing about the newly registered file was published:
-    assert len(recorder.recorded_events) == 2
+    assert len(recorder.recorded_events) == 1
     assert (
         recorder.recorded_events[0].type_
         == joint_fixture.config.file_registered_event_type
     )
-    assert (
-        recorder.recorded_events[1].type_
-        == joint_fixture.config.file_registered_event_type
-    )
-    # just check the first payload, assume the second one is also correct
+
     file_registered_event = event_schemas.FileRegisteredForDownload(
         **recorder.recorded_events[0].payload
     )
@@ -292,8 +264,8 @@ class CleanupFixture:
 
     mongodb_dao: DrsObjectDaoPort
     joint: JointFixture
-    cached_file_ids: list[str]
-    expired_file_ids: list[str]
+    cached_file_id: str
+    expired_file_id: str
 
 
 @pytest_asyncio.fixture
@@ -307,53 +279,47 @@ async def cleanup_fixture(
         dto_model=models.AccessTimeDrsObject,
         id_field="file_id",
     )
-    cached_file_ids = []
-    expired_file_ids = []
 
-    for s3, file in (
-        (joint_fixture.s3, EXAMPLE_FILE),
-        (joint_fixture.second_s3, EXAMPLE_FILE_2),
-    ):
-        # create AccessTimeDrsObjects for valid cached and expired cached file
+    s3 = joint_fixture.s3
+    file = EXAMPLE_FILE
 
-        cached_file_id = file.file_id + "_cached"
-        cached_object_id = file.object_id + "-cached"
-        cached_file_ids.append(cached_file_id)
+    # create AccessTimeDrsObjects for valid cached and expired cached file
+    cached_file_id = file.file_id + "_cached"
+    cached_object_id = file.object_id + "-cached"
 
-        test_file_cached = file.model_copy(deep=True)
-        test_file_cached.file_id = cached_file_id
-        test_file_cached.object_id = cached_object_id
-        test_file_cached.last_accessed = utc_dates.now_as_utc()
+    test_file_cached = file.model_copy(deep=True)
+    test_file_cached.file_id = cached_file_id
+    test_file_cached.object_id = cached_object_id
+    test_file_cached.last_accessed = utc_dates.now_as_utc()
 
-        expired_file_id = file.file_id + "_expired"
-        expired_object_id = file.object_id + "-expired"
-        expired_file_ids.append(expired_file_id)
+    expired_file_id = file.file_id + "_expired"
+    expired_object_id = file.object_id + "-expired"
 
-        test_file_expired = file.model_copy(deep=True)
-        test_file_expired.file_id = expired_file_id
-        test_file_expired.object_id = expired_object_id
-        test_file_expired.last_accessed = utc_dates.now_as_utc() - timedelta(
-            days=joint_fixture.config.cache_timeout
-        )
+    test_file_expired = file.model_copy(deep=True)
+    test_file_expired.file_id = expired_file_id
+    test_file_expired.object_id = expired_object_id
+    test_file_expired.last_accessed = utc_dates.now_as_utc() - timedelta(
+        days=joint_fixture.config.cache_timeout
+    )
 
-        # populate DB entries
-        await mongodb_dao.insert(test_file_cached)
-        await mongodb_dao.insert(test_file_expired)
+    # populate DB entries
+    await mongodb_dao.insert(test_file_cached)
+    await mongodb_dao.insert(test_file_expired)
 
-        # populate storage
+    # populate storage
+    with temp_file_object(
+        bucket_id=joint_fixture.bucket_id,
+        object_id=test_file_cached.object_id,
+    ) as cached_file:
         with temp_file_object(
             bucket_id=joint_fixture.bucket_id,
-            object_id=test_file_cached.object_id,
-        ) as cached_file:
-            with temp_file_object(
-                bucket_id=joint_fixture.bucket_id,
-                object_id=test_file_expired.object_id,
-            ) as expired_file:
-                await s3.populate_file_objects([cached_file, expired_file])
+            object_id=test_file_expired.object_id,
+        ) as expired_file:
+            await s3.populate_file_objects([cached_file, expired_file])
 
     yield CleanupFixture(
         mongodb_dao=mongodb_dao,
         joint=joint_fixture,
-        cached_file_ids=cached_file_ids,
-        expired_file_ids=expired_file_ids,
+        cached_file_id=cached_file_id,
+        expired_file_id=expired_file_id,
     )

@@ -1,4 +1,4 @@
-# Copyright 2021 - 2023 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
+# Copyright 2021 - 2024 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,23 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Supported authentication policies for endpoints"""
-from pydantic import field_validator
 
-try:  # workaround for https://github.com/pydantic/pydantic/issues/5821
-    from typing_extensions import Literal
-except ImportError:
-    from typing import Literal  # type: ignore
-
-from typing import Union
+from typing import Literal
 
 from ghga_service_commons.utils.crypt import decode_key
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 class WorkOrderContext(BaseModel):
     """Work order token model"""
 
-    type: Union[Literal["download"], Literal["upload"]] = Field(
+    type: Literal["download"] | Literal["upload"] = Field(
         ..., title="Type", description="Work type"
     )
     file_id: str = Field(

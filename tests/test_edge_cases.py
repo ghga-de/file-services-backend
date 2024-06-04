@@ -1,4 +1,4 @@
-# Copyright 2021 - 2023 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
+# Copyright 2021 - 2024 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -115,7 +115,7 @@ async def test_access_non_existing(joint_fixture: JointFixture):
         timeout=5,
         headers={"Authorization": f"Bearer {wrong_work_order_token}"},
     )
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     # test with correct authorization header but wrong object_id
     response = await joint_fixture.rest_client.get(
@@ -185,7 +185,7 @@ async def test_drs_config_error(
 async def test_register_file_twice(populated_fixture: PopulatedFixture, caplog):
     """Assure that files cannot be registered twice"""
     joint_fixture = populated_fixture.joint_fixture
-    example_file = populated_fixture.first_example_file
+    example_file = populated_fixture.example_file
 
     file = models.DrsObjectBase(
         file_id=example_file.file_id,
@@ -198,5 +198,6 @@ async def test_register_file_twice(populated_fixture: PopulatedFixture, caplog):
 
     caplog.clear()
     await joint_fixture.data_repository.register_new_file(file=file)
-    failure_message = f"Could not register file with id '{example_file.file_id}' as an entry already exists for this id."
+    failure_message = f"Could not register file with id '{
+        example_file.file_id}' as an entry already exists for this id."
     assert failure_message in caplog.messages
