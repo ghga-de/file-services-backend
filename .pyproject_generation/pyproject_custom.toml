@@ -8,6 +8,7 @@ dependencies = [
     "ghga-event-schemas >= 3.1",
     "hexkit[akafka,s3,mongodb] >= 3.0",
     "crypt4gh>=1.6",
+    "hvac>=2",
 ]
 
 [project.urls]

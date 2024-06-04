@@ -28,6 +28,7 @@ env:
   IRS_CONFIG_YAML: ./services/irs/dev_config.yaml
   PCS_CONFIG_YAML: ./services/pcs/dev_config.yaml
   UCS_CONFIG_YAML: ./services/ucs/dev_config.yaml
+  EKSS_CONFIG_YAML: ./services/ekss/dev_config.yaml
 
 jobs:
   get-changed-services:
