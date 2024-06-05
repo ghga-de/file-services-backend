@@ -1,4 +1,4 @@
-# Copyright 2021 - 2023 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
+# Copyright 2021 - 2024 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,7 +18,6 @@
 
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import Optional
 
 from fastapi import FastAPI
 from ghga_service_commons.utils.context import asyncnullcontext
@@ -63,9 +62,8 @@ async def prepare_core(
 def prepare_core_with_override(
     *,
     config: Config,
-    core_override: Optional[
-        tuple[UploadMetadataProcessorPort, LegacyUploadMetadataProcessorPort]
-    ] = None,
+    core_override: tuple[UploadMetadataProcessorPort, LegacyUploadMetadataProcessorPort]
+    | None = None,
 ):
     """Resolve the prepare_core context manager based on config and override (if any)."""
     return (
@@ -79,9 +77,8 @@ def prepare_core_with_override(
 async def prepare_rest_app(
     *,
     config: Config,
-    core_override: Optional[
-        tuple[UploadMetadataProcessorPort, LegacyUploadMetadataProcessorPort]
-    ] = None,
+    core_override: tuple[UploadMetadataProcessorPort, LegacyUploadMetadataProcessorPort]
+    | None = None,
 ) -> AsyncGenerator[FastAPI, None]:
     """Construct and initialize a REST API app along with all its dependencies.
     By default, the core dependencies are automatically prepared but you can also

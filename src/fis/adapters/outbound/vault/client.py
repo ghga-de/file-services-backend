@@ -1,4 +1,4 @@
-# Copyright 2021 - 2023 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
+# Copyright 2021 - 2024 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +15,6 @@
 """Provides client side functionality for interaction with HashiCorp Vault"""
 
 from pathlib import Path
-from typing import Optional, Union
 from uuid import uuid4
 
 import hvac
@@ -35,17 +34,17 @@ class VaultConfig(BaseSettings):
         examples=["http://127.0.0.1.8200"],
         description="URL of the vault instance to connect to",
     )
-    vault_role_id: Optional[SecretStr] = Field(
+    vault_role_id: SecretStr | None = Field(
         default=None,
         examples=["example_role"],
         description="Vault role ID to access a specific prefix",
     )
-    vault_secret_id: Optional[SecretStr] = Field(
+    vault_secret_id: SecretStr | None = Field(
         default=None,
         examples=["example_secret"],
         description="Vault secret ID to access a specific prefix",
     )
-    vault_verify: Union[bool, str] = Field(
+    vault_verify: bool | str = Field(
         True,
         examples=["/etc/ssl/certs/my_bundle.pem"],
         description="SSL certificates (CA bundle) used to"
@@ -62,7 +61,7 @@ class VaultConfig(BaseSettings):
         examples=["secret"],
         description="Name used to address the secret engine under a custom mount path.",
     )
-    vault_kube_role: Optional[str] = Field(
+    vault_kube_role: str | None = Field(
         default=None,
         examples=["file-ingest-role"],
         description="Vault role name used for Kubernetes authentication",
@@ -137,7 +136,7 @@ class VaultAdapter(VaultAdapterPort):
 
     @field_validator("vault_verify")
     @classmethod
-    def validate_vault_ca(cls, value: Union[bool, str]) -> Union[bool, str]:
+    def validate_vault_ca(cls, value: bool | str) -> bool | str:
         """Check that the CA bundle can be read if it is specified."""
         if isinstance(value, str):
             path = Path(value)

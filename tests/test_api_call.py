@@ -1,4 +1,4 @@
-# Copyright 2021 - 2023 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
+# Copyright 2021 - 2024 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,16 +30,12 @@ from hexkit.providers.akafka.testutils import (
 )
 
 from fis.core.models import EncryptedPayload, LegacyUploadMetadata, UploadMetadata
-from tests.fixtures.joint import (  # noqa: F401
-    JointFixture,
-    KafkaFixture,
-    joint_fixture,
-    kafka_fixture,
-)
+from tests.fixtures.joint import JointFixture
+
+pytestmark = pytest.mark.asyncio()
 
 
-@pytest.mark.asyncio
-async def test_health_check(joint_fixture: JointFixture):  # noqa: F811
+async def test_health_check(joint_fixture: JointFixture):
     """Test that the health check endpoint works."""
     response = await joint_fixture.rest_client.get("/health")
 
@@ -47,8 +43,7 @@ async def test_health_check(joint_fixture: JointFixture):  # noqa: F811
     assert response.json() == {"status": "OK"}
 
 
-@pytest.mark.asyncio
-async def test_api_calls(monkeypatch, joint_fixture: JointFixture):  # noqa: F811
+async def test_api_calls(monkeypatch, joint_fixture: JointFixture):
     """Test functionality with incoming API call"""
     file_secret = base64.b64encode(os.urandom(32)).decode("utf-8")
     secret_id = "test_secret_id"
@@ -164,8 +159,7 @@ async def test_api_calls(monkeypatch, joint_fixture: JointFixture):  # noqa: F81
     assert response.status_code == 422
 
 
-@pytest.mark.asyncio
-async def test_legacy_api_calls(monkeypatch, joint_fixture: JointFixture):  # noqa: F811
+async def test_legacy_api_calls(monkeypatch, joint_fixture: JointFixture):
     """Test functionality with incoming API call"""
     payload = LegacyUploadMetadata(
         **joint_fixture.payload.model_dump(),

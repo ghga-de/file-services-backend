@@ -1,4 +1,4 @@
-# Copyright 2021 - 2023 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
+# Copyright 2021 - 2024 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,16 +26,12 @@ from fis.ports.inbound.ingest import (
     DecryptionError,
     WrongDecryptedFormatError,
 )
-from tests.fixtures.joint import (  # noqa: F401
-    JointFixture,
-    KafkaFixture,
-    joint_fixture,
-    kafka_fixture,
-)
+from tests.fixtures.joint import JointFixture
+
+pytestmark = pytest.mark.asyncio()
 
 
-@pytest.mark.asyncio
-async def test_decryption_happy(joint_fixture: JointFixture):  # noqa: F811
+async def test_decryption_happy(joint_fixture: JointFixture):
     """Test decryption with valid keypair and correct file upload metadata format."""
     payload = UploadMetadata(
         **joint_fixture.payload.model_dump(),
@@ -55,8 +51,7 @@ async def test_decryption_happy(joint_fixture: JointFixture):  # noqa: F811
     assert processed_payload == payload
 
 
-@pytest.mark.asyncio
-async def test_legacy_decryption_happy(joint_fixture: JointFixture):  # noqa: F811
+async def test_legacy_decryption_happy(joint_fixture: JointFixture):
     """Test decryption with valid keypair and correct file upload metadata format."""
     payload = LegacyUploadMetadata(
         **joint_fixture.payload.model_dump(),
@@ -78,8 +73,7 @@ async def test_legacy_decryption_happy(joint_fixture: JointFixture):  # noqa: F8
     assert processed_payload == payload
 
 
-@pytest.mark.asyncio
-async def test_decryption_sad(joint_fixture: JointFixture):  # noqa: F811
+async def test_decryption_sad(joint_fixture: JointFixture):
     """Test decryption throws correct errors for payload and key issues"""
     # test faulty payload
     encrypted_payload = EncryptedPayload(
@@ -112,8 +106,7 @@ async def test_decryption_sad(joint_fixture: JointFixture):  # noqa: F811
         )
 
 
-@pytest.mark.asyncio
-async def test_legacy_decryption_sad(joint_fixture: JointFixture):  # noqa: F811
+async def test_legacy_decryption_sad(joint_fixture: JointFixture):
     """Test decryption throws correct errors for payload and key issues"""
     # test faulty payload
     encrypted_payload = EncryptedPayload(

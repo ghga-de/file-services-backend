@@ -12,27 +12,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
+"""Session-scoped fixtures"""
 
-"""Used to define the location of the main FastAPI app object."""
+from hexkit.providers.akafka.testutils import (  # noqa: F401
+    kafka_container_fixture,
+    kafka_fixture,
+)
 
-from typing import Any
-
-from fastapi import FastAPI
-
-from fis.adapters.inbound.fastapi_.configure import get_openapi_schema
-from fis.adapters.inbound.fastapi_.routes import router
-
-app = FastAPI()
-app.include_router(router)
-
-
-def custom_openapi() -> dict[str, Any]:
-    if app.openapi_schema:
-        return app.openapi_schema
-    openapi_schema = get_openapi_schema(app)
-    app.openapi_schema = openapi_schema
-    return app.openapi_schema
-
-
-app.openapi = custom_openapi  # type: ignore [method-assign]
+from tests.fixtures.joint import joint_fixture  # noqa: F401

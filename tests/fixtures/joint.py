@@ -1,4 +1,4 @@
-# Copyright 2021 - 2023 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
+# Copyright 2021 - 2024 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,7 +27,7 @@ from ghga_service_commons.utils.crypt import (
     generate_key_pair,
 )
 from ghga_service_commons.utils.simple_token import generate_token_and_hash
-from hexkit.providers.akafka.testutils import KafkaFixture, kafka_fixture  # noqa: F401
+from hexkit.providers.akafka.testutils import KafkaFixture
 
 from fis.config import Config
 from fis.core.models import UploadMetadataBase
@@ -66,16 +66,14 @@ class JointFixture:
 
 
 @pytest_asyncio.fixture
-async def joint_fixture(
-    kafka_fixture: KafkaFixture,  # noqa: F811
-) -> AsyncGenerator[JointFixture, None]:
+async def joint_fixture(kafka: KafkaFixture) -> AsyncGenerator[JointFixture, None]:
     """Generate keypair for testing and setup container with updated config"""
     keypair = generate_key_pair()
     private_key = encode_key(key=keypair.private)
 
     token, token_hash = generate_token_and_hash()
 
-    config = get_config(sources=[kafka_fixture.config])
+    config = get_config(sources=[kafka.config])
     # cannot update inplace, copy and update instead
     config = config.model_copy(
         update={"private_key": private_key, "token_hashes": [token_hash]}
@@ -94,7 +92,7 @@ async def joint_fixture(
                     keypair=keypair,
                     payload=TEST_PAYLOAD,
                     token=token,
-                    kafka=kafka_fixture,
+                    kafka=kafka,
                     rest_client=rest_client,
                     s3_endpoint_alias=config.selected_storage_alias,
                     upload_metadata_processor=upload_metadata_processor,
