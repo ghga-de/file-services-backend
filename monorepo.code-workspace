@@ -24,5 +24,9 @@
 			"name": "Encryption Key Store",
 			"path": "services/ekss"
 		},
+		{
+			"name": "Download Controller",
+			"path": "services/dcs"
+		},
 	]
 }
