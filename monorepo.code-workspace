@@ -20,9 +20,5 @@
 			"name": "Upload Controller",
 			"path": "services/ucs"
 		},
-		{
-			"name": "Encryption Key Store",
-			"path": "services/ekss"
-		},
 	]
 }

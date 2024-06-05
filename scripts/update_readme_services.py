@@ -106,7 +106,7 @@ class ServiceDetails:
         if "-" in service_name:
             service_name, summary = service_name.split("-")
             header.summary = summary.strip()
-        service_name = spinalcase(service_name.strip().replace(" ", ""))
+        service_name = spinalcase(service_name.strip())
         title = titlecase(service_name)
         name = PackageName(name=service_name, title=title)
 
