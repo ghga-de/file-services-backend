@@ -33,4 +33,3 @@ services:
       IRS_CONFIG_YAML: /workspace/services/irs/dev_config.yaml
       PCS_CONFIG_YAML: /workspace/services/pcs/dev_config.yaml
       UCS_CONFIG_YAML: /workspace/services/ucs/dev_config.yaml
-      EKSS_CONFIG_YAML: /workspace/services/ekss/dev_config.yaml
