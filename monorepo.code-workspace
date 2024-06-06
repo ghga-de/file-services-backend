@@ -28,5 +28,9 @@
 			"name": "Download Controller",
 			"path": "services/dcs"
 		},
+		{
+			"name": "File Ingest",
+			"path": "services/fis"
+		},
 	]
 }
