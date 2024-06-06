@@ -24,6 +24,7 @@ jobs:
       UCS_CONFIG_YAML: ./services/ucs/dev_config.yaml
       DCS_CONFIG_YAML: ./services/dcs/dev_config.yaml
       EKSS_CONFIG_YAML: ./services/ekss/dev_config.yaml
+      FIS_CONFIG_YAML: ./services/fis/dev_config.yaml
 
     steps:
       - name: Checkout repository
