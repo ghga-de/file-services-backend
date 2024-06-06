@@ -2,6 +2,15 @@ name: Check if the config schema and the example are up to date
 
 on: push
 
+env:
+  IFRS_CONFIG_YAML: ./services/ifrs/dev_config.yaml
+  IRS_CONFIG_YAML: ./services/irs/dev_config.yaml
+  PCS_CONFIG_YAML: ./services/pcs/dev_config.yaml
+  UCS_CONFIG_YAML: ./services/ucs/dev_config.yaml
+  DCS_CONFIG_YAML: ./services/dcs/dev_config.yaml
+  EKSS_CONFIG_YAML: ./services/ekss/dev_config.yaml
+  FIS_CONFIG_YAML: ./services/fis/dev_config.yaml
+
 jobs:
   get-changed-services:
     uses: ./.github/workflows/get_affected_services.yaml
@@ -16,15 +25,6 @@ jobs:
       matrix:
         service: ${{ fromJson(needs.get-changed-services.outputs.services) }}
       fail-fast: false
-
-    env:
-      IFRS_CONFIG_YAML: ./services/ifrs/dev_config.yaml
-      IRS_CONFIG_YAML: ./services/irs/dev_config.yaml
-      PCS_CONFIG_YAML: ./services/pcs/dev_config.yaml
-      UCS_CONFIG_YAML: ./services/ucs/dev_config.yaml
-      DCS_CONFIG_YAML: ./services/dcs/dev_config.yaml
-      EKSS_CONFIG_YAML: ./services/ekss/dev_config.yaml
-      FIS_CONFIG_YAML: ./services/fis/dev_config.yaml
 
     steps:
       - name: Checkout repository
