@@ -49,6 +49,7 @@ def fix_temp_dir_comments(file_path: Path):
 
     with open(file_path, encoding="utf-8") as file:
         lines = file.readlines()
+
     with open(file_path, "w", encoding="utf-8") as file:
         for line in lines:
             # Remove random temp directory name
@@ -99,13 +100,7 @@ def compile_lock_file(
 
     print(f"Updating '{output.name}'...")
 
-    command = [
-        "uv",
-        "pip",
-        "compile",
-        "--refresh",
-        "--generate-hashes",
-    ]
+    command = ["uv", "pip", "compile", "--refresh", "--generate-hashes", "--no-header"]
 
     if upgrade:
         command.append("--upgrade")
