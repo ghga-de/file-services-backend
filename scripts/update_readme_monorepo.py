@@ -22,7 +22,7 @@ import sys
 from pathlib import Path
 from string import Template
 
-import tomli
+import tomllib
 from pydantic import BaseModel, Field
 from stringcase import spinalcase, titlecase
 
@@ -74,7 +74,7 @@ def read_toml_package_header() -> PackageHeader:
     """Read basic information about the package from the pyproject.toml"""
 
     with PYPROJECT_TOML_PATH.open("rb") as pyproject_toml:
-        pyproject = tomli.load(pyproject_toml)
+        pyproject = tomllib.load(pyproject_toml)
         pyproject_project = pyproject["project"]
         return PackageHeader(
             shortname=pyproject_project["name"],
@@ -88,7 +88,7 @@ def read_service_description(service_dir: Path) -> str:
 
     service_pyproject_toml_path = service_dir / "pyproject.toml"
     with service_pyproject_toml_path.open("rb") as pyproject_toml:
-        pyproject = tomli.load(pyproject_toml)
+        pyproject = tomllib.load(pyproject_toml)
         pyproject_project = pyproject["project"]
         return pyproject_project["description"]
 

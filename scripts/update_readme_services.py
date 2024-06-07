@@ -22,7 +22,7 @@ from pathlib import Path
 from string import Template
 
 import jsonschema2md
-import tomli
+import tomllib
 from pydantic import BaseModel, Field
 from stringcase import spinalcase, titlecase
 
@@ -124,7 +124,7 @@ class ServiceDetails:
         """Read basic information about the package from the pyproject.toml"""
 
         with self.pyproject_toml_path.open("rb") as pyproject_toml:
-            pyproject = tomli.load(pyproject_toml)
+            pyproject = tomllib.load(pyproject_toml)
             pyproject_project = pyproject["project"]
             return PackageHeader(
                 shortname=pyproject_project["name"],
