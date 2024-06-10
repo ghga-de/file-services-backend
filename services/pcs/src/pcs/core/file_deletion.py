@@ -15,20 +15,19 @@
 
 """Main business-logic of this service"""
 
+from ghga_event_schemas.pydantic_ import FileDeletionRequested
+
 from pcs.ports.inbound.file_deletion import FileDeletionPort
-from pcs.ports.outbound.event_pub import EventPublisherPort
+from pcs.ports.outbound.daopub import FileDeletionDao
 
 
 class FileDeletion(FileDeletionPort):
     """A service that commissions file deletions."""
 
-    def __init__(
-        self,
-        *,
-        event_publisher: EventPublisherPort,
-    ):
+    def __init__(self, *, file_deletion_dao: FileDeletionDao):
         """Initialize with outbound adapters."""
-        self._event_publisher = event_publisher
+        # self._event_publisher = event_publisher
+        self._file_deletion_dao = file_deletion_dao
 
     async def delete_file(self, *, file_id: str) -> None:
         """Sends out an event to delete all occurrences of a certain file.
@@ -36,4 +35,5 @@ class FileDeletion(FileDeletionPort):
         Args:
             file_id: id for the file to delete.
         """
-        await self._event_publisher.delete_file(file_id=file_id)
+        file_deletion = FileDeletionRequested(file_id=file_id)
+        await self._file_deletion_dao.upsert(file_deletion)

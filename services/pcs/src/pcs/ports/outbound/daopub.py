@@ -16,11 +16,23 @@
 """Interface for broadcasting events to other services."""
 
 from abc import ABC, abstractmethod
+from typing import TypeAlias
+
+from ghga_event_schemas.pydantic_ import FileDeletionRequested
+from hexkit.protocols.daopub import DaoPublisher
+
+__all__ = ["FileDeletionDao", "OutboxPublisherFactoryPort"]
+
+FileDeletionDao: TypeAlias = DaoPublisher[FileDeletionRequested]
 
 
-class EventPublisherPort(ABC):
-    """A port through which DRS-specific events are communicated with the outside."""
+class OutboxPublisherFactoryPort(ABC):
+    """Port that provides a factory for user related data access objects.
+
+    These objects will also publish changes according to the outbox pattern.
+    """
 
     @abstractmethod
-    async def delete_file(self, *, file_id: str) -> None:
-        """Communicate the event that a file needs to be deleted."""
+    async def get_file_deletion_dao(self) -> FileDeletionDao:
+        """Construct a DAO for interacting with file deletion requests in the database."""
+        ...

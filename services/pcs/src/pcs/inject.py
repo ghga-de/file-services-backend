@@ -21,22 +21,42 @@ from typing import Optional
 
 from fastapi import FastAPI
 from ghga_service_commons.utils.context import asyncnullcontext
-from hexkit.providers.akafka import KafkaEventPublisher
+from hexkit.providers.mongokafka import MongoKafkaDaoPublisherFactory
 
 from pcs.adapters.inbound.fastapi_ import dummies
 from pcs.adapters.inbound.fastapi_.configure import get_configured_app
-from pcs.adapters.outbound.event_pub import EventPubTranslator
+from pcs.adapters.outbound.daopub import OutboxDaoPublisherFactory
 from pcs.config import Config
 from pcs.core.file_deletion import FileDeletion
 from pcs.ports.inbound.file_deletion import FileDeletionPort
+from pcs.ports.outbound.daopub import FileDeletionDao
+
+
+async def get_mongo_kafka_dao_factory(
+    config: Config,
+) -> AsyncGenerator[MongoKafkaDaoPublisherFactory, None]:
+    """Get a MongoDB DAO publisher factory."""
+    async with MongoKafkaDaoPublisherFactory.construct(config=config) as factory:
+        yield factory
+
+
+async def get_file_deletion_dao(
+    *, config: Config
+) -> AsyncGenerator[FileDeletionDao, None]:
+    """Get a FileDeletionRequest dao."""
+    async for dao_publisher_factory in get_mongo_kafka_dao_factory(config=config):
+        outbox_dao_factory = OutboxDaoPublisherFactory(
+            config=config, dao_publisher_factory=dao_publisher_factory
+        )
+        file_deletion_dao = await outbox_dao_factory.get_file_deletion_dao()
+        yield file_deletion_dao
 
 
 @asynccontextmanager
 async def prepare_core(*, config: Config) -> AsyncGenerator[FileDeletionPort, None]:
     """Construct and initialize the core component and its outbound dependencies."""
-    async with KafkaEventPublisher.construct(config=config) as event_pub_provider:
-        event_publisher = EventPubTranslator(config=config, provider=event_pub_provider)
-        file_deletion = FileDeletion(event_publisher=event_publisher)
+    async for file_deletion_dao in get_file_deletion_dao(config=config):
+        file_deletion = FileDeletion(file_deletion_dao=file_deletion_dao)
         yield file_deletion
 
 
