@@ -80,7 +80,7 @@ jobs:
 
       - name: Symlink requirement files
         id: symlink-requirements
-        run: ln -sf lock services/${{ matrix.service }}/lock
+        run: cp -r lock services/${{ matrix.service }}/lock
 
       - name: Prepare Dockerfile
         id: prepare-dockerfile
