@@ -1,0 +1,36 @@
+{
+	"folders": [
+		{
+			"name": "Monorepo Root",
+			"path": "."
+		},
+		{
+			"name": "Internal File Registry",
+			"path": "services/ifrs"
+		},
+		{
+			"name":"Interrogation Room",
+			"path": "services/irs"
+		},
+		{
+			"name": "Purge Controller",
+			"path": "services/pcs"
+		},
+		{
+			"name": "Upload Controller",
+			"path": "services/ucs"
+		},
+		{
+			"name": "Encryption Key Store",
+			"path": "services/ekss"
+		},
+		{
+			"name": "Download Controller",
+			"path": "services/dcs"
+		},
+		{
+			"name": "File Ingest",
+			"path": "services/fis"
+		},
+	]
+}

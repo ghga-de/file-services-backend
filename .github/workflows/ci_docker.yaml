@@ -1,0 +1,121 @@
+# Copyright 2022-2023 Universität Tübingen, DKFZ and EMBL
+# for the German Human Genome-Phenome Archive (GHGA)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: "Push to docker on new commit to main"
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  DOCKERHUB_NAMESPACE: ghga
+  DOCKERHUB_PLATFORMS: "linux/amd64,linux/arm64"
+  TRIVY_SEVERITY: "CRITICAL,HIGH"
+  IFRS_CONFIG_YAML: ./services/ifrs/dev_config.yaml
+  IRS_CONFIG_YAML: ./services/irs/dev_config.yaml
+  PCS_CONFIG_YAML: ./services/pcs/dev_config.yaml
+  UCS_CONFIG_YAML: ./services/ucs/dev_config.yaml
+  DCS_CONFIG_YAML: ./services/dcs/dev_config.yaml
+  EKSS_CONFIG_YAML: ./services/ekss/dev_config.yaml
+  FIS_CONFIG_YAML: ./services/fis/dev_config.yaml
+
+jobs:
+  get-changed-services:
+    uses: ./.github/workflows/get_affected_services.yaml
+
+  push-to-docker:
+    runs-on: ubuntu-latest
+    if: ${{ needs.get-changed-services.outputs.services != '' }}
+    needs: get-changed-services
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.get-changed-services.outputs.services) }}
+      fail-fast: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Set up Python 3.12
+        id: setup-python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+
+      - name: Install stringcase and typer
+        id: setup-stringcase
+        run: pip install stringcase typer
+
+      - name: Extract service name for ${{ matrix.service }}
+        id: extract-service-name
+        shell: bash
+        run: |
+          echo name=$(python3 scripts/service_name.py ${{ matrix.service }}) >> $GITHUB_OUTPUT
+
+      - name: Extract service version for ${{ matrix.service }}
+        id: extract-service-version
+        shell: bash
+        run: |
+          echo version=$(python3.12 -c "import tomllib; print(tomllib.load(open('services/${{ matrix.service }}/pyproject.toml', 'rb'))['project']['version'])") >> $GITHUB_OUTPUT
+
+      - name: Ensure that tag complies with semantic versioning.
+        uses: matt-usurp/validate-semver@v2
+        with:
+          version: ${{ steps.extract-service-version.outputs.version }}
+
+      - name: Symlink requirement files
+        id: symlink-requirements
+        run: ln -sf lock services/${{ matrix.service }}/lock
+
+      - name: Prepare Dockerfile
+        id: prepare-dockerfile
+        run: cp Dockerfile services/${{ matrix.service }}/ && sed -i "s/\(ENTRYPOINT \)\[\]/\1[\"${{ matrix.service }}\"]/" services/${{ matrix.service }}/Dockerfile
+
+      - uses: docker/setup-qemu-action@v3
+        name: Set up QEMU
+
+      - uses: docker/setup-buildx-action@v3
+        name: Set up Docker Buildx
+
+      - uses: docker/login-action@v3
+        name: Login to DockerHub
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v5
+        name: Build and push
+        id: docker_build
+        with:
+          platforms: "${{ env.DOCKERHUB_PLATFORMS }}"
+          tags: "${{ env.DOCKERHUB_NAMESPACE }}/${{ steps.extract-service-name.outputs.name }}:${{ steps.extract-service-version.outputs.version }}-${{ github.sha }}"
+          context: "services/${{ matrix.service }}"
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "docker.io/${{ env.DOCKERHUB_NAMESPACE }}/${{ steps.extract-service-name.outputs.name }}:${{ steps.extract-service-version.outputs.version }}-${{ github.sha }}"
+          format: "table"
+          exit-code: "1"
+          ignore-unfixed: true
+          vuln-type: "os,library"
+          severity: ${{ env.TRIVY_SEVERITY }}
+
+      - name: Image digest
+        shell: bash
+        run: echo ${{ steps.docker_build.outputs.digest }}

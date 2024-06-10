@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2021 - 2023 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
+# Copyright 2021 - 2024 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -43,15 +43,12 @@ except ImportError:
 REPO_ROOT_DIR = Path(__file__).parent.parent.absolute()
 
 FILE_LIST_DIR_NAME = ".template"
-DEPRECATED_FILES = "deprecated_files"
-MANDATORY_FILES = "mandatory_files"
 STATIC_FILES = "static_files"
 
 IGNORE_SUFFIX = "_ignore"
 
 TEMPLATE_LIST_REL_PATHS = [
-    f"{FILE_LIST_DIR_NAME}/{list_name}.txt"
-    for list_name in [STATIC_FILES, MANDATORY_FILES, DEPRECATED_FILES]
+    f"{FILE_LIST_DIR_NAME}/{list_name}.txt" for list_name in [STATIC_FILES]
 ]
 
 RAW_TEMPLATE_URL = (
@@ -226,23 +223,9 @@ def main(check: bool = False):
     """Update the static files in the service template."""
     updated = False
 
-    print("Template lists...")
-    if update_files(TEMPLATE_LIST_REL_PATHS, diff=True, check=False):
-        updated = True
-
     print("Static files...")
     files_to_update = get_file_list(STATIC_FILES)
     if update_files(files_to_update, diff=True, check=check):
-        updated = True
-
-    print("Mandatory files...")
-    files_to_guarantee = get_file_list(MANDATORY_FILES)
-    if update_files(files_to_guarantee, check=check):
-        updated = True
-
-    print("Deprecated files...")
-    files_to_remove = get_file_list(DEPRECATED_FILES)
-    if remove_files(files_to_remove, check=check):
         updated = True
 
     if check:

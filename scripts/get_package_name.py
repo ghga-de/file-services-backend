@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2021 - 2023 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
+# Copyright 2021 - 2024 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,14 +20,19 @@
 from pathlib import Path
 
 REPO_ROOT_DIR = Path(__file__).parent.parent.resolve()
-PYPROJECT_TOML_PATH = REPO_ROOT_DIR / "pyproject.toml"
+
+SERVICES_DIR = REPO_ROOT_DIR / "services"
 NAME_PREFIX = "name = "
 
 
-def get_package_name() -> str:
+def get_package_name(service_name: str = "") -> str:
     """Extracts the package name"""
-
-    with open(PYPROJECT_TOML_PATH, encoding="utf8") as pyproject_toml:
+    pyproject_toml_path = (
+        SERVICES_DIR / service_name / "pyproject.toml"
+        if service_name
+        else REPO_ROOT_DIR / "pyproject.toml"
+    )
+    with open(pyproject_toml_path, encoding="utf8") as pyproject_toml:
         for line in pyproject_toml.readlines():
             line_stripped = line.strip()
             if line_stripped.startswith(NAME_PREFIX):

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2021 - 2023 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
+# Copyright 2021 - 2024 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,84 +21,100 @@ example config yaml (or check whether these files are up to date).
 
 import importlib
 import json
-import subprocess
 import sys
+from contextlib import contextmanager
 from difflib import unified_diff
 from pathlib import Path
 from typing import Any
 
 import yaml
 
+from get_package_name import get_package_name
 from script_utils.cli import echo_failure, echo_success, run
 
 HERE = Path(__file__).parent.resolve()
 REPO_ROOT_DIR = HERE.parent
-DEV_CONFIG_YAML = REPO_ROOT_DIR / ".devcontainer" / ".dev_config.yaml"
+SERVICES_DIR = REPO_ROOT_DIR / "services"
 GET_PACKAGE_NAME_SCRIPT = HERE / "get_package_name.py"
-EXAMPLE_CONFIG_YAML = REPO_ROOT_DIR / "example_config.yaml"
-CONFIG_SCHEMA_JSON = REPO_ROOT_DIR / "config_schema.json"
+
+dev_config_yaml = REPO_ROOT_DIR / ".devcontainer" / ".dev_config.yaml"
+config_schema_json = REPO_ROOT_DIR / "config_schema.json"
+example_config_yaml = REPO_ROOT_DIR / "example_config.yaml"
 
 
 class ValidationError(RuntimeError):
     """Raised when validation of config documentation fails."""
 
 
-def get_config_class():
+@contextmanager
+def set_service_specific_vars(service: str):
+    """Adjust global vars for service."""
+    global dev_config_yaml, config_schema_json, example_config_yaml
+
+    # verify that the folder exists
+    service_dir = SERVICES_DIR / service
+    if not service_dir.exists():
+        echo_failure(f"{service_dir} does not exist")
+        exit(1)
+
+    # set the vars
+    dev_config_yaml = service_dir / "dev_config.yaml"
+    config_schema_json = service_dir / "config_schema.json"
+    example_config_yaml = service_dir / "example_config.yaml"
+
+    yield
+
+    # reset the vars
+    dev_config_yaml = REPO_ROOT_DIR / ".devcontainer" / ".dev_config.yaml"
+    config_schema_json = REPO_ROOT_DIR / "config_schema.json"
+    example_config_yaml = REPO_ROOT_DIR / "example_config.yaml"
+
+
+def get_config_class(service: str):
     """
     Dynamically imports and returns the Config class from the current service.
     This makes the script service repo agnostic.
     """
-    # get the name of the microservice package
-    with subprocess.Popen(
-        args=[GET_PACKAGE_NAME_SCRIPT],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL,
-    ) as process:
-        assert (
-            process.wait() == 0 and process.stdout is not None
-        ), "Failed to get package name."
-        package_name = process.stdout.read().decode("utf-8").strip("\n")
-
-    # import the Config class from the microservice package:
+    package_name = get_package_name(service)
     config_module: Any = importlib.import_module(f"{package_name}.config")
     config_class = config_module.Config
 
     return config_class
 
 
-def get_dev_config():
+def get_dev_config(service: str):
     """Get dev config object."""
-    config_class = get_config_class()
-    return config_class(config_yaml=DEV_CONFIG_YAML)
+    config_class = get_config_class(service)
+    return config_class(config_yaml=dev_config_yaml)
 
 
-def get_schema() -> str:
+def get_schema(service: str) -> str:
     """Returns a JSON schema generated from a Config class."""
 
-    config = get_dev_config()
+    config = get_dev_config(service)
     return config.schema_json(indent=2)  # change eventually to .model_json_schema(...)
 
 
-def get_example() -> str:
+def get_example(service: str) -> str:
     """Returns an example config YAML."""
 
-    config = get_dev_config()
+    config = get_dev_config(service)
     normalized_config_dict = json.loads(
         config.json()  # change eventually to .model_dump_json()
     )
     return yaml.dump(normalized_config_dict)  # pyright: ignore
 
 
-def update_docs():
+def update_docs(service: str):
     """Update the example config and config schema files documenting the config
     options."""
 
-    example = get_example()
-    with open(EXAMPLE_CONFIG_YAML, "w", encoding="utf-8") as example_file:
+    example = get_example(service)
+    with open(example_config_yaml, "w", encoding="utf-8") as example_file:
         example_file.write(example)
 
-    schema = get_schema()
-    with open(CONFIG_SCHEMA_JSON, "w", encoding="utf-8") as schema_file:
+    schema = get_schema(service)
+    with open(config_schema_json, "w", encoding="utf-8") as schema_file:
         schema_file.write(schema)
 
 
@@ -114,7 +130,7 @@ def print_diff(expected: str, observed: str):
         print("   ", line.rstrip())
 
 
-def check_docs():
+def check_docs(service: str):
     """Check whether the example config and config schema files documenting the config
     options are up to date.
 
@@ -122,38 +138,38 @@ def check_docs():
         ValidationError: if not up to date.
     """
 
-    example_expected = get_example()
-    with open(EXAMPLE_CONFIG_YAML, encoding="utf-8") as example_file:
+    example_expected = get_example(service)
+    with open(example_config_yaml, encoding="utf-8") as example_file:
         example_observed = example_file.read()
     if example_expected != example_observed:
         print_diff(example_expected, example_observed)
         raise ValidationError(
-            f"Example config YAML at '{EXAMPLE_CONFIG_YAML}' is not up to date."
+            f"Example config YAML at '{example_config_yaml}' is not up to date."
         )
 
-    schema_expected = get_schema()
-    with open(CONFIG_SCHEMA_JSON, encoding="utf-8") as schema_file:
+    schema_expected = get_schema(service)
+    with open(config_schema_json, encoding="utf-8") as schema_file:
         schema_observed = schema_file.read()
     if schema_expected != schema_observed:
         raise ValidationError(
-            f"Config schema JSON at '{CONFIG_SCHEMA_JSON}' is not up to date."
+            f"Config schema JSON at '{config_schema_json}' is not up to date."
         )
 
 
-def main(check: bool = False):
+def main(*, service: str, check: bool = False):
     """Update or check the config documentation files."""
+    with set_service_specific_vars(service):
+        if check:
+            try:
+                check_docs(service)
+            except ValidationError as error:
+                echo_failure(f"Validation failed: {error}")
+                sys.exit(1)
+            echo_success(f"Config docs for {service} are up to date.")
+            return
 
-    if check:
-        try:
-            check_docs()
-        except ValidationError as error:
-            echo_failure(f"Validation failed: {error}")
-            sys.exit(1)
-        echo_success("Config docs are up to date.")
-        return
-
-    update_docs()
-    echo_success("Successfully updated the config docs.")
+        update_docs(service)
+        echo_success(f"Successfully updated the config docs for {service}.")
 
 
 if __name__ == "__main__":

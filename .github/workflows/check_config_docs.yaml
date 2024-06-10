@@ -1,18 +1,51 @@
-name: Check if the config schema and the example are up to date.
+name: Check if the config schema and the example are up to date
 
 on: push
 
-jobs:
-  static-code-analysis:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
+env:
+  IFRS_CONFIG_YAML: ./services/ifrs/dev_config.yaml
+  IRS_CONFIG_YAML: ./services/irs/dev_config.yaml
+  PCS_CONFIG_YAML: ./services/pcs/dev_config.yaml
+  UCS_CONFIG_YAML: ./services/ucs/dev_config.yaml
+  DCS_CONFIG_YAML: ./services/dcs/dev_config.yaml
+  EKSS_CONFIG_YAML: ./services/ekss/dev_config.yaml
+  FIS_CONFIG_YAML: ./services/fis/dev_config.yaml
 
-      - id: common
-        uses: ghga-de/gh-action-common@v4
+jobs:
+  get-changed-services:
+    uses: ./.github/workflows/get_affected_services.yaml
+
+  check-config:
+    name: Check config schema and example
+    needs: get-changed-services
+    if: ${{ needs.get-changed-services.outputs.services != '' }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.get-changed-services.outputs.services) }}
+      fail-fast: false
+
+    steps:
+      - name: Checkout repository
+        id: checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        id: setup-python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+
+      - name: Update pip and pyopenssl
+        id: pip-update
+        run: python -m pip install --upgrade pip && pip install --upgrade pyopenssl
+
+      - name: Install dependencies
+        id: install-dependencies
+        run: pip install --no-deps -r ./lock/requirements-dev.txt && pip install --no-deps ./services/${{matrix.service}}
 
       - name: Check config docs
+        id: check-config-docs
         run: |
-          export ${{ steps.common.outputs.CONFIG_YAML_ENV_VAR_NAME }}="${{ steps.common.outputs.CONFIG_YAML }}"
-
-          ./scripts/update_config_docs.py --check
+          python3 ./scripts/update_config_docs.py --check ${{matrix.service}}
