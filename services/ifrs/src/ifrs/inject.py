@@ -21,10 +21,14 @@ from typing import Optional
 
 from ghga_service_commons.utils.context import asyncnullcontext
 from ghga_service_commons.utils.multinode_storage import S3ObjectStorages
-from hexkit.providers.akafka import KafkaEventPublisher, KafkaEventSubscriber
+from hexkit.providers.akafka import KafkaEventPublisher, KafkaOutboxSubscriber
 from hexkit.providers.mongodb import MongoDbDaoFactory
 
-from ifrs.adapters.inbound.event_sub import EventSubTranslator
+from ifrs.adapters.inbound.event_sub import (
+    FileDeletionRequestedListener,
+    FileValidationSuccessListener,
+    NonstagedFileRequestedListener,
+)
 from ifrs.adapters.outbound.dao import FileMetadataDaoConstructor
 from ifrs.adapters.outbound.event_pub import EventPubTranslator
 from ifrs.config import Config
@@ -68,7 +72,7 @@ def prepare_core_with_override(
 
 
 @asynccontextmanager
-async def prepare_event_subscriber(
+async def prepare_outbox_subscriber(
     *, config: Config, core_override: Optional[FileRegistryPort] = None
 ):
     """Construct and initialize an event subscriber with all its dependencies.
@@ -78,10 +82,15 @@ async def prepare_event_subscriber(
     async with prepare_core_with_override(
         config=config, core_override=core_override
     ) as file_registry:
-        event_sub_translator = EventSubTranslator(
-            file_registry=file_registry, config=config
-        )
-        async with KafkaEventSubscriber.construct(
-            config=config, translator=event_sub_translator
-        ) as kafka_event_subscriber:
-            yield kafka_event_subscriber
+        outbox_translators = [
+            cls.construct(config=config, file_registry=file_registry)
+            for cls in (
+                FileDeletionRequestedListener,
+                FileValidationSuccessListener,
+                NonstagedFileRequestedListener,
+            )
+        ]
+        async with KafkaOutboxSubscriber.construct(
+            config=config, translators=outbox_translators
+        ) as kafka_outbox_subscriber:
+            yield kafka_outbox_subscriber
