@@ -26,7 +26,7 @@ We recommend using the provided Docker container.
 
 A pre-build version is available at [docker hub](https://hub.docker.com/repository/docker/ghga/purge-controller-service):
 ```bash
-docker pull ghga/purge-controller-service:1.3.0
+docker pull ghga/purge-controller-service:2.0.0
 ```
 
 Or you can build the container yourself from the [`./Dockerfile`](./Dockerfile):
