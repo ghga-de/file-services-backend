@@ -19,6 +19,7 @@ import logging
 import uuid
 from contextlib import suppress
 
+from ghga_event_schemas import pydantic_ as event_schemas
 from ghga_service_commons.utils.multinode_storage import ObjectStorages
 
 from ifrs.config import Config
@@ -294,3 +295,67 @@ class FileRegistry(FileRegistryPort):
             "Finished object storage and metadata deletion for file ID '%s'", file_id
         )
         await self._event_publisher.file_deleted(file_id=file_id)
+
+    async def upsert_nonstaged_file_requested(
+        self, *, resource_id: str, update: event_schemas.NonStagedFileRequested
+    ) -> None:
+        """Upsert a NonStagedFileRequested event. Call `stage_registered_file` if the
+        idempotence check is passed.
+
+        Args:
+            resource_id:
+                The resource ID.
+            update:
+                The NonStagedFileRequested event to upsert.
+        """
+        await self.stage_registered_file(
+            file_id=resource_id,
+            decrypted_sha256=update.decrypted_sha256,
+            outbox_object_id=update.target_object_id,
+            outbox_bucket_id=update.target_bucket_id,
+        )
+
+    async def upsert_file_deletion_requested(
+        self, *, resource_id: str, update: event_schemas.FileDeletionRequested
+    ) -> None:
+        """Upsert a FileDeletionRequested event. Call `delete_file` if the idempotence
+        check is passed.
+
+        Args:
+            resource_id:
+                The resource ID.
+            update:
+                The FileDeletionRequested event to upsert.
+        """
+        await self.delete_file(file_id=resource_id)
+
+    async def upsert_file_upload_validation_success(
+        self, *, resource_id: str, update: event_schemas.FileUploadValidationSuccess
+    ) -> None:
+        """Upsert a FileUploadValidationSuccess event. Call `register_file` if the
+        idempotence check is passed.
+
+        Args:
+            resource_id:
+                The resource ID.
+            update:
+                The FileUploadValidationSuccess event to upsert.
+        """
+        file_without_object_id = models.FileMetadataBase(
+            file_id=update.file_id,
+            decrypted_sha256=update.decrypted_sha256,
+            decrypted_size=update.decrypted_size,
+            upload_date=update.upload_date,
+            decryption_secret_id=update.decryption_secret_id,
+            encrypted_part_size=update.encrypted_part_size,
+            encrypted_parts_md5=update.encrypted_parts_md5,
+            encrypted_parts_sha256=update.encrypted_parts_sha256,
+            content_offset=update.content_offset,
+            storage_alias=update.s3_endpoint_alias,
+        )
+
+        await self.register_file(
+            file_without_object_id=file_without_object_id,
+            staging_object_id=update.object_id,
+            staging_bucket_id=update.bucket_id,
+        )

@@ -17,6 +17,8 @@
 
 from abc import ABC, abstractmethod
 
+from ghga_event_schemas import pydantic_ as event_schemas
+
 from ifrs.core import models
 
 
@@ -157,5 +159,50 @@ class FileRegistryPort(ABC):
         Args:
             file_id:
                 id for the file to delete.
+        """
+        ...
+
+    @abstractmethod
+    async def upsert_nonstaged_file_requested(
+        self, *, resource_id: str, update: event_schemas.NonStagedFileRequested
+    ) -> None:
+        """Upsert a NonStagedFileRequested event. Call `stage_registered_file` if the
+        idempotence check is passed.
+
+        Args:
+            resource_id:
+                The resource ID.
+            update:
+                The NonStagedFileRequested event to upsert.
+        """
+        ...
+
+    @abstractmethod
+    async def upsert_file_deletion_requested(
+        self, *, resource_id: str, update: event_schemas.FileDeletionRequested
+    ) -> None:
+        """Upsert a FileDeletionRequested event. Call `delete_file` if the idempotence
+        check is passed.
+
+        Args:
+            resource_id:
+                The resource ID.
+            update:
+                The FileDeletionRequested event to upsert.
+        """
+        ...
+
+    @abstractmethod
+    async def upsert_file_upload_validation_success(
+        self, *, resource_id: str, update: event_schemas.FileUploadValidationSuccess
+    ) -> None:
+        """Upsert a FileUploadValidationSuccess event. Call `register_file` if the
+        idempotence check is passed.
+
+        Args:
+            resource_id:
+                The resource ID.
+            update:
+                The FileUploadValidationSuccess event to upsert.
         """
         ...
