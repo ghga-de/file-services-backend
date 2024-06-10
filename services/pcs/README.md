@@ -32,6 +32,7 @@ docker pull ghga/purge-controller-service:2.0.0
 Or you can build the container yourself from the [`./Dockerfile`](./Dockerfile):
 ```bash
 # Execute in the repo's root dir:
+
 docker build -t ghga/purge-controller-service:2.0.0 .
 ```
 

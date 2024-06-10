@@ -80,7 +80,7 @@ jobs:
 
       - name: Symlink requirement files
         id: symlink-requirements
-        run: ln -sf lock services/${{ matrix.service }}/lock
+        run: cp -r lock services/${{ matrix.service }}/lock
 
       - name: Prepare Dockerfile
         id: prepare-dockerfile
@@ -102,6 +102,7 @@ jobs:
         name: Build and push
         id: docker_build
         with:
+          push: true
           platforms: "${{ env.DOCKERHUB_PLATFORMS }}"
           tags: "${{ env.DOCKERHUB_NAMESPACE }}/${{ steps.extract-service-name.outputs.name }}:${{ steps.extract-service-version.outputs.version }}-${{ github.sha }}"
           context: "services/${{ matrix.service }}"
