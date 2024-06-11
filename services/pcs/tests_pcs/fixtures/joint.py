@@ -58,18 +58,18 @@ async def joint_fixture(
 
     token_hash_config = TokenHashConfig(token_hashes=[hash])
     config = get_config(sources=[mongo_kafka.config, kafka.config, token_hash_config])
-    async for dao in get_file_deletion_dao(config=config):
-        async with prepare_core(config=config) as file_deletion:
-            async with prepare_rest_app(
-                config=config, core_override=file_deletion
-            ) as app:
-                async with AsyncTestClient(app=app) as rest_client:
-                    yield JointFixture(
-                        config=config,
-                        dao=dao,
-                        file_deletion=file_deletion,
-                        rest_client=rest_client,
-                        mongo_kafka=mongo_kafka,
-                        kafka=kafka,
-                        token=token,
-                    )
+    async with (
+        get_file_deletion_dao(config=config) as dao,
+        prepare_core(config=config) as file_deletion,
+        prepare_rest_app(config=config, core_override=file_deletion) as app,
+    ):
+        async with AsyncTestClient(app=app) as rest_client:
+            yield JointFixture(
+                config=config,
+                dao=dao,
+                file_deletion=file_deletion,
+                rest_client=rest_client,
+                mongo_kafka=mongo_kafka,
+                kafka=kafka,
+                token=token,
+            )
