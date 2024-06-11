@@ -32,7 +32,7 @@ from tests_pcs.fixtures.joint import JointFixture
 pytestmark = pytest.mark.asyncio()
 
 
-test_file_id = "test_id"
+TEST_FILE_ID = "test_id"
 
 
 def expected_event_from_file_id(
@@ -43,7 +43,7 @@ def expected_event_from_file_id(
     """
     payload = {}
     if type_ == "upserted":
-        files_deletion_event = event_schemas.FileDeletionRequested(file_id=test_file_id)
+        files_deletion_event = event_schemas.FileDeletionRequested(file_id=TEST_FILE_ID)
         payload = json.loads(files_deletion_event.model_dump_json())
     expected_event = ExpectedEvent(payload=payload, type_=type_, key=file_id)
     return expected_event
@@ -55,7 +55,7 @@ async def test_happy_journey(joint_fixture: JointFixture):
     A file ID is sent to the deletion request API endpoint, which ultimately results in
     a the supplied ID being saved in the database as well as emitted via an event.
     """
-    expected_event = expected_event_from_file_id("upserted", test_file_id)
+    expected_event = expected_event_from_file_id("upserted", TEST_FILE_ID)
 
     async with joint_fixture.kafka.expect_events(
         events=[expected_event],
@@ -63,7 +63,7 @@ async def test_happy_journey(joint_fixture: JointFixture):
     ):
         headers = Headers({"Authorization": f"Bearer {joint_fixture.token}"})
         response = await joint_fixture.rest_client.delete(
-            f"/files/{test_file_id}", headers=headers, timeout=5
+            f"/files/{TEST_FILE_ID}", headers=headers, timeout=5
         )
 
     assert response.status_code == status.HTTP_202_ACCEPTED
@@ -73,7 +73,7 @@ async def test_unauthorized_request(joint_fixture: JointFixture):
     """Ensure that an unauthorized request to the deletion request API endpoint fails."""
     headers = Headers({"Authorization": "Bearer not-a-valid-token"})
     response = await joint_fixture.rest_client.delete(
-        f"/files/{test_file_id}", headers=headers, timeout=5
+        f"/files/{TEST_FILE_ID}", headers=headers, timeout=5
     )
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -85,26 +85,26 @@ async def test_dto_deletion(joint_fixture: JointFixture):
     """
     # Throw an error if test cleanup isn't working
     with pytest.raises(ResourceNotFoundError):
-        await joint_fixture.dao.get_by_id(test_file_id)
+        await joint_fixture.dao.get_by_id(TEST_FILE_ID)
 
     correlation_id = new_correlation_id()
     async with set_correlation_id(correlation_id):
         # insert event and consume the resulting upsertion event
-        expected_upsertion = expected_event_from_file_id("upserted", test_file_id)
+        expected_upsertion = expected_event_from_file_id("upserted", TEST_FILE_ID)
         async with joint_fixture.kafka.expect_events(
             events=[expected_upsertion],
             in_topic=joint_fixture.config.files_to_delete_topic,
         ):
             await joint_fixture.dao.insert(
-                event_schemas.FileDeletionRequested(file_id=test_file_id)
+                event_schemas.FileDeletionRequested(file_id=TEST_FILE_ID)
             )
 
         # delete and consume the resulting deletion event
         expected_deletion = expected_event_from_file_id(
-            type_="deleted", file_id=test_file_id
+            type_="deleted", file_id=TEST_FILE_ID
         )
         async with joint_fixture.kafka.expect_events(
             events=[expected_deletion],
             in_topic=joint_fixture.config.files_to_delete_topic,
         ):
-            await joint_fixture.dao.delete(test_file_id)
+            await joint_fixture.dao.delete(TEST_FILE_ID)

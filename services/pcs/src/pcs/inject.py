@@ -32,6 +32,7 @@ from pcs.ports.inbound.file_deletion import FileDeletionPort
 from pcs.ports.outbound.daopub import FileDeletionDao
 
 
+@asynccontextmanager
 async def get_mongo_kafka_dao_factory(
     config: Config,
 ) -> AsyncGenerator[MongoKafkaDaoPublisherFactory, None]:
@@ -40,11 +41,12 @@ async def get_mongo_kafka_dao_factory(
         yield factory
 
 
+@asynccontextmanager
 async def get_file_deletion_dao(
     *, config: Config
 ) -> AsyncGenerator[FileDeletionDao, None]:
     """Get a FileDeletionRequest dao."""
-    async for dao_publisher_factory in get_mongo_kafka_dao_factory(config=config):
+    async with get_mongo_kafka_dao_factory(config=config) as dao_publisher_factory:
         outbox_dao_factory = OutboxDaoPublisherFactory(
             config=config, dao_publisher_factory=dao_publisher_factory
         )
@@ -55,7 +57,7 @@ async def get_file_deletion_dao(
 @asynccontextmanager
 async def prepare_core(*, config: Config) -> AsyncGenerator[FileDeletionPort, None]:
     """Construct and initialize the core component and its outbound dependencies."""
-    async for file_deletion_dao in get_file_deletion_dao(config=config):
+    async with get_file_deletion_dao(config=config) as file_deletion_dao:
         file_deletion = FileDeletion(file_deletion_dao=file_deletion_dao)
         yield file_deletion
 

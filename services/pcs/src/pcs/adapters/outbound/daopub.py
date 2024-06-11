@@ -15,7 +15,6 @@
 """Outbox-pattern DAO to communicate database state via kafka."""
 
 from ghga_event_schemas.pydantic_ import FileDeletionRequested
-from hexkit.custom_types import JsonObject
 from hexkit.protocols.daopub import DaoPublisher, DaoPublisherFactoryProtocol
 from pydantic import Field
 from pydantic_settings import BaseSettings
@@ -59,12 +58,6 @@ class OutboxDaoPublisherFactory(OutboxPublisherFactoryPort):
         self._file_deletions_collection = config.file_deletions_collection
         self._file_deletion_topic = config.files_to_delete_topic
 
-    @staticmethod
-    def _file_id_to_event(file_deletion_event: FileDeletionRequested) -> JsonObject:
-        """Translate a user to an event."""
-        validated_model = FileDeletionRequested(file_id=file_deletion_event.file_id)
-        return validated_model.model_dump()
-
     async def get_file_deletion_dao(self) -> DaoPublisher[FileDeletionRequested]:
         """Construct a DAO for interacting with file deletion requests in the database.
 
@@ -74,7 +67,7 @@ class OutboxDaoPublisherFactory(OutboxPublisherFactoryPort):
             name=self._file_deletions_collection,
             dto_model=FileDeletionRequested,
             id_field="file_id",
-            dto_to_event=self._file_id_to_event,
+            dto_to_event=lambda event: event.model_dump(),
             event_topic=self._file_deletion_topic,
             autopublish=True,
         )

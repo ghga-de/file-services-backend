@@ -26,7 +26,6 @@ class FileDeletion(FileDeletionPort):
 
     def __init__(self, *, file_deletion_dao: FileDeletionDao):
         """Initialize with outbound adapters."""
-        # self._event_publisher = event_publisher
         self._file_deletion_dao = file_deletion_dao
 
     async def delete_file(self, *, file_id: str) -> None:
