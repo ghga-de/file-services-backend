@@ -15,6 +15,8 @@
 
 """Adapter for receiving events providing metadata on files"""
 
+import logging
+
 from ghga_event_schemas import pydantic_ as event_schemas
 from hexkit.protocols.daosub import DaoSubscriberProtocol
 from pydantic import Field
@@ -22,38 +24,40 @@ from pydantic_settings import BaseSettings
 
 from ifrs.ports.inbound.file_registry import FileRegistryPort
 
+log = logging.getLogger(__name__)
+
 
 class OutboxSubTranslatorConfig(BaseSettings):
     """Config for the outbox subscriber"""
 
     files_to_delete_topic: str = Field(
-        ...,
+        default=...,
         description="The name of the topic to receive events informing about files to delete.",
         examples=["file_deletions"],
     )
     files_to_delete_type: str = Field(
-        ...,
+        default=...,
         description="The type used for events informing about a file to be deleted.",
         examples=["file_deletion_requested"],
     )
     files_to_register_topic: str = Field(
-        ...,
+        default=...,
         description="The name of the topic to receive events informing about new files "
         + "to register.",
         examples=["file_interrogation"],
     )
     files_to_register_type: str = Field(
-        ...,
+        default=...,
         description="The type used for events informing about new files to register.",
         examples=["file_interrogation_success"],
     )
     files_to_stage_topic: str = Field(
-        ...,
+        default=...,
         description="The name of the topic to receive events informing about files to stage.",
         examples=["file_downloads"],
     )
     files_to_stage_type: str = Field(
-        ...,
+        default=...,
         description="The type used for events informing about a file to be staged.",
         examples=["file_stage_requested"],
     )
@@ -87,7 +91,10 @@ class NonstagedFileRequestedListener(
 
     async def deleted(self, resource_id: str) -> None:
         """Consume event indicating the deletion of a NonStagedFileRequested event."""
-        pass
+        log.warning(
+            "Received DELETED-type event for NonStagedFileRequested with resource ID '%s'",
+            resource_id,
+        )
 
 
 class FileDeletionRequestedListener(
@@ -118,7 +125,10 @@ class FileDeletionRequestedListener(
 
     async def deleted(self, resource_id: str) -> None:
         """Consume event indicating the deletion of a File Deletion Request."""
-        pass
+        log.warning(
+            "Received DELETED-type event for FileDeletionRequested with resource ID '%s'",
+            resource_id,
+        )
 
 
 class FileValidationSuccessListener(
@@ -149,4 +159,7 @@ class FileValidationSuccessListener(
 
     async def deleted(self, resource_id: str) -> None:
         """Consume event indicating the deletion of a FileUploadValidationSuccess events."""
-        pass
+        log.warning(
+            "Received DELETED-type event for FileUploadValidationSuccess with resource ID '%s'",
+            resource_id,
+        )
