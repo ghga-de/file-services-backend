@@ -20,8 +20,9 @@ in the api.
 import re
 from typing import Literal
 
+from ghga_event_schemas import pydantic_ as event_schemas
 from ghga_service_commons.utils import utc_dates
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class AccessURL(BaseModel):
@@ -113,3 +114,12 @@ class DrsObjectResponseModel(BaseModel):
     id: str
     self_uri: str
     size: int
+
+
+class FileDeletionRequestedRecord(event_schemas.FileDeletionRequested):
+    """A record of a FileDeletionRequested event for idempotence purposes."""
+
+    correlation_id: str = Field(
+        default=...,
+        description="The correlation ID associated with the request event.",
+    )
