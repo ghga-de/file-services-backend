@@ -35,10 +35,17 @@ from hexkit.providers.akafka.testutils import KafkaFixture
 from hexkit.providers.mongodb import MongoDbDaoFactory
 from hexkit.providers.mongodb.testutils import MongoDbFixture
 from hexkit.providers.s3.testutils import S3Fixture
-from ifrs.adapters.outbound.dao import get_file_metadata_dao
+from ifrs.adapters.inbound.idempotent import IdempotenceHandler
+from ifrs.adapters.outbound.dao import (
+    get_file_deletion_requested_dao,
+    get_file_metadata_dao,
+    get_file_upload_validation_success_dao,
+    get_nonstaged_file_requested_dao,
+)
 from ifrs.config import Config
 from ifrs.inject import prepare_core, prepare_outbox_subscriber
 from ifrs.ports.inbound.file_registry import FileRegistryPort
+from ifrs.ports.inbound.idempotent import IdempotenceHandlerPort
 from ifrs.ports.outbound.dao import FileMetadataDaoPort
 
 from tests_ifrs.fixtures.config import get_config
@@ -66,6 +73,7 @@ class JointFixture:
     s3: S3Fixture
     file_metadata_dao: FileMetadataDaoPort
     file_registry: FileRegistryPort
+    idempotence_handler: IdempotenceHandlerPort
     kafka: KafkaFixture
     outbox_subscriber: KafkaOutboxSubscriber
     outbox_bucket: str
@@ -96,23 +104,39 @@ async def joint_fixture(
     config = get_config(sources=[mongodb.config, object_storage_config, kafka.config])
     dao_factory = MongoDbDaoFactory(config=config)
     file_metadata_dao = await get_file_metadata_dao(dao_factory=dao_factory)
+    nonstaged_file_requested_dao = await get_nonstaged_file_requested_dao(
+        dao_factory=dao_factory
+    )
+    file_upload_validation_success_dao = await get_file_upload_validation_success_dao(
+        dao_factory=dao_factory
+    )
+    file_deletion_requested_dao = await get_file_deletion_requested_dao(
+        dao_factory=dao_factory
+    )
 
     # Prepare the file registry (core)
-    async with (
-        prepare_core(config=config) as file_registry,
-        prepare_outbox_subscriber(
-            config=config, core_override=file_registry
-        ) as outbox_subscriber,
-    ):
-        yield JointFixture(
-            config=config,
-            mongodb=mongodb,
-            s3=s3,
-            file_metadata_dao=file_metadata_dao,
+    async with prepare_core(config=config) as file_registry:
+        idempotence_handler = IdempotenceHandler(
             file_registry=file_registry,
-            kafka=kafka,
-            outbox_subscriber=outbox_subscriber,
-            outbox_bucket=OUTBOX_BUCKET,
-            staging_bucket=STAGING_BUCKET,
-            endpoint_aliases=endpoint_aliases,
+            nonstaged_file_requested_dao=nonstaged_file_requested_dao,
+            file_upload_validation_success_dao=file_upload_validation_success_dao,
+            file_deletion_requested_dao=file_deletion_requested_dao,
         )
+        async with prepare_outbox_subscriber(
+            config=config,
+            core_override=file_registry,
+            idempotence_handler_override=idempotence_handler,
+        ) as outbox_subscriber:
+            yield JointFixture(
+                config=config,
+                mongodb=mongodb,
+                s3=s3,
+                file_metadata_dao=file_metadata_dao,
+                file_registry=file_registry,
+                idempotence_handler=idempotence_handler,
+                kafka=kafka,
+                outbox_subscriber=outbox_subscriber,
+                outbox_bucket=OUTBOX_BUCKET,
+                staging_bucket=STAGING_BUCKET,
+                endpoint_aliases=endpoint_aliases,
+            )

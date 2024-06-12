@@ -22,23 +22,20 @@ from ghga_event_schemas import pydantic_ as event_schemas
 from ghga_service_commons.utils.utc_dates import now_as_utc
 from hexkit.correlation import get_correlation_id
 from hexkit.custom_types import JsonObject
-from hexkit.providers.akafka.testutils import KafkaFixture
 from hexkit.providers.mongodb import MongoDbDaoFactory
-from ifrs.adapters.outbound.dao import get_outbox_dao_collection
-from ifrs.core import models
-from ifrs.core.utils import assert_record_is_new, make_record_from_update
-from ifrs.inject import prepare_outbox_subscriber
+from ifrs.adapters.inbound import models
+from ifrs.adapters.inbound.utils import assert_record_is_new, make_record_from_update
+from ifrs.adapters.outbound.dao import (
+    get_file_deletion_requested_dao,
+)
 from logot import Logot, logged
 from pydantic import BaseModel
 
-from tests_ifrs.fixtures.config import get_config
-from tests_ifrs.fixtures.dummy_file_registry import DummyFileRegistry
 from tests_ifrs.fixtures.joint import JointFixture
 
 CHANGE_EVENT_TYPE = "upserted"
 DELETE_EVENT_TYPE = "deleted"
 
-pytestmark = pytest.mark.asyncio()
 
 TEST_FILE_ID = "test_id"
 
@@ -71,8 +68,7 @@ TEST_FILE_DELETION_REQUESTED = event_schemas.FileDeletionRequested(file_id=TEST_
 def test_make_record_from_update():
     """Test the get_record function"""
     record = make_record_from_update(
-        models.FileDeletionRequestedRecord,
-        event_schemas.FileDeletionRequested(file_id=TEST_FILE_ID),
+        models.FileDeletionRequestedRecord, TEST_FILE_DELETION_REQUESTED
     )
     assert record.model_dump() == {
         "correlation_id": get_correlation_id(),
@@ -81,14 +77,14 @@ def test_make_record_from_update():
 
 
 @pytest.mark.parametrize("prepopulate", [True, False])
+@pytest.mark.asyncio()
 async def test_idempotence_function(
     joint_fixture: JointFixture, logot: Logot, prepopulate: bool
 ):
     """Test the idempotence functionality when encountering a record that already exists"""
     # First, insert the record that we want to collide with
     dao_factory = MongoDbDaoFactory(config=joint_fixture.config)
-    outbox_collection = await get_outbox_dao_collection(dao_factory=dao_factory)
-    dao = outbox_collection.get_file_deletion_requested_dao()
+    dao = await get_file_deletion_requested_dao(dao_factory=dao_factory)
     record = models.FileDeletionRequestedRecord(
         correlation_id=get_correlation_id(), file_id=TEST_FILE_ID
     )
@@ -135,31 +131,29 @@ async def test_idempotence_function(
         ),
     ],
 )
+@pytest.mark.asyncio()
 async def test_outbox_subscriber_routing(
-    kafka: KafkaFixture,
+    joint_fixture: JointFixture,
     upsertion_event: JsonObject,
     topic_config_name: str,
     method_name: str,
+    monkeypatch: pytest.MonkeyPatch,
 ):
-    """Make sure the correct core methods are called from the outbox subscriber for
-    each event type.
+    """Make sure the outbox subscriber calls the correct method on the idempotence
+    handler for the given event.
     """
-    config = get_config([kafka.config])
-    dummy_file_registry = DummyFileRegistry()
-    topic = getattr(config, topic_config_name)
-
-    await kafka.publish_event(
+    topic = getattr(joint_fixture.config, topic_config_name)
+    mock = AsyncMock()
+    monkeypatch.setattr(joint_fixture.idempotence_handler, method_name, mock)
+    await joint_fixture.kafka.publish_event(
         payload=upsertion_event,
         type_=CHANGE_EVENT_TYPE,
         topic=topic,
         key=TEST_FILE_ID,
     )
 
-    async with prepare_outbox_subscriber(
-        config=config, core_override=dummy_file_registry
-    ) as outbox_subscriber:
-        await outbox_subscriber.run(forever=False)
-    assert dummy_file_registry.last_call == method_name
+    await joint_fixture.outbox_subscriber.run(forever=False)
+    mock.assert_awaited_once()
 
 
 @pytest.mark.parametrize(
@@ -182,6 +176,7 @@ async def test_outbox_subscriber_routing(
         ),
     ],
 )
+@pytest.mark.asyncio()
 async def test_deletion_logs(
     joint_fixture: JointFixture,
     logot: Logot,
@@ -227,17 +222,18 @@ async def test_deletion_logs(
         ),
     ],
 )
-async def test_file_registry_idempotence(
+@pytest.mark.asyncio()
+async def test_idempotence_handler(
     joint_fixture: JointFixture,
     logot: Logot,
     update: BaseModel,
     method_to_patch: str,
     event_schema_name: str,
 ):
-    """Test that the outbox-to-file registry interface handles events correctly.
+    """Test that the IdempotenceHandler handles events correctly.
 
     This tests the methods inside the file registry that are called by the outbox.
-    The methods are patched with a mock that can be inspected later for calls.
+    The registry methods are patched with a mock that can be inspected later for calls.
     The expected behavior is that the method is called once, and then not called again,
     because the record is already in the database.
     """
@@ -245,22 +241,24 @@ async def test_file_registry_idempotence(
 
     setattr(joint_fixture.file_registry, method_to_patch, mock)
 
-    # Set which 'upsert_xyz' method to call on the file_registry
-    method_to_call = joint_fixture.file_registry.upsert_nonstaged_file_requested
+    # Set which 'upsert_xyz' method to call on the idempotence handler
+    method_to_call = joint_fixture.idempotence_handler.upsert_nonstaged_file_requested
     if event_schema_name == "FileUploadValidationSuccess":
         method_to_call = (
-            joint_fixture.file_registry.upsert_file_upload_validation_success
+            joint_fixture.idempotence_handler.upsert_file_upload_validation_success
         )
     elif event_schema_name == "FileDeletionRequested":
-        method_to_call = joint_fixture.file_registry.upsert_file_deletion_requested
+        method_to_call = (
+            joint_fixture.idempotence_handler.upsert_file_deletion_requested
+        )
 
-    # call that method once, which should call the stub and insert the record
+    # call idempotence handler method once, which should call the file registry method
     await method_to_call(resource_id=TEST_FILE_ID, update=update)
 
     mock.assert_awaited_once()
     mock.reset_mock()
 
-    # call the method once more, which should emit a debug log and not call the stub
+    # call the method once more, which should emit a debug log and not hit the registry
     await method_to_call(resource_id=TEST_FILE_ID, update=update)
 
     mock.assert_not_awaited()
