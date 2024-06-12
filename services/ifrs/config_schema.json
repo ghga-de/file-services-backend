@@ -196,6 +196,22 @@
       "title": "File Deleted Event Type",
       "type": "string"
     },
+    "files_to_delete_topic": {
+      "description": "The name of the topic to receive events informing about files to delete.",
+      "examples": [
+        "file_deletions"
+      ],
+      "title": "Files To Delete Topic",
+      "type": "string"
+    },
+    "files_to_delete_type": {
+      "description": "The type used for events informing about a file to be deleted.",
+      "examples": [
+        "file_deletion_requested"
+      ],
+      "title": "Files To Delete Type",
+      "type": "string"
+    },
     "files_to_register_topic": {
       "description": "The name of the topic to receive events informing about new files to register.",
       "examples": [
@@ -226,22 +242,6 @@
         "file_stage_requested"
       ],
       "title": "Files To Stage Type",
-      "type": "string"
-    },
-    "files_to_delete_topic": {
-      "description": "The name of the topic to receive events informing about files to delete.",
-      "examples": [
-        "file_deletions"
-      ],
-      "title": "Files To Delete Topic",
-      "type": "string"
-    },
-    "files_to_delete_type": {
-      "description": "The type used for events informing about a file to be deleted.",
-      "examples": [
-        "file_deletion_requested"
-      ],
-      "title": "Files To Delete Type",
       "type": "string"
     },
     "kafka_servers": {
@@ -331,12 +331,12 @@
     "file_staged_event_type",
     "file_deleted_event_topic",
     "file_deleted_event_type",
+    "files_to_delete_topic",
+    "files_to_delete_type",
     "files_to_register_topic",
     "files_to_register_type",
     "files_to_stage_topic",
     "files_to_stage_type",
-    "files_to_delete_topic",
-    "files_to_delete_type",
     "kafka_servers",
     "db_connection_str",
     "db_name"
