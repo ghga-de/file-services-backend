@@ -17,7 +17,6 @@
 
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import Optional
 
 from ghga_service_commons.utils.context import asyncnullcontext
 from ghga_service_commons.utils.multinode_storage import S3ObjectStorages
@@ -61,7 +60,7 @@ async def prepare_core(*, config: Config) -> AsyncGenerator[FileRegistryPort, No
 def prepare_core_with_override(
     *,
     config: Config,
-    core_override: Optional[FileRegistryPort] = None,
+    core_override: FileRegistryPort | None = None,
 ):
     """Resolve the prepare_core context manager based on config and override (if any)."""
     return (
@@ -75,8 +74,8 @@ def prepare_core_with_override(
 async def prepare_outbox_subscriber(
     *,
     config: Config,
-    core_override: Optional[FileRegistryPort] = None,
-    idempotence_handler_override: Optional[IdempotenceHandlerPort] = None,
+    core_override: FileRegistryPort | None = None,
+    idempotence_handler_override: IdempotenceHandlerPort | None = None,
 ) -> AsyncGenerator[KafkaOutboxSubscriber, None]:
     """Construct and initialize an event subscriber with all its dependencies.
     By default, the core dependencies are automatically prepared but you can also
