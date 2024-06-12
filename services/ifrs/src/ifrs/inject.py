@@ -29,7 +29,7 @@ from ifrs.adapters.inbound.event_sub import (
     FileValidationSuccessListener,
     NonstagedFileRequestedListener,
 )
-from ifrs.adapters.outbound.dao import FileMetadataDaoConstructor
+from ifrs.adapters.outbound import dao
 from ifrs.adapters.outbound.event_pub import EventPubTranslator
 from ifrs.config import Config
 from ifrs.core.file_registry import FileRegistry
@@ -41,9 +41,8 @@ async def prepare_core(*, config: Config) -> AsyncGenerator[FileRegistryPort, No
     """Constructs and initializes all core components and their outbound dependencies."""
     dao_factory = MongoDbDaoFactory(config=config)
     object_storages = S3ObjectStorages(config=config)
-    file_metadata_dao = await FileMetadataDaoConstructor.construct(
-        dao_factory=dao_factory
-    )
+    file_metadata_dao = await dao.get_file_metadata_dao(dao_factory=dao_factory)
+    outbox_dao_collection = await dao.get_outbox_dao_collection(dao_factory=dao_factory)
 
     async with KafkaEventPublisher.construct(config=config) as kafka_event_publisher:
         event_publisher = EventPubTranslator(
@@ -51,6 +50,7 @@ async def prepare_core(*, config: Config) -> AsyncGenerator[FileRegistryPort, No
         )
         file_registry = FileRegistry(
             file_metadata_dao=file_metadata_dao,
+            outbox_dao_collection=outbox_dao_collection,
             event_publisher=event_publisher,
             object_storages=object_storages,
             config=config,
@@ -74,7 +74,7 @@ def prepare_core_with_override(
 @asynccontextmanager
 async def prepare_outbox_subscriber(
     *, config: Config, core_override: Optional[FileRegistryPort] = None
-):
+) -> AsyncGenerator[KafkaOutboxSubscriber, None]:
     """Construct and initialize an event subscriber with all its dependencies.
     By default, the core dependencies are automatically prepared but you can also
     provide them using the core_override parameter.
@@ -83,12 +83,9 @@ async def prepare_outbox_subscriber(
         config=config, core_override=core_override
     ) as file_registry:
         outbox_translators = [
-            cls.construct(config=config, file_registry=file_registry)
-            for cls in (
-                FileDeletionRequestedListener,
-                FileValidationSuccessListener,
-                NonstagedFileRequestedListener,
-            )
+            FileDeletionRequestedListener(config=config, file_registry=file_registry),
+            FileValidationSuccessListener(config=config, file_registry=file_registry),
+            NonstagedFileRequestedListener(config=config, file_registry=file_registry),
         ]
         async with KafkaOutboxSubscriber.construct(
             config=config, translators=outbox_translators
