@@ -29,7 +29,7 @@ from hexkit.providers.mongodb import MongoDbDaoFactory
 from dcs.adapters.inbound.event_sub import EventSubTranslator
 from dcs.adapters.inbound.fastapi_ import dummies
 from dcs.adapters.inbound.fastapi_.configure import get_configured_app
-from dcs.adapters.outbound.dao import DrsObjectDaoConstructor
+from dcs.adapters.outbound.dao import get_drs_dao
 from dcs.adapters.outbound.event_pub import EventPubTranslator
 from dcs.config import Config
 from dcs.core.auth_policies import WorkOrderContext
@@ -41,7 +41,7 @@ from dcs.ports.inbound.data_repository import DataRepositoryPort
 async def prepare_core(*, config: Config) -> AsyncGenerator[DataRepositoryPort, None]:
     """Constructs and initializes all core components and their outbound dependencies."""
     dao_factory = MongoDbDaoFactory(config=config)
-    drs_object_dao = await DrsObjectDaoConstructor.construct(dao_factory=dao_factory)
+    drs_object_dao = await get_drs_dao(dao_factory=dao_factory)
     object_storages = S3ObjectStorages(config=config)
 
     async with KafkaEventPublisher.construct(config=config) as event_pub_provider:

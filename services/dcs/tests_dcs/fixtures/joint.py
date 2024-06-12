@@ -229,7 +229,7 @@ async def populated_fixture(
     assert file_registered_event.decrypted_sha256 == EXAMPLE_FILE.decrypted_sha256
     assert file_registered_event.upload_date == EXAMPLE_FILE.creation_date
 
-    dao = await DrsObjectDaoConstructor.construct(
+    dao = await DrsObjectDaoConstructor.get_drs_dao(
         dao_factory=joint_fixture.mongodb.dao_factory
     )
 
