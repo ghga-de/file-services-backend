@@ -15,7 +15,6 @@
 
 """Defines dataclasses for holding business-logic data"""
 
-from ghga_event_schemas import pydantic_ as event_schemas
 from pydantic import BaseModel, Field
 
 
@@ -86,30 +85,3 @@ class FileMetadata(FileMetadataBase):
     object_id: str = Field(
         ..., description="A UUID to identify the file in object storage"
     )
-
-
-class IdempotenceRecord(BaseModel):
-    """A record of an event for idempotence purposes."""
-
-    correlation_id: str = Field(
-        default=...,
-        description="The correlation ID associated with the request event.",
-    )
-
-
-class NonStagedFileRequestedRecord(
-    IdempotenceRecord, event_schemas.NonStagedFileRequested
-):
-    """A record of a NonStagedFileRequested event for idempotence purposes."""
-
-
-class FileDeletionRequestedRecord(
-    IdempotenceRecord, event_schemas.FileDeletionRequested
-):
-    """A record of a FileDeletionRequested event for idempotence purposes."""
-
-
-class FileUploadValidationSuccessRecord(
-    IdempotenceRecord, event_schemas.FileUploadValidationSuccess
-):
-    """A record of a FileUploadValidationSuccess event for idempotence purposes."""

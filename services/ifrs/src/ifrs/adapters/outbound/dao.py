@@ -17,13 +17,13 @@
 
 from hexkit.protocols.dao import DaoFactoryProtocol
 
-from ifrs.core import models
+from ifrs.adapters.inbound import models
+from ifrs.core.models import FileMetadata
 from ifrs.ports.outbound.dao import (
     FileDeletionRequestedDaoPort,
     FileMetadataDaoPort,
     FileUploadValidationSuccessDaoPort,
     NonStagedFileRequestedDaoPort,
-    OutboxDaoCollectionPort,
 )
 
 
@@ -33,7 +33,7 @@ async def get_file_metadata_dao(
     """Setup the DAOs using the specified provider of the DaoFactoryProtocol."""
     return await dao_factory.get_dao(
         name="file_metadata",
-        dto_model=models.FileMetadata,
+        dto_model=FileMetadata,
         id_field="file_id",
     )
 
@@ -68,50 +68,4 @@ async def get_file_deletion_requested_dao(
         name="file_deletion_requested",
         dto_model=models.FileDeletionRequestedRecord,
         id_field="file_id",
-    )
-
-
-class OutboxDaoCollection(OutboxDaoCollectionPort):
-    """Collection of DAOs used to interact with outbox-related resources in the DB."""
-
-    def __init__(
-        self,
-        *,
-        nonstaged_file_requested_dao: NonStagedFileRequestedDaoPort,
-        file_upload_validation_success_dao: FileUploadValidationSuccessDaoPort,
-        file_deletion_requested_dao: FileDeletionRequestedDaoPort,
-    ):
-        self._nonstaged_file_requested_dao = nonstaged_file_requested_dao
-        self._file_upload_validation_success_dao = file_upload_validation_success_dao
-        self._file_deletion_requested_dao = file_deletion_requested_dao
-
-    def get_nonstaged_file_requested_dao(self) -> NonStagedFileRequestedDaoPort:
-        """Return the DAO for non-staged file requested records."""
-        return self._nonstaged_file_requested_dao
-
-    def get_file_upload_validation_success_dao(
-        self,
-    ) -> FileUploadValidationSuccessDaoPort:
-        """Return the DAO for file upload validation success records."""
-        return self._file_upload_validation_success_dao
-
-    def get_file_deletion_requested_dao(self) -> FileDeletionRequestedDaoPort:
-        """Return the DAO for file deletion requested records."""
-        return self._file_deletion_requested_dao
-
-
-async def get_outbox_dao_collection(
-    *, dao_factory: DaoFactoryProtocol
-) -> OutboxDaoCollectionPort:
-    """Return a collection of DAOs used to interact with outbox-related resources in the DB."""
-    return OutboxDaoCollection(
-        nonstaged_file_requested_dao=await get_nonstaged_file_requested_dao(
-            dao_factory=dao_factory
-        ),
-        file_upload_validation_success_dao=await get_file_upload_validation_success_dao(
-            dao_factory=dao_factory
-        ),
-        file_deletion_requested_dao=await get_file_deletion_requested_dao(
-            dao_factory=dao_factory
-        ),
     )

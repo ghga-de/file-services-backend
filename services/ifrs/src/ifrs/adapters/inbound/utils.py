@@ -23,7 +23,7 @@ from hexkit.correlation import get_correlation_id
 from hexkit.protocols.dao import DaoNaturalId, NoHitsFoundError
 from pydantic import BaseModel
 
-from ifrs.core import models
+from ifrs.adapters.inbound import models
 
 log = logging.getLogger(__name__)
 

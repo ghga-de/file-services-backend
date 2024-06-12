@@ -22,7 +22,7 @@ from hexkit.protocols.daosub import DaoSubscriberProtocol
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
-from ifrs.ports.inbound.file_registry import FileRegistryPort
+from ifrs.ports.inbound.idempotent import IdempotenceHandlerPort
 
 log = logging.getLogger(__name__)
 
@@ -75,17 +75,17 @@ class NonstagedFileRequestedListener(
         self,
         *,
         config: OutboxSubTranslatorConfig,
-        file_registry: FileRegistryPort,
+        idempotence_handler: IdempotenceHandlerPort,
     ):
         self._config = config
-        self._file_registry = file_registry
+        self._idempotence_handler = idempotence_handler
         self.event_topic = config.files_to_stage_topic
 
     async def changed(
         self, resource_id: str, update: event_schemas.NonStagedFileRequested
     ) -> None:
         """Consume change event (created or updated) for download request data."""
-        await self._file_registry.upsert_nonstaged_file_requested(
+        await self._idempotence_handler.upsert_nonstaged_file_requested(
             resource_id=resource_id, update=update
         )
 
@@ -109,17 +109,17 @@ class FileDeletionRequestedListener(
         self,
         *,
         config: OutboxSubTranslatorConfig,
-        file_registry: FileRegistryPort,
+        idempotence_handler: IdempotenceHandlerPort,
     ):
         self._config = config
-        self._file_registry = file_registry
+        self._idempotence_handler = idempotence_handler
         self.event_topic = config.files_to_delete_topic
 
     async def changed(
         self, resource_id: str, update: event_schemas.FileDeletionRequested
     ) -> None:
         """Consume change event (created or updated) for File Deletion Requests."""
-        await self._file_registry.upsert_file_deletion_requested(
+        await self._idempotence_handler.upsert_file_deletion_requested(
             resource_id=resource_id, update=update
         )
 
@@ -143,17 +143,17 @@ class FileValidationSuccessListener(
         self,
         *,
         config: OutboxSubTranslatorConfig,
-        file_registry: FileRegistryPort,
+        idempotence_handler: IdempotenceHandlerPort,
     ):
         self._config = config
-        self._file_registry = file_registry
+        self._idempotence_handler = idempotence_handler
         self.event_topic = config.files_to_register_topic
 
     async def changed(
         self, resource_id: str, update: event_schemas.FileUploadValidationSuccess
     ) -> None:
         """Consume change event (created or updated) for FileUploadValidationSuccess events."""
-        await self._file_registry.upsert_file_upload_validation_success(
+        await self._idempotence_handler.upsert_file_upload_validation_success(
             resource_id=resource_id, update=update
         )
 

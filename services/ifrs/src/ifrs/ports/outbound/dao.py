@@ -15,41 +15,15 @@
 
 """DAO interface for accessing the database."""
 
-from abc import ABC, abstractmethod
-
 from hexkit.protocols.dao import DaoNaturalId, ResourceNotFoundError  # noqa: F401
 
-from ifrs.core import models
+from ifrs.adapters.inbound import models
+from ifrs.core.models import FileMetadata
 
 # port described by a type alias:
-FileMetadataDaoPort = DaoNaturalId[models.FileMetadata]
+FileMetadataDaoPort = DaoNaturalId[FileMetadata]
 NonStagedFileRequestedDaoPort = DaoNaturalId[models.NonStagedFileRequestedRecord]
 FileUploadValidationSuccessDaoPort = DaoNaturalId[
     models.FileUploadValidationSuccessRecord
 ]
 FileDeletionRequestedDaoPort = DaoNaturalId[models.FileDeletionRequestedRecord]
-
-
-class OutboxDaoCollectionPort(ABC):
-    """Interface for the DAOs of the outbox collection."""
-
-    @abstractmethod
-    def get_file_deletion_requested_dao(
-        self,
-    ) -> DaoNaturalId[models.FileDeletionRequestedRecord]:
-        """Get the DAO for the file deletion requested records."""
-        ...
-
-    @abstractmethod
-    def get_file_upload_validation_success_dao(
-        self,
-    ) -> DaoNaturalId[models.FileUploadValidationSuccessRecord]:
-        """Get the DAO for the file upload validation success records."""
-        ...
-
-    @abstractmethod
-    def get_nonstaged_file_requested_dao(
-        self,
-    ) -> DaoNaturalId[models.NonStagedFileRequestedRecord]:
-        """Get the DAO for the non-staged file requested records."""
-        ...
