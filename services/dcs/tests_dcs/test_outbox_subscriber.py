@@ -126,7 +126,8 @@ async def test_deletion_logs(joint_fixture: JointFixture, logot: Logot):
     # verify the log
     logot.assert_logged(
         logged.warning(
-            f"Received DELETED-type event for FileDeletionRequested with resource ID {TEST_FILE_ID}",
+            "Received DELETED-type event for FileDeletionRequested"
+            + f" with resource ID '{TEST_FILE_ID}'",
         )
     )
 
