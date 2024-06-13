@@ -35,31 +35,16 @@ class OutboxSubTranslatorConfig(BaseSettings):
         description="The name of the topic to receive events informing about files to delete.",
         examples=["file_deletions"],
     )
-    files_to_delete_type: str = Field(
-        default=...,
-        description="The type used for events informing about a file to be deleted.",
-        examples=["file_deletion_requested"],
-    )
     files_to_register_topic: str = Field(
         default=...,
         description="The name of the topic to receive events informing about new files "
         + "to register.",
         examples=["file_interrogation"],
     )
-    files_to_register_type: str = Field(
-        default=...,
-        description="The type used for events informing about new files to register.",
-        examples=["file_interrogation_success"],
-    )
     files_to_stage_topic: str = Field(
         default=...,
         description="The name of the topic to receive events informing about files to stage.",
         examples=["file_downloads"],
-    )
-    files_to_stage_type: str = Field(
-        default=...,
-        description="The type used for events informing about a file to be staged.",
-        examples=["file_stage_requested"],
     )
 
 
