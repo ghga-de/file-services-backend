@@ -36,16 +36,14 @@ from dcs.adapters.inbound.event_sub import (
 )
 from dcs.adapters.inbound.fastapi_ import dummies
 from dcs.adapters.inbound.fastapi_.configure import get_configured_app
-from dcs.adapters.outbound.dao import (
-    OutboxCoreInterface,
-    get_drs_dao,
-    get_file_deletion_requested_dao,
-)
+from dcs.adapters.inbound.idempotent import get_idempotence_handler
+from dcs.adapters.outbound.dao import get_drs_dao
 from dcs.adapters.outbound.event_pub import EventPubTranslator
 from dcs.config import Config
 from dcs.core.auth_policies import WorkOrderContext
 from dcs.core.data_repository import DataRepository
 from dcs.ports.inbound.data_repository import DataRepositoryPort
+from dcs.ports.inbound.idempotent import IdempotenceHandlerPort
 
 
 @asynccontextmanager
@@ -136,6 +134,7 @@ async def prepare_outbox_subscriber(
     *,
     config: Config,
     data_repo_override: DataRepositoryPort | None = None,
+    idempotence_handler_override: IdempotenceHandlerPort | None = None,
 ) -> AsyncGenerator[KafkaOutboxSubscriber, None]:
     """Construct and initialize an event subscriber with all its dependencies.
     By default, the core dependencies are automatically prepared but you can also
@@ -144,15 +143,13 @@ async def prepare_outbox_subscriber(
     async with prepare_core_with_override(
         config=config, data_repo_override=data_repo_override
     ) as data_repository:
-        dao_factory = MongoDbDaoFactory(config=config)
-        file_deletion_dao = await get_file_deletion_requested_dao(
-            dao_factory=dao_factory
-        )
-        outbox_core_interface = OutboxCoreInterface(
-            file_deletion_dao=file_deletion_dao, data_repository=data_repository
-        )
+        idempotence_handler = idempotence_handler_override
+        if not idempotence_handler:
+            idempotence_handler = await get_idempotence_handler(
+                config=config, data_repository=data_repository
+            )
         file_deleted_listener = FileDeletionRequestedListener(
-            config=config, outbox_core_interface=outbox_core_interface
+            config=config, idempotence_handler=idempotence_handler
         )
         async with KafkaOutboxSubscriber.construct(
             config=config, translators=[file_deleted_listener]

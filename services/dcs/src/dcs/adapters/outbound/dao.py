@@ -15,17 +15,13 @@
 
 """DAO translators for accessing the database."""
 
-from ghga_event_schemas import pydantic_ as event_schemas
 from hexkit.protocols.dao import DaoFactoryProtocol
 
-from dcs.adapters.outbound.utils import assert_record_is_new, make_record_from_update
 from dcs.core import models
 from dcs.core.models import FileDeletionRequestedRecord
-from dcs.ports.inbound.data_repository import DataRepositoryPort
 from dcs.ports.outbound.dao import (
     DrsObjectDaoPort,
     FileDeletionRequestedDaoPort,
-    OutboxCoreInterfacePort,
 )
 
 
@@ -49,38 +45,3 @@ async def get_file_deletion_requested_dao(
         dto_model=FileDeletionRequestedRecord,
         id_field="file_id",
     )
-
-
-class OutboxCoreInterface(OutboxCoreInterfacePort):
-    """Class used to abstract idempotence away from the core for outbox events."""
-
-    def __init__(
-        self,
-        *,
-        file_deletion_dao: FileDeletionRequestedDaoPort,
-        data_repository: DataRepositoryPort,
-    ):
-        """Initialize with config parameters and core dependencies."""
-        self._data_repository = data_repository
-        self._file_deletion_dao = file_deletion_dao
-
-    async def upsert_file_deletion_requested(
-        self, *, resource_id: str, update: event_schemas.FileDeletionRequested
-    ) -> None:
-        """Upsert a FileDeletionRequested event. Call `DataRepository.delete_file` if
-        the idempotence check is passed.
-        Args:
-            resource_id:
-                The resource ID.
-            update:
-                The FileDeletionRequested event to upsert.
-        """
-        record = make_record_from_update(update)
-        if await assert_record_is_new(
-            dao=self._file_deletion_dao,
-            resource_id=resource_id,
-            update=update,
-            record=record,
-        ):
-            await self._data_repository.delete_file(file_id=resource_id)
-            await self._file_deletion_dao.insert(record)

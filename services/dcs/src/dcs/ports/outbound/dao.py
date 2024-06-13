@@ -15,9 +15,6 @@
 
 """DAO interface for accessing the database."""
 
-from abc import ABC, abstractmethod
-
-from ghga_event_schemas import pydantic_ as event_schemas
 from hexkit.protocols.dao import (  # noqa: F401
     DaoNaturalId,
     ResourceAlreadyExistsError,
@@ -30,21 +27,3 @@ from dcs.core.models import FileDeletionRequestedRecord
 # port described by a type alias:
 DrsObjectDaoPort = DaoNaturalId[models.AccessTimeDrsObject]
 FileDeletionRequestedDaoPort = DaoNaturalId[FileDeletionRequestedRecord]
-
-
-class OutboxCoreInterfacePort(ABC):
-    """Class used to abstract idempotence away from the core for outbox events."""
-
-    @abstractmethod
-    async def upsert_file_deletion_requested(
-        self, *, resource_id: str, update: event_schemas.FileDeletionRequested
-    ) -> None:
-        """Upsert a FileDeletionRequested event. Call `DataRepository.delete_file` if
-        the idempotence check is passed.
-        Args:
-            resource_id:
-                The resource ID.
-            update:
-                The FileDeletionRequested event to upsert.
-        """
-        ...
