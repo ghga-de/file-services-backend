@@ -77,7 +77,6 @@ class NonstagedFileRequestedListener(
         config: OutboxSubTranslatorConfig,
         idempotence_handler: IdempotenceHandlerPort,
     ):
-        self._config = config
         self._idempotence_handler = idempotence_handler
         self.event_topic = config.files_to_stage_topic
 
@@ -111,7 +110,6 @@ class FileDeletionRequestedListener(
         config: OutboxSubTranslatorConfig,
         idempotence_handler: IdempotenceHandlerPort,
     ):
-        self._config = config
         self._idempotence_handler = idempotence_handler
         self.event_topic = config.files_to_delete_topic
 
@@ -145,7 +143,6 @@ class FileValidationSuccessListener(
         config: OutboxSubTranslatorConfig,
         idempotence_handler: IdempotenceHandlerPort,
     ):
-        self._config = config
         self._idempotence_handler = idempotence_handler
         self.event_topic = config.files_to_register_topic
 
