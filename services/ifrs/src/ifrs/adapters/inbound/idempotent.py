@@ -15,9 +15,16 @@
 """Contains a class to serve outbox event data to the core in an idempotent manner."""
 
 from ghga_event_schemas import pydantic_ as event_schemas
+from hexkit.providers.mongodb import MongoDbDaoFactory
 
 from ifrs.adapters.inbound import models
 from ifrs.adapters.inbound.utils import assert_record_is_new, make_record_from_update
+from ifrs.adapters.outbound.dao import (
+    get_file_deletion_requested_dao,
+    get_file_upload_validation_success_dao,
+    get_nonstaged_file_requested_dao,
+)
+from ifrs.config import Config
 from ifrs.core.models import FileMetadataBase
 from ifrs.ports.inbound.file_registry import FileRegistryPort
 from ifrs.ports.inbound.idempotent import IdempotenceHandlerPort
@@ -26,6 +33,31 @@ from ifrs.ports.outbound.dao import (
     FileUploadValidationSuccessDaoPort,
     NonStagedFileRequestedDaoPort,
 )
+
+
+async def get_idempotence_handler(
+    *,
+    config: Config,
+    file_registry: FileRegistryPort,
+) -> IdempotenceHandlerPort:
+    """Get an instance of the IdempotenceHandler."""
+    dao_factory = MongoDbDaoFactory(config=config)
+    file_deletion_requested_dao = await get_file_deletion_requested_dao(
+        dao_factory=dao_factory
+    )
+    file_upload_validation_success_dao = await get_file_upload_validation_success_dao(
+        dao_factory=dao_factory
+    )
+    nonstaged_file_requested_dao = await get_nonstaged_file_requested_dao(
+        dao_factory=dao_factory
+    )
+
+    return IdempotenceHandler(
+        file_registry=file_registry,
+        file_deletion_requested_dao=file_deletion_requested_dao,
+        file_upload_validation_success_dao=file_upload_validation_success_dao,
+        nonstaged_file_requested_dao=nonstaged_file_requested_dao,
+    )
 
 
 class IdempotenceHandler(IdempotenceHandlerPort):

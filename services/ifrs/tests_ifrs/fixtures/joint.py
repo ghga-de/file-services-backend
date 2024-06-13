@@ -35,13 +35,8 @@ from hexkit.providers.akafka.testutils import KafkaFixture
 from hexkit.providers.mongodb import MongoDbDaoFactory
 from hexkit.providers.mongodb.testutils import MongoDbFixture
 from hexkit.providers.s3.testutils import S3Fixture
-from ifrs.adapters.inbound.idempotent import IdempotenceHandler
-from ifrs.adapters.outbound.dao import (
-    get_file_deletion_requested_dao,
-    get_file_metadata_dao,
-    get_file_upload_validation_success_dao,
-    get_nonstaged_file_requested_dao,
-)
+from ifrs.adapters.inbound.idempotent import get_idempotence_handler
+from ifrs.adapters.outbound.dao import get_file_metadata_dao
 from ifrs.config import Config
 from ifrs.inject import prepare_core, prepare_outbox_subscriber
 from ifrs.ports.inbound.file_registry import FileRegistryPort
@@ -104,23 +99,12 @@ async def joint_fixture(
     config = get_config(sources=[mongodb.config, object_storage_config, kafka.config])
     dao_factory = MongoDbDaoFactory(config=config)
     file_metadata_dao = await get_file_metadata_dao(dao_factory=dao_factory)
-    nonstaged_file_requested_dao = await get_nonstaged_file_requested_dao(
-        dao_factory=dao_factory
-    )
-    file_upload_validation_success_dao = await get_file_upload_validation_success_dao(
-        dao_factory=dao_factory
-    )
-    file_deletion_requested_dao = await get_file_deletion_requested_dao(
-        dao_factory=dao_factory
-    )
 
     # Prepare the file registry (core)
     async with prepare_core(config=config) as file_registry:
-        idempotence_handler = IdempotenceHandler(
+        idempotence_handler = await get_idempotence_handler(
+            config=config,
             file_registry=file_registry,
-            nonstaged_file_requested_dao=nonstaged_file_requested_dao,
-            file_upload_validation_success_dao=file_upload_validation_success_dao,
-            file_deletion_requested_dao=file_deletion_requested_dao,
         )
         async with prepare_outbox_subscriber(
             config=config,

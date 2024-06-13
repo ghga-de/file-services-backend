@@ -28,7 +28,7 @@ from ifrs.adapters.inbound.event_sub import (
     FileValidationSuccessListener,
     NonstagedFileRequestedListener,
 )
-from ifrs.adapters.inbound.idempotent import IdempotenceHandler
+from ifrs.adapters.inbound.idempotent import get_idempotence_handler
 from ifrs.adapters.outbound import dao
 from ifrs.adapters.outbound.event_pub import EventPubTranslator
 from ifrs.config import Config
@@ -86,23 +86,9 @@ async def prepare_outbox_subscriber(
     ) as file_registry:
         idempotence_handler = idempotence_handler_override
         if not idempotence_handler:
-            dao_factory = MongoDbDaoFactory(config=config)
-            nonstaged_file_requested_dao = await dao.get_nonstaged_file_requested_dao(
-                dao_factory=dao_factory
-            )
-            file_upload_validation_success_dao = (
-                await dao.get_file_upload_validation_success_dao(
-                    dao_factory=dao_factory
-                )
-            )
-            file_deletion_requested_dao = await dao.get_file_deletion_requested_dao(
-                dao_factory=dao_factory
-            )
-            idempotence_handler = IdempotenceHandler(
+            idempotence_handler = await get_idempotence_handler(
+                config=config,
                 file_registry=file_registry,
-                nonstaged_file_requested_dao=nonstaged_file_requested_dao,
-                file_upload_validation_success_dao=file_upload_validation_success_dao,
-                file_deletion_requested_dao=file_deletion_requested_dao,
             )
 
         outbox_translators = [
