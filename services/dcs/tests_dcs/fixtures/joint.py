@@ -31,15 +31,18 @@ from datetime import timedelta
 
 import httpx
 import pytest_asyncio
-from dcs.adapters.outbound.dao import DrsObjectDaoConstructor
+from dcs.adapters.inbound.idempotent import get_idempotence_handler
+from dcs.adapters.outbound.dao import get_drs_dao
 from dcs.config import Config, WorkOrderTokenConfig
 from dcs.core import models
 from dcs.inject import (
     prepare_core,
     prepare_event_subscriber,
+    prepare_outbox_subscriber,
     prepare_rest_app,
 )
 from dcs.ports.inbound.data_repository import DataRepositoryPort
+from dcs.ports.inbound.idempotent import IdempotenceHandlerPort
 from dcs.ports.outbound.dao import DrsObjectDaoPort
 from ghga_event_schemas import pydantic_ as event_schemas
 from ghga_service_commons.api.testing import AsyncTestClient
@@ -48,7 +51,7 @@ from ghga_service_commons.utils.multinode_storage import (
     S3ObjectStorageNodeConfig,
     S3ObjectStoragesConfig,
 )
-from hexkit.providers.akafka import KafkaEventSubscriber
+from hexkit.providers.akafka import KafkaEventSubscriber, KafkaOutboxSubscriber
 from hexkit.providers.akafka.testutils import (
     KafkaFixture,
 )
@@ -103,6 +106,8 @@ class JointFixture:
     data_repository: DataRepositoryPort
     rest_client: httpx.AsyncClient
     event_subscriber: KafkaEventSubscriber
+    outbox_subscriber: KafkaOutboxSubscriber
+    idempotence_handler: IdempotenceHandlerPort
     mongodb: MongoDbFixture
     s3: S3Fixture
     kafka: KafkaFixture
@@ -149,26 +154,42 @@ async def joint_fixture(
     # create storage entities:
     await s3.populate_buckets(buckets=[bucket_id])
 
-    async with prepare_core(config=config) as data_repository:
+    # prepare everything except the outbox subscriber
+    async with (
+        prepare_core(config=config) as data_repository,
+        prepare_rest_app(config=config, data_repo_override=data_repository) as app,
+        prepare_event_subscriber(
+            config=config, data_repo_override=data_repository
+        ) as event_subscriber,
+        AsyncTestClient(app=app) as rest_client,
+    ):
+        # instantiate the idempotence handler override
+        idempotence_handler = await get_idempotence_handler(
+            config=config, data_repository=data_repository
+        )
+
+        # Prepare the outbox subscriber with the idempotence handler override
         async with (
-            prepare_rest_app(config=config, data_repo_override=data_repository) as app,
-            prepare_event_subscriber(
-                config=config, data_repo_override=data_repository
-            ) as event_subscriber,
+            prepare_outbox_subscriber(
+                config=config,
+                data_repo_override=data_repository,
+                idempotence_handler_override=idempotence_handler,
+            ) as outbox_subscriber,
         ):
-            async with AsyncTestClient(app=app) as rest_client:
-                yield JointFixture(
-                    config=config,
-                    bucket_id=bucket_id,
-                    data_repository=data_repository,
-                    rest_client=rest_client,
-                    event_subscriber=event_subscriber,
-                    mongodb=mongodb,
-                    s3=s3,
-                    kafka=kafka,
-                    jwk=jwk,
-                    endpoint_aliases=endpoint_aliases,
-                )
+            yield JointFixture(
+                config=config,
+                bucket_id=bucket_id,
+                data_repository=data_repository,
+                rest_client=rest_client,
+                event_subscriber=event_subscriber,
+                outbox_subscriber=outbox_subscriber,
+                idempotence_handler=idempotence_handler,
+                mongodb=mongodb,
+                s3=s3,
+                kafka=kafka,
+                jwk=jwk,
+                endpoint_aliases=endpoint_aliases,
+            )
 
 
 @dataclass(frozen=True)
@@ -229,9 +250,7 @@ async def populated_fixture(
     assert file_registered_event.decrypted_sha256 == EXAMPLE_FILE.decrypted_sha256
     assert file_registered_event.upload_date == EXAMPLE_FILE.creation_date
 
-    dao = await DrsObjectDaoConstructor.get_drs_dao(
-        dao_factory=joint_fixture.mongodb.dao_factory
-    )
+    dao = await get_drs_dao(dao_factory=joint_fixture.mongodb.dao_factory)
 
     yield PopulatedFixture(
         mongodb_dao=dao,
