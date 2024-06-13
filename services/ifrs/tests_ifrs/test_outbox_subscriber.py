@@ -15,6 +15,7 @@
 
 """Tests for functionality related to the outbox subscriber."""
 
+from typing import Callable
 from unittest.mock import AsyncMock
 
 import pytest
@@ -76,11 +77,8 @@ def test_make_record_from_update():
     }
 
 
-@pytest.mark.parametrize("prepopulate", [True, False])
 @pytest.mark.asyncio()
-async def test_idempotence_function(
-    joint_fixture: JointFixture, logot: Logot, prepopulate: bool
-):
+async def test_idempotence(joint_fixture: JointFixture, logot: Logot):
     """Test the idempotence functionality when encountering a record that already exists"""
     # First, insert the record that we want to collide with
     dao_factory = MongoDbDaoFactory(config=joint_fixture.config)
@@ -89,26 +87,35 @@ async def test_idempotence_function(
         correlation_id=get_correlation_id(), file_id=TEST_FILE_ID
     )
 
-    # Conditional insert
-    if prepopulate:
-        await dao.insert(record)
-
-    if await assert_record_is_new(
+    record_is_new = await assert_record_is_new(
         dao=dao,
         resource_id=TEST_FILE_ID,
         update=TEST_FILE_DELETION_REQUESTED,
         record=record,
-    ):
-        assert not prepopulate  # If prepopulate is False, record should be new
+    )
+
+    assert record_is_new
+
+    # insert record into the DB
+    await dao.insert(record)
+
+    # rerun the assertion and verify that the result is False and that we get a log
+    record_is_new = await assert_record_is_new(
+        dao=dao,
+        resource_id=TEST_FILE_ID,
+        update=TEST_FILE_DELETION_REQUESTED,
+        record=record,
+    )
+
+    assert not record_is_new
 
     # examine logs
-    if prepopulate:
-        logot.assert_logged(
-            logged.debug(
-                "Event with 'FileDeletionRequested' schema for resource ID 'test_id' has"
-                + " already been processed under current correlation_id. Skipping."
-            )
+    logot.assert_logged(
+        logged.debug(
+            "Event with 'FileDeletionRequested' schema for resource ID 'test_id' has"
+            + " already been processed under current correlation_id. Skipping."
         )
+    )
 
 
 @pytest.mark.parametrize(
@@ -241,16 +248,14 @@ async def test_idempotence_handler(
 
     setattr(joint_fixture.file_registry, method_to_patch, mock)
 
+    method_map: dict[str, Callable] = {
+        "FileDeletionRequested": joint_fixture.idempotence_handler.upsert_file_deletion_requested,
+        "FileUploadValidationSuccess": joint_fixture.idempotence_handler.upsert_file_upload_validation_success,
+        "NonStagedFileRequested": joint_fixture.idempotence_handler.upsert_nonstaged_file_requested,
+    }
+
     # Set which 'upsert_xyz' method to call on the idempotence handler
-    method_to_call = joint_fixture.idempotence_handler.upsert_nonstaged_file_requested
-    if event_schema_name == "FileUploadValidationSuccess":
-        method_to_call = (
-            joint_fixture.idempotence_handler.upsert_file_upload_validation_success
-        )
-    elif event_schema_name == "FileDeletionRequested":
-        method_to_call = (
-            joint_fixture.idempotence_handler.upsert_file_deletion_requested
-        )
+    method_to_call = method_map[event_schema_name]
 
     # call idempotence handler method once, which should call the file registry method
     await method_to_call(resource_id=TEST_FILE_ID, update=update)

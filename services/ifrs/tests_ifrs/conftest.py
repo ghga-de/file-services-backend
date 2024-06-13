@@ -61,12 +61,10 @@ def get_populate_s3_buckets_fixture(name: str = "populate_s3_buckets"):
 populate_s3_buckets = get_populate_s3_buckets_fixture()
 
 
+@pytest.fixture(autouse=True)
 def use_correlation_id():
     """Provides a new correlation ID for each test case."""
     correlation_id = new_correlation_id()
     token = correlation_id_var.set(correlation_id)
     yield
     correlation_id_var.reset(token)
-
-
-function_scope_correlation_id_fixture = pytest.fixture(use_correlation_id, autouse=True)
