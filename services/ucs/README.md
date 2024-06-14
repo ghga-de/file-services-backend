@@ -86,6 +86,16 @@ The service requires the following configuration parameters:
   ```
 
 
+- **`files_to_delete_topic`** *(string)*: The name of the topic for events informing about files to be deleted.
+
+
+  Examples:
+
+  ```json
+  "file_deletions"
+  ```
+
+
 - **`file_metadata_event_topic`** *(string)*: Name of the topic to receive new or changed metadata on files that shall be registered for uploaded.
 
 
@@ -103,26 +113,6 @@ The service requires the following configuration parameters:
 
   ```json
   "file_metadata_upserts"
-  ```
-
-
-- **`files_to_delete_topic`** *(string)*: The name of the topic for events informing about files to be deleted.
-
-
-  Examples:
-
-  ```json
-  "file_deletions"
-  ```
-
-
-- **`files_to_delete_type`** *(string)*: The type used for events informing about a file to be deleted.
-
-
-  Examples:
-
-  ```json
-  "file_deletion_requested"
   ```
 
 
