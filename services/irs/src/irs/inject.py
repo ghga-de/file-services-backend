@@ -21,10 +21,17 @@ from typing import Optional
 
 from ghga_service_commons.utils.context import asyncnullcontext
 from ghga_service_commons.utils.multinode_storage import S3ObjectStorages
-from hexkit.providers.akafka.provider import KafkaEventPublisher, KafkaEventSubscriber
+from hexkit.providers.akafka.provider import (
+    KafkaEventPublisher,
+    KafkaEventSubscriber,
+    KafkaOutboxSubscriber,
+)
 from hexkit.providers.mongodb import MongoDbDaoFactory
 
-from irs.adapters.inbound.event_sub import EventSubTranslator
+from irs.adapters.inbound.event_sub import (
+    EventSubTranslator,
+    FileUploadReceivedSubTranslator,
+)
 from irs.adapters.outbound.dao import (
     FingerprintDaoConstructor,
     StagingObjectDaoConstructor,
@@ -88,6 +95,30 @@ async def prepare_event_subscriber(
 
         async with KafkaEventSubscriber.construct(
             config=config, translator=event_sub_translator
+        ) as event_subscriber:
+            yield event_subscriber
+
+
+@asynccontextmanager
+async def prepare_outbox_subscriber(
+    *,
+    config: Config,
+    interrogator_override: Optional[InterrogatorPort] = None,
+) -> AsyncGenerator[KafkaOutboxSubscriber, None]:
+    """Construct and initialize an outbox subscriber with all its dependencies.
+
+    By default, the core dependencies are automatically prepared but you can also
+    provide them using the interrogator_override parameter.
+    """
+    async with prepare_core_with_override(
+        config=config, interrogator_override=interrogator_override
+    ) as interrogator:
+        outbox_sub_translator = FileUploadReceivedSubTranslator(
+            interrogator=interrogator,
+            config=config,
+        )
+        async with KafkaOutboxSubscriber.construct(
+            config=config, translators=[outbox_sub_translator]
         ) as event_subscriber:
             yield event_subscriber
 

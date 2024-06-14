@@ -22,24 +22,30 @@ from hexkit.providers.akafka import KafkaConfig
 from hexkit.providers.mongodb import MongoDbConfig
 from pydantic import Field
 
-from irs.adapters.inbound.event_sub import EventSubTranslatorConfig
+from irs.adapters.inbound.event_sub import (
+    EventSubTranslatorConfig,
+    OutboxSubTranslatorConfig,
+)
 from irs.adapters.outbound.event_pub import EventPubTanslatorConfig
 from irs.core.storage_inspector import StorageInspectorConfig
 
+SERVICE_NAME: str = "irs"
 
-@config_from_yaml(prefix="irs")
+
+@config_from_yaml(prefix=SERVICE_NAME)
 class Config(
     KafkaConfig,
     MongoDbConfig,
     S3ObjectStoragesConfig,
     EventSubTranslatorConfig,
+    OutboxSubTranslatorConfig,
     EventPubTanslatorConfig,
     LoggingConfig,
     StorageInspectorConfig,
 ):
     """Config parameters and their defaults."""
 
-    service_name: str = "irs"
+    service_name: str = SERVICE_NAME
     ekss_base_url: str = Field(
         ...,
         examples=["http://ekss:8080"],

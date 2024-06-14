@@ -14,15 +14,20 @@
 # limitations under the License.
 """KafkaEventSubscriber receiving events from UCS and validating file uploads"""
 
+import logging
+
 from ghga_event_schemas import pydantic_ as event_schemas
 from ghga_event_schemas.validation import get_validated_payload
 from hexkit.custom_types import Ascii, JsonObject
+from hexkit.protocols.daosub import DaoSubscriberProtocol
 from hexkit.protocols.eventsub import EventSubscriberProtocol
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
 from irs.core.models import InterrogationSubject
 from irs.ports.inbound.interrogator import InterrogatorPort
+
+log = logging.getLogger(__name__)
 
 
 class EventSubTranslatorConfig(BaseSettings):
@@ -40,16 +45,6 @@ class EventSubTranslatorConfig(BaseSettings):
         + " been internally registered.",
         examples=["file_registered"],
     )
-    upload_received_event_topic: str = Field(
-        default=...,
-        description="Name of the topic to publish events that inform about new file uploads.",
-        examples=["file_uploads"],
-    )
-    upload_received_event_type: str = Field(
-        default=...,
-        description="The type to use for events that inform about new file uploads.",
-        examples=["file_upload_received"],
-    )
 
 
 class EventSubTranslator(EventSubscriberProtocol):
@@ -66,14 +61,8 @@ class EventSubTranslator(EventSubscriberProtocol):
         self._config = config
         self._interrogator = interrogator
 
-        self.topics_of_interest = [
-            config.file_registered_event_topic,
-            config.upload_received_event_topic,
-        ]
-        self.types_of_interest = [
-            config.file_registered_event_type,
-            config.upload_received_event_type,
-        ]
+        self.topics_of_interest = [config.file_registered_event_topic]
+        self.types_of_interest = [config.file_registered_event_type]
 
     async def _consume_validated(
         self, *, payload: JsonObject, type_: Ascii, topic: Ascii, key: str
@@ -85,34 +74,12 @@ class EventSubTranslator(EventSubscriberProtocol):
             payload (JsonObject): The data/payload to send with the event.
             type_ (str): The type of the event.
             topic (str): Name of the topic the event was published to.
+            key (str): The key associated with the event.
         """
-        if type_ == self._config.upload_received_event_type:
-            await self._consume_upload_received(payload=payload)
-        elif type_ == self._config.file_registered_event_type:
+        if type_ == self._config.file_registered_event_type:
             await self._consume_file_internally_registered(payload=payload)
         else:
             raise RuntimeError(f"Unexpected event of type: {type_}")
-
-    async def _consume_upload_received(self, *, payload: JsonObject):
-        """
-        Consume upload finished event to grab object data from the announced inbox bucket,
-        re-encrypt it and move re-encrypted data into staging.
-        """
-        validated_payload = get_validated_payload(
-            payload=payload,
-            schema=event_schemas.FileUploadReceived,
-        )
-        subject = InterrogationSubject(
-            file_id=validated_payload.file_id,
-            inbox_bucket_id=validated_payload.bucket_id,
-            inbox_object_id=validated_payload.object_id,
-            storage_alias=validated_payload.s3_endpoint_alias,
-            decrypted_size=validated_payload.decrypted_size,
-            expected_decrypted_sha256=validated_payload.expected_decrypted_sha256,
-            upload_date=validated_payload.upload_date,
-            submitter_public_key=validated_payload.submitter_public_key,
-        )
-        await self._interrogator.interrogate(subject=subject)
 
     async def _consume_file_internally_registered(self, *, payload: JsonObject):
         """
@@ -127,4 +94,60 @@ class EventSubTranslator(EventSubscriberProtocol):
         await self._interrogator.remove_staging_object(
             file_id=validated_payload.file_id,
             storage_alias=validated_payload.s3_endpoint_alias,
+        )
+
+
+class OutboxSubTranslatorConfig(BaseSettings):
+    """Config for the outbox subscriber"""
+
+    upload_received_event_topic: str = Field(
+        default=...,
+        description="Name of the topic to publish events that inform about new file uploads.",
+        examples=["file_uploads"],
+    )
+
+
+class FileUploadReceivedSubTranslator(
+    DaoSubscriberProtocol[event_schemas.FileUploadReceived]
+):
+    """A triple hexagonal translator compatible with the DaoSubscriberProtocol that
+    is used to received events relevant for file uploads.
+    """
+
+    event_topic: str
+    dto_model = event_schemas.FileUploadReceived
+
+    def __init__(
+        self,
+        *,
+        config: OutboxSubTranslatorConfig,
+        interrogator: InterrogatorPort,
+    ):
+        self._interrogator = interrogator
+        self.event_topic = config.upload_received_event_topic
+
+    async def changed(
+        self, resource_id: str, update: event_schemas.FileUploadReceived
+    ) -> None:
+        """Consume upsertion event for a FileUploadReceived event schema.
+
+        Idempotence is handled by a 'fingerprinting' mechanism in the Interrogator.
+        """
+        subject = InterrogationSubject(
+            file_id=update.file_id,
+            inbox_bucket_id=update.bucket_id,
+            inbox_object_id=update.object_id,
+            storage_alias=update.s3_endpoint_alias,
+            decrypted_size=update.decrypted_size,
+            expected_decrypted_sha256=update.expected_decrypted_sha256,
+            upload_date=update.upload_date,
+            submitter_public_key=update.submitter_public_key,
+        )
+        await self._interrogator.interrogate(subject=subject)
+
+    async def deleted(self, resource_id: str) -> None:
+        """Consume event indicating the deletion of the event -- only log a warning."""
+        log.warning(
+            "Received DELETED-type event for FileUploadReceived with resource ID '%s'",
+            resource_id,
         )
