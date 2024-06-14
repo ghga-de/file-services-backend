@@ -40,22 +40,22 @@ class ServiceConfig(BaseSettings):
     """Specific configs for authentication and encryption"""
 
     private_key: str = Field(
-        ...,
+        default=...,
         description="Base64 encoded private key of the keypair whose public key is used "
         + "to encrypt the payload.",
     )
     source_bucket_id: str = Field(
-        ...,
+        default=...,
         description="ID of the bucket the object(s) corresponding to the upload metadata "
         + "have been uploaded to. This should currently point to the staging bucket.",
     )
     token_hashes: list[str] = Field(
-        ...,
+        default=...,
         description="List of token hashes corresponding to the tokens that can be used "
         + "to authenticate calls to this service.",
     )
     selected_storage_alias: str = Field(
-        ...,
+        default=...,
         description="S3 endpoint alias of the object storage node the bucket and "
         + "object(s) corresponding to the upload metadata have been uploaded to. "
         + "This should point to a node containing a staging bucket.",

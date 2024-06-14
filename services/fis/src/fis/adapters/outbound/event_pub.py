@@ -30,7 +30,7 @@ class EventPubTranslatorConfig(BaseSettings):
     """Config for publishing events to other file backend services."""
 
     publisher_topic: str = Field(
-        ...,
+        default=...,
         description=(
             "Topic name expected by downstream services. Use the topic name from the "
             + "interrogation room service."
@@ -38,7 +38,7 @@ class EventPubTranslatorConfig(BaseSettings):
         examples=["file_interrogation"],
     )
     publisher_type: str = Field(
-        ...,
+        default=...,
         description=(
             "Type expected by downstream services. Use the type from the interrogation "
             + "room service."
