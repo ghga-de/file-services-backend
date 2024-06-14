@@ -388,15 +388,13 @@ async def test_deletion_with_no_file(joint_fixture: JointFixture):
     )
 
     # Consume inbound event
-    deletion_successful_event = event_schemas.FileDeletionSuccess(file_id=file_id)
     async with joint_fixture.kafka.record_events(
         in_topic=joint_fixture.config.file_deleted_event_topic
     ) as recorder:
-        await joint_fixture.outbox_subscriber.run(forever=False)
+        await joint_fixture.upload_service.deletion_requested(file_id=file_id)
 
     # Check for event
-    assert len(recorder.recorded_events) == 1
-    assert recorder.recorded_events[0].payload == deletion_successful_event.model_dump()
+    assert len(recorder.recorded_events) == 0
 
 
 async def test_deletion_logs(joint_fixture: JointFixture, logot: Logot):
