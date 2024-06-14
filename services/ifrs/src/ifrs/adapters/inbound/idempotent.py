@@ -18,7 +18,7 @@ from ghga_event_schemas import pydantic_ as event_schemas
 from hexkit.providers.mongodb import MongoDbDaoFactory
 
 from ifrs.adapters.inbound import models
-from ifrs.adapters.inbound.utils import assert_record_is_new, make_record_from_update
+from ifrs.adapters.inbound.utils import check_record_is_new, make_record_from_update
 from ifrs.adapters.outbound.dao import (
     get_file_deletion_requested_dao,
     get_file_upload_validation_success_dao,
@@ -89,7 +89,7 @@ class IdempotenceHandler(IdempotenceHandlerPort):
                 The NonStagedFileRequested event to upsert.
         """
         record = make_record_from_update(models.NonStagedFileRequestedRecord, update)
-        if await assert_record_is_new(
+        if await check_record_is_new(
             dao=self._nonstaged_file_requested_dao,
             resource_id=resource_id,
             update=update,
@@ -116,7 +116,7 @@ class IdempotenceHandler(IdempotenceHandlerPort):
                 The FileDeletionRequested event to upsert.
         """
         record = make_record_from_update(models.FileDeletionRequestedRecord, update)
-        if await assert_record_is_new(
+        if await check_record_is_new(
             dao=self._file_deletion_requested_dao,
             resource_id=resource_id,
             update=update,
@@ -140,7 +140,7 @@ class IdempotenceHandler(IdempotenceHandlerPort):
         record = make_record_from_update(
             models.FileUploadValidationSuccessRecord, update
         )
-        if await assert_record_is_new(
+        if await check_record_is_new(
             dao=self._file_upload_validation_success_dao,
             resource_id=resource_id,
             update=update,

@@ -117,7 +117,7 @@ class FileDeletionRequestedListener(
 class FileValidationSuccessListener(
     DaoSubscriberProtocol[event_schemas.FileUploadValidationSuccess]
 ):
-    """A class that consumes FileDeletionRequested events."""
+    """A class that consumes FileUploadValidationSuccess events."""
 
     event_topic: str
     dto_model = event_schemas.FileUploadValidationSuccess

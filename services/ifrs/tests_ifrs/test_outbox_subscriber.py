@@ -25,7 +25,7 @@ from hexkit.correlation import get_correlation_id
 from hexkit.custom_types import JsonObject
 from hexkit.providers.mongodb import MongoDbDaoFactory
 from ifrs.adapters.inbound import models
-from ifrs.adapters.inbound.utils import assert_record_is_new, make_record_from_update
+from ifrs.adapters.inbound.utils import check_record_is_new, make_record_from_update
 from ifrs.adapters.outbound.dao import (
     get_file_deletion_requested_dao,
 )
@@ -71,6 +71,7 @@ def test_make_record_from_update():
     record = make_record_from_update(
         models.FileDeletionRequestedRecord, TEST_FILE_DELETION_REQUESTED
     )
+    isinstance(record, models.FileDeletionRequestedRecord)
     assert record.model_dump() == {
         "correlation_id": get_correlation_id(),
         "file_id": TEST_FILE_ID,
@@ -87,7 +88,7 @@ async def test_idempotence(joint_fixture: JointFixture, logot: Logot):
         correlation_id=get_correlation_id(), file_id=TEST_FILE_ID
     )
 
-    record_is_new = await assert_record_is_new(
+    record_is_new = await check_record_is_new(
         dao=dao,
         resource_id=TEST_FILE_ID,
         update=TEST_FILE_DELETION_REQUESTED,
@@ -100,7 +101,7 @@ async def test_idempotence(joint_fixture: JointFixture, logot: Logot):
     await dao.insert(record)
 
     # rerun the assertion and verify that the result is False and that we get a log
-    record_is_new = await assert_record_is_new(
+    record_is_new = await check_record_is_new(
         dao=dao,
         resource_id=TEST_FILE_ID,
         update=TEST_FILE_DELETION_REQUESTED,

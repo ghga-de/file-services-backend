@@ -38,7 +38,7 @@ def make_record_from_update(
     return record_type(correlation_id=correlation_id, **update.model_dump())
 
 
-async def assert_record_is_new(
+async def check_record_is_new(
     dao: DaoNaturalId,
     resource_id: str,
     update: BaseModel,
