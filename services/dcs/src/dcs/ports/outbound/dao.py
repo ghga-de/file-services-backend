@@ -22,8 +22,6 @@ from hexkit.protocols.dao import (  # noqa: F401
 )
 
 from dcs.core import models
-from dcs.core.models import FileDeletionRequestedRecord
 
 # port described by a type alias:
 DrsObjectDaoPort = DaoNaturalId[models.AccessTimeDrsObject]
-FileDeletionRequestedDaoPort = DaoNaturalId[FileDeletionRequestedRecord]

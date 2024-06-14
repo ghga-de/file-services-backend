@@ -18,11 +18,7 @@
 from hexkit.protocols.dao import DaoFactoryProtocol
 
 from dcs.core import models
-from dcs.core.models import FileDeletionRequestedRecord
-from dcs.ports.outbound.dao import (
-    DrsObjectDaoPort,
-    FileDeletionRequestedDaoPort,
-)
+from dcs.ports.outbound.dao import DrsObjectDaoPort
 
 
 async def get_drs_dao(*, dao_factory: DaoFactoryProtocol) -> DrsObjectDaoPort:
@@ -32,16 +28,5 @@ async def get_drs_dao(*, dao_factory: DaoFactoryProtocol) -> DrsObjectDaoPort:
     return await dao_factory.get_dao(
         name="drs_objects",
         dto_model=models.AccessTimeDrsObject,
-        id_field="file_id",
-    )
-
-
-async def get_file_deletion_requested_dao(
-    *, dao_factory: DaoFactoryProtocol
-) -> FileDeletionRequestedDaoPort:
-    """Setup the DAOs using the specified provider of the DaoFactoryProtocol."""
-    return await dao_factory.get_dao(
-        name="file_deletion_requested",
-        dto_model=FileDeletionRequestedRecord,
         id_field="file_id",
     )

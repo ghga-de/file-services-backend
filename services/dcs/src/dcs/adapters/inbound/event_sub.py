@@ -27,7 +27,6 @@ from pydantic_settings import BaseSettings
 
 from dcs.core import models
 from dcs.ports.inbound.data_repository import DataRepositoryPort
-from dcs.ports.inbound.idempotent import IdempotenceHandlerPort
 
 log = logging.getLogger(__name__)
 
@@ -126,18 +125,16 @@ class FileDeletionRequestedListener(
         self,
         *,
         config: OutboxSubTranslatorConfig,
-        idempotence_handler: IdempotenceHandlerPort,
+        data_repository: DataRepositoryPort,
     ):
-        self._idempotence_handler = idempotence_handler
+        self._data_repository = data_repository
         self.event_topic = config.files_to_delete_topic
 
     async def changed(
         self, resource_id: str, update: event_schemas.FileDeletionRequested
     ) -> None:
         """Consume change event (created or updated) for File Deletion Requests."""
-        await self._idempotence_handler.upsert_file_deletion_requested(
-            resource_id=resource_id, update=update
-        )
+        await self._data_repository.delete_file(file_id=resource_id)
 
     async def deleted(self, resource_id: str) -> None:
         """Consume event indicating the deletion of a File Deletion Request."""
