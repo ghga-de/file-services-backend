@@ -26,24 +26,18 @@ from ghga_service_commons.utils.utc_dates import now_as_utc
 from hexkit.protocols.dao import ResourceNotFoundError
 from hexkit.providers.akafka.testutils import ExpectedEvent
 from hexkit.utils import calc_part_size
-from irs.adapters.outbound.dao import (
-    FingerprintDaoConstructor,
-    StagingObjectDaoConstructor,
-)
+from irs.adapters.outbound.dao import get_fingerprint_dao, get_staging_object_dao
 from irs.core.models import InterrogationSubject, UploadReceivedFingerprint
 
 from tests_irs.fixtures.config import Config
-from tests_irs.fixtures.joint import (  # noqa: F401
-    INBOX_BUCKET_ID,
-    STAGING_BUCKET_ID,
-    JointFixture,
-    keypair_fixture,
-)
+from tests_irs.fixtures.joint import INBOX_BUCKET_ID, STAGING_BUCKET_ID, JointFixture
 from tests_irs.fixtures.test_files import EncryptedData, create_test_file
 
 EKSS_NEW_SECRET = os.urandom(32)
 
 pytestmark = pytest.mark.asyncio()
+
+CHANGED_EVENT_TYPE = "upserted"
 
 
 def _incoming_event_file_registered(
@@ -61,7 +55,7 @@ def _incoming_event_upload_received(
     payload: dict[str, object], config: Config
 ) -> Mapping[str, object]:
     """Emulate incoming upload received event"""
-    type_ = config.upload_received_event_type
+    type_ = CHANGED_EVENT_TYPE
     key = payload["file_id"]
     topic = config.upload_received_event_topic
     event = {"payload": payload, "type_": type_, "key": key, "topic": topic}
@@ -150,7 +144,7 @@ async def test_failure_event(monkeypatch, joint_fixture: JointFixture):
         in_topic=joint_fixture.config.interrogation_topic,
     ) as event_recorder:
         await joint_fixture.kafka.publish_event(**event_in)
-        await joint_fixture.event_subscriber.run(forever=False)
+        await joint_fixture.outbox_subscriber.run(forever=False)
 
     recorded_events = event_recorder.recorded_events
 
@@ -160,14 +154,14 @@ async def test_failure_event(monkeypatch, joint_fixture: JointFixture):
     assert recorded_events[0].payload == expected_event_out.payload
 
     # check staging object dao state
-    staging_object_dao = await StagingObjectDaoConstructor.construct(
+    staging_object_dao = await get_staging_object_dao(
         dao_factory=joint_fixture.mongodb.dao_factory
     )
     with pytest.raises(ResourceNotFoundError):
         await staging_object_dao.get_by_id(id_=data.file_id)
 
     # check fingerprint is created for unsuccessful processing
-    fingerprint_dao = await FingerprintDaoConstructor.construct(
+    fingerprint_dao = await get_fingerprint_dao(
         dao_factory=joint_fixture.mongodb.dao_factory
     )
 
@@ -239,7 +233,7 @@ async def test_success_event(monkeypatch, joint_fixture: JointFixture):
     ) as event_recorder:
         await joint_fixture.kafka.publish_event(**event_in)
 
-        await joint_fixture.event_subscriber.run(forever=False)
+        await joint_fixture.outbox_subscriber.run(forever=False)
 
     recorded_events = event_recorder.recorded_events
 
@@ -251,7 +245,7 @@ async def test_success_event(monkeypatch, joint_fixture: JointFixture):
         assert event.payload[key] == expected_event_out.payload[key]
 
     # check staging object dao state and ensure, object actually exists in storage
-    staging_object_dao = await StagingObjectDaoConstructor.construct(
+    staging_object_dao = await get_staging_object_dao(
         dao_factory=joint_fixture.mongodb.dao_factory
     )
     staging_object = await staging_object_dao.get_by_id(id_=data.file_id)
@@ -261,9 +255,7 @@ async def test_success_event(monkeypatch, joint_fixture: JointFixture):
     )
 
     # check event fingerprint is stored in DB
-    mongo_dao = await FingerprintDaoConstructor.construct(
-        dao_factory=joint_fixture.mongodb.dao_factory
-    )
+    mongo_dao = await get_fingerprint_dao(dao_factory=joint_fixture.mongodb.dao_factory)
 
     seen_event = _populate_subject(payload_in)
     fingerprint = UploadReceivedFingerprint.generate(seen_event)
@@ -340,9 +332,7 @@ async def test_fingerprint_already_present(
     )
 
     # create db fingerprint entry
-    mongo_dao = await FingerprintDaoConstructor.construct(
-        dao_factory=joint_fixture.mongodb.dao_factory
-    )
+    mongo_dao = await get_fingerprint_dao(dao_factory=joint_fixture.mongodb.dao_factory)
     seen_event = _populate_subject(payload_in)
     fingerprint = UploadReceivedFingerprint.generate(seen_event)
 
@@ -351,7 +341,7 @@ async def test_fingerprint_already_present(
     # reset captured logs
     caplog.clear()
     await joint_fixture.kafka.publish_event(**event_in)
-    await joint_fixture.event_subscriber.run(forever=False)
+    await joint_fixture.outbox_subscriber.run(forever=False)
     assert (
         f"Payload for file ID '{seen_event.file_id}' has already been processed."
         in caplog.messages
