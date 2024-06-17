@@ -7,7 +7,7 @@ cors_allowed_origins: null
 db_connection_str: '**********'
 db_name: dev_db
 docs_url: /docs
-file_upload_validation_success_topic: file_interrogation
+file_upload_validation_success_topic: file_upload_validation_success
 file_validations_collection: file-validations
 generate_correlation_id: true
 host: 127.0.0.1
