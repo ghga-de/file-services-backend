@@ -99,7 +99,7 @@ async def test_api_calls(monkeypatch, joint_fixture: JointFixture):
 
     event_recorder = EventRecorder(
         kafka_servers=joint_fixture.kafka.config.kafka_servers,
-        topic=joint_fixture.config.publisher_topic,
+        topic=joint_fixture.config.file_upload_validation_success_topic,
     )
 
     async with event_recorder:
@@ -133,7 +133,7 @@ async def test_api_calls(monkeypatch, joint_fixture: JointFixture):
 
     expected_event = ExpectedEvent(
         payload=payload.model_dump(),
-        type_=joint_fixture.config.publisher_type,
+        type_="upserted",
         key=joint_fixture.payload.file_id,
     )
 
@@ -174,7 +174,7 @@ async def test_legacy_api_calls(monkeypatch, joint_fixture: JointFixture):
 
     event_recorder = EventRecorder(
         kafka_servers=joint_fixture.kafka.config.kafka_servers,
-        topic=joint_fixture.config.publisher_topic,
+        topic=joint_fixture.config.file_upload_validation_success_topic,
     )
     secret_id = "very_secret_id"
 
@@ -219,7 +219,7 @@ async def test_legacy_api_calls(monkeypatch, joint_fixture: JointFixture):
 
     expected_event = ExpectedEvent(
         payload=payload.model_dump(),
-        type_=joint_fixture.config.publisher_type,
+        type_="upserted",
         key=joint_fixture.payload.file_id,
     )
 
