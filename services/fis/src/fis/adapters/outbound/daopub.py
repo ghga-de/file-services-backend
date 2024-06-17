@@ -28,10 +28,9 @@ class OutboxDaoConfig(BaseSettings):
     file_upload_validation_success_topic: str = Field(
         default=...,
         description=(
-            "Topic name expected by downstream services. Use the topic name from the "
-            + "interrogation room service."
+            "The name of the topic use to publish FileUploadValidationSuccess events."
         ),
-        examples=["file_interrogation"],
+        examples=["file_upload_validation_success"],
     )
 
     file_validations_collection: str = Field(

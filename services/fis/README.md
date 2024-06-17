@@ -179,13 +179,13 @@ The service requires the following configuration parameters:
 
 - **`selected_storage_alias`** *(string)*: S3 endpoint alias of the object storage node the bucket and object(s) corresponding to the upload metadata have been uploaded to. This should point to a node containing a staging bucket.
 
-- **`file_upload_validation_success_topic`** *(string)*: Topic name expected by downstream services. Use the topic name from the interrogation room service.
+- **`file_upload_validation_success_topic`** *(string)*: The name of the topic use to publish FileUploadValidationSuccess events.
 
 
   Examples:
 
   ```json
-  "file_interrogation"
+  "file_upload_validation_success"
   ```
 
 

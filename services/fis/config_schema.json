@@ -167,9 +167,9 @@
       "type": "string"
     },
     "file_upload_validation_success_topic": {
-      "description": "Topic name expected by downstream services. Use the topic name from the interrogation room service.",
+      "description": "The name of the topic use to publish FileUploadValidationSuccess events.",
       "examples": [
-        "file_interrogation"
+        "file_upload_validation_success"
       ],
       "title": "File Upload Validation Success Topic",
       "type": "string"
