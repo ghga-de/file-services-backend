@@ -39,6 +39,8 @@ from hexkit.providers.mongodb.testutils import MongoDbFixture
 
 from tests_fis.fixtures.config import get_config
 
+__all__ = ["joint_fixture", "JointFixture", "TEST_PAYLOAD"]
+
 TEST_PAYLOAD = UploadMetadataBase(
     file_id="abc",
     object_id="happy_little_object",
@@ -58,7 +60,6 @@ class JointFixture:
     config: Config
     keypair: KeyPair
     token: str
-    payload: UploadMetadataBase
     kafka: KafkaFixture
     rest_client: httpx.AsyncClient
     s3_endpoint_alias: str
@@ -95,7 +96,6 @@ async def joint_fixture(
             yield JointFixture(
                 config=config,
                 keypair=keypair,
-                payload=TEST_PAYLOAD,
                 token=token,
                 kafka=kafka,
                 rest_client=rest_client,
