@@ -26,12 +26,12 @@ from ghga_service_commons.utils.utc_dates import now_as_utc
 from hexkit.protocols.dao import ResourceNotFoundError
 from hexkit.providers.akafka.testutils import ExpectedEvent
 from hexkit.utils import calc_part_size
+
 from irs.adapters.outbound.dao import (
     FingerprintDaoConstructor,
     StagingObjectDaoConstructor,
 )
 from irs.core.models import InterrogationSubject, UploadReceivedFingerprint
-
 from tests_irs.fixtures.config import Config
 from tests_irs.fixtures.joint import (  # noqa: F401
     INBOX_BUCKET_ID,

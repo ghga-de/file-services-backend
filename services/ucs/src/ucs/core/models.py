@@ -17,7 +17,6 @@
 
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -58,7 +57,7 @@ class UploadAttempt(BaseModel):
     creation_date: datetime = Field(
         ..., description="Datetime when the upload attempt was created."
     )
-    completion_date: Optional[datetime] = Field(
+    completion_date: datetime | None = Field(
         None,
         description=(
             "Datetime when the upload attempt was declared as completed by the client."
@@ -88,7 +87,7 @@ class FileMetadataUpsert(BaseModel):
 class FileMetadata(FileMetadataUpsert):
     """A model containing the full metadata on a file."""
 
-    latest_upload_id: Optional[str] = Field(
+    latest_upload_id: str | None = Field(
         None,
         description=(
             "ID of the latest upload (attempt). `Null/None`"

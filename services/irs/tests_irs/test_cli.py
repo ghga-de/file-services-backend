@@ -19,10 +19,10 @@ from datetime import timedelta
 
 import pytest
 from ghga_service_commons.utils.utc_dates import now_as_utc
+
 from irs.adapters.outbound.dao import StagingObjectDaoConstructor
 from irs.core.models import StagingObject
 from irs.inject import prepare_storage_inspector
-
 from tests_irs.fixtures.joint import (
     STAGING_BUCKET_ID,
     JointFixture,

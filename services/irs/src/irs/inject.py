@@ -17,7 +17,6 @@
 
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import Optional
 
 from ghga_service_commons.utils.context import asyncnullcontext
 from ghga_service_commons.utils.multinode_storage import S3ObjectStorages
@@ -57,7 +56,7 @@ async def prepare_core(*, config: Config) -> AsyncGenerator[InterrogatorPort, No
 
 
 def prepare_core_with_override(
-    *, config: Config, interrogator_override: Optional[InterrogatorPort] = None
+    *, config: Config, interrogator_override: InterrogatorPort | None = None
 ):
     """Resolve the interrogator context manager based on config and override (if any)."""
     return (
@@ -71,7 +70,7 @@ def prepare_core_with_override(
 async def prepare_event_subscriber(
     *,
     config: Config,
-    interrogator_override: Optional[InterrogatorPort] = None,
+    interrogator_override: InterrogatorPort | None = None,
 ) -> AsyncGenerator[KafkaEventSubscriber, None]:
     """Construct and initialize an event subscriber with all its dependencies.
 
