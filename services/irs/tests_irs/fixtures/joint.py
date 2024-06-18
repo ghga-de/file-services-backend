@@ -28,10 +28,10 @@ from hexkit.providers.akafka import KafkaEventSubscriber, KafkaOutboxSubscriber
 from hexkit.providers.akafka.testutils import KafkaFixture
 from hexkit.providers.mongodb.testutils import MongoDbFixture
 from hexkit.providers.s3.testutils import S3Fixture
+
 from irs.config import Config
 from irs.inject import prepare_core, prepare_event_subscriber, prepare_outbox_subscriber
 from irs.ports.inbound.interrogator import InterrogatorPort
-
 from tests_irs.fixtures.config import get_config
 from tests_irs.fixtures.keypair_fixtures import KeypairFixture
 

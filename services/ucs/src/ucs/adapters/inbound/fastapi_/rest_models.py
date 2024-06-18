@@ -18,7 +18,7 @@
 from pydantic import ConfigDict
 
 try:  # workaround for https://github.com/pydantic/pydantic/issues/5821
-    from typing_extensions import Literal
+    from typing import Literal
 except ImportError:
     from typing import Literal  # type: ignore
 

@@ -26,9 +26,9 @@ from ghga_service_commons.utils.utc_dates import now_as_utc
 from hexkit.protocols.dao import ResourceNotFoundError
 from hexkit.providers.akafka.testutils import ExpectedEvent
 from hexkit.utils import calc_part_size
+
 from irs.adapters.outbound.dao import get_fingerprint_dao, get_staging_object_dao
 from irs.core.models import InterrogationSubject, UploadReceivedFingerprint
-
 from tests_irs.fixtures.config import Config
 from tests_irs.fixtures.joint import INBOX_BUCKET_ID, STAGING_BUCKET_ID, JointFixture
 from tests_irs.fixtures.test_files import EncryptedData, create_test_file
