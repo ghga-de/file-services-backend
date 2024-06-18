@@ -1,3 +1,0 @@
-#!/bin/bash
-
-python3 ./scripts/update_service_files.py "$@"

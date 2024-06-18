@@ -18,11 +18,11 @@
 """Generate documentation for this package using different sources."""
 
 import json
+import tomllib
 from pathlib import Path
 from string import Template
 
 import jsonschema2md
-import tomllib
 from pydantic import BaseModel, Field
 from stringcase import spinalcase, titlecase
 
@@ -185,7 +185,7 @@ def generate_single_readme(*, details: PackageDetails) -> str:
     return template.substitute(details.model_dump())
 
 
-def main(service: str = "", check: bool = False) -> None:
+def main(*, service: str, check: bool = False) -> None:
     """Update the readme markdown."""
 
     if service:
@@ -205,6 +205,7 @@ def main(service: str = "", check: bool = False) -> None:
                 echo_success(f"{service_name}: README.md is up to date.")
                 continue
             echo_failure(f"{service_name}: README.md is not up to date.")
+            exit(1)
 
         service_details.readme_path.write_text(readme_content)
         echo_success(f"{service_name}: Successfully updated README.md.")

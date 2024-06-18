@@ -18,7 +18,6 @@ import math
 from collections.abc import AsyncGenerator, Sequence
 from dataclasses import dataclass
 from logging import getLogger
-from typing import Optional
 
 import requests
 from hexkit.protocols.objstorage import ObjectStorageProtocol
@@ -74,7 +73,7 @@ class StagingHandler(StagingHandlerPort):
         self.part_size = part_size
         self.inbox = inbox_ids
         self.staging = staging_ids
-        self._upload_id: Optional[str] = None
+        self._upload_id: str | None = None
 
     async def init_staging(self) -> None:
         """Start staging a re-encrypted file to staging area, returns an upload id."""
