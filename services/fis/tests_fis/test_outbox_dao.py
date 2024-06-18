@@ -51,9 +51,11 @@ async def test_dto_to_event(joint_fixture: JointFixture):
             payload=dto.model_dump(), type_="upserted", key=dto.file_id
         )
 
-        async with joint_fixture.kafka.expect_events(
-            events=[expected_event],
-            in_topic=config.file_upload_validation_success_topic,
+        async with (
+            set_correlation_id(new_correlation_id()),
+            joint_fixture.kafka.expect_events(
+                events=[expected_event],
+                in_topic=config.file_upload_validation_success_topic,
+            ),
         ):
-            async with set_correlation_id(new_correlation_id()):
-                await outbox_dao.upsert(dto)
+            await outbox_dao.upsert(dto)

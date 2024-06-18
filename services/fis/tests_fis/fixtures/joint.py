@@ -91,15 +91,15 @@ async def joint_fixture(
             config=config,
             core_override=(upload_metadata_processor, legacy_upload_metadata_processor),
         ) as app,
+        AsyncTestClient(app=app) as rest_client,
     ):
-        async with AsyncTestClient(app=app) as rest_client:
-            yield JointFixture(
-                config=config,
-                keypair=keypair,
-                token=token,
-                kafka=kafka,
-                rest_client=rest_client,
-                s3_endpoint_alias=config.selected_storage_alias,
-                upload_metadata_processor=upload_metadata_processor,
-                legacy_upload_metadata_processor=legacy_upload_metadata_processor,
-            )
+        yield JointFixture(
+            config=config,
+            keypair=keypair,
+            token=token,
+            kafka=kafka,
+            rest_client=rest_client,
+            s3_endpoint_alias=config.selected_storage_alias,
+            upload_metadata_processor=upload_metadata_processor,
+            legacy_upload_metadata_processor=legacy_upload_metadata_processor,
+        )
