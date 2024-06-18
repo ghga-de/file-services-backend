@@ -19,10 +19,10 @@
 
 import subprocess  # nosec
 import sys
+import tomllib
 from pathlib import Path
 from string import Template
 
-import tomllib
 from pydantic import BaseModel, Field
 from stringcase import spinalcase, titlecase
 

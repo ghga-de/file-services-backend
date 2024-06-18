@@ -15,6 +15,7 @@
 """Retrieve the full name of the service, as opposed to the abbreviation."""
 
 import tomllib
+
 from stringcase import spinalcase
 
 from script_utils.cli import run
