@@ -36,6 +36,7 @@ from tests_irs.fixtures.joint import (  # noqa: F401
     JointFixture,
     joint_fixture,
 )
+from tests_irs.fixtures.keypair_fixtures import keypair_fixture  # noqa: F401
 
 
 async def _populate_s3_buckets(s3: S3Fixture):

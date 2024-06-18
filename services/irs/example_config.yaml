@@ -29,4 +29,3 @@ object_storages:
 service_instance_id: '001'
 service_name: irs
 upload_received_event_topic: file_uploads
-upload_received_event_type: file_upload_received

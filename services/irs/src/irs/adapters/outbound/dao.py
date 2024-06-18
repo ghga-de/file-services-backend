@@ -22,31 +22,21 @@ from irs.core import models
 from irs.ports.outbound.dao import FingerprintDaoPort, StagingObjectDaoPort
 
 
-class FingerprintDaoConstructor:
-    """Constructor compatible with the hexkit.inject.AsyncConstructable type. Used to
-    construct a DAO for interacting with the database.
-    """
-
-    @staticmethod
-    async def construct(*, dao_factory: DaoFactoryProtocol) -> FingerprintDaoPort:
-        """Get a DAO using the specified provider."""
-        return await dao_factory.get_dao(
-            name="fingerprints",
-            dto_model=models.UploadReceivedFingerprint,
-            id_field="checksum",
-        )
+async def get_fingerprint_dao(*, dao_factory: DaoFactoryProtocol) -> FingerprintDaoPort:
+    """Get a DAO using the specified provider."""
+    return await dao_factory.get_dao(
+        name="fingerprints",
+        dto_model=models.UploadReceivedFingerprint,
+        id_field="checksum",
+    )
 
 
-class StagingObjectDaoConstructor:
-    """Constructor compatible with the hexkit.inject.AsyncConstructable type. Used to
-    construct a DAO for interacting with the database.
-    """
-
-    @staticmethod
-    async def construct(*, dao_factory: DaoFactoryProtocol) -> StagingObjectDaoPort:
-        """Get a DAO using the specified provider."""
-        return await dao_factory.get_dao(
-            name="staging_objects",
-            dto_model=models.StagingObject,
-            id_field="file_id",
-        )
+async def get_staging_object_dao(
+    *, dao_factory: DaoFactoryProtocol
+) -> StagingObjectDaoPort:
+    """Get a DAO using the specified provider."""
+    return await dao_factory.get_dao(
+        name="staging_objects",
+        dto_model=models.StagingObject,
+        id_field="file_id",
+    )
