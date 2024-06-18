@@ -24,19 +24,16 @@ from ghga_service_commons.utils.multinode_storage import (
     S3ObjectStorageNodeConfig,
     S3ObjectStoragesConfig,
 )
-from hexkit.providers.akafka import KafkaEventSubscriber
+from hexkit.providers.akafka import KafkaEventSubscriber, KafkaOutboxSubscriber
 from hexkit.providers.akafka.testutils import KafkaFixture
 from hexkit.providers.mongodb.testutils import MongoDbFixture
 from hexkit.providers.s3.testutils import S3Fixture
 
 from irs.config import Config
-from irs.inject import prepare_core, prepare_event_subscriber
+from irs.inject import prepare_core, prepare_event_subscriber, prepare_outbox_subscriber
 from irs.ports.inbound.interrogator import InterrogatorPort
 from tests_irs.fixtures.config import get_config
-from tests_irs.fixtures.keypair_fixtures import (
-    KeypairFixture,
-    keypair_fixture,  # noqa: F401
-)
+from tests_irs.fixtures.keypair_fixtures import KeypairFixture
 
 FILE_SIZE = 50 * 1024**2
 INBOX_BUCKET_ID = "test-inbox"
@@ -57,6 +54,7 @@ class JointFixture:
 
     config: Config
     event_subscriber: KafkaEventSubscriber
+    outbox_subscriber: KafkaOutboxSubscriber
     interrogator: InterrogatorPort
     kafka: KafkaFixture
     keypair: KeypairFixture
@@ -67,7 +65,7 @@ class JointFixture:
 
 @pytest_asyncio.fixture(scope="function")
 async def joint_fixture(
-    keypair_fixture: KeypairFixture,  # noqa: F811
+    keypair_fixture: KeypairFixture,
     kafka: KafkaFixture,
     mongodb: MongoDbFixture,
     s3: S3Fixture,
@@ -92,10 +90,14 @@ async def joint_fixture(
         prepare_event_subscriber(
             config=config, interrogator_override=interrogator
         ) as event_subscriber,
+        prepare_outbox_subscriber(
+            config=config, interrogator_override=interrogator
+        ) as outbox_subscriber,
     ):
         yield JointFixture(
             config=config,
             event_subscriber=event_subscriber,
+            outbox_subscriber=outbox_subscriber,
             interrogator=interrogator,
             kafka=kafka,
             keypair=keypair_fixture,

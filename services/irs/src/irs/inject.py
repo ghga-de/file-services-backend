@@ -20,14 +20,18 @@ from contextlib import asynccontextmanager
 
 from ghga_service_commons.utils.context import asyncnullcontext
 from ghga_service_commons.utils.multinode_storage import S3ObjectStorages
-from hexkit.providers.akafka.provider import KafkaEventPublisher, KafkaEventSubscriber
+from hexkit.providers.akafka.provider import (
+    KafkaEventPublisher,
+    KafkaEventSubscriber,
+    KafkaOutboxSubscriber,
+)
 from hexkit.providers.mongodb import MongoDbDaoFactory
 
-from irs.adapters.inbound.event_sub import EventSubTranslator
-from irs.adapters.outbound.dao import (
-    FingerprintDaoConstructor,
-    StagingObjectDaoConstructor,
+from irs.adapters.inbound.event_sub import (
+    EventSubTranslator,
+    FileUploadReceivedSubTranslator,
 )
+from irs.adapters.outbound.dao import get_fingerprint_dao, get_staging_object_dao
 from irs.adapters.outbound.event_pub import EventPublisher
 from irs.config import Config
 from irs.core.interrogator import Interrogator
@@ -39,10 +43,8 @@ from irs.ports.inbound.interrogator import InterrogatorPort
 async def prepare_core(*, config: Config) -> AsyncGenerator[InterrogatorPort, None]:
     """Constructs and initializes all core components and their outbound dependencies."""
     dao_factory = MongoDbDaoFactory(config=config)
-    fingerprint_dao = await FingerprintDaoConstructor.construct(dao_factory=dao_factory)
-    staging_object_dao = await StagingObjectDaoConstructor.construct(
-        dao_factory=dao_factory
-    )
+    fingerprint_dao = await get_fingerprint_dao(dao_factory=dao_factory)
+    staging_object_dao = await get_staging_object_dao(dao_factory=dao_factory)
 
     async with KafkaEventPublisher.construct(config=config) as event_pub_provider:
         event_publisher = EventPublisher(config=config, provider=event_pub_provider)
@@ -92,13 +94,35 @@ async def prepare_event_subscriber(
 
 
 @asynccontextmanager
+async def prepare_outbox_subscriber(
+    *,
+    config: Config,
+    interrogator_override: Optional[InterrogatorPort] = None,
+) -> AsyncGenerator[KafkaOutboxSubscriber, None]:
+    """Construct and initialize an outbox subscriber with all its dependencies.
+
+    By default, the core dependencies are automatically prepared but you can also
+    provide them using the interrogator_override parameter.
+    """
+    async with prepare_core_with_override(
+        config=config, interrogator_override=interrogator_override
+    ) as interrogator:
+        outbox_sub_translator = FileUploadReceivedSubTranslator(
+            interrogator=interrogator,
+            config=config,
+        )
+        async with KafkaOutboxSubscriber.construct(
+            config=config, translators=[outbox_sub_translator]
+        ) as event_subscriber:
+            yield event_subscriber
+
+
+@asynccontextmanager
 async def prepare_storage_inspector(*, config: Config):
     """Alternative to prepare_core for storage inspection CLI command without Kafka."""
     object_storages = S3ObjectStorages(config=config)
     dao_factory = MongoDbDaoFactory(config=config)
-    staging_object_dao = await StagingObjectDaoConstructor.construct(
-        dao_factory=dao_factory
-    )
+    staging_object_dao = await get_staging_object_dao(dao_factory=dao_factory)
     yield StagingInspector(
         config=config,
         staging_object_dao=staging_object_dao,

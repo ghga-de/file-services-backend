@@ -20,14 +20,10 @@ from datetime import timedelta
 import pytest
 from ghga_service_commons.utils.utc_dates import now_as_utc
 
-from irs.adapters.outbound.dao import StagingObjectDaoConstructor
+from irs.adapters.outbound.dao import get_staging_object_dao
 from irs.core.models import StagingObject
 from irs.inject import prepare_storage_inspector
-from tests_irs.fixtures.joint import (
-    STAGING_BUCKET_ID,
-    JointFixture,
-    keypair_fixture,  # noqa: F401
-)
+from tests_irs.fixtures.joint import STAGING_BUCKET_ID, JointFixture
 from tests_irs.fixtures.test_files import create_test_file
 
 pytestmark = pytest.mark.asyncio()
@@ -73,9 +69,7 @@ async def test_staging_inspector(caplog, joint_fixture: JointFixture):
     )
 
     dao_factory = joint_fixture.mongodb.dao_factory
-    staging_object_dao = await StagingObjectDaoConstructor.construct(
-        dao_factory=dao_factory
-    )
+    staging_object_dao = await get_staging_object_dao(dao_factory=dao_factory)
     await staging_object_dao.insert(staging_object_1)
     await staging_object_dao.insert(staging_object_2)
 
