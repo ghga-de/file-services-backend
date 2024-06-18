@@ -67,4 +67,4 @@ jobs:
       - name: Check service level READMEs
         id: check-service-readmes
         run: |
-          python3 scripts/update_readme_services.py --check --service ${{matrix.service}}
+          python3 scripts/update_readme_services.py --check ${{matrix.service}}
