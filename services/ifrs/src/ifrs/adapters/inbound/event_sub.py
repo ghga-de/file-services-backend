@@ -138,7 +138,7 @@ class EventSubTranslator(EventSubscriberProtocol):
         *,
         payload: JsonObject,
         type_: Ascii,
-        topic: Ascii,  # pylint: disable=unused-argument
+        topic: Ascii,
         key: str,
     ) -> None:
         """Consume events from the topics of interest."""

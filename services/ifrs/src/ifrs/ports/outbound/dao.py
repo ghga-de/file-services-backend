@@ -15,7 +15,6 @@
 
 """DAO interface for accessing the database."""
 
-# pylint: disable=unused-import
 from hexkit.protocols.dao import DaoNaturalId, ResourceNotFoundError  # noqa: F401
 
 from ifrs.core import models
