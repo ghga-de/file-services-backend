@@ -107,7 +107,7 @@ class OutboxSubTranslatorConfig(BaseSettings):
     """Config for the outbox subscriber"""
 
     files_to_delete_topic: str = Field(
-        ...,
+        default=...,
         description="The name of the topic to receive events informing about files to delete.",
         examples=["file_deletions"],
     )
