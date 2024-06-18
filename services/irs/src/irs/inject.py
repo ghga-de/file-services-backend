@@ -97,7 +97,7 @@ async def prepare_event_subscriber(
 async def prepare_outbox_subscriber(
     *,
     config: Config,
-    interrogator_override: Optional[InterrogatorPort] = None,
+    interrogator_override: InterrogatorPort | None = None,
 ) -> AsyncGenerator[KafkaOutboxSubscriber, None]:
     """Construct and initialize an outbox subscriber with all its dependencies.
 

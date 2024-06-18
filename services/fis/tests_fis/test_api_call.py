@@ -29,6 +29,7 @@ from hexkit.providers.akafka.testutils import (
     check_recorded_events,
 )
 
+from fis.core.models import EncryptedPayload, LegacyUploadMetadata, UploadMetadata
 from tests_fis.fixtures.joint import TEST_PAYLOAD, JointFixture
 
 pytestmark = pytest.mark.asyncio()
