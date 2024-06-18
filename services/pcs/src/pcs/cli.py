@@ -19,7 +19,7 @@ import asyncio
 
 import typer
 
-from pcs.main import run_rest_app
+from pcs.main import republish_events, run_rest_app
 
 cli = typer.Typer()
 
@@ -28,3 +28,9 @@ cli = typer.Typer()
 def sync_run_rest_app():
     """Run the HTTP REST API."""
     asyncio.run(run_rest_app())
+
+
+@cli.command(name="republish-events")
+def sync_run_republish():
+    """Republish all outbox events regardless of publish status."""
+    asyncio.run(republish_events())

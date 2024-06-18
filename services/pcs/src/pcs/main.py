@@ -19,7 +19,7 @@ from ghga_service_commons.api import run_server
 from hexkit.log import configure_logging
 
 from pcs.config import Config
-from pcs.inject import prepare_rest_app
+from pcs.inject import get_file_deletion_dao, prepare_rest_app
 
 
 async def run_rest_app():
@@ -29,3 +29,12 @@ async def run_rest_app():
 
     async with prepare_rest_app(config=config) as app:
         await run_server(app=app, config=config)
+
+
+async def republish_events():
+    """Republish all outbox events regardless of publish status."""
+    config = Config()
+    configure_logging(config=config)
+
+    async with get_file_deletion_dao(config=config) as dao:
+        await dao.republish()
