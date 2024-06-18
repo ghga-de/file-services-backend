@@ -205,6 +205,7 @@ def main(*, service: str, check: bool = False) -> None:
                 echo_success(f"{service_name}: README.md is up to date.")
                 continue
             echo_failure(f"{service_name}: README.md is not up to date.")
+            exit(1)
 
         service_details.readme_path.write_text(readme_content)
         echo_success(f"{service_name}: Successfully updated README.md.")
