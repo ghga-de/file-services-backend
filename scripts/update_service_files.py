@@ -16,8 +16,8 @@
 # limitations under the License.
 """A CLI tool to aid in running scripts."""
 
+from collections.abc import Callable
 from functools import wraps
-from typing import Callable
 
 import typer
 
@@ -27,7 +27,7 @@ from update_hook_revs import main as update_hooks
 from update_openapi_docs import main as update_openapi
 from update_readme_services import main as update_readmes
 
-app = typer.Typer(no_args_is_help=True, add_completion=False)
+app = typer.Typer(no_args_is_help=True)
 
 
 ServiceArg = typer.Argument(
@@ -72,7 +72,7 @@ def openapi(service: str = ServiceArg, check: bool = CheckFlag):
     update_openapi(service=service, check=check)
 
 
-@app.command(name="one")
+@app.command(name="all-for")
 @run_for_service_or_all
 def update_one_service(service: str = ServiceArg, check: bool = CheckFlag):
     """Run all service-specific update scripts for one or all services.

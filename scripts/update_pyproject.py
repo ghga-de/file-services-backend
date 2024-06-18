@@ -21,10 +21,10 @@
 from __future__ import annotations
 
 import sys
+import tomllib
 from pathlib import Path
 
 import tomli_w
-import tomllib
 
 from script_utils import cli
 
