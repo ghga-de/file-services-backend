@@ -28,7 +28,7 @@ from pathlib import Path
 
 import yaml
 
-from script_utils.cli import echo_failure, echo_success, run
+from script_utils.cli import echo_failure, echo_success, echo_warning, run
 
 HERE = Path(__file__).parent.resolve()
 REPO_ROOT_DIR = HERE.parent
@@ -127,7 +127,7 @@ def main(*, service: str, check: bool = False):
         # only act on services that use openapi
         if not app_openapi_script.exists():
             relative_location = app_openapi_script.relative_to(SERVICES_DIR / service)
-            echo_failure(f"{service}: skipping, {relative_location} not found")
+            echo_warning(f"{service}: skipping, {relative_location} not found")
             return
 
         if check:
