@@ -45,31 +45,33 @@ class UploadAttempt(BaseModel):
 
     upload_id: str
     file_id: str = Field(
-        ..., description="The ID of the file corresponding to this upload."
+        default=..., description="The ID of the file corresponding to this upload."
     )
     object_id: str = Field(
-        ..., description="The bucket-specific ID used within the S3 object storage."
+        default=...,
+        description="The bucket-specific ID used within the S3 object storage.",
     )
     status: UploadStatus
     part_size: int = Field(
-        ..., description="Part size to be used for upload. Specified in bytes."
+        default=..., description="Part size to be used for upload. Specified in bytes."
     )
     creation_date: datetime = Field(
-        ..., description="Datetime when the upload attempt was created."
+        default=..., description="Datetime when the upload attempt was created."
     )
     completion_date: datetime | None = Field(
-        None,
+        default=None,
         description=(
             "Datetime when the upload attempt was declared as completed by the client."
             + " `None` if the upload is ongoing."
         ),
     )
     submitter_public_key: str = Field(
-        ..., description="The public key used by the submittter to encrypt the file."
+        default=...,
+        description="The public key used by the submittter to encrypt the file.",
     )
     model_config = ConfigDict(from_attributes=True, title="Multi-Part Upload Details")
     storage_alias: str = Field(
-        ...,
+        default=...,
         description="Alias for the object storage location where the given object is stored.",
     )
 
@@ -88,7 +90,7 @@ class FileMetadata(FileMetadataUpsert):
     """A model containing the full metadata on a file."""
 
     latest_upload_id: str | None = Field(
-        None,
+        default=None,
         description=(
             "ID of the latest upload (attempt). `Null/None`"
             + " if no update has been initiated, yet."
