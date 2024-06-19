@@ -31,11 +31,7 @@ async def run_rest():
 
 
 async def publish_events(*, all: bool = False):
-    """Publish pending events.
-
-    If `all` is True, it will additionally republish all outbox events that have already
-    been published.
-    """
+    """Publish pending events. Use `--all` to (re)publish all events regardless of status."""
     config = Config()
     configure_logging(config=config)
 
