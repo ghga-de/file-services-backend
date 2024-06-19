@@ -34,21 +34,19 @@ class DummySubTranslator(DaoSubscriberProtocol):
 
     event_topic: str = ""
     dto_model = FileDeletionRequested
-    correlation_ids: list[str]
-    consumed_events: list[str]
+    consumed_events: list[tuple[str, str]]  # correlation ID, resource ID
 
     def __init__(self, *, config: Config) -> None:
         self.event_topic = config.files_to_delete_topic
-        self.correlation_ids = []
         self.consumed_events = []
 
     async def changed(self, resource_id: str, update: FileDeletionRequested) -> None:
         """Consume event and record correlation ID"""
-        self.correlation_ids.append(get_correlation_id())
-        self.consumed_events.append(resource_id)
+        self.consumed_events.append((get_correlation_id(), resource_id))
 
     async def deleted(self, resource_id: str) -> None:
         """Dummy"""
+        raise NotImplementedError()
 
 
 async def test_partial_publish(joint_fixture: JointFixture):
@@ -82,7 +80,7 @@ async def test_partial_publish(joint_fixture: JointFixture):
         key="unpublished_event",
     )
 
-    # Verify that the only the unpublished event is published
+    # Verify that only the unpublished event is published
     async with joint_fixture.kafka.expect_events(
         events=[expected_unpublished],
         in_topic=joint_fixture.config.files_to_delete_topic,
@@ -95,7 +93,7 @@ async def test_republish(joint_fixture: JointFixture):
 
     Check that the event is republished with the correct correlation ID.
     """
-    correlation_ids: list[str] = []
+    events: list[tuple[str, str]] = []  # correlation ID, resource ID
     file_ids: list[str] = ["test_id1", "test_id2"]
 
     for file_id in file_ids:
@@ -105,7 +103,7 @@ async def test_republish(joint_fixture: JointFixture):
 
         # Publish one event at a time and verify
         async with set_new_correlation_id():
-            correlation_ids.append(get_correlation_id())
+            events.append((get_correlation_id(), file_id))
             async with joint_fixture.kafka.expect_events(
                 events=[event], in_topic=joint_fixture.config.files_to_delete_topic
             ):
@@ -124,8 +122,6 @@ async def test_republish(joint_fixture: JointFixture):
             await subscriber.run(forever=False)
 
         # verify that the correlation IDs match what we expect. Sort first
-        translator.correlation_ids.sort()
         translator.consumed_events.sort()
-        correlation_ids.sort()
-        assert translator.correlation_ids == correlation_ids
-        assert translator.consumed_events == file_ids
+        events.sort()
+        assert translator.consumed_events == events
