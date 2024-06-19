@@ -31,6 +31,6 @@ def sync_run_rest_app():
 
 
 @cli.command(name="publish-events")
-def sync_run_republish(all: bool = False):
-    """Republish all outbox events regardless of publish status."""
+def sync_run_publish_events(all: bool = False):
+    """Publish pending events. Use `--all` to (re)publish all events regardless of status."""
     asyncio.run(publish_events(all=all))
