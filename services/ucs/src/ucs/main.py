@@ -64,3 +64,15 @@ async def check_inbox_buckets():
 
     async with prepare_storage_inspector(config=config) as inbox_inspector:
         await inbox_inspector.check_buckets()
+
+
+async def publish_events(*, all: bool = False):
+    """Publish pending events. Set `--all` to (re)publish all events regardless of status."""
+    config = Config()
+    configure_logging(config=config)
+
+    # async with get_upload_received_dao(config=config) as dao:
+    #     if all:
+    #         await dao.republish()
+    #     else:
+    #         await dao.publish_pending()
