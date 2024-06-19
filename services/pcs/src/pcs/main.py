@@ -32,7 +32,7 @@ async def run_rest_app():
 
 
 async def publish_events(*, all: bool = False):
-    """Publish pending events. Use `--all` to (re)publish all events regardless of status."""
+    """Publish pending events. Set `--all` to (re)publish all events regardless of status."""
     config = Config()
     configure_logging(config=config)
 
