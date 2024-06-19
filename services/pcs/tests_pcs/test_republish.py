@@ -90,8 +90,8 @@ async def test_partial_publish(joint_fixture: JointFixture):
         await joint_fixture.dao.publish_pending()
 
 
-async def test_publish_command(joint_fixture: JointFixture):
-    """Ensure the (re)publish command on the DAO will work.
+async def test_republish(joint_fixture: JointFixture):
+    """Ensure the (re)publish with the configured DAO will work.
 
     Check that the event is republished with the correct correlation ID.
     """
