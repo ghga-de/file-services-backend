@@ -21,9 +21,12 @@ from hexkit.correlation import get_correlation_id, set_new_correlation_id
 from hexkit.protocols.daosub import DaoSubscriberProtocol
 from hexkit.providers.akafka import KafkaOutboxSubscriber
 from hexkit.providers.akafka.testutils import ExpectedEvent
+from hexkit.providers.mongokafka.provider import dto_to_document
 
 from pcs.config import Config
 from tests_pcs.fixtures.joint import JointFixture
+
+pytestmark = pytest.mark.asyncio()
 
 
 class DummySubTranslator(DaoSubscriberProtocol):
@@ -48,9 +51,47 @@ class DummySubTranslator(DaoSubscriberProtocol):
         """Dummy"""
 
 
-@pytest.mark.asyncio()
-async def test_republish(joint_fixture: JointFixture):
-    """Ensure the republish command on the DAO will work.
+async def test_partial_publish(joint_fixture: JointFixture):
+    """Make sure the partial publish only publishes pending events."""
+    mongodb = joint_fixture.mongo_kafka.mongodb
+    db = mongodb.client.get_database(joint_fixture.config.db_name)
+    collection = db[joint_fixture.config.file_deletions_collection]
+    published_event = FileDeletionRequested(file_id="published_event")
+    unpublished_event = FileDeletionRequested(file_id="unpublished_event")
+
+    expected_published = ExpectedEvent(
+        payload=published_event.model_dump(), type_="upserted", key="published_event"
+    )
+
+    # Publish and verify the 'published' event
+    async with set_new_correlation_id():
+        async with joint_fixture.kafka.expect_events(
+            events=[expected_published],
+            in_topic=joint_fixture.config.files_to_delete_topic,
+        ):
+            await joint_fixture.dao.insert(published_event)
+
+    # Insert the unpublished event manually
+    async with set_new_correlation_id():
+        document = dto_to_document(unpublished_event, id_field="file_id")
+        collection.insert_one(document)
+
+    expected_unpublished = ExpectedEvent(
+        payload=unpublished_event.model_dump(),
+        type_="upserted",
+        key="unpublished_event",
+    )
+
+    # Verify that the only the unpublished event is published
+    async with joint_fixture.kafka.expect_events(
+        events=[expected_unpublished],
+        in_topic=joint_fixture.config.files_to_delete_topic,
+    ):
+        await joint_fixture.dao.publish_pending()
+
+
+async def test_publish_command(joint_fixture: JointFixture):
+    """Ensure the (re)publish command on the DAO will work.
 
     Check that the event is republished with the correct correlation ID.
     """

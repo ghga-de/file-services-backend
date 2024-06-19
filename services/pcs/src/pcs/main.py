@@ -31,10 +31,17 @@ async def run_rest_app():
         await run_server(app=app, config=config)
 
 
-async def republish_events():
-    """Republish all outbox events regardless of publish status."""
+async def publish_events(*, all: bool = False):
+    """Publish pending outbox events.
+
+    If `all` is set, it will additionally republish all outbox events that have already
+    been published.
+    """
     config = Config()
     configure_logging(config=config)
 
     async with get_file_deletion_dao(config=config) as dao:
-        await dao.republish()
+        if all:
+            await dao.republish()
+        else:
+            await dao.publish_pending()

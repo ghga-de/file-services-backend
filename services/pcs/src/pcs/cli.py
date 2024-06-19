@@ -19,7 +19,7 @@ import asyncio
 
 import typer
 
-from pcs.main import republish_events, run_rest_app
+from pcs.main import publish_events, run_rest_app
 
 cli = typer.Typer()
 
@@ -30,7 +30,7 @@ def sync_run_rest_app():
     asyncio.run(run_rest_app())
 
 
-@cli.command(name="republish-events")
-def sync_run_republish():
+@cli.command(name="publish-events")
+def sync_run_republish(all: bool = False):
     """Republish all outbox events regardless of publish status."""
-    asyncio.run(republish_events())
+    asyncio.run(publish_events(all=all))
