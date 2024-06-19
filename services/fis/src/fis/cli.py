@@ -34,7 +34,7 @@ import asyncio
 
 import typer
 
-from fis.main import run_rest
+from fis.main import publish_events, run_rest
 
 cli = typer.Typer()
 
@@ -43,3 +43,9 @@ cli = typer.Typer()
 def sync_run_api():
     """Run the HTTP REST API."""
     asyncio.run(run_rest())
+
+
+@cli.command(name="publish-events")
+def sync_run_publish_events(all: bool = False):
+    """Publish pending events. Use `--all` to (re)publish all events regardless of status."""
+    asyncio.run(publish_events(all=all))
