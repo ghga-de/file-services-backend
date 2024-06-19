@@ -31,6 +31,7 @@
 """Entrypoint of the package"""
 
 import asyncio
+from typing import Annotated
 
 import typer
 
@@ -46,6 +47,10 @@ def sync_run_api():
 
 
 @cli.command(name="publish-events")
-def sync_run_publish_events(all: bool = False):
-    """Publish pending events. Use `--all` to (re)publish all events regardless of status."""
+def sync_run_publish_events(
+    all: Annotated[
+        bool, typer.Argument(help="Set to (re)publish all events regardless of status")
+    ] = False,
+):
+    """Publish pending events."""
     asyncio.run(publish_events(all=all))
