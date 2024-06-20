@@ -53,7 +53,7 @@ class EventPubTranslatorConfig(BaseSettings):
         ),
         examples=["file_downloads"],
     )
-    unstaged_download_event_type: str = Field(
+    unstaged_download_collection: str = Field(
         default=...,
         description=(
             "The type used for event indicating that a download was requested"
@@ -149,7 +149,7 @@ class EventPubTranslator(EventPublisherPort):
 
         await self._provider.publish(
             payload=payload_dict,
-            type_=self._config.unstaged_download_event_type,
+            type_=self._config.unstaged_download_collection,
             topic=self._config.unstaged_download_event_topic,
             key=drs_object.file_id,
         )
