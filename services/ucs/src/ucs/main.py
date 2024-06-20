@@ -22,6 +22,7 @@ from hexkit.log import configure_logging
 
 from ucs.config import Config
 from ucs.inject import (
+    get_file_upload_received_dao,
     prepare_event_subscriber,
     prepare_outbox_subscriber,
     prepare_rest_app,
@@ -71,8 +72,8 @@ async def publish_events(*, all: bool = False):
     config = Config()
     configure_logging(config=config)
 
-    # async with get_upload_received_dao(config=config) as dao:
-    #     if all:
-    #         await dao.republish()
-    #     else:
-    #         await dao.publish_pending()
+    async with get_file_upload_received_dao(config=config) as dao:
+        if all:
+            await dao.republish()
+        else:
+            await dao.publish_pending()
