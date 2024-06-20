@@ -14,7 +14,7 @@
 # limitations under the License.
 """Adapter for publishing outbox events to other services."""
 
-from ghga_event_schemas.pydantic_ import FileUploadValidationSuccess
+from ghga_event_schemas.pydantic_ import NonStagedFileRequested
 from hexkit.protocols.daopub import DaoPublisher, DaoPublisherFactoryProtocol
 from pydantic import Field
 from pydantic_settings import BaseSettings
@@ -57,16 +57,16 @@ class OutboxDaoPublisherFactory(OutboxPublisherFactoryPort):
         self._unstaged_download_collection = config.unstaged_download_collection
         self._unstaged_download_event_topic = config.unstaged_download_event_topic
 
-    async def get_file_validation_success_dao(
+    async def get_nonstaged_file_requested_dao(
         self,
-    ) -> DaoPublisher[FileUploadValidationSuccess]:
+    ) -> DaoPublisher[NonStagedFileRequested]:
         """Construct a DAO for interacting with successful file validation events in the DB.
 
         This DAO automatically publishes changes as events.
         """
         return await self._dao_publisher_factory.get_dao(
             name=self._unstaged_download_collection,
-            dto_model=FileUploadValidationSuccess,
+            dto_model=NonStagedFileRequested,
             id_field="file_id",
             dto_to_event=lambda event: event.model_dump(),
             event_topic=self._unstaged_download_event_topic,
