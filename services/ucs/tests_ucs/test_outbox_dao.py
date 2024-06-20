@@ -86,6 +86,7 @@ class DummySubTranslator(DaoSubscriberProtocol):
 
     async def deleted(self, resource_id: str) -> None:
         """Dummy"""
+        raise NotImplementedError()
 
 
 async def test_partial_publish(joint_fixture: JointFixture):
