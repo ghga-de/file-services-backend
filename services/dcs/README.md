@@ -84,13 +84,13 @@ The service requires the following configuration parameters:
   ```
 
 
-- **`unstaged_download_collection`** *(string)*: The type used for event indicating that a download was requested for a file that is not yet available in the outbox.
+- **`unstaged_download_collection`** *(string)*: The type used for event indicating that a download was requested for a file that is not yet available in the outbox. The value should use hyphens in place of underscores if needed.
 
 
   Examples:
 
   ```json
-  "unstaged_download_requested"
+  "unstaged-download-requested"
   ```
 
 

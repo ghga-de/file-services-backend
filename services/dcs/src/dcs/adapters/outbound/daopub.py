@@ -37,9 +37,10 @@ class OutboxDaoConfig(BaseSettings):
         default=...,
         description=(
             "The type used for event indicating that a download was requested"
-            + " for a file that is not yet available in the outbox."
+            + " for a file that is not yet available in the outbox. The"
+            + " value should use hyphens in place of underscores if needed."
         ),
-        examples=["unstaged_download_requested"],
+        examples=["unstaged-download-requested"],
     )
 
 
