@@ -106,8 +106,7 @@
       "type": "string"
     },
     "file_upload_received_collection": {
-      "default": "file-uploads",
-      "description": "The name of the collection used to store FileUploadReceived events.",
+      "description": "The name of the collection used to store FileUploadReceived events. The value should use hyphens in place of underscores if needed.",
       "examples": [
         "file-uploads"
       ],
@@ -440,6 +439,7 @@
   },
   "required": [
     "file_upload_received_topic",
+    "file_upload_received_collection",
     "file_deleted_event_topic",
     "file_deleted_event_type",
     "files_to_delete_topic",

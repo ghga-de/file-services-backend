@@ -32,9 +32,10 @@ class OutboxDaoConfig(BaseSettings):
     )
 
     file_upload_received_collection: str = Field(
-        default="file-uploads",
+        default=...,
         description=(
-            "The name of the collection used to store FileUploadReceived events."
+            "The name of the collection used to store FileUploadReceived events. The"
+            + " value should use hyphens in place of underscores if needed."
         ),
         examples=["file-uploads"],
     )

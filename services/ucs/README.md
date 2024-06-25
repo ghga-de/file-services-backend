@@ -56,7 +56,7 @@ The service requires the following configuration parameters:
   ```
 
 
-- **`file_upload_received_collection`** *(string)*: The name of the collection used to store FileUploadReceived events. Default: `"file-uploads"`.
+- **`file_upload_received_collection`** *(string)*: The name of the collection used to store FileUploadReceived events. The value should use hyphens in place of underscores if needed.
 
 
   Examples:
