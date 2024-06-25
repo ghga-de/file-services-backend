@@ -149,6 +149,9 @@ async def test_republish(joint_fixture: JointFixture):
             ):
                 await joint_fixture.file_upload_received_dao.insert(file_deletion)
 
+    # Clear the topics to ensure we don't get any old events
+    await joint_fixture.kafka.clear_topics()
+
     # Republish under new correlation ID to ensure it doesn't pollute the action
     async with set_new_correlation_id():
         await joint_fixture.file_upload_received_dao.republish()
