@@ -16,9 +16,8 @@
 name: "Push to docker on new commit to main"
 
 on:
-  push:
-    branches:
-      - main
+  release:
+      types: [published]
 
 env:
   DOCKERHUB_NAMESPACE: ghga
@@ -34,7 +33,31 @@ env:
 
 jobs:
   get-changed-services:
-    uses: ./.github/workflows/get_affected_services.yaml
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get latest tag preceding this release
+        id: get-release-tag
+        run: |
+          tags=$(git tag | sort --sort=version | tail -n 2)
+          if [[ $(echo $tags | wc -l) == 2 ]]
+          then
+             echo "version=$(echo $tags head -n 1)" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get affected services since ${{ steps.get-release-tag.outputs.version }}
+        id: get-affected-services-with-base
+        if: ${{ steps.get-release-tag.outputs.version != '' }}
+        uses: ./.github/workflows/get_affected_services.yaml
+        with:
+          base-sha: ${{ steps.get-release-tag.outputs.version }}
+
+      - name: Get affected services since inception
+        id: get-affected-services
+        if: ${{ steps.get-release-tag.outputs.version == '' }}
+        uses: ./.github/workflows/get_affected_services.yaml
+        with:
+          base-sha: $(git log --oneline | tail -n1 | awk '{print $1}')
 
   push-to-docker:
     runs-on: ubuntu-latest
@@ -49,7 +72,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
 
       - name: Set up Python 3.12
         id: setup-python

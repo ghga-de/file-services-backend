@@ -2,6 +2,16 @@ name: Get services affected by changes
 
 on:
   workflow_call:
+    inputs:
+      fetch-depth:
+        description: "Number of commits to fetch for comparison on initial checkout"
+        required: true
+        type: number
+        default: 2
+      base_sha:
+        description: "Optional base commit for comparison"
+        required: false
+        type: string
     outputs:
       services:
         description: "Services affected by changes since last commit"
@@ -17,7 +27,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: ${{ inputs.fetch-depth }}
 
       - name: Set up Python 3.12
         id: setup-python
@@ -27,7 +37,17 @@ jobs:
 
       - name: Changed Files
         id: changed-files
+        if: ${{ inputs.base_sha == '' }}
         uses: tj-actions/changed-files@v44
+
+
+      - name: Changed Files since ${{ inputs.base_sha }}
+        id: changed-files
+        if: ${{ inputs.base_sha != '' }}
+        uses: tj-actions/changed-files@v44
+        with:
+          base_sha: ${{ inputs.base_sha }}
+
 
       - name: Install Typer to check changed services
         id: install-typer
