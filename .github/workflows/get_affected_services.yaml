@@ -38,6 +38,10 @@ jobs:
         with:
           python-version: 3.12
 
+      # Handle comparison with explicit commit range
+      # base_sha is the commit hash of the commit where comparison starts
+      # fetch_depth corresponds to the length of the commit history, by default 25
+      # The change action retries up to 20 times, but better to be explicit here
       - name: Changed Files since ${{ inputs.base_sha }}
         id: changed-files
         if: ${{ inputs.base_sha != '' }}
@@ -46,11 +50,16 @@ jobs:
           base_sha: ${{ inputs.base_sha }}
           fetch_depth: ${{ inputs.fetch_depth_compare }}
 
+      # Handle comparison with no explicit commit range
+      # This is the case, when we only want to have the changes from the last commit
       - name: Changed Files since last commit
         id: changed-files-no-base
         if: ${{ inputs.base_sha == '' }}
         uses: tj-actions/changed-files@v44
 
+      # Combine results from last steps into one output
+      # As they are run conditionally, this just forwards the chosen action output to
+      # be available under the same name for the last output step
       - name: Collect changed files
         id: collect-changed-files
         run: |

@@ -45,17 +45,27 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Get commit hash for previous release tag from git history
+      # As we are running this on publish, a new tag for the current release is already
+      # created
       - name: Get latest tag preceding this release
         id: get-release-tag
         run: |
+          # get the two latest tags
           tags=$(git tag | sort --sort=version | tail -n 2)
+          # check if there are actually two
           if [ $(echo "$tags" | wc -l) -eq 2 ]
           then
+            # get commit hash for tag and write to output
             tag=$(echo "$tags" | head -n1)
             commit=$(git rev-parse "$tag"^{commit})
             echo "commit=$commit" >> $GITHUB_OUTPUT
           fi
 
+      # If there is no previous tag, some variables need to be set up
+      # base_sha is the first commit to the repo - awk is used to just print the
+      # first column of the output which is the short form hash)
+      # fetch_depth is set up as number of all commits on the branch
       - name: Set up needed variables
         id: setup-variables
         if: ${{ steps.get-release-tag.outputs.commit == '' }}
@@ -63,7 +73,10 @@ jobs:
           echo "base_sha=$(git log --oneline | tail -n1 | awk '{print $1}')" >> $GITHUB_OUTPUT
           echo "fetch_depth_compare=$(git log --oneline | wc -l)" >> $GITHUB_OUTPUT
 
-
+  #
+  # Run this if we have a commit hash for a tag
+  # We assume there is not a large range of commits and we can go with the default
+  # fetch depth here
   get-changed-services-with-base:
     needs: get-tag
     if: ${{ needs.get-tag.outputs.commit != '' }}
@@ -71,6 +84,9 @@ jobs:
     with:
       base_sha: ${{ needs.get-tag.outputs.commit }}
 
+  # Run this, if there's no tag yet.
+  # Needs custom fetch depth for comparison to fit large history
+  # Checkout depth of 0 means fetch everything
   get-changed-services:
     needs: get-tag
     if: ${{ needs.get-tag.outputs.commit == '' }}
@@ -88,6 +104,7 @@ jobs:
     outputs:
       services: ${{ steps.prepare-output.outputs.services }}
 
+    # Bundle output into one variable depending on chosen branch
     steps:
       - name: Prepare output
         id: prepare-output
