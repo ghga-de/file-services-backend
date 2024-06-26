@@ -32,8 +32,10 @@ env:
   FIS_CONFIG_YAML: ./services/fis/dev_config.yaml
 
 jobs:
-  get-changed-services:
+  get-tag:
     runs-on: ubuntu-latest
+    outputs:
+      commit: ${{ steps.get-release-tag.outputs.commit }}
 
     steps:
       - name: Get latest tag preceding this release
@@ -42,30 +44,53 @@ jobs:
           tags=$(git tag | sort --sort=version | tail -n 2)
           if [[ $(echo $tags | wc -l) == 2 ]]
           then
-             echo "version=$(echo $tags head -n 1)" >> $GITHUB_OUTPUT
+            $tag=$(echo $tags | head -n1)
+            $commit=$(git rev-parse "$tag"^{commit})
+            echo "commit=$commit" >> $GITHUB_OUTPUT
+          else
+            echo "commit=" >> $GITHUB_OUTPUT
           fi
 
-      - name: Get affected services since ${{ steps.get-release-tag.outputs.version }}
-        id: get-affected-services-with-base
-        if: ${{ steps.get-release-tag.outputs.version != '' }}
-        uses: ./.github/workflows/get_affected_services.yaml
-        with:
-          base-sha: ${{ steps.get-release-tag.outputs.version }}
+  get-changed-services-with-base:
+    needs: get-tag
+    if: ${{ needs.get-tag.outputs.commit != '' }}
+    uses: ./.github/workflows/get_affected_services.yaml
+    with:
+      base-sha: ${{ needs.get-tag.outputs.commit }}
 
-      - name: Get affected services since inception
-        id: get-affected-services
-        if: ${{ steps.get-release-tag.outputs.version == '' }}
-        uses: ./.github/workflows/get_affected_services.yaml
-        with:
-          base-sha: $(git log --oneline | tail -n1 | awk '{print $1}')
+  get-changed-services:
+    needs: get-tag
+    if: ${{ needs.get-tag.outputs.commit == '' }}
+    uses: ./.github/workflows/get_affected_services.yaml
+    with:
+      base-sha: $(git log --oneline | tail -n1 | awk '{print $1}')
+
+
+  changed-services:
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    needs: [get-changed-services, get-changed-services-with-base]
+    outputs:
+      services: ${{ steps.prepare-output.outputs.services }}
+
+    steps:
+      - name: Prepare output
+        id: prepare-output
+        run: |
+          if ${{ needs.get-changed-services.outputs.services != '' }}
+          then
+            echo "services=${{ needs.get-changed-services.outputs.services }}" >> $GITHUB_OUTPUT
+          else
+            echo "services=${{ needs.get-changed-services-with-base.outputs.services }}" >> $GITHUB_OUTPUT
+          fi
 
   push-to-docker:
     runs-on: ubuntu-latest
-    if: ${{ needs.get-changed-services.outputs.services != '' }}
+    if: ${{ needs.changed-services.outputs.services != '' }}
     needs: get-changed-services
     strategy:
       matrix:
-        service: ${{ fromJson(needs.get-changed-services.outputs.services) }}
+        service: ${{ fromJson(needs.changed-services.outputs.services) }}
       fail-fast: false
 
     steps:
