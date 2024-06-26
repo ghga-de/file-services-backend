@@ -5,12 +5,10 @@ on:
     inputs:
       fetch_depth_checkout:
         description: "Number of commits to fetch on initial checkout"
-        required: true
         type: number
         default: 2
       fetch_depth_compare:
         description: "Number of commits to fetch for comparison"
-        required: true
         type: number
         default: 2
       base_sha:
