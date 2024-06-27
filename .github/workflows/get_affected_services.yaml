@@ -2,6 +2,19 @@ name: Get services affected by changes
 
 on:
   workflow_call:
+    inputs:
+      fetch_depth_checkout:
+        description: "Number of commits to fetch on initial checkout"
+        type: number
+        default: 2
+      fetch_depth_compare:
+        description: "Number of commits to fetch for comparison"
+        type: number
+        default: 2
+      base_sha:
+        description: "Optional base commit for comparison"
+        required: false
+        type: string
     outputs:
       services:
         description: "Services affected by changes since last commit"
@@ -17,7 +30,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: ${{ inputs.fetch_depth_checkout }}
 
       - name: Set up Python 3.12
         id: setup-python
@@ -25,9 +38,37 @@ jobs:
         with:
           python-version: 3.12
 
-      - name: Changed Files
+      # Handle comparison with explicit commit range
+      # base_sha is the commit hash of the commit where comparison starts
+      # fetch_depth corresponds to the length of the commit history, by default 25
+      # The change action retries up to 20 times, but better to be explicit here
+      - name: Changed Files since ${{ inputs.base_sha }}
         id: changed-files
+        if: ${{ inputs.base_sha != '' }}
         uses: tj-actions/changed-files@v44
+        with:
+          base_sha: ${{ inputs.base_sha }}
+          fetch_depth: ${{ inputs.fetch_depth_compare }}
+
+      # Handle comparison with no explicit commit range
+      # This is the case, when we only want to have the changes from the last commit
+      - name: Changed Files since last commit
+        id: changed-files-no-base
+        if: ${{ inputs.base_sha == '' }}
+        uses: tj-actions/changed-files@v44
+
+      # Combine results from last steps into one output
+      # As they are run conditionally, this just forwards the chosen action output to
+      # be available under the same name for the last output step
+      - name: Collect changed files
+        id: collect-changed-files
+        run: |
+          if ${{ steps.changed-files.outputs.all_changed_files != '' }}
+          then
+            echo "changed=${{ steps.changed-files.outputs.all_changed_files }}" >> $GITHUB_OUTPUT
+          else
+            echo "changed=${{ steps.changed-files-no-base.outputs.all_changed_files }}" >> $GITHUB_OUTPUT
+          fi
 
       - name: Install Typer to check changed services
         id: install-typer
@@ -36,4 +77,4 @@ jobs:
       - name: Generate list of changed services
         id: services-changed
         run: |
-          echo "affected=$(python3 ./scripts/get_affected_services.py ${{ steps.changed-files.outputs.all_changed_files }} )" >> $GITHUB_OUTPUT
+          echo "affected=$(python3 ./scripts/get_affected_services.py ${{ steps.collect-changed-files.outputs.changed }} )" >> $GITHUB_OUTPUT

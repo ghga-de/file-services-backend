@@ -16,9 +16,8 @@
 name: "Push to docker on new commit to main"
 
 on:
-  push:
-    branches:
-      - main
+  release:
+      types: [published]
 
 env:
   DOCKERHUB_NAMESPACE: ghga
@@ -33,23 +32,107 @@ env:
   FIS_CONFIG_YAML: ./services/fis/dev_config.yaml
 
 jobs:
-  get-changed-services:
+  get-tag:
+    runs-on: ubuntu-latest
+    outputs:
+      commit: ${{ steps.get-release-tag.outputs.commit }}
+      base_sha: ${{ steps.setup-variables.outputs.base_sha }}
+      fetch_depth_compare: ${{ steps.setup-variables.outputs.fetch_depth_compare }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Get commit hash for previous release tag from git history
+      # As we are running this on publish, a new tag for the current release is already
+      # created
+      - name: Get latest tag preceding this release
+        id: get-release-tag
+        run: |
+          # get the two latest tags
+          tags=$(git tag | sort --sort=version | tail -n 2)
+          # check if there are actually two
+          if [ $(echo "$tags" | wc -l) -eq 2 ]
+          then
+            # get commit hash for tag and write to output
+            tag=$(echo "$tags" | head -n1)
+            commit=$(git rev-parse "$tag"^{commit})
+            echo "commit=$commit" >> $GITHUB_OUTPUT
+          fi
+
+      # If there is no previous tag, some variables need to be set up
+      # base_sha is the first commit to the repo - awk is used to just print the
+      # first column of the output which is the short form hash)
+      # fetch_depth is set up as number of all commits on the branch
+      - name: Set up needed variables
+        id: setup-variables
+        if: ${{ steps.get-release-tag.outputs.commit == '' }}
+        run: |
+          echo "base_sha=$(git log --oneline | tail -n1 | awk '{print $1}')" >> $GITHUB_OUTPUT
+          echo "fetch_depth_compare=$(git log --oneline | wc -l)" >> $GITHUB_OUTPUT
+
+  #
+  # Run this if we have a commit hash for a tag
+  # We assume there is not a large range of commits and we can go with the default
+  # fetch depth here
+  check-changes-with-release-tag:
+    needs: get-tag
+    if: ${{ needs.get-tag.outputs.commit != '' }}
     uses: ./.github/workflows/get_affected_services.yaml
+    with:
+      base_sha: ${{ needs.get-tag.outputs.commit }}
+
+  # Run this, if there's no tag yet.
+  # Needs custom fetch depth for comparison to fit large history
+  # Checkout depth of 0 means fetch everything
+  check-changes-without-release-tag:
+    needs: get-tag
+    if: ${{ needs.get-tag.outputs.commit == '' }}
+    uses: ./.github/workflows/get_affected_services.yaml
+    with:
+      base_sha: ${{ needs.get-tag.outputs.base_sha }}
+      fetch_depth_checkout: 0
+      fetch_depth_compare: ${{ needs.get-tag.outputs.fetch_depth_compare }}
+
+
+  changed-services:
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    needs: [check-changes-with-release-tag, check-changes-without-release-tag]
+    outputs:
+      services: ${{ steps.prepare-output.outputs.services }}
+
+    # Bundle output into one variable depending on chosen branch
+    steps:
+      - name: Prepare output
+        id: prepare-output
+        run: |
+          if ${{ needs.check-changes-with-release-tag.outputs.services != '' }}
+          then
+            echo "services=${{ toJSON(needs.check-changes-with-release-tag.outputs.services) }}" >> $GITHUB_OUTPUT
+          else
+            echo "services=${{ toJSON(needs.check-changes-without-release-tag.outputs.services) }}" >> $GITHUB_OUTPUT
+          fi
 
   push-to-docker:
     runs-on: ubuntu-latest
-    if: ${{ needs.get-changed-services.outputs.services != '' }}
-    needs: get-changed-services
+    needs: changed-services
+    # Job failure propagates downwards through the job graph
+    # As one of the check-changes-* jobs has to fail, the failure state needs to be
+    # explicitly ignored adding the always condition to the existing check
+    if: ${{ needs.changed-services.outputs.services != '' && always() }}
     strategy:
       matrix:
-        service: ${{ fromJson(needs.get-changed-services.outputs.services) }}
+        service: ${{ fromJson(needs.changed-services.outputs.services) }}
       fail-fast: false
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
 
       - name: Set up Python 3.12
         id: setup-python
