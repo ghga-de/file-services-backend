@@ -9,8 +9,8 @@ on:
         default: 2
       fetch_depth_compare:
         description: "Number of commits to fetch for comparison"
-        type: number
-        default: 2
+        type: string
+        default: "25"
       base_sha:
         description: "Optional base commit for comparison"
         required: false
