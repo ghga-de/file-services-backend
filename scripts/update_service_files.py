@@ -17,9 +17,8 @@
 """A CLI tool to aid in running scripts."""
 
 import io
-import sys
 from collections.abc import Callable
-from contextlib import contextmanager, nullcontext
+from contextlib import contextmanager, nullcontext, redirect_stdout
 from functools import wraps
 
 import typer
@@ -50,18 +49,14 @@ CheckFlag = typer.Option(False, "--check")
 @contextmanager
 def suppress_print(service: str):
     """Temporarily suppress print statements."""
-    original_stdout = sys.stdout
-    temp_buffer = io.StringIO()
-    sys.stdout = temp_buffer
     try:
-        yield
+        with redirect_stdout(io.StringIO()):
+            yield
     except Exception as e:
-        sys.stdout = original_stdout
-        cli.echo_warning(f"Unable to complete for '{service}'. See error below:")
+        cli.echo_warning(f"Unable to complete for '{
+            service}'. See error below:")
         cli.echo_failure(str(e))
         exit(1)
-    finally:
-        sys.stdout = original_stdout
 
 
 def root_specific(func: Callable) -> Callable:
@@ -107,7 +102,8 @@ def service_specific(func: Callable) -> Callable:
 
             for i, svc in enumerate(all_services):
                 print(
-                    f"{PREV_LINE}( ) {status} {func_name}...({i + 1}/{service_count}): {svc.name}",
+                    f"{PREV_LINE}( ) {status} {func_name}...({
+                        i + 1}/{service_count}): {svc.name}",
                 )
                 with suppress_print(svc.name) if not check else nullcontext():
                     func(svc.name, *args, **kwargs)
@@ -115,14 +111,16 @@ def service_specific(func: Callable) -> Callable:
                     print(PREV_LINE + PREV_LINE)
 
             cli.echo_success(
-                f"{line_prefix}(✓) {status} {func_name}...({service_count}/{service_count}): {report}"
+                f"{line_prefix}(✓) {status} {func_name}...({
+                    service_count}/{service_count}): {report}"
             )
 
         else:
             print(f"( ) {status} {func_name} for {service}...")
             func(service, *args, **kwargs)
             cli.echo_success(
-                f"{PREV_LINE}{PREV_LINE}(✓) {status} {func_name} for {service}... {report}"
+                f"{PREV_LINE}{PREV_LINE}(✓) {status} {func_name} for {
+                    service}... {report}"
             )
 
     return wrapper
