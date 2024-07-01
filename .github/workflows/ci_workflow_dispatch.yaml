@@ -9,6 +9,18 @@ on:
       - reopened
       - labeled
 
+env:
+  DOCKERHUB_NAMESPACE: ghga
+  DOCKERHUB_PLATFORMS: "linux/amd64,linux/arm64"
+  TRIVY_SEVERITY: "CRITICAL,HIGH"
+  IFRS_CONFIG_YAML: ./services/ifrs/dev_config.yaml
+  IRS_CONFIG_YAML: ./services/irs/dev_config.yaml
+  PCS_CONFIG_YAML: ./services/pcs/dev_config.yaml
+  UCS_CONFIG_YAML: ./services/ucs/dev_config.yaml
+  DCS_CONFIG_YAML: ./services/dcs/dev_config.yaml
+  EKSS_CONFIG_YAML: ./services/ekss/dev_config.yaml
+  FIS_CONFIG_YAML: ./services/fis/dev_config.yaml
+
 jobs:
   changed-services:
     if: github.event_name == 'workflow_dispatch' || ( github.event.action != 'labeled' && contains(github.event.pull_request.labels.*.name, 'build') ) || ( github.event.action == 'labeled' && github.event.label.name == 'build' )
