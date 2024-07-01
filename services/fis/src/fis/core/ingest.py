@@ -168,6 +168,9 @@ class UploadMetadataProcessor(UploadMetadataProcessorPort):
         try:
             decrypted = decrypt(data=encrypted.payload, key=self._config.private_key)
         except (ValueError, CryptoError) as error:
+            log.debug(
+                "UploadMetadataProcessor.decrypt_payload raw crypto error: %s", error
+            )
             decrypt_error = DecryptionError()
             log.error(decrypt_error)
             raise decrypt_error from error
@@ -177,6 +180,9 @@ class UploadMetadataProcessor(UploadMetadataProcessorPort):
         try:
             return models.UploadMetadata(**upload_metadata)
         except ValidationError as error:
+            log.debug(
+                "UploadMetadataProcessor.decrypt_payload raw upload error: %s", error
+            )
             format_error = WrongDecryptedFormatError(cause=str(error))
             log.error(format_error)
             raise format_error from error

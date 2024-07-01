@@ -14,6 +14,7 @@
 # limitations under the License.
 """Provides client side functionality for interaction with HashiCorp Vault"""
 
+import logging
 from pathlib import Path
 from uuid import uuid4
 
@@ -24,6 +25,8 @@ from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings
 
 from fis.ports.outbound.vault.client import VaultAdapterPort
+
+log = logging.getLogger(__name__)
 
 
 class VaultConfig(BaseSettings):
@@ -104,11 +107,13 @@ class VaultAdapter(VaultAdapterPort):
     def _login(self):
         """Log in using Kubernetes Auth or AppRole"""
         if self._kube_role:
+            log.debug("VaultAdapter: kube auth log in with role %s", self._kube_role)
             with self._service_account_token_path.open() as token_file:
                 jwt = token_file.read()
             self._kube_adapter.login(role=self._kube_role, jwt=jwt)
 
         else:
+            log.debug("VaultAdapter: aoo role log in with role %s", self._role_id)
             self._client.auth.approle.login(
                 role_id=self._role_id, secret_id=self._secret_id
             )
@@ -124,6 +129,7 @@ class VaultAdapter(VaultAdapterPort):
 
         try:
             # set cas to 0 as we only want a static secret
+            log.debug("VaultAdapter.store_secret: Storing at %s/%s", self._path, key)
             self._client.secrets.kv.v2.create_or_update_secret(
                 path=f"{self._path}/{key}",
                 secret={key: secret},
@@ -131,7 +137,9 @@ class VaultAdapter(VaultAdapterPort):
                 mount_point=self._secrets_mount_point,
             )
         except hvac.exceptions.InvalidRequest as exc:
+            log.error("VaultAdapter.store_secret: invalid request error: %s", exc)
             raise self.SecretInsertionError() from exc
+        log.debug("VaultAdapter.store_secret: returning key %s", key)
         return key
 
     @field_validator("vault_verify")
