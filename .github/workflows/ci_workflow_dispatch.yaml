@@ -82,13 +82,13 @@ jobs:
         with:
           push: true
           platforms: "${{ env.DOCKERHUB_PLATFORMS }}"
-          tags: "${{ env.DOCKERHUB_NAMESPACE }}/${{ steps.extract-service-name.outputs.name }}:${{ steps.extract-service-version.outputs.version }}-${{ github.sha }}-debug"
+          tags: "${{ env.DOCKERHUB_NAMESPACE }}/${{ steps.extract-service-name.outputs.name }}:${{ steps.extract-service-version.outputs.version }}-${{ github.sha }}"
           context: "services/${{ matrix.service }}"
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: "docker.io/${{ env.DOCKERHUB_NAMESPACE }}/${{ steps.extract-service-name.outputs.name }}:${{ steps.extract-service-version.outputs.version }}-${{ github.sha }}-debug"
+          image-ref: "docker.io/${{ env.DOCKERHUB_NAMESPACE }}/${{ steps.extract-service-name.outputs.name }}:${{ steps.extract-service-version.outputs.version }}-${{ github.sha }}"
           format: "table"
           exit-code: "1"
           ignore-unfixed: true
