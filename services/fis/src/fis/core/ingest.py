@@ -165,15 +165,25 @@ class UploadMetadataProcessor(UploadMetadataProcessorPort):
         self, *, encrypted: models.EncryptedPayload
     ) -> models.UploadMetadata:
         """Decrypt upload metadata using private key"""
+        log.debug("UploadMetadataProcessor.decrypt_payload called")
         try:
             decrypted = decrypt(data=encrypted.payload, key=self._config.private_key)
         except (ValueError, CryptoError) as error:
             log.debug(
-                "UploadMetadataProcessor.decrypt_payload raw crypto error: %s", error
+                "UploadMetadataProcessor.decrypt_payload raw crypto error: %s %s",
+                type(error),
+                error,
             )
             decrypt_error = DecryptionError()
             log.error(decrypt_error)
             raise decrypt_error from error
+        except Exception as error:
+            log.debug(
+                "UploadMetadataProcessor.decrypt_payload raw error: %s %s",
+                type(error),
+                error,
+            )
+            raise error
 
         upload_metadata = json.loads(decrypted)
 
@@ -189,11 +199,24 @@ class UploadMetadataProcessor(UploadMetadataProcessorPort):
 
     async def decrypt_secret(self, *, encrypted: models.EncryptedPayload) -> str:
         """Decrypt file secret payload"""
+        log.debug("UploadMetadataProcessor.decrypt_secret called")
         try:
             decrypted = decrypt(data=encrypted.payload, key=self._config.private_key)
         except (ValueError, CryptoError) as error:
+            log.debug(
+                "UploadMetadataProcessor.decrypt_secret raw crypto error: %s %s",
+                type(error),
+                error,
+            )
             decrypt_error = DecryptionError()
             raise decrypt_error from error
+        except Exception as error:
+            log.debug(
+                "UploadMetadataProcessor.decrypt_secret raw error: %s %s",
+                type(error),
+                error,
+            )
+            raise error
 
         return decrypted
 
