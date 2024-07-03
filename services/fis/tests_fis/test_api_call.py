@@ -90,12 +90,6 @@ async def test_api_calls(monkeypatch, joint_fixture: JointFixture):
         **TEST_PAYLOAD.model_dump(),
         secret_id=secret_id,
     )
-    encrypted_payload = EncryptedPayload(
-        payload=encrypt(
-            data=payload.model_dump_json(),
-            key=joint_fixture.keypair.public,
-        )
-    )
 
     event_recorder = EventRecorder(
         kafka_servers=joint_fixture.kafka.config.kafka_servers,
@@ -105,7 +99,7 @@ async def test_api_calls(monkeypatch, joint_fixture: JointFixture):
     async with event_recorder:
         response = await joint_fixture.rest_client.post(
             "/federated/ingest_metadata",
-            json=encrypted_payload.model_dump(),
+            json=payload.model_dump(),
             headers=headers,
         )
 
@@ -143,14 +137,12 @@ async def test_api_calls(monkeypatch, joint_fixture: JointFixture):
 
     # test missing authorization
     response = await joint_fixture.rest_client.post(
-        "/federated/ingest_metadata", json=encrypted_payload.model_dump()
+        "/federated/ingest_metadata", json=payload.model_dump()
     )
     assert response.status_code == 403
 
     # test malformed payload
-    nonsense_payload = encrypted_payload.model_copy(
-        update={"payload": "abcdefghijklmn"}
-    )
+    nonsense_payload = payload.model_copy(update={"payload": "abcdefghijklmn"})
     response = await joint_fixture.rest_client.post(
         "/federated/ingest_metadata",
         json=nonsense_payload.model_dump(),
