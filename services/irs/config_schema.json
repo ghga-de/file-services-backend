@@ -146,6 +146,12 @@
       ],
       "title": "Log Format"
     },
+    "log_traceback": {
+      "default": true,
+      "description": "Whether to include exception tracebacks in log messages.",
+      "title": "Log Traceback",
+      "type": "boolean"
+    },
     "interrogation_topic": {
       "description": "Name of the topic used for events informing about the outcome of file validations.",
       "examples": [
