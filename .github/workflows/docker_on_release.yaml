@@ -156,6 +156,22 @@ jobs:
         run: |
           echo version=$(python3.12 -c "import tomllib; print(tomllib.load(open('services/${{ matrix.service }}/pyproject.toml', 'rb'))['project']['version'])") >> $GITHUB_OUTPUT
 
+      - name: Create current docker tag
+        id: docker-tag
+        run: |
+          echo tag="${{ env.DOCKERHUB_NAMESPACE }}/${{ steps.extract-service-name.outputs.name }}:${{ steps.extract-service-version.outputs.version }}" >> $GITHUB_OUTPUT
+
+      - name: Check if docker image already exists
+        id: check-image-exists
+        run: |
+          # pipefail set by default, join with or to not cancel run on missing image
+          docker pull "docker.io/${{ steps.docker-tag.outputs.tag }}" ||
+          if [ $? -eq 0 ]
+          then
+            # if the image exists, fail this step and consequently all subsequent steps
+            exit 1
+          fi
+
       - name: Ensure that tag complies with semantic versioning.
         uses: matt-usurp/validate-semver@v2
         with:
@@ -181,26 +197,9 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Create current docker tag
-        id: docker-tag
-        run: |
-          echo tag="${{ env.DOCKERHUB_NAMESPACE }}/${{ steps.extract-service-name.outputs.name }}:${{ steps.extract-service-version.outputs.version }}" >> $GITHUB_OUTPUT
-
-      - name: Check if docker image already exists
-        id: check-image-exists
-        run: |
-          docker pull "docker.io/${{ steps.docker-tag.outputs.tag }}"
-          if [ $? -eq 0 ]
-          then
-            echo exists=toJSON(true) >> $GITHUB_OUTPUT
-          else
-            echo exists=toJSON(false) >> $GITHUB_OUTPUT
-          fi
-
       - uses: docker/build-push-action@v5
         name: Build and push
         id: docker_build
-        if: ${{ fromJson(check-iimage-exists.steps.outputs.exists) == false }}
         with:
           push: true
           platforms: "${{ env.DOCKERHUB_PLATFORMS }}"
@@ -209,7 +208,6 @@ jobs:
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
-        if: ${{ fromJson(check-iimage-exists.steps.outputs.exists) == false }}
         with:
           image-ref: "docker.io/${{ steps.docker-tag.outputs.tag }}"
           format: "table"
@@ -219,6 +217,5 @@ jobs:
           severity: ${{ env.TRIVY_SEVERITY }}
 
       - name: Image digest
-        if: ${{ fromJson(check-iimage-exists.steps.outputs.exists) == false }}
         shell: bash
         run: echo ${{ steps.docker_build.outputs.digest }}
