@@ -164,7 +164,7 @@ jobs:
       - name: Check if docker image already exists
         id: check-image-exists
         run: |
-          # pipefail set by default, join with or to not cancel run on missing image
+          # pipefail set by default, join with "or" to not cancel run on missing image
           docker pull "docker.io/${{ steps.docker-tag.outputs.tag }}" ||
           if [ $? -eq 0 ]
           then
