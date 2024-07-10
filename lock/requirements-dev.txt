@@ -81,13 +81,13 @@ bcrypt==4.1.3 \
     --hash=sha256:f44a97780677e7ac0ca393bd7982b19dbbd8d7228c1afe10b128fd9550eef5f1 \
     --hash=sha256:f5698ce5292a4e4b9e5861f7e53b1d89242ad39d54c3da451a93cac17b61921a
     # via crypt4gh
-boto3==1.34.141 \
-    --hash=sha256:947c7a94ac3a2131142914a53afc3b1c5a572d6a79515bf2f0473188817cfcd6 \
-    --hash=sha256:f906c797a02d37a3b88fe4c97e4d72b387e19ab6f3096d2f573578f020fd9bf4
+boto3==1.34.142 \
+    --hash=sha256:72daee953cfa0631c584c9e3aef594079e1fe6a2f64c81ff791dab9a7b25c013 \
+    --hash=sha256:cae11cb54f79795e44248a9e53ec5c7328519019df1ba54bc01413f51c548626
     # via hexkit
-botocore==1.34.141 \
-    --hash=sha256:0e661a452c0489b6d62a9c91fed3320d5690a524489a7e50afc8efadb994dba8 \
-    --hash=sha256:d2815c09037039a287461eddc07af895d798bc897e6ba4b08f5a12eaa9886ff1
+botocore==1.34.142 \
+    --hash=sha256:2eeb8e6be729c1f8ded723970ed6c6ac29cc3014d86a99e73428fa8bdca81f63 \
+    --hash=sha256:9d8095bab0b93b9064e856730a7ffbbb4f897353d3170bec9ddccc5f4a3753bc
     # via
     #   boto3
     #   hexkit
@@ -1108,9 +1108,9 @@ s3transfer==0.10.2 \
     --hash=sha256:0711534e9356d3cc692fdde846b4a1e4b0cb6519971860796e6bc4c7aea00ef6 \
     --hash=sha256:eca1c20de70a39daee580aef4986996620f365c4e0fda6a86100231d62f1bf69
     # via boto3
-setuptools==70.2.0 \
-    --hash=sha256:b8b8060bb426838fbe942479c90296ce976249451118ef566a5a0b7d8b78fb05 \
-    --hash=sha256:bd63e505105011b25c3c11f753f7e3b8465ea739efddaccef8f0efac2137bac1
+setuptools==70.3.0 \
+    --hash=sha256:f171bab1dfbc86b132997f26a119f6056a57950d058587841a0082e8830f9dc5 \
+    --hash=sha256:fe384da74336c398e0d956d1cae0669bc02eed936cdb1d49b57de1990dc11ffc
     # via -r lock/requirements-dev-template.in
 shellingham==1.5.4 \
     --hash=sha256:7ecfff8f2fd72616f7481040475a65b2bf8af90a56c89140852d1120324e8686 \
