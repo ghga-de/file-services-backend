@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: "Push to docker on new commit to main"
+name: "Push to docker on new release"
 
 on:
   release:
@@ -181,19 +181,37 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Create current docker tag
+        id: docker-tag
+        run: |
+          echo tag="${{ env.DOCKERHUB_NAMESPACE }}/${{ steps.extract-service-name.outputs.name }}:${{ steps.extract-service-version.outputs.version }}" >> $GITHUB_OUTPUT
+
+      - name: Check if docker image already exists
+        id: check-image-exists
+        run: |
+          docker pull "docker.io/${{ steps.docker-tag.outputs.tag }}"
+          if [ $? -eq 0 ]
+          then
+            echo exists=toJSON(true) >> $GITHUB_OUTPUT
+          else
+            echo exists=toJSON(false) >> $GITHUB_OUTPUT
+          fi
+
       - uses: docker/build-push-action@v5
         name: Build and push
         id: docker_build
+        if: ${{ fromJson(check-iimage-exists.steps.outputs.exists) == false }}
         with:
           push: true
           platforms: "${{ env.DOCKERHUB_PLATFORMS }}"
-          tags: "${{ env.DOCKERHUB_NAMESPACE }}/${{ steps.extract-service-name.outputs.name }}:${{ steps.extract-service-version.outputs.version }}-${{ github.sha }}"
+          tags: "${{ steps.docker-tag.outputs.tag }}"
           context: "services/${{ matrix.service }}"
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
+        if: ${{ fromJson(check-iimage-exists.steps.outputs.exists) == false }}
         with:
-          image-ref: "docker.io/${{ env.DOCKERHUB_NAMESPACE }}/${{ steps.extract-service-name.outputs.name }}:${{ steps.extract-service-version.outputs.version }}-${{ github.sha }}"
+          image-ref: "docker.io/${{ steps.docker-tag.outputs.tag }}"
           format: "table"
           exit-code: "1"
           ignore-unfixed: true
@@ -201,5 +219,6 @@ jobs:
           severity: ${{ env.TRIVY_SEVERITY }}
 
       - name: Image digest
+        if: ${{ fromJson(check-iimage-exists.steps.outputs.exists) == false }}
         shell: bash
         run: echo ${{ steps.docker_build.outputs.digest }}
