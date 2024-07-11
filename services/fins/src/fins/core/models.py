@@ -14,4 +14,26 @@
 # limitations under the License.
 """Models for internal representation"""
 
-from pydantic import BaseModel
+import ghga_event_schemas.pydantic_ as event_schemas
+from pydantic import BaseModel, Field, PositiveInt
+
+
+class FileInformation(BaseModel):
+    """Basic public information container for files registered with the Internal File
+    Registry service.
+    """
+
+    file_id: str = Field(
+        ...,
+        description="Public identifier of the file associated with the given information",
+    )
+    size: PositiveInt = Field(..., description="Size of the unencrypted file in bytes.")
+    sha256_hash: str = Field(
+        ...,
+        description="SHA256 hash of the unencrypted file content encoded as hexadecimal "
+        " values as produced by hashlib.hexdigest().",
+    )
+
+
+class FileDeletionRequested(event_schemas.FileDeletionRequested):
+    """TODO"""

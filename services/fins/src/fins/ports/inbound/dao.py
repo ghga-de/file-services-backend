@@ -13,8 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Utils for Fixture handling"""
+from hexkit.protocols.dao import DaoNaturalId
 
-from pathlib import Path
+from fins.core import models
 
-BASE_DIR = Path(__file__).parent.resolve()
+FileDeletionRequestedDaoPort = DaoNaturalId[models.FileDeletionRequested]
+FileInformationDaoPort = DaoNaturalId[models.FileInformation]

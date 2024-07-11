@@ -12,15 +12,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Session-scoped fixtures"""
 
-from hexkit.providers.akafka.testutils import (  # noqa: F401
-    kafka_container_fixture,
-    kafka_fixture,
-)
-from hexkit.providers.mongodb.testutils import (  # noqa: F401
-    mongodb_container_fixture,
-    mongodb_fixture,
-)
 
-from tests_fis.fixtures.joint import joint_fixture  # noqa: F401
+import ghga_event_schemas.pydantic_ as event_schemas
+
+from fins.ports.inbound.information_service import InformationServicePort
+
+
+class InformationService(InformationServicePort):
+    """TODO"""
+
+    def __init__(self): ...
+
+    def deletion_requested(self, file_id: str):
+        """TODO"""
+
+    def register_information(
+        self, file_information: event_schemas.FileInternallyRegistered
+    ):
+        """TODO"""

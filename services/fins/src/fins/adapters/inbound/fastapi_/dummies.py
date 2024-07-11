@@ -22,8 +22,10 @@ from typing import Annotated
 from fastapi import Depends
 from ghga_service_commons.api.di import DependencyDummy
 
-from fins.config import Config
+from fins.ports.inbound.information_service import InformationServicePort
 
-config_dummy = DependencyDummy("config_dummy")
+information_service = DependencyDummy("information_service")
 
-ConfigDummy = Annotated[Config, Depends(config_dummy)]
+InformationServiceDummy = Annotated[
+    InformationServicePort, Depends(information_service)
+]

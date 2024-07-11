@@ -13,29 +13,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Test config"""
+from abc import ABC, abstractmethod
 
-from pathlib import Path
-
-from pydantic_settings import BaseSettings
-
-from fis.config import Config
-from tests_fis.fixtures.utils import BASE_DIR
-
-TEST_CONFIG_YAML = BASE_DIR / "test_config.yaml"
+import ghga_event_schemas.pydantic_ as event_schemas
 
 
-def get_config(
-    sources: list[BaseSettings] | None = None,
-    default_config_yaml: Path = TEST_CONFIG_YAML,
-) -> Config:
-    """Merges parameters from the default TEST_CONFIG_YAML with params inferred
-    from testcontainers.
+class InformationServicePort(ABC):
+    """Abstract baseclass for a service that handles storage and deletion of relevant
+    metadata for files registered with the Internal File Registry service.
     """
-    sources_dict: dict[str, object] = {}
 
-    if sources is not None:
-        for source in sources:
-            sources_dict.update(**source.model_dump())
+    @abstractmethod
+    def deletion_requested(self, file_id: str):
+        """TODO"""
 
-    return Config(config_yaml=default_config_yaml, **sources_dict)
+    @abstractmethod
+    def register_information(
+        self, file_information: event_schemas.FileInternallyRegistered
+    ):
+        """TODO"""

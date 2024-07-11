@@ -17,19 +17,15 @@
 from ghga_service_commons.api import ApiConfigBase
 from hexkit.config import config_from_yaml
 from hexkit.log import LoggingConfig
-from hexkit.providers.akafka import KafkaConfig
-from hexkit.providers.mongodb import MongoDbConfig
+from hexkit.providers.mongokafka import MongoKafkaConfig
+
+from fins.adapters.inbound.event_sub import OutboxSubTranslatorConfig
 
 SERVICE_NAME = "fins"
 
 
 @config_from_yaml(prefix=SERVICE_NAME)
-class Config(
-    ApiConfigBase,
-    MongoDbConfig,
-    KafkaConfig,
-    LoggingConfig,
-):
+class Config(ApiConfigBase, MongoKafkaConfig, LoggingConfig, OutboxSubTranslatorConfig):
     """Config parameters and their defaults."""
 
     service_name: str = SERVICE_NAME
