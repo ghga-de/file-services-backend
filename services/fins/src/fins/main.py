@@ -14,10 +14,17 @@
 # limitations under the License.
 """REST API configuration and function for CLI"""
 
+import asyncio
+
 from ghga_service_commons.api import run_server
 from hexkit.log import configure_logging
 
 from fins.config import Config
+from fins.inject import (
+    prepare_event_subscriber,
+    prepare_outbox_subscriber,
+    prepare_rest_app,
+)
 
 
 async def run_rest():
@@ -29,7 +36,16 @@ async def run_rest():
         await run_server(app=app, config=config)
 
 
-async def consume_events():
-    """Publish pending events. Set `--all` to (re)publish all events regardless of status."""
+async def consume_events(run_forever: bool = True):
+    """Consume events for both the normal and outbox subscribers"""
     config = Config()
     configure_logging(config=config)
+
+    async with (
+        prepare_event_subscriber(config=config) as event_subscriber,
+        prepare_outbox_subscriber(config=config) as outbox_subsscriber,
+    ):
+        await asyncio.gather(
+            outbox_subsscriber.run(forever=run_forever),
+            event_subscriber.run(forever=run_forever),
+        )
