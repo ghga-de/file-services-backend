@@ -19,10 +19,10 @@ from ghga_service_commons.httpyexpect.server import HttpCustomExceptionBase
 from pydantic import BaseModel
 
 
-class HttpFileNotFoundError(HttpCustomExceptionBase):
+class HttpInformationNotFoundError(HttpCustomExceptionBase):
     """Thrown when a file with given ID could not be found."""
 
-    exception_id = "fileNotFound"
+    exception_id = "informationNotFound"
 
     class DataModel(BaseModel):
         """Model for exception data"""
@@ -34,7 +34,7 @@ class HttpFileNotFoundError(HttpCustomExceptionBase):
         super().__init__(
             status_code=status_code,
             description=(
-                f"The file with ID {file_id} is not registered."
+                f"Information for the file with ID {file_id} is not registered."
             ),
             data={"file_id": file_id},
         )

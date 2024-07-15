@@ -16,11 +16,28 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, Depends, status
 
-from fins.adapters.inbound.fastapi_ import dummies
+from fins.adapters.inbound.fastapi_ import dummies, http_exceptions, http_responses
+from fins.ports.inbound.information_service import InformationServicePort
 
 router = APIRouter()
+
+RESPONSES = {
+    "fileInformation": {
+        "description": (
+            "A configuration or external communication error has occurred and details "
+            + "should not be communicated to the client"
+        ),
+        "model": http_responses.HttpFileInformationResponse,
+    },
+    "informationNotFound": {
+        "description": (
+            "Exceptions by ID:\n- informationNotFound: No information registered for the given ID."
+        ),
+        "model": http_exceptions.HttpInformationNotFoundError.get_body_model(),
+    },
+}
 
 
 @router.get(
@@ -34,11 +51,29 @@ async def health():
     return {"status": "OK"}
 
 
-@router.get("file_information/{file_id}",
-            summary="",
-            operation_id="getFileInformation",
-            tags=["FileIngestService"],
-            status_code=status.HTTP_200_OK,
-            response_description="")
-async def get_file_information(file_id):
-    """TODO"""
+@router.get(
+    "/file_information/{file_id}",
+    summary="Return public file information for the given file id, i.e. public accession.",
+    operation_id="getFileInformation",
+    tags=["FileIngestService"],
+    status_code=status.HTTP_200_OK,
+    response_description="File information consisting of file id, sha256 checksum of"
+    " the unencrypted file content and file size of the unencrypted file in bytes.",
+    responses={
+        status.HTTP_200_OK: RESPONSES["fileInformation"],
+        status.HTTP_404_NOT_FOUND: RESPONSES["informationNotFound"],
+    },
+)
+async def get_file_information(
+    file_id: str,
+    information_service: Annotated[
+        InformationServicePort, Depends(dummies.information_service_port)
+    ],
+):
+    """Retrieve and serve stored file information."""
+    try:
+        file_information = await information_service.serve_information(file_id=file_id)
+    except information_service.InformationNotFoundError as error:
+        raise http_exceptions.HttpInformationNotFoundError(file_id=file_id) from error
+
+    return http_responses.HttpFileInformationResponse(file_information=file_information)

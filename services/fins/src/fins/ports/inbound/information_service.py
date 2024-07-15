@@ -12,10 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""TODO"""
 
 from abc import ABC, abstractmethod
 
 import ghga_event_schemas.pydantic_ as event_schemas
+
+from fins.core.models import FileInformation
 
 
 class InformationServicePort(ABC):
@@ -23,12 +26,30 @@ class InformationServicePort(ABC):
     metadata for files registered with the Internal File Registry service.
     """
 
-    @abstractmethod
-    def deletion_requested(self, file_id: str):
-        """TODO"""
+    class InformationAlreadyRegistered(RuntimeError):
+        """Raised when information for a given file ID is not registered."""
+
+        def __init__(self, *, file_id: str):
+            message = f"Information for the file with ID {file_id} has already been registered."
+            super().__init__(message)
+
+    class InformationNotFoundError(RuntimeError):
+        """Raised when information for a given file ID is not registered."""
+
+        def __init__(self, *, file_id: str):
+            message = f"Information for the file with ID {file_id} is not registered."
+            super().__init__(message)
 
     @abstractmethod
-    def register_information(
+    async def deletion_requested(self, file_id: str):
+        """Handle deletion requestes for information associated with the give file ID."""
+
+    @abstractmethod
+    async def register_information(
         self, file_information: event_schemas.FileInternallyRegistered
     ):
-        """TODO"""
+        """Store information for a file newly registered with the Internal File Registry."""
+
+    @abstractmethod
+    async def serve_information(self, file_id: str) -> FileInformation:
+        """Retrieve stored public information for the five file ID."""

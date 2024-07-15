@@ -24,8 +24,8 @@ from ghga_service_commons.api.di import DependencyDummy
 
 from fins.ports.inbound.information_service import InformationServicePort
 
-information_service = DependencyDummy("information_service")
+information_service_port = DependencyDummy("information_service")
 
 InformationServiceDummy = Annotated[
-    InformationServicePort, Depends(information_service)
+    InformationServicePort, Depends(information_service_port)
 ]

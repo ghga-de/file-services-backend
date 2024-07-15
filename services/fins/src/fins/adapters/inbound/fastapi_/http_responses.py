@@ -12,32 +12,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Config Parameter Modeling and Parsing"""
+"""A collection of http responses."""
 
-from ghga_service_commons.api import ApiConfigBase
-from hexkit.config import config_from_yaml
-from hexkit.log import LoggingConfig
-from hexkit.providers.mongokafka import MongoKafkaConfig
+from fastapi.responses import JSONResponse
 
-from fins.adapters.inbound.event_sub import (
-    EventSubTranslatorConfig,
-    OutboxSubTranslatorConfig,
-)
-
-SERVICE_NAME = "fins"
+from fins.core.models import FileInformation
 
 
-@config_from_yaml(prefix=SERVICE_NAME)
-class Config(
-    ApiConfigBase,
-    EventSubTranslatorConfig,
-    MongoKafkaConfig,
-    LoggingConfig,
-    OutboxSubTranslatorConfig,
-):
-    """Config parameters and their defaults."""
+class HttpFileInformationResponse(JSONResponse):
+    """Return relevant public information for the requested file."""
 
-    service_name: str = SERVICE_NAME
+    response_id = "fileInformation"
 
-
-CONFIG = Config()  # type: ignore [call-arg]
+    def __init__(self, *, file_information: FileInformation, status_code: int = 200):
+        """Construct message and init the response."""
+        super().__init__(content=file_information.model_dump(), status_code=status_code)
