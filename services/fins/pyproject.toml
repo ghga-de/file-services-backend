@@ -22,7 +22,7 @@ classifiers = [
 ]
 name = "fins"
 version = "1.0.0"
-description = "File Information Service - TODO"
+description = "File Information Service - Providing public metadata about files registered with the Internal File Registry"
 
 [project.license]
 text = "Apache 2.0"

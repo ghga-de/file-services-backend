@@ -1,27 +1,25 @@
-# File Ingest Service
+# File Information Service
 
-A lightweight service to propagate file upload metadata to the GHGA file backend services
+Providing public metadata about files registered with the Internal File Registry
 
 ## Description
 
-The File Ingest Service provides an endpoint to populate the Encryption Key Store,
-Internal File Registry and Download Controller with output metadata from the S3 upload
-script at https://github.com/ghga-de/data-steward-scripts/blob/main/src/s3_upload.py.
-
+The File Information Service serves publicly available metadata about files registered with the Internal File Registry service.
+Currently this includes the SHA256 checksum of the unencrypted file content and the size of the unencrypted file in bytes.
 
 ## Installation
 
 We recommend using the provided Docker container.
 
-A pre-build version is available at [docker hub](https://hub.docker.com/repository/docker/ghga/file-ingest-service):
+A pre-build version is available at [docker hub](https://hub.docker.com/repository/docker/ghga/file-information-service):
 ```bash
-docker pull ghga/file-ingest-service:3.0.0
+docker pull ghga/file-information-service:1.0.0
 ```
 
 Or you can build the container yourself from the [`./Dockerfile`](./Dockerfile):
 ```bash
 # Execute in the repo's root dir:
-docker build -t ghga/file-ingest-service:3.0.0 .
+docker build -t ghga/file-information-service:1.0.0 .
 ```
 
 For production-ready deployment, we recommend using Kubernetes, however,
@@ -29,7 +27,7 @@ for simple use cases, you could execute the service using docker
 on a single server:
 ```bash
 # The entrypoint is preconfigured:
-docker run -p 8080:8080 ghga/file-ingest-service:3.0.0 --help
+docker run -p 8080:8080 ghga/file-information-service:1.0.0 --help
 ```
 
 If you prefer not to use containers, you may install the service from source:
@@ -38,7 +36,7 @@ If you prefer not to use containers, you may install the service from source:
 pip install .
 
 # To run the service:
-fis --help
+fins --help
 ```
 
 ## Configuration
@@ -46,9 +44,19 @@ fis --help
 ### Parameters
 
 The service requires the following configuration parameters:
+- **`files_to_delete_topic`** *(string)*: The name of the topic for events informing about files to be deleted.
+
+
+  Examples:
+
+  ```json
+  "file_deletions"
+  ```
+
+
 - **`log_level`** *(string)*: The minimum log level to capture. Must be one of: `["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "TRACE"]`. Default: `"INFO"`.
 
-- **`service_name`** *(string)*: Default: `"fis"`.
+- **`service_name`** *(string)*: Default: `"fins"`.
 
 - **`service_instance_id`** *(string)*: A string that uniquely identifies this instance across all instances of this service. A globally unique Kafka client ID will be created by concatenating the service_name and the service_instance_id.
 
@@ -83,119 +91,82 @@ The service requires the following configuration parameters:
 
 - **`log_traceback`** *(boolean)*: Whether to include exception tracebacks in log messages. Default: `true`.
 
-- **`vault_url`** *(string)*: URL of the vault instance to connect to.
-
-
-  Examples:
-
-  ```json
-  "http://127.0.0.1.8200"
-  ```
-
-
-- **`vault_role_id`**: Vault role ID to access a specific prefix. Default: `null`.
-
-  - **Any of**
-
-    - *string, format: password*
-
-    - *null*
-
-
-  Examples:
-
-  ```json
-  "example_role"
-  ```
-
-
-- **`vault_secret_id`**: Vault secret ID to access a specific prefix. Default: `null`.
-
-  - **Any of**
-
-    - *string, format: password*
-
-    - *null*
-
-
-  Examples:
-
-  ```json
-  "example_secret"
-  ```
-
-
-- **`vault_verify`**: SSL certificates (CA bundle) used to verify the identity of the vault, or True to use the default CAs, or False for no verification. Default: `true`.
-
-  - **Any of**
-
-    - *boolean*
-
-    - *string*
-
-
-  Examples:
-
-  ```json
-  "/etc/ssl/certs/my_bundle.pem"
-  ```
-
-
-- **`vault_path`** *(string)*: Path without leading or trailing slashes where secrets should be stored in the vault.
-
-- **`vault_secrets_mount_point`** *(string)*: Name used to address the secret engine under a custom mount path. Default: `"secret"`.
-
-
-  Examples:
-
-  ```json
-  "secret"
-  ```
-
-
-- **`vault_kube_role`**: Vault role name used for Kubernetes authentication. Default: `null`.
-
-  - **Any of**
-
-    - *string*
-
-    - *null*
-
-
-  Examples:
-
-  ```json
-  "file-ingest-role"
-  ```
-
-
-- **`service_account_token_path`** *(string, format: path)*: Path to service account token used by kube auth adapter. Default: `"/var/run/secrets/kubernetes.io/serviceaccount/token"`.
-
-- **`private_key`** *(string)*: Base64 encoded private key of the keypair whose public key is used to encrypt the payload.
-
-- **`source_bucket_id`** *(string)*: ID of the bucket the object(s) corresponding to the upload metadata have been uploaded to. This should currently point to the staging bucket.
-
-- **`token_hashes`** *(array)*: List of token hashes corresponding to the tokens that can be used to authenticate calls to this service.
+- **`kafka_servers`** *(array)*: A list of connection strings to connect to Kafka bootstrap servers.
 
   - **Items** *(string)*
 
-- **`file_upload_validation_success_topic`** *(string)*: The name of the topic use to publish FileUploadValidationSuccess events.
-
 
   Examples:
 
   ```json
-  "file_upload_validation_success"
+  [
+      "localhost:9092"
+  ]
   ```
 
 
-- **`file_validations_collection`** *(string)*: The name of the collection used to store FileUploadValidationSuccess events. Default: `"file-validations"`.
+- **`kafka_security_protocol`** *(string)*: Protocol used to communicate with brokers. Valid values are: PLAINTEXT, SSL. Must be one of: `["PLAINTEXT", "SSL"]`. Default: `"PLAINTEXT"`.
+
+- **`kafka_ssl_cafile`** *(string)*: Certificate Authority file path containing certificates used to sign broker certificates. If a CA is not specified, the default system CA will be used if found by OpenSSL. Default: `""`.
+
+- **`kafka_ssl_certfile`** *(string)*: Optional filename of client certificate, as well as any CA certificates needed to establish the certificate's authenticity. Default: `""`.
+
+- **`kafka_ssl_keyfile`** *(string)*: Optional filename containing the client private key. Default: `""`.
+
+- **`kafka_ssl_password`** *(string, format: password)*: Optional password to be used for the client private key. Default: `""`.
+
+- **`generate_correlation_id`** *(boolean)*: A flag, which, if False, will result in an error when inbound requests don't possess a correlation ID. If True, requests without a correlation ID will be assigned a newly generated ID in the correlation ID middleware function. Default: `true`.
 
 
   Examples:
 
   ```json
-  "file-validations"
+  true
+  ```
+
+
+  ```json
+  false
+  ```
+
+
+- **`db_connection_str`** *(string, format: password)*: MongoDB connection string. Might include credentials. For more information see: https://naiveskill.com/mongodb-connection-string/.
+
+
+  Examples:
+
+  ```json
+  "mongodb://localhost:27017"
+  ```
+
+
+- **`db_name`** *(string)*: Name of the database located on the MongoDB server.
+
+
+  Examples:
+
+  ```json
+  "my-database"
+  ```
+
+
+- **`file_registered_event_topic`** *(string)*: The name of the topic for events informing about new registered files for which the metadata should be made available.
+
+
+  Examples:
+
+  ```json
+  "internal_file_registry"
+  ```
+
+
+- **`file_registered_event_type`** *(string)*: The name of the type used for events informing about new registered files for which the metadata should be made available.
+
+
+  Examples:
+
+  ```json
+  "file_registered"
   ```
 
 
@@ -291,73 +262,14 @@ The service requires the following configuration parameters:
   ```
 
 
-- **`generate_correlation_id`** *(boolean)*: A flag, which, if False, will result in an error when trying to publish an event without a valid correlation ID set for the context. If True, the a newly correlation ID will be generated and used in the event header. Default: `true`.
-
-
-  Examples:
-
-  ```json
-  true
-  ```
-
-
-  ```json
-  false
-  ```
-
-
-- **`kafka_servers`** *(array)*: A list of connection strings to connect to Kafka bootstrap servers.
-
-  - **Items** *(string)*
-
-
-  Examples:
-
-  ```json
-  [
-      "localhost:9092"
-  ]
-  ```
-
-
-- **`kafka_security_protocol`** *(string)*: Protocol used to communicate with brokers. Valid values are: PLAINTEXT, SSL. Must be one of: `["PLAINTEXT", "SSL"]`. Default: `"PLAINTEXT"`.
-
-- **`kafka_ssl_cafile`** *(string)*: Certificate Authority file path containing certificates used to sign broker certificates. If a CA is not specified, the default system CA will be used if found by OpenSSL. Default: `""`.
-
-- **`kafka_ssl_certfile`** *(string)*: Optional filename of client certificate, as well as any CA certificates needed to establish the certificate's authenticity. Default: `""`.
-
-- **`kafka_ssl_keyfile`** *(string)*: Optional filename containing the client private key. Default: `""`.
-
-- **`kafka_ssl_password`** *(string, format: password)*: Optional password to be used for the client private key. Default: `""`.
-
-- **`db_connection_str`** *(string, format: password)*: MongoDB connection string. Might include credentials. For more information see: https://naiveskill.com/mongodb-connection-string/.
-
-
-  Examples:
-
-  ```json
-  "mongodb://localhost:27017"
-  ```
-
-
-- **`db_name`** *(string)*: Name of the database located on the MongoDB server.
-
-
-  Examples:
-
-  ```json
-  "my-database"
-  ```
-
-
 
 ### Usage:
 
 A template YAML for configuring the service can be found at
 [`./example-config.yaml`](./example-config.yaml).
-Please adapt it, rename it to `.fis.yaml`, and place it into one of the following locations:
-- in the current working directory were you are execute the service (on unix: `./.fis.yaml`)
-- in your home directory (on unix: `~/.fis.yaml`)
+Please adapt it, rename it to `.fins.yaml`, and place it into one of the following locations:
+- in the current working directory were you are execute the service (on unix: `./.fins.yaml`)
+- in your home directory (on unix: `~/.fins.yaml`)
 
 The config yaml will be automatically parsed by the service.
 
@@ -366,8 +278,8 @@ The config yaml will be automatically parsed by the service.
 All parameters mentioned in the [`./example-config.yaml`](./example-config.yaml)
 could also be set using environment variables or file secrets.
 
-For naming the environment variables, just prefix the parameter name with `fis_`,
-e.g. for the `host` set an environment variable named `fis_host`
+For naming the environment variables, just prefix the parameter name with `fins_`,
+e.g. for the `host` set an environment variable named `fins_host`
 (you may use both upper or lower cases, however, it is standard to define all env
 variables in upper cases).
 

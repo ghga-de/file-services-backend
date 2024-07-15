@@ -19,6 +19,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, status
 
 from fins.adapters.inbound.fastapi_ import dummies, http_exceptions, http_responses
+from fins.core import models
 from fins.ports.inbound.information_service import InformationServicePort
 
 router = APIRouter()
@@ -29,7 +30,7 @@ RESPONSES = {
             "A configuration or external communication error has occurred and details "
             + "should not be communicated to the client"
         ),
-        "model": http_responses.HttpFileInformationResponse,
+        "model": models.FileInformation,
     },
     "informationNotFound": {
         "description": (

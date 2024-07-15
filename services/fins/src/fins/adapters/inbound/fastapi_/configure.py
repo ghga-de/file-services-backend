@@ -28,14 +28,14 @@ from fins.config import Config
 config = Config()  # type: ignore
 
 
-def get_openapi_schema(api) -> dict[str, Any]:
+def get_openapi_schema(app: FastAPI) -> dict[str, Any]:
     """Generates a custom openapi schema for the service"""
     return get_openapi(
         title="File Information Service",
         version=__version__,
-        description="TODO",
+        description="Providing public metadata about files registered with the Internal File Registry",
         tags=[{"name": "FileInformationService"}],
-        routes=api.routes,
+        routes=app.routes,
     )
 
 
