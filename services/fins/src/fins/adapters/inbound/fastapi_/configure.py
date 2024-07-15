@@ -25,7 +25,7 @@ from fins import __version__
 from fins.adapters.inbound.fastapi_.routes import router
 from fins.config import Config
 
-config = Config()  # type: ignore
+config = Config()
 
 
 def get_openapi_schema(app: FastAPI) -> dict[str, Any]:
