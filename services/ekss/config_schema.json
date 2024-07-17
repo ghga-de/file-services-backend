@@ -144,7 +144,7 @@
     },
     "vault_kube_mount_point": {
       "default": "kubernetes",
-      "description": "Name used to address kubernetes under a custom mount path.",
+      "description": "Mount path for the kubernetes adapter.",
       "examples": [
         "kubernetes"
       ],

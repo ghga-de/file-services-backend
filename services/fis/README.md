@@ -169,7 +169,7 @@ The service requires the following configuration parameters:
   ```
 
 
-- **`vault_kube_mount_point`** *(string)*: Name used to address kubernetes under a custom mount path. Default: `"kubernetes"`.
+- **`vault_kube_mount_point`** *(string)*: Mount path for the kubernetes adapter. Default: `"kubernetes"`.
 
 
   Examples:
