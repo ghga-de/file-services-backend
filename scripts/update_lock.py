@@ -97,6 +97,9 @@ def compile_lock_file(
     """From the specified sources compile a lock file using pip-compile from pip-tools
     and write it to the specified output location.
     """
+
+    print(f"Updating '{output.name}'...")
+
     command = ["uv", "pip", "compile", "--refresh", "--generate-hashes", "--no-header"]
 
     if upgrade:
@@ -173,32 +176,26 @@ def main(upgrade: bool = False, check: bool = False):
         check_prod_path = Path(temp_dir) / OUTPUT_LOCK_PATH.name
 
         # compile requirements-dev.txt (includes all dependencies)
-        output_req_dev = check_dev_path if check else OUTPUT_DEV_LOCK_PATH
-        if not check:
-            print(f"Updating '{output_req_dev.name}'...")
         compile_lock_file(
             sources=[modified_pyproject_path, DEV_DEPS_PATH],
-            output=output_req_dev,
+            output=check_dev_path if check else OUTPUT_DEV_LOCK_PATH,
             upgrade=upgrade,
             extras=extras,
         )
 
         if check and is_file_outdated(OUTPUT_DEV_LOCK_PATH, check_dev_path):
-            exit(1)
+            return
 
         # compile requirements.txt (only includes production-related subset of above)
-        output_req = check_prod_path if check else OUTPUT_LOCK_PATH
-        if not check:
-            print(f"Updating '{output_req.name}'...")
         compile_lock_file(
             sources=[modified_pyproject_path],
-            output=output_req,
+            output=check_prod_path if check else OUTPUT_LOCK_PATH,
             upgrade=upgrade,
             extras=extras,
         )
 
         if check and is_file_outdated(OUTPUT_LOCK_PATH, check_prod_path):
-            exit(1)
+            return
 
     if check:
         cli.echo_success("Lock files are up to date.")

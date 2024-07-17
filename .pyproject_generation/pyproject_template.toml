@@ -120,7 +120,7 @@ asyncio_mode = "strict"
 
 [tool.coverage.paths]
 source = [
-    "services",
-    "/workspace/services",
+    "services/**/src",
+    "/workspace/services/**/src",
     "**/lib/python*/site-packages",
 ]

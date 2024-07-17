@@ -125,14 +125,14 @@ def read_package_description() -> str:
     return DESCRIPTION_PATH.read_text()
 
 
-def get_service_readmes() -> str:
+def get_service_links() -> str:
     """Get links to all service readmes."""
 
     service_readme_links = []
 
     for service_dir in sorted(list_service_dirs()):
         service_description = read_service_description(service_dir)
-        readme_link = service_dir.relative_to(ROOT_DIR) / "README.md"
+        readme_link = service_dir.relative_to(ROOT_DIR)
         if "-" in service_description:
             service_description = service_description.split("-")[0].strip()
         service_readme_links.append(f"[{service_description}]({readme_link})")
@@ -150,7 +150,7 @@ def get_package_details() -> PackageDetails:
         **header.model_dump(),
         **name.model_dump(),
         description=description,
-        service_readmes=get_service_readmes(),
+        service_readmes=get_service_links(),
     )
 
 
