@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""TODO"""
+"""Contains logic for public file information storage, retrieval and deletion."""
 
 import logging
 
@@ -40,7 +40,8 @@ class InformationService(InformationServicePort):
             await self._file_information_dao.get_by_id(id_=file_id)
         except ResourceNotFoundError:
             log.info(
-                f"Information for file with id '{file_id}' has already been deleted."
+                f"Information for file with id '{
+                    file_id}' has already been deleted."
             )
             return
 
@@ -56,19 +57,27 @@ class InformationService(InformationServicePort):
             size=file_registered.decrypted_size,
             sha256_hash=file_registered.decrypted_sha256,
         )
+        file_id = file_information.file_id
 
         try:
             await self._file_information_dao.insert(file_information)
+            log.debug(f"Sucessfully inserted information for file {file_id} ")
         except ResourceAlreadyExistsError:
-            information_exists = self.InformationAlreadyRegistered(
-                file_id=file_information.file_id
-            )
-            log.warning(information_exists)
+            existing_information = self._file_information_dao.get_by_id(id_=file_id)
+            log.debug(f"Found existing information for file {file_id}")
+            # Only log if information to be inserted is a mismatch
+            if existing_information != file_information:
+                information_exists = self.MismatchingInformationAlreadyRegistered(
+                    file_id=file_id
+                )
+                log.error(information_exists)
 
     async def serve_information(self, file_id: str) -> FileInformation:
-        """Retrieve stored public information for the five file ID."""
+        """Retrieve stored public information for the five file ID to be served by API."""
         try:
             file_information = await self._file_information_dao.get_by_id(file_id)
+            log.debug(f"Information for file {
+                      file_information.file_id} has been served.")
         except ResourceNotFoundError as error:
             information_not_found = self.InformationNotFoundError(file_id=file_id)
             log.warning(information_not_found)

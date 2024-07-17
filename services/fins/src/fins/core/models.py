@@ -36,4 +36,4 @@ class FileInformation(BaseModel):
 
 
 class FileDeletionRequested(event_schemas.FileDeletionRequested):
-    """TODO"""
+    """Internal event_schema alias for DAO/DTO modelling purposes."""

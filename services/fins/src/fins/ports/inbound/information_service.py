@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""TODO"""
+"""Contains interfaces for public file information storage, retrieval and deletion."""
 
 from abc import ABC, abstractmethod
 
@@ -26,18 +26,20 @@ class InformationServicePort(ABC):
     metadata for files registered with the Internal File Registry service.
     """
 
-    class InformationAlreadyRegistered(RuntimeError):
+    class MismatchingInformationAlreadyRegistered(RuntimeError):
         """Raised when information for a given file ID is not registered."""
 
         def __init__(self, *, file_id: str):
-            message = f"Information for the file with ID {file_id} has already been registered."
+            message = f"Mismatching information for the file with ID {
+                file_id} has already been registered."
             super().__init__(message)
 
     class InformationNotFoundError(RuntimeError):
         """Raised when information for a given file ID is not registered."""
 
         def __init__(self, *, file_id: str):
-            message = f"Information for the file with ID {file_id} is not registered."
+            message = f"Information for the file with ID {
+                file_id} is not registered."
             super().__init__(message)
 
     @abstractmethod
@@ -46,10 +48,10 @@ class InformationServicePort(ABC):
 
     @abstractmethod
     async def register_information(
-        self, file_information: event_schemas.FileInternallyRegistered
+        self, file_registered: event_schemas.FileInternallyRegistered
     ):
         """Store information for a file newly registered with the Internal File Registry."""
 
     @abstractmethod
     async def serve_information(self, file_id: str) -> FileInformation:
-        """Retrieve stored public information for the five file ID."""
+        """Retrieve stored public information for the five file ID to be served by API."""

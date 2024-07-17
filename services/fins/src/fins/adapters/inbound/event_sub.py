@@ -92,7 +92,7 @@ class EventSubTranslator(EventSubscriberProtocol):
         )
 
         await self._information_service.register_information(
-            file_information=validated_payload
+            file_registered=validated_payload
         )
 
 
@@ -126,9 +126,7 @@ class InformationDeletionRequestedListener(
     async def changed(
         self, resource_id: str, update: event_schemas.FileDeletionRequested
     ) -> None:
-        """Consume change event for File Deletion Requests.
-        Idempotence is handled by the core, so no intermediary is required.
-        """
+        """Consume change event for File Deletion Requests."""
         await self.information_service.deletion_requested(file_id=update.file_id)
 
     async def deleted(self, resource_id: str) -> None:
