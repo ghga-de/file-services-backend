@@ -85,8 +85,8 @@ class VaultAdapter(VaultAdapterPort):
         """Initialized approle based client and login"""
         self._client = hvac.Client(url=config.vault_url, verify=config.vault_verify)
         self._path = config.vault_path
-        self._secrets_mount_point = config.vault_secrets_mount_point
         self._auth_mount_point = config.vault_auth_mount_point
+        self._secrets_mount_point = config.vault_secrets_mount_point
 
         self._kube_role = config.vault_kube_role
         if self._kube_role:
