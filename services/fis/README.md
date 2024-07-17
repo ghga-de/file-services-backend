@@ -169,6 +169,16 @@ The service requires the following configuration parameters:
   ```
 
 
+- **`vault_kube_mount_point`** *(string)*: Name used to address kubernetes under a custom mount path. Default: `"kubernetes"`.
+
+
+  Examples:
+
+  ```json
+  "kubernetes"
+  ```
+
+
 - **`service_account_token_path`** *(string, format: path)*: Path to service account token used by kube auth adapter. Default: `"/var/run/secrets/kubernetes.io/serviceaccount/token"`.
 
 - **`private_key`** *(string)*: Base64 encoded private key of the keypair whose public key is used to encrypt the payload.

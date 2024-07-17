@@ -36,6 +36,7 @@ class VaultAdapter:
         self._client = hvac.Client(url=config.vault_url, verify=config.vault_verify)
         self._path = config.vault_path
         self._secrets_mount_point = config.vault_secrets_mount_point
+        self._kube_mount_point = config.vault_kube_mount_point
 
         self._kube_role = config.vault_kube_role
         if self._kube_role:
@@ -63,7 +64,9 @@ class VaultAdapter:
         if self._kube_role:
             with self._service_account_token_path.open() as token_file:
                 jwt = token_file.read()
-            self._kube_adapter.login(role=self._kube_role, jwt=jwt)
+            self._kube_adapter.login(
+                role=self._kube_role, jwt=jwt, mount_point=self._kube_mount_point
+            )
 
         else:
             self._client.auth.approle.login(

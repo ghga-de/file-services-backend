@@ -64,6 +64,11 @@ class VaultConfig(BaseSettings):
         examples=["file-ingest-role"],
         description="Vault role name used for Kubernetes authentication",
     )
+    vault_kube_mount_point: str = Field(
+        default="kubernetes",
+        examples=["kubernetes"],
+        description="Name used to address kubernetes under a custom mount path.",
+    )
     service_account_token_path: Path = Field(
         default="/var/run/secrets/kubernetes.io/serviceaccount/token",
         description="Path to service account token used by kube auth adapter.",
