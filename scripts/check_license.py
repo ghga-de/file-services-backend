@@ -33,47 +33,48 @@ GLOBAL_COPYRIGHT_FILE_PATH = ROOT_DIR / ".devcontainer" / "license_header.txt"
 
 # exclude files and dirs from license header check:
 EXCLUDE = [
-    ".devcontainer",
-    "eggs",
-    ".eggs",
-    "dist",
-    "build",
-    "develop-eggs",
-    "lib",
-    "lib62",
-    "parts",
-    "sdist",
-    "wheels",
-    "pip-wheel-metadata",
     ".coveragerc",
+    ".devcontainer",
+    ".editorconfig",
+    ".eggs",
     ".git",
     ".github",
     ".flake8",
     ".gitignore",
+    ".mypy.ini",
     ".pylintrc",
     ".ruff.toml",
     ".ruff_cache",
-    "example_config.yaml",
-    "config_schema.json",
-    "LICENSE",  # is checked but not for the license header
-    ".pre-commit-config.yaml",
-    "docs",
-    ".vscode",
-    ".mypy_cache",
-    ".mypy.ini",
-    ".pytest_cache",
-    ".editorconfig",
-    "monorepo.code-workspace",
     ".template/.static_files.txt",
     ".template/.static_files_ignore.txt",
     ".template/.mandatory_files.txt",
     ".template/.mandatory_files_ignore.txt",
     ".template/.deprecated_files.txt",
     ".template/.deprecated_files_ignore.txt",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "eggs",
+    "build",
+    "config_schema.json",
+    "dist",
+    "docs",
+    "develop-eggs",
+    "example_config.yaml",
+    "htmlcov",
+    "lib",
+    "lib62",
+    "parts",
+    "pip-wheel-metadata",
+    "sdist",
+    "venv",
+    "wheels",
+    "LICENSE",  # is checked but not for the license header
 ]
 
 # exclude file by file ending from license header check:
 EXCLUDE_ENDINGS = [
+    "code-workspace",
     "html",
     "in",
     "ini",
@@ -82,6 +83,8 @@ EXCLUDE_ENDINGS = [
     "md",
     "pub",
     "pyc",
+    "pyd",
+    "typed",
     "sec",
     "toml",
     "txt",
@@ -94,12 +97,7 @@ EXCLUDE_ENDINGS = [
 ]
 
 # exclude any files with names that match any of the following regex:
-EXCLUDE_PATTERN = [
-    r".*\.egg-info.*",
-    r".*__cache__.*",
-    r".*\.git.*",
-    r".*\.pytest_cache.*",
-]
+EXCLUDE_PATTERN = [r".*\.egg-info.*", r".*__cache__.*", r".*_cache", r".*\.git.*"]
 
 # The License header, "{year}" will be replaced by current year:
 COPYRIGHT_TEMPLATE = """Copyright {year} {author}
@@ -116,8 +114,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License."""
 
-# A list of all chars that may be used to introduce a comment:
-COMMENT_CHARS = ["#"]
+# A list of strings that may be used to introduce a line comment:
+LINE_COMMENTS = ["#"]
 
 AUTHOR = """Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
 for the German Human Genome-Phenome Archive (GHGA)"""
@@ -181,13 +179,13 @@ def get_target_files(
     """Get target files that are not match the exclude conditions.
     Args:
         target_dir (pathlib.Path): The target dir to search.
-        exclude (List[str], optional):
+        exclude (list[str], optional):
             Overwrite default list of file/dir paths relative to
             the target dir that shall be excluded.
-        exclude_endings (List[str], optional):
+        exclude_endings (list[str], optional):
             Overwrite default list of file endings that shall
             be excluded.
-        exclude_pattern (List[str], optional):
+        exclude_pattern (list[str], optional):
             Overwrite default list of regex patterns match file path
             for exclusion.
     """
@@ -203,24 +201,25 @@ def get_target_files(
         file_
         for file_ in all_files
         if not (
-            any([file_.is_relative_to(excl) for excl in exclude_normalized])
-            or any([str(file_).endswith(ending) for ending in exclude_endings])
-            or any([re.match(pattern, str(file_)) for pattern in exclude_pattern])
+            any(file_.is_relative_to(excl) for excl in exclude_normalized)
+            or any(str(file_).endswith(ending) for ending in exclude_endings)
+            or any(re.match(pattern, str(file_)) for pattern in exclude_pattern)
         )
     ]
     return target_files
 
 
-def normalized_line(line: str, chars_to_trim: list[str] = COMMENT_CHARS) -> str:
-    norm_line = line.strip()
+def normalized_line(line: str, line_comments: list[str] = LINE_COMMENTS) -> str:
+    line = line.strip()
+    for line_comment in line_comments:
+        line_without_comment = line.removeprefix(line_comment)
+        if line_without_comment != line:
+            line = line_without_comment.lstrip()
+            break
+    return line
 
-    for char in chars_to_trim:
-        norm_line = norm_line.strip(char)
 
-    return norm_line.strip("\n").strip("\t").strip()
-
-
-def normalized_text(text: str, chars_to_trim: list[str] = COMMENT_CHARS) -> str:
+def normalized_text(text: str, line_comments: list[str] = LINE_COMMENTS) -> str:
     "Normalize a license header text."
     lines = text.split("\n")
 
@@ -232,7 +231,7 @@ def normalized_text(text: str, chars_to_trim: list[str] = COMMENT_CHARS) -> str:
         if stripped_line.startswith("#!"):
             continue
 
-        norm_line = normalized_line(stripped_line)
+        norm_line = normalized_line(stripped_line, line_comments=line_comments)
 
         # exclude empty lines:
         if norm_line == "":
@@ -250,22 +249,17 @@ def format_copyright_template(copyright_template: str, author: str) -> str:
     return normalized_text(copyright_template.replace("{author}", author))
 
 
-def is_commented_line(line: str, comment_chars: list[str] = COMMENT_CHARS) -> bool:
+def is_commented_line(line: str, line_comments: list[str] = LINE_COMMENTS) -> bool:
     """Checks whether a line is a comment."""
-    line_stripped = line.strip()
-    for comment_char in comment_chars:
-        if line_stripped.startswith(comment_char):
-            return True
-
-    return False
+    return line.lstrip().startswith(tuple(line_comments))
 
 
 def is_empty_line(line: str) -> bool:
     """Checks whether a line is empty."""
-    return line.strip("\n").strip("\t").strip() == ""
+    return not line.strip()
 
 
-def get_header(file_path: Path, comment_chars: list[str] = COMMENT_CHARS):
+def get_header(file_path: Path, line_comments: list[str] = LINE_COMMENTS):
     """Extracts the header from a file and normalizes it."""
     header_lines: list[str] = []
 
@@ -273,7 +267,7 @@ def get_header(file_path: Path, comment_chars: list[str] = COMMENT_CHARS):
         with open(file_path) as file:
             for line in file:
                 if is_commented_line(
-                    line, comment_chars=comment_chars
+                    line, line_comments=line_comments
                 ) or is_empty_line(line):
                     header_lines.append(line)
                 else:
@@ -283,7 +277,7 @@ def get_header(file_path: Path, comment_chars: list[str] = COMMENT_CHARS):
 
     # normalize the lines:
     header = "".join(header_lines)
-    return normalized_text(header, chars_to_trim=comment_chars)
+    return normalized_text(header, line_comments=line_comments)
 
 
 def validate_year_string(year_string: str, min_year: int = MIN_YEAR) -> bool:
@@ -318,7 +312,7 @@ def check_copyright_notice(
     global_copyright: GlobalCopyrightNotice,
     copyright_template: str = COPYRIGHT_TEMPLATE,
     author: str = AUTHOR,
-    comment_chars: list[str] = COMMENT_CHARS,
+    line_comments: list[str] = LINE_COMMENTS,
     min_year: int = MIN_YEAR,
 ) -> bool:
     """Checks the specified copyright text against a template.
@@ -386,7 +380,7 @@ def check_file_headers(
     exclude: list[str] = EXCLUDE,
     exclude_endings: list[str] = EXCLUDE_ENDINGS,
     exclude_pattern: list[str] = EXCLUDE_PATTERN,
-    comment_chars: list[str] = COMMENT_CHARS,
+    line_comments: list[str] = LINE_COMMENTS,
     min_year: int = MIN_YEAR,
 ) -> tuple[list[Path], list[Path]]:
     """Check files for presence of a license header and verify that
@@ -407,13 +401,13 @@ def check_file_headers(
             The author that shall be included in the license header.
             It will replace any appearance of "{author}" in the license
             header. This defaults to an author info for GHGA.
-        exclude (List[str], optional):
+        exclude (list[str], optional):
             Overwrite default list of file/dir paths relative to
             the target dir that shall be excluded.
-        exclude_endings (List[str], optional):
+        exclude_endings (list[str], optional):
             Overwrite default list of file endings that shall
             be excluded.
-        exclude_pattern (List[str], optional):
+        exclude_pattern (list[str], optional):
             Overwrite default list of regex patterns match file path
             for exclusion.
     """
@@ -430,13 +424,13 @@ def check_file_headers(
 
     for target_file in target_files:
         try:
-            header = get_header(target_file, comment_chars=comment_chars)
+            header = get_header(target_file, line_comments=line_comments)
             if check_copyright_notice(
                 copyright=header,
                 global_copyright=global_copyright,
                 copyright_template=copyright_template,
                 author=author,
-                comment_chars=comment_chars,
+                line_comments=line_comments,
                 min_year=min_year,
             ):
                 passed_files.append(target_file)
@@ -454,7 +448,7 @@ def check_license_file(
     global_copyright: GlobalCopyrightNotice,
     copyright_template: str = COPYRIGHT_TEMPLATE,
     author: str = AUTHOR,
-    comment_chars: list[str] = COMMENT_CHARS,
+    line_comments: list[str] = LINE_COMMENTS,
     min_year: int = MIN_YEAR,
 ) -> bool:
     """Currently only checks if the copyright notice in the
@@ -496,7 +490,7 @@ def check_license_file(
         global_copyright=global_copyright,
         copyright_template=copyright_template,
         author=author,
-        comment_chars=comment_chars,
+        line_comments=line_comments,
         min_year=min_year,
     )
 

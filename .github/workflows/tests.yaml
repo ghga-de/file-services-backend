@@ -1,5 +1,4 @@
-name: Run tests on non main branch
-
+name: Tests
 on:
   push:
     branches-ignore:
