@@ -169,10 +169,26 @@ The service requires the following configuration parameters:
   ```
 
 
-- **`vault_kube_mount_point`** *(string)*: Mount path for the kubernetes adapter. Default: `"kubernetes"`.
+- **`vault_auth_mount_point`**: Adapter specific mount path for the corresponding auth backend. If none is provided, the default is used. Default: `null`.
+
+  - **Any of**
+
+    - *string*
+
+    - *null*
 
 
   Examples:
+
+  ```json
+  null
+  ```
+
+
+  ```json
+  "approle"
+  ```
+
 
   ```json
   "kubernetes"
