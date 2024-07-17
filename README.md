@@ -12,13 +12,13 @@ This is a monorepo containing all GHGA file backend microservices.
 
 ## Services:
 
-[Download Controller Service](services/dcs/README.md)  
-[Encryption Key Store Service](services/ekss/README.md)  
-[File Ingest Service](services/fis/README.md)  
-[Internal File Registry Service](services/ifrs/README.md)  
-[Interrogation Room Service](services/irs/README.md)  
-[Purge Controller Service](services/pcs/README.md)  
-[Upload Controller Service](services/ucs/README.md)
+[Download Controller Service](services/dcs)  
+[Encryption Key Store Service](services/ekss)  
+[File Ingest Service](services/fis)  
+[Internal File Registry Service](services/ifrs)  
+[Interrogation Room Service](services/irs)  
+[Purge Controller Service](services/pcs)  
+[Upload Controller Service](services/ucs)
 
 ## Development:
 
