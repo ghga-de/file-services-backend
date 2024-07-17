@@ -17,7 +17,7 @@
 import logging
 
 import ghga_event_schemas.pydantic_ as event_schemas
-from hexkit.protocols.dao import ResourceAlreadyExistsError, ResourceNotFoundError
+from hexkit.protocols.dao import ResourceNotFoundError
 
 from fins.adapters.inbound.dao import FileInformationDaoPort
 from fins.core.models import FileInformation
@@ -60,10 +60,9 @@ class InformationService(InformationServicePort):
         file_id = file_information.file_id
 
         try:
-            await self._file_information_dao.insert(file_information)
-            log.debug(f"Sucessfully inserted information for file {file_id} ")
-        except ResourceAlreadyExistsError:
-            existing_information = self._file_information_dao.get_by_id(id_=file_id)
+            existing_information = await self._file_information_dao.get_by_id(
+                id_=file_id
+            )
             log.debug(f"Found existing information for file {file_id}")
             # Only log if information to be inserted is a mismatch
             if existing_information != file_information:
@@ -71,6 +70,9 @@ class InformationService(InformationServicePort):
                     file_id=file_id
                 )
                 log.error(information_exists)
+        except ResourceNotFoundError:
+            await self._file_information_dao.insert(file_information)
+            log.debug(f"Sucessfully inserted information for file {file_id} ")
 
     async def serve_information(self, file_id: str) -> FileInformation:
         """Retrieve stored public information for the five file ID to be served by API."""
