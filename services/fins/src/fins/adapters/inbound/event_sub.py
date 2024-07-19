@@ -37,7 +37,7 @@ class EventSubTranslatorConfig(BaseSettings):
         default=...,
         description="The name of the topic for events informing about new registered files"
         " for which the metadata should be made available.",
-        examples=["internal_file_registry"],
+        examples=["internal-file-registry"],
     )
     file_registered_event_type: str = Field(
         default=...,
