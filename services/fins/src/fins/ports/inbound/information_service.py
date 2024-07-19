@@ -44,7 +44,7 @@ class InformationServicePort(ABC):
 
     @abstractmethod
     async def deletion_requested(self, file_id: str):
-        """Handle deletion requestes for information associated with the give file ID."""
+        """Handle deletion requests for information associated with the given file ID."""
 
     @abstractmethod
     async def register_information(
