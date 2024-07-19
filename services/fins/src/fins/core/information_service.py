@@ -35,7 +35,7 @@ class InformationService(InformationServicePort):
         self._file_information_dao = file_infomation_dao
 
     async def deletion_requested(self, file_id: str):
-        """Handle deletion requestes for information associated with the give file ID."""
+        """Handle deletion requests for information associated with the given file ID."""
         try:
             await self._file_information_dao.get_by_id(id_=file_id)
         except ResourceNotFoundError:
