@@ -27,7 +27,7 @@ class InformationServicePort(ABC):
     """
 
     class MismatchingInformationAlreadyRegistered(RuntimeError):
-        """Raised when information for a given file ID is not registered."""
+        """Raised when the given file ID is already registered but the info doesn't match."""
 
         def __init__(self, *, file_id: str):
             message = f"Mismatching information for the file with ID {
