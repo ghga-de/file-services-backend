@@ -54,4 +54,4 @@ class InformationServicePort(ABC):
 
     @abstractmethod
     async def serve_information(self, file_id: str) -> FileInformation:
-        """Retrieve stored public information for the five file ID to be served by API."""
+        """Retrieve stored public information for the given file ID to be served by the API."""
