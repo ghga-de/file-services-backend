@@ -44,7 +44,7 @@ async def prepare_core(
     dao_factory = MongoDbDaoFactory(config=config)
     file_information_dao = await dao.get_file_information_dao(dao_factory=dao_factory)
 
-    yield InformationService(file_infomation_dao=file_information_dao)
+    yield InformationService(file_information_dao=file_information_dao)
 
 
 def prepare_core_with_override(
@@ -54,8 +54,8 @@ def prepare_core_with_override(
 ):
     """Resolve the prepare_core context manager based on config and override (if any)."""
     return (
-        asyncnullcontext(infromation_service_override)
-        if infromation_service_override
+        asyncnullcontext(information_service_override)
+        if information_service_override
         else prepare_core(config=config)
     )
 
@@ -71,7 +71,7 @@ async def prepare_event_subscriber(
     provide them using the information_service_override parameter.
     """
     async with prepare_core_with_override(
-        config=config, infromation_service_override=information_service_override
+        config=config, information_service_override=information_service_override
     ) as information_service:
         event_sub_translator = EventSubTranslator(
             config=config, information_service=information_service
@@ -93,7 +93,7 @@ async def prepare_outbox_subscriber(
     provide them using the information_service_override parameter.
     """
     async with prepare_core_with_override(
-        config=config, infromation_service_override=information_service_override
+        config=config, information_service_override=information_service_override
     ) as information_service:
         outbox_translators = [
             InformationDeletionRequestedListener(
@@ -119,7 +119,7 @@ async def prepare_rest_app(
     app = get_configured_app(config=config)
 
     async with prepare_core_with_override(
-        config=config, infromation_service_override=information_service_override
+        config=config, information_service_override=information_service_override
     ) as information_service:
         app.dependency_overrides[dummies.information_service_port] = (
             lambda: information_service

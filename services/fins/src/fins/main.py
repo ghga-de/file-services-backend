@@ -46,6 +46,6 @@ async def consume_events(run_forever: bool = True):
         prepare_outbox_subscriber(config=config) as outbox_subscriber,
     ):
         await asyncio.gather(
-            outbox_subsscriber.run(forever=run_forever),
+            outbox_subscriber.run(forever=run_forever),
             event_subscriber.run(forever=run_forever),
         )

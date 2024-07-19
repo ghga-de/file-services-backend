@@ -14,7 +14,6 @@
 # limitations under the License.
 """Models for internal representation"""
 
-import ghga_event_schemas.pydantic_ as event_schemas
 from pydantic import BaseModel, Field, PositiveInt
 
 
@@ -33,7 +32,3 @@ class FileInformation(BaseModel):
         description="SHA256 hash of the unencrypted file content encoded as hexadecimal "
         " values as produced by hashlib.hexdigest().",
     )
-
-
-class FileDeletionRequested(event_schemas.FileDeletionRequested):
-    """Internal event_schema alias for DAO/DTO modelling purposes."""

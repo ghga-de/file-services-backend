@@ -32,7 +32,7 @@ class InformationService(InformationServicePort):
     """
 
     def __init__(self, *, file_information_dao: FileInformationDaoPort):
-        self._file_information_dao = file_infomation_dao
+        self._file_information_dao = file_information_dao
 
     async def deletion_requested(self, file_id: str):
         """Handle deletion requests for information associated with the given file ID."""
@@ -79,7 +79,7 @@ class InformationService(InformationServicePort):
         try:
             file_information = await self._file_information_dao.get_by_id(file_id)
             log.debug(f"Information for file {
-                      file_information.file_id} has been served.")
+                      file_information.file_id} found.")
         except ResourceNotFoundError as error:
             information_not_found = self.InformationNotFoundError(file_id=file_id)
             log.warning(information_not_found)

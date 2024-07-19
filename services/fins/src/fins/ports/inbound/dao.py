@@ -18,5 +18,4 @@ from hexkit.protocols.dao import DaoNaturalId
 
 from fins.core import models
 
-FileDeletionRequestedDaoPort = DaoNaturalId[models.FileDeletionRequested]
 FileInformationDaoPort = DaoNaturalId[models.FileInformation]

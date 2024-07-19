@@ -16,8 +16,6 @@
 """Join the functionality of all fixtures for API-level integration testing."""
 
 __all__ = [
-    "FILE_INFORMATION_MOCK",
-    "INCOMING_PAYLOAD_MOCK",
     "joint_fixture",
     "JointFixture",
     "kafka_container_fixture",
@@ -28,11 +26,9 @@ __all__ = [
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass
 
-import ghga_event_schemas.pydantic_ as event_schemas
 import httpx
 import pytest_asyncio
 from ghga_service_commons.api.testing import AsyncTestClient
-from ghga_service_commons.utils.utc_dates import now_as_utc
 from hexkit.providers.akafka import KafkaEventSubscriber, KafkaOutboxSubscriber
 from hexkit.providers.akafka.testutils import (
     KafkaFixture,
@@ -46,44 +42,17 @@ from hexkit.providers.mongodb.testutils import (
     mongodb_fixture,
 )
 
-from fins.adapters.inbound.dao import (
-    get_file_deletion_requested_dao,
-    get_file_information_dao,
-)
+from fins.adapters.inbound.dao import get_file_information_dao
 from fins.config import Config
-from fins.core import models
 from fins.inject import (
     prepare_core,
     prepare_event_subscriber,
     prepare_outbox_subscriber,
     prepare_rest_app,
 )
-from fins.ports.inbound.dao import FileDeletionRequestedDaoPort, FileInformationDaoPort
+from fins.ports.inbound.dao import FileInformationDaoPort
 from fins.ports.inbound.information_service import InformationServicePort
 from tests_fins.fixtures.config import get_config
-
-FILE_ID = "test-file"
-DECRYPTED_SHA256 = "fake-checksum"
-DECRYPTED_SIZE = 12345678
-
-INCOMING_PAYLOAD_MOCK = event_schemas.FileInternallyRegistered(
-    s3_endpoint_alias="test-node",
-    file_id=FILE_ID,
-    object_id="test-object",
-    bucket_id="test-bucket",
-    upload_date=now_as_utc().isoformat(),
-    decrypted_size=DECRYPTED_SIZE,
-    decrypted_sha256=DECRYPTED_SHA256,
-    encrypted_part_size=1,
-    encrypted_parts_md5=["some", "checksum"],
-    encrypted_parts_sha256=["some", "checksum"],
-    content_offset=1234,
-    decryption_secret_id="some-secret",
-)
-
-FILE_INFORMATION_MOCK = models.FileInformation(
-    file_id=FILE_ID, sha256_hash=DECRYPTED_SHA256, size=DECRYPTED_SIZE
-)
 
 
 @dataclass
@@ -93,7 +62,6 @@ class JointFixture:
     config: Config
     information_service: InformationServicePort
     file_information_dao: FileInformationDaoPort
-    file_deletion_requested_dao: FileDeletionRequestedDaoPort
     rest_client: httpx.AsyncClient
     event_subscriber: KafkaEventSubscriber
     outbox_subscriber: KafkaOutboxSubscriber
@@ -116,9 +84,6 @@ async def joint_fixture(
 
     dao_factory = MongoDbDaoFactory(config=config)
     file_information_dao = await get_file_information_dao(dao_factory=dao_factory)
-    file_deletion_requested_dao = await get_file_deletion_requested_dao(
-        dao_factory=dao_factory
-    )
 
     # prepare everything except the outbox subscriber
     async with (
@@ -138,7 +103,6 @@ async def joint_fixture(
         yield JointFixture(
             config=config,
             information_service=information_service,
-            file_deletion_requested_dao=file_deletion_requested_dao,
             file_information_dao=file_information_dao,
             rest_client=rest_client,
             event_subscriber=event_subscriber,

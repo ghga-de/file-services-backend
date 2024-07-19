@@ -17,18 +17,7 @@
 from hexkit.protocols.dao import DaoFactoryProtocol
 
 from fins.core import models
-from fins.ports.inbound.dao import FileDeletionRequestedDaoPort, FileInformationDaoPort
-
-
-async def get_file_deletion_requested_dao(
-    *, dao_factory: DaoFactoryProtocol
-) -> FileDeletionRequestedDaoPort:
-    """Setup the DAOs using the specified provider of the DaoFactoryProtocol."""
-    return await dao_factory.get_dao(
-        name="file_deletion_requested",
-        dto_model=models.FileDeletionRequested,
-        id_field="file_id",
-    )
+from fins.ports.inbound.dao import FileInformationDaoPort
 
 
 async def get_file_information_dao(

@@ -19,12 +19,11 @@ import logging
 
 import ghga_event_schemas.pydantic_ as event_schemas
 import pytest
+from ghga_service_commons.utils.utc_dates import now_as_utc
 from hexkit.protocols.dao import ResourceNotFoundError
 
-from fins.core.models import FileInformation
+from fins.core import models
 from tests_fins.fixtures.joint import (
-    FILE_INFORMATION_MOCK,
-    INCOMING_PAYLOAD_MOCK,
     JointFixture,
     joint_fixture,  # noqa: F401
     kafka_container_fixture,  # noqa: F401
@@ -33,9 +32,31 @@ from tests_fins.fixtures.joint import (
     mongodb_fixture,  # noqa: F401
 )
 
-pytestmark = pytest.mark.asyncio()
-
+FILE_ID = "test-file"
 CHANGED_TYPE = "upserted"
+DECRYPTED_SHA256 = "fake-checksum"
+DECRYPTED_SIZE = 12345678
+
+INCOMING_PAYLOAD_MOCK = event_schemas.FileInternallyRegistered(
+    s3_endpoint_alias="test-node",
+    file_id=FILE_ID,
+    object_id="test-object",
+    bucket_id="test-bucket",
+    upload_date=now_as_utc().isoformat(),
+    decrypted_size=DECRYPTED_SIZE,
+    decrypted_sha256=DECRYPTED_SHA256,
+    encrypted_part_size=1,
+    encrypted_parts_md5=["some", "checksum"],
+    encrypted_parts_sha256=["some", "checksum"],
+    content_offset=1234,
+    decryption_secret_id="some-secret",
+)
+
+FILE_INFORMATION_MOCK = models.FileInformation(
+    file_id=FILE_ID, sha256_hash=DECRYPTED_SHA256, size=DECRYPTED_SIZE
+)
+
+pytestmark = pytest.mark.asyncio()
 
 
 async def test_normal_journey(
@@ -94,7 +115,7 @@ async def test_normal_journey(
     url = f"{base_url}/{file_id}"
     response = await joint_fixture.rest_client.get(url)
     assert response.status_code == 200
-    assert FileInformation(**response.json()) == FILE_INFORMATION_MOCK
+    assert models.FileInformation(**response.json()) == FILE_INFORMATION_MOCK
 
     # Test requesting invalid file information
     url = f"{base_url}/invalid"
