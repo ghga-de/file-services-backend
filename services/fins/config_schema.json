@@ -5,7 +5,7 @@
     "files_to_delete_topic": {
       "description": "The name of the topic for events informing about files to be deleted.",
       "examples": [
-        "file_deletions"
+        "file-deletions"
       ],
       "title": "Files To Delete Topic",
       "type": "string"
@@ -140,7 +140,7 @@
     "file_registered_event_topic": {
       "description": "The name of the topic for events informing about new registered files for which the metadata should be made available.",
       "examples": [
-        "internal_file_registry"
+        "internal-file-registry"
       ],
       "title": "File Registered Event Topic",
       "type": "string"

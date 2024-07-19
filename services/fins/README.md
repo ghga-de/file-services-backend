@@ -51,7 +51,7 @@ The service requires the following configuration parameters:
   Examples:
 
   ```json
-  "file_deletions"
+  "file-deletions"
   ```
 
 
@@ -157,7 +157,7 @@ The service requires the following configuration parameters:
   Examples:
 
   ```json
-  "internal_file_registry"
+  "internal-file-registry"
   ```
 
 
