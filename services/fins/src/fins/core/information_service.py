@@ -75,7 +75,7 @@ class InformationService(InformationServicePort):
             log.debug(f"Sucessfully inserted information for file {file_id} ")
 
     async def serve_information(self, file_id: str) -> FileInformation:
-        """Retrieve stored public information for the five file ID to be served by API."""
+        """Retrieve stored public information for the given file ID to be served by the API."""
         try:
             file_information = await self._file_information_dao.get_by_id(file_id)
             log.debug(f"Information for file {
