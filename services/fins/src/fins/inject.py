@@ -50,7 +50,7 @@ async def prepare_core(
 def prepare_core_with_override(
     *,
     config: Config,
-    infromation_service_override: InformationServicePort | None = None,
+    information_service_override: InformationServicePort | None = None,
 ):
     """Resolve the prepare_core context manager based on config and override (if any)."""
     return (
