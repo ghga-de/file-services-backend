@@ -11,6 +11,8 @@ env:
   DCS_CONFIG_YAML: ./services/dcs/dev_config.yaml
   EKSS_CONFIG_YAML: ./services/ekss/dev_config.yaml
   FIS_CONFIG_YAML: ./services/fis/dev_config.yaml
+  FINS_CONFIG_YAML: ./services/fins/dev_config.yaml
+
 
 jobs:
   get-changed-services:
