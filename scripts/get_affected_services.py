@@ -30,25 +30,26 @@ SERVICES_DIR = REPO_ROOT_DIR / "services"
 
 
 def must_run_all(non_service_changes: list[str]) -> bool:
-    """Determine if any changes outside the service dir require running all CI checks."""
-    for file in non_service_changes:
-        if file.startswith(
-            (
-                ".github/",
-                ".pyproject_generation/",
-                ".readme_generation/",
-                ".template/",
-                ".lock/",
-                "scripts/",
-                "pyproject.toml",
+    """Determine if any changes outside the service dir require running CI for all services."""
+
+    return any(
+        file
+        for file in non_service_changes
+        if (
+            file
+            in (
+                ".github/workflows/ci_workflow_dispatch.yaml",
+                ".github/workflows/docker_on_release.yaml",
+            )  # no need to include the other workflows as they are basically just wrappers
+            or file.startswith(
+                (
+                    "lock/",
+                    "scripts/",
+                )
             )
-        ) or Path(file).name in (
-            ".pre-commit-config.yaml",
-            "license_header.txt",
-            "template-Dockerfile",
-        ):
-            return True
-    return False
+            or Path(file).name == "Dockerfile"
+        )
+    )
 
 
 def get_modified_services(files: list[str]) -> list[str]:
