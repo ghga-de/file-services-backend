@@ -52,7 +52,7 @@ The service requires the following configuration parameters:
   Examples:
 
   ```json
-  "file_upload_received"
+  "file-upload-received"
   ```
 
 
@@ -62,7 +62,7 @@ The service requires the following configuration parameters:
   Examples:
 
   ```json
-  "file-uploads"
+  "fileUploads"
   ```
 
 
@@ -72,7 +72,7 @@ The service requires the following configuration parameters:
   Examples:
 
   ```json
-  "file_downloads"
+  "file-downloads"
   ```
 
 
@@ -112,7 +112,7 @@ The service requires the following configuration parameters:
   Examples:
 
   ```json
-  "file_metadata_upserts"
+  "file_metadata_upserted"
   ```
 
 
@@ -122,7 +122,7 @@ The service requires the following configuration parameters:
   Examples:
 
   ```json
-  "internal_file_registry"
+  "internal-file-registry"
   ```
 
 
@@ -142,7 +142,7 @@ The service requires the following configuration parameters:
   Examples:
 
   ```json
-  "file_interrogation"
+  "file-interrogation"
   ```
 
 
@@ -152,7 +152,7 @@ The service requires the following configuration parameters:
   Examples:
 
   ```json
-  "file_validation_failure"
+  "file_validation_failed"
   ```
 
 
