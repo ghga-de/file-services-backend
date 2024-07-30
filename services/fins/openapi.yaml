@@ -91,7 +91,7 @@ info:
   description: Providing public metadata about files registered with the Internal
     File Registry
   title: File Information Service
-  version: 1.0.0
+  version: 1.0.1
 openapi: 3.1.0
 paths:
   /file_information/{file_id}:
