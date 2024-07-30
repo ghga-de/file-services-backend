@@ -1,5 +1,5 @@
 db_connection_str: '**********'
-db_name: dev_db
+db_name: dev
 ekss_base_url: http://ekss:8080/
 file_registered_event_topic: internal-file-registry
 file_registered_event_type: file_registered
