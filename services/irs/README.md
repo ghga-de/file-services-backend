@@ -90,7 +90,7 @@ The service requires the following configuration parameters:
   Examples:
 
   ```json
-  "file_interrogation"
+  "file-interrogations"
   ```
 
 
@@ -100,7 +100,7 @@ The service requires the following configuration parameters:
   Examples:
 
   ```json
-  "file_validation_failure"
+  "file_validation_failed"
   ```
 
 
@@ -110,7 +110,12 @@ The service requires the following configuration parameters:
   Examples:
 
   ```json
-  "file_uploads"
+  "uploads"
+  ```
+
+
+  ```json
+  "file-uploads"
   ```
 
 
@@ -120,7 +125,7 @@ The service requires the following configuration parameters:
   Examples:
 
   ```json
-  "internal_file_registry"
+  "internal-file-registry"
   ```
 
 
@@ -144,17 +149,17 @@ The service requires the following configuration parameters:
   Examples:
 
   ```json
-  "file_upload_validation_success"
+  "file-upload-validation-success"
   ```
 
 
-- **`file_validations_collection`** *(string)*: The name of the collection used to store FileUploadValidationSuccess events. Default: `"file-validations"`.
+- **`file_validations_collection`** *(string)*: The name of the collection used to store FileUploadValidationSuccess events. Default: `"fileValidations"`.
 
 
   Examples:
 
   ```json
-  "file-validations"
+  "fileValidations"
   ```
 
 

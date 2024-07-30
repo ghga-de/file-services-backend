@@ -37,7 +37,7 @@ class EventSubTranslatorConfig(BaseSettings):
         default=...,
         description="Name of the topic used for events indicating that a new file has"
         + " been internally registered.",
-        examples=["internal_file_registry"],
+        examples=["internal-file-registry"],
     )
     file_registered_event_type: str = Field(
         default=...,
@@ -103,7 +103,7 @@ class OutboxSubTranslatorConfig(BaseSettings):
     upload_received_event_topic: str = Field(
         default=...,
         description="Name of the topic to publish events that inform about new file uploads.",
-        examples=["file_uploads"],
+        examples=["uploads", "file-uploads"],
     )
 
 

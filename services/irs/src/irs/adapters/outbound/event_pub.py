@@ -34,14 +34,14 @@ class EventPubTanslatorConfig(BaseSettings):
         description=(
             "Name of the topic used for events informing about the outcome of file validations."
         ),
-        examples=["file_interrogation"],
+        examples=["file-interrogations"],
     )
     interrogation_failure_type: str = Field(
         default=...,
         description=(
             "The type used for events informing about the failure of a file validation."
         ),
-        examples=["file_validation_failure"],
+        examples=["file_validation_failed"],
     )
 
 

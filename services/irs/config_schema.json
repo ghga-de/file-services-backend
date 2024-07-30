@@ -155,7 +155,7 @@
     "interrogation_topic": {
       "description": "Name of the topic used for events informing about the outcome of file validations.",
       "examples": [
-        "file_interrogation"
+        "file-interrogations"
       ],
       "title": "Interrogation Topic",
       "type": "string"
@@ -163,7 +163,7 @@
     "interrogation_failure_type": {
       "description": "The type used for events informing about the failure of a file validation.",
       "examples": [
-        "file_validation_failure"
+        "file_validation_failed"
       ],
       "title": "Interrogation Failure Type",
       "type": "string"
@@ -171,7 +171,8 @@
     "upload_received_event_topic": {
       "description": "Name of the topic to publish events that inform about new file uploads.",
       "examples": [
-        "file_uploads"
+        "uploads",
+        "file-uploads"
       ],
       "title": "Upload Received Event Topic",
       "type": "string"
@@ -179,7 +180,7 @@
     "file_registered_event_topic": {
       "description": "Name of the topic used for events indicating that a new file has been internally registered.",
       "examples": [
-        "internal_file_registry"
+        "internal-file-registry"
       ],
       "title": "File Registered Event Topic",
       "type": "string"
@@ -202,16 +203,16 @@
     "file_upload_validation_success_topic": {
       "description": "The name of the topic use to publish FileUploadValidationSuccess events.",
       "examples": [
-        "file_upload_validation_success"
+        "file-upload-validation-success"
       ],
       "title": "File Upload Validation Success Topic",
       "type": "string"
     },
     "file_validations_collection": {
-      "default": "file-validations",
+      "default": "fileValidations",
       "description": "The name of the collection used to store FileUploadValidationSuccess events.",
       "examples": [
-        "file-validations"
+        "fileValidations"
       ],
       "title": "File Validations Collection",
       "type": "string"
