@@ -114,7 +114,7 @@ class DataRepositoryConfig(BaseSettings):
 class DataRepository(DataRepositoryPort):
     """A service that manages a registry of DRS objects."""
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         *,
         config: DataRepositoryConfig,
