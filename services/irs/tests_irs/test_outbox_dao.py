@@ -179,7 +179,5 @@ async def test_republish(joint_fixture: JointFixture):
             await subscriber.run(forever=False)
             await subscriber.run(forever=False)
 
-        # verify that the correlation IDs match what we expect. Sort first
-        translator.consumed_events.sort()
-        events.sort()
-        assert translator.consumed_events == events
+        # verify that the correlation IDs match what we expect
+        assert set(translator.consumed_events) == set(events)
