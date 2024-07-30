@@ -21,7 +21,7 @@ classifiers = [
     "Intended Audience :: Developers",
 ]
 name = "fins"
-version = "1.0.0"
+version = "1.0.1"
 description = "File Information Service - Providing public metadata about files registered with the Internal File Registry"
 
 [project.license]
