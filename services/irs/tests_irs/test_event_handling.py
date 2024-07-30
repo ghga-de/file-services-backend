@@ -46,7 +46,7 @@ def _incoming_event_file_registered(
     """Emulate incoming file registered event"""
     type_ = config.file_registered_event_type
     key = payload["file_id"]
-    topic = config.file_registered_event_type
+    topic = config.file_registered_event_topic
     event = {"payload": payload, "type_": type_, "key": key, "topic": topic}
     return event
 
