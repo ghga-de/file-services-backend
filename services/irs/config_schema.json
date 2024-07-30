@@ -160,14 +160,6 @@
       "title": "Interrogation Topic",
       "type": "string"
     },
-    "interrogation_success_type": {
-      "description": "The type used for events informing about the success of a file validation.",
-      "examples": [
-        "file_validation_success"
-      ],
-      "title": "Interrogation Success Type",
-      "type": "string"
-    },
     "interrogation_failure_type": {
       "description": "The type used for events informing about the failure of a file validation.",
       "examples": [
@@ -207,22 +199,21 @@
       "title": "Object Storages",
       "type": "object"
     },
-    "db_connection_str": {
-      "description": "MongoDB connection string. Might include credentials. For more information see: https://naiveskill.com/mongodb-connection-string/",
+    "file_upload_validation_success_topic": {
+      "description": "The name of the topic use to publish FileUploadValidationSuccess events.",
       "examples": [
-        "mongodb://localhost:27017"
+        "file_upload_validation_success"
       ],
-      "format": "password",
-      "title": "Db Connection Str",
-      "type": "string",
-      "writeOnly": true
+      "title": "File Upload Validation Success Topic",
+      "type": "string"
     },
-    "db_name": {
-      "description": "Name of the database located on the MongoDB server.",
+    "file_validations_collection": {
+      "default": "file-validations",
+      "description": "The name of the collection used to store FileUploadValidationSuccess events.",
       "examples": [
-        "my-database"
+        "file-validations"
       ],
-      "title": "Db Name",
+      "title": "File Validations Collection",
       "type": "string"
     },
     "kafka_servers": {
@@ -284,6 +275,24 @@
       "title": "Generate Correlation Id",
       "type": "boolean"
     },
+    "db_connection_str": {
+      "description": "MongoDB connection string. Might include credentials. For more information see: https://naiveskill.com/mongodb-connection-string/",
+      "examples": [
+        "mongodb://localhost:27017"
+      ],
+      "format": "password",
+      "title": "Db Connection Str",
+      "type": "string",
+      "writeOnly": true
+    },
+    "db_name": {
+      "description": "Name of the database located on the MongoDB server.",
+      "examples": [
+        "my-database"
+      ],
+      "title": "Db Name",
+      "type": "string"
+    },
     "ekss_base_url": {
       "description": "URL pointing to the Encryption Key Store service.",
       "examples": [
@@ -297,15 +306,15 @@
     "object_stale_after_minutes",
     "service_instance_id",
     "interrogation_topic",
-    "interrogation_success_type",
     "interrogation_failure_type",
     "upload_received_event_topic",
     "file_registered_event_topic",
     "file_registered_event_type",
     "object_storages",
+    "file_upload_validation_success_topic",
+    "kafka_servers",
     "db_connection_str",
     "db_name",
-    "kafka_servers",
     "ekss_base_url"
   ],
   "title": "ModSettings",

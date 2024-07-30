@@ -148,23 +148,23 @@ The service requires the following configuration parameters:
 
   - **Additional properties**: Refer to *[#/$defs/S3ObjectStorageNodeConfig](#%24defs/S3ObjectStorageNodeConfig)*.
 
-- **`db_connection_str`** *(string, format: password)*: MongoDB connection string. Might include credentials. For more information see: https://naiveskill.com/mongodb-connection-string/.
+- **`file_upload_validation_success_topic`** *(string)*: The name of the topic use to publish FileUploadValidationSuccess events.
 
 
   Examples:
 
   ```json
-  "mongodb://localhost:27017"
+  "file_upload_validation_success"
   ```
 
 
-- **`db_name`** *(string)*: Name of the database located on the MongoDB server.
+- **`file_validations_collection`** *(string)*: The name of the collection used to store FileUploadValidationSuccess events. Default: `"file-validations"`.
 
 
   Examples:
 
   ```json
-  "my-database"
+  "file-validations"
   ```
 
 
@@ -204,6 +204,26 @@ The service requires the following configuration parameters:
 
   ```json
   false
+  ```
+
+
+- **`db_connection_str`** *(string, format: password)*: MongoDB connection string. Might include credentials. For more information see: https://naiveskill.com/mongodb-connection-string/.
+
+
+  Examples:
+
+  ```json
+  "mongodb://localhost:27017"
+  ```
+
+
+- **`db_name`** *(string)*: Name of the database located on the MongoDB server.
+
+
+  Examples:
+
+  ```json
+  "my-database"
   ```
 
 

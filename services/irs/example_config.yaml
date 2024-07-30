@@ -3,9 +3,10 @@ db_name: dev_db
 ekss_base_url: http://ekss:8080/
 file_registered_event_topic: internal_file_registry
 file_registered_event_type: file_registered
+file_upload_validation_success_topic: file_upload_validation_success
+file_validations_collection: file-validations
 generate_correlation_id: true
 interrogation_failure_type: file_validation_failure
-interrogation_success_type: file_validation_success
 interrogation_topic: file_interrogation
 kafka_security_protocol: PLAINTEXT
 kafka_servers:
