@@ -12,25 +12,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-"""Interfaces for event publishing adapters and the exception they may throw."""
+"""Interface for broadcasting events to other services."""
 
 from abc import ABC, abstractmethod
+from typing import TypeAlias
 
-from irs.core.models import InterrogationSubject
-from irs.core.staging_handler import StagingHandler
+from ghga_event_schemas.pydantic_ import FileUploadValidationSuccess
+from hexkit.protocols.daopub import DaoPublisher
+
+__all__ = ["FileUploadValidationSuccessDao", "OutboxPublisherFactoryPort"]
+
+FileUploadValidationSuccessDao: TypeAlias = DaoPublisher[FileUploadValidationSuccess]
 
 
-class EventPublisherPort(ABC):
-    """An interface for an adapter that publishes events happening to this service."""
+class OutboxPublisherFactoryPort(ABC):
+    """Port that provides a factory for user related data access objects.
+
+    These objects will also publish changes according to the outbox pattern.
+    """
 
     @abstractmethod
-    async def publish_validation_failure(
-        self,
-        *,
-        staging_handler: StagingHandler,
-        subject: InterrogationSubject,
-        cause: str = "Checksum mismatch",
-    ) -> None:
-        """Publish event informing that a validation was not successful."""
+    async def get_file_validation_success_dao(self) -> FileUploadValidationSuccessDao:
+        """Construct a DAO for manipulating FileUploadValidationSuccess events in the DB."""
         ...

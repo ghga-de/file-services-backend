@@ -30,8 +30,14 @@ from hexkit.providers.mongodb.testutils import MongoDbFixture
 from hexkit.providers.s3.testutils import S3Fixture
 
 from irs.config import Config
-from irs.inject import prepare_core, prepare_event_subscriber, prepare_outbox_subscriber
+from irs.inject import (
+    get_file_validation_success_dao,
+    prepare_core,
+    prepare_event_subscriber,
+    prepare_outbox_subscriber,
+)
 from irs.ports.inbound.interrogator import InterrogatorPort
+from irs.ports.outbound.daopub import FileUploadValidationSuccessDao
 from tests_irs.fixtures.config import get_config
 from tests_irs.fixtures.keypair_fixtures import KeypairFixture
 
@@ -61,6 +67,7 @@ class JointFixture:
     mongodb: MongoDbFixture
     s3: S3Fixture
     endpoint_aliases: EndpointAliases
+    dao: FileUploadValidationSuccessDao
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -93,6 +100,7 @@ async def joint_fixture(
         prepare_outbox_subscriber(
             config=config, interrogator_override=interrogator
         ) as outbox_subscriber,
+        get_file_validation_success_dao(config=config) as dao,
     ):
         yield JointFixture(
             config=config,
@@ -104,4 +112,5 @@ async def joint_fixture(
             mongodb=mongodb,
             s3=s3,
             endpoint_aliases=endpoint_aliases,
+            dao=dao,
         )

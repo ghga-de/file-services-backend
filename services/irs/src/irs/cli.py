@@ -16,10 +16,11 @@
 """Entrypoint of the package"""
 
 import asyncio
+from typing import Annotated
 
 import typer
 
-from irs.main import check_staging_buckets, consume_events
+from irs.main import check_staging_buckets, consume_events, publish_events
 
 cli = typer.Typer()
 
@@ -34,3 +35,13 @@ def sync_consume_events():
 def sync_check_staging_buckets():
     """Run a job to check all objects no longer needed have been deleted"""
     asyncio.run(check_staging_buckets())
+
+
+@cli.command(name="publish-events")
+def sync_run_publish_events(
+    all: Annotated[
+        bool, typer.Option(help="Set to (re)publish all events regardless of status")
+    ] = False,
+):
+    """Publish pending events."""
+    asyncio.run(publish_events(all=all))

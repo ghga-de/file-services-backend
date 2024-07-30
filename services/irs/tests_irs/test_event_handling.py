@@ -46,7 +46,7 @@ def _incoming_event_file_registered(
     """Emulate incoming file registered event"""
     type_ = config.file_registered_event_type
     key = payload["file_id"]
-    topic = config.file_registered_event_type
+    topic = config.file_registered_event_topic
     event = {"payload": payload, "type_": type_, "key": key, "topic": topic}
     return event
 
@@ -224,15 +224,15 @@ async def test_success_event(monkeypatch, joint_fixture: JointFixture):
     }
     expected_event_out = ExpectedEvent(
         payload=payload_out,
-        type_=joint_fixture.config.interrogation_success_type,
+        type_="upserted",
         key=data.file_id,
     )
 
-    async with joint_fixture.kafka.record_events(
-        in_topic=joint_fixture.config.interrogation_topic,
-    ) as event_recorder:
-        await joint_fixture.kafka.publish_event(**event_in)
+    await joint_fixture.kafka.publish_event(**event_in)
 
+    async with joint_fixture.kafka.record_events(
+        in_topic=joint_fixture.config.file_upload_validation_success_topic,
+    ) as event_recorder:
         await joint_fixture.outbox_subscriber.run(forever=False)
 
     recorded_events = event_recorder.recorded_events

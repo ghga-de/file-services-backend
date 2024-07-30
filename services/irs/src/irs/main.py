@@ -21,6 +21,7 @@ from hexkit.log import configure_logging
 
 from irs.config import Config
 from irs.inject import (
+    get_file_validation_success_dao,
     prepare_event_subscriber,
     prepare_outbox_subscriber,
     prepare_storage_inspector,
@@ -53,3 +54,15 @@ async def check_staging_buckets():
 
     async with prepare_storage_inspector(config=config) as staging_inspector:
         await staging_inspector.check_buckets()
+
+
+async def publish_events(*, all: bool = False):
+    """Publish pending events. Set `--all` to (re)publish all events regardless of status."""
+    config = Config()
+    configure_logging(config=config)
+
+    async with get_file_validation_success_dao(config=config) as dao:
+        if all:
+            await dao.republish()
+        else:
+            await dao.publish_pending()

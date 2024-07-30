@@ -18,14 +18,14 @@
 from ghga_service_commons.utils.multinode_storage import S3ObjectStoragesConfig
 from hexkit.config import config_from_yaml
 from hexkit.log import LoggingConfig
-from hexkit.providers.akafka import KafkaConfig
-from hexkit.providers.mongodb import MongoDbConfig
+from hexkit.providers.mongokafka import MongoKafkaConfig
 from pydantic import Field
 
 from irs.adapters.inbound.event_sub import (
     EventSubTranslatorConfig,
     OutboxSubTranslatorConfig,
 )
+from irs.adapters.outbound.daopub import OutboxDaoConfig
 from irs.adapters.outbound.event_pub import EventPubTanslatorConfig
 from irs.core.storage_inspector import StorageInspectorConfig
 
@@ -34,8 +34,8 @@ SERVICE_NAME: str = "irs"
 
 @config_from_yaml(prefix=SERVICE_NAME)
 class Config(
-    KafkaConfig,
-    MongoDbConfig,
+    MongoKafkaConfig,
+    OutboxDaoConfig,
     S3ObjectStoragesConfig,
     EventSubTranslatorConfig,
     OutboxSubTranslatorConfig,
