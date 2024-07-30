@@ -57,13 +57,13 @@ pcs --help
 ### Parameters
 
 The service requires the following configuration parameters:
-- **`file_deletions_collection`** *(string)*: The name of the collection used to store file deletion requests. Default: `"file-deletions"`.
+- **`file_deletions_collection`** *(string)*: The name of the collection used to store file deletion requests. Default: `"fileDeletions"`.
 
 
   Examples:
 
   ```json
-  "file-deletions"
+  "fileDeletions"
   ```
 
 
@@ -73,7 +73,7 @@ The service requires the following configuration parameters:
   Examples:
 
   ```json
-  "file_deletions"
+  "file-deletions"
   ```
 
 
