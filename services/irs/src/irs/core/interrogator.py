@@ -46,7 +46,7 @@ log = getLogger(__name__)
 class Interrogator(InterrogatorPort):
     """A service that validates the content of encrypted files"""
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         *,
         event_publisher: EventPublisherPort,

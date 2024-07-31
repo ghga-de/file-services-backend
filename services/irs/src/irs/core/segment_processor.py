@@ -33,7 +33,7 @@ log = logging.getLogger(__name__)
 class CipherSegmentProcessor:
     """Process inbox file for checksum generation and re-encryption"""
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         *,
         secret: bytes,
