@@ -43,6 +43,6 @@ RUN useradd --create-home appuser
 WORKDIR /home/appuser
 USER appuser
 # set environment
-ENV PYTHONUNBUFFERED=1s
+ENV PYTHONUNBUFFERED=1
 
 ENTRYPOINT []
