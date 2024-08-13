@@ -189,7 +189,7 @@ jobs:
           dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
           dockerhub_token: ${{ secrets.DOCKERHUB_TOKEN }}
           dockerhub_repository: ${{ steps.extract-service-name.outputs.name }}
-          tag: "${{ steps.docker-tag.outputs.tag }}"
+          tag: "${{ steps.extract-service-version.outputs.version }}"
           trivy_severity: "CRITICAL"
           flavor: "${{ matrix.flavor }}"
           working_directory: "services/${{ matrix.service }}"

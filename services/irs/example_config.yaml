@@ -8,6 +8,7 @@ file_validations_collection: fileValidations
 generate_correlation_id: true
 interrogation_failure_type: file_validation_failed
 interrogation_topic: file-interrogations
+kafka_max_message_size: 1048576
 kafka_security_protocol: PLAINTEXT
 kafka_servers:
 - kafka:9092

@@ -45,13 +45,13 @@ irs --help
 ### Parameters
 
 The service requires the following configuration parameters:
-- **`object_stale_after_minutes`** *(integer)*: Amount of time in minutes after which an object in the staging bucket is considered stale. If an object continues existing after this point in time, this is an indication, that something might have gone wrong downstream.
+- **`object_stale_after_minutes`** *(integer, required)*: Amount of time in minutes after which an object in the staging bucket is considered stale. If an object continues existing after this point in time, this is an indication, that something might have gone wrong downstream.
 
 - **`log_level`** *(string)*: The minimum log level to capture. Must be one of: `["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "TRACE"]`. Default: `"INFO"`.
 
 - **`service_name`** *(string)*: Default: `"irs"`.
 
-- **`service_instance_id`** *(string)*: A string that uniquely identifies this instance across all instances of this service. A globally unique Kafka client ID will be created by concatenating the service_name and the service_instance_id.
+- **`service_instance_id`** *(string, required)*: A string that uniquely identifies this instance across all instances of this service. A globally unique Kafka client ID will be created by concatenating the service_name and the service_instance_id.
 
 
   Examples:
@@ -84,7 +84,7 @@ The service requires the following configuration parameters:
 
 - **`log_traceback`** *(boolean)*: Whether to include exception tracebacks in log messages. Default: `true`.
 
-- **`interrogation_topic`** *(string)*: Name of the topic used for events informing about the outcome of file validations.
+- **`interrogation_topic`** *(string, required)*: Name of the topic used for events informing about the outcome of file validations.
 
 
   Examples:
@@ -94,7 +94,7 @@ The service requires the following configuration parameters:
   ```
 
 
-- **`interrogation_failure_type`** *(string)*: The type used for events informing about the failure of a file validation.
+- **`interrogation_failure_type`** *(string, required)*: The type used for events informing about the failure of a file validation.
 
 
   Examples:
@@ -104,7 +104,7 @@ The service requires the following configuration parameters:
   ```
 
 
-- **`upload_received_event_topic`** *(string)*: Name of the topic to publish events that inform about new file uploads.
+- **`upload_received_event_topic`** *(string, required)*: Name of the topic to publish events that inform about new file uploads.
 
 
   Examples:
@@ -119,7 +119,7 @@ The service requires the following configuration parameters:
   ```
 
 
-- **`file_registered_event_topic`** *(string)*: Name of the topic used for events indicating that a new file has been internally registered.
+- **`file_registered_event_topic`** *(string, required)*: Name of the topic used for events indicating that a new file has been internally registered.
 
 
   Examples:
@@ -129,7 +129,7 @@ The service requires the following configuration parameters:
   ```
 
 
-- **`file_registered_event_type`** *(string)*: The type used for events indicating that a new file has been internally registered.
+- **`file_registered_event_type`** *(string, required)*: The type used for events indicating that a new file has been internally registered.
 
 
   Examples:
@@ -139,11 +139,11 @@ The service requires the following configuration parameters:
   ```
 
 
-- **`object_storages`** *(object)*: Can contain additional properties.
+- **`object_storages`** *(object, required)*: Can contain additional properties.
 
   - **Additional properties**: Refer to *[#/$defs/S3ObjectStorageNodeConfig](#%24defs/S3ObjectStorageNodeConfig)*.
 
-- **`file_upload_validation_success_topic`** *(string)*: The name of the topic use to publish FileUploadValidationSuccess events.
+- **`file_upload_validation_success_topic`** *(string, required)*: The name of the topic use to publish FileUploadValidationSuccess events.
 
 
   Examples:
@@ -163,7 +163,7 @@ The service requires the following configuration parameters:
   ```
 
 
-- **`kafka_servers`** *(array)*: A list of connection strings to connect to Kafka bootstrap servers.
+- **`kafka_servers`** *(array, required)*: A list of connection strings to connect to Kafka bootstrap servers.
 
   - **Items** *(string)*
 
@@ -202,7 +202,22 @@ The service requires the following configuration parameters:
   ```
 
 
-- **`db_connection_str`** *(string, format: password)*: MongoDB connection string. Might include credentials. For more information see: https://naiveskill.com/mongodb-connection-string/.
+- **`kafka_max_message_size`** *(integer)*: The largest message size that can be transmitted, in bytes. Only services that have a need to send/receive larger messages should set this. Exclusive minimum: `0`. Default: `1048576`.
+
+
+  Examples:
+
+  ```json
+  1048576
+  ```
+
+
+  ```json
+  16777216
+  ```
+
+
+- **`db_connection_str`** *(string, format: password, required)*: MongoDB connection string. Might include credentials. For more information see: https://naiveskill.com/mongodb-connection-string/.
 
 
   Examples:
@@ -212,7 +227,7 @@ The service requires the following configuration parameters:
   ```
 
 
-- **`db_name`** *(string)*: Name of the database located on the MongoDB server.
+- **`db_name`** *(string, required)*: Name of the database located on the MongoDB server.
 
 
   Examples:
@@ -222,7 +237,7 @@ The service requires the following configuration parameters:
   ```
 
 
-- **`ekss_base_url`** *(string)*: URL pointing to the Encryption Key Store service.
+- **`ekss_base_url`** *(string, required)*: URL pointing to the Encryption Key Store service.
 
 
   Examples:

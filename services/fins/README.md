@@ -45,7 +45,7 @@ fins --help
 ### Parameters
 
 The service requires the following configuration parameters:
-- **`files_to_delete_topic`** *(string)*: The name of the topic for events informing about files to be deleted.
+- **`files_to_delete_topic`** *(string, required)*: The name of the topic for events informing about files to be deleted.
 
 
   Examples:
@@ -59,7 +59,7 @@ The service requires the following configuration parameters:
 
 - **`service_name`** *(string)*: Default: `"fins"`.
 
-- **`service_instance_id`** *(string)*: A string that uniquely identifies this instance across all instances of this service. A globally unique Kafka client ID will be created by concatenating the service_name and the service_instance_id.
+- **`service_instance_id`** *(string, required)*: A string that uniquely identifies this instance across all instances of this service. A globally unique Kafka client ID will be created by concatenating the service_name and the service_instance_id.
 
 
   Examples:
@@ -92,7 +92,7 @@ The service requires the following configuration parameters:
 
 - **`log_traceback`** *(boolean)*: Whether to include exception tracebacks in log messages. Default: `true`.
 
-- **`kafka_servers`** *(array)*: A list of connection strings to connect to Kafka bootstrap servers.
+- **`kafka_servers`** *(array, required)*: A list of connection strings to connect to Kafka bootstrap servers.
 
   - **Items** *(string)*
 
@@ -131,7 +131,22 @@ The service requires the following configuration parameters:
   ```
 
 
-- **`db_connection_str`** *(string, format: password)*: MongoDB connection string. Might include credentials. For more information see: https://naiveskill.com/mongodb-connection-string/.
+- **`kafka_max_message_size`** *(integer)*: The largest message size that can be transmitted, in bytes. Only services that have a need to send/receive larger messages should set this. Exclusive minimum: `0`. Default: `1048576`.
+
+
+  Examples:
+
+  ```json
+  1048576
+  ```
+
+
+  ```json
+  16777216
+  ```
+
+
+- **`db_connection_str`** *(string, format: password, required)*: MongoDB connection string. Might include credentials. For more information see: https://naiveskill.com/mongodb-connection-string/.
 
 
   Examples:
@@ -141,7 +156,7 @@ The service requires the following configuration parameters:
   ```
 
 
-- **`db_name`** *(string)*: Name of the database located on the MongoDB server.
+- **`db_name`** *(string, required)*: Name of the database located on the MongoDB server.
 
 
   Examples:
@@ -151,7 +166,7 @@ The service requires the following configuration parameters:
   ```
 
 
-- **`file_registered_event_topic`** *(string)*: The name of the topic for events informing about new registered files for which the metadata should be made available.
+- **`file_registered_event_topic`** *(string, required)*: The name of the topic for events informing about new registered files for which the metadata should be made available.
 
 
   Examples:
@@ -161,7 +176,7 @@ The service requires the following configuration parameters:
   ```
 
 
-- **`file_registered_event_type`** *(string)*: The name of the type used for events informing about new registered files for which the metadata should be made available.
+- **`file_registered_event_type`** *(string, required)*: The name of the type used for events informing about new registered files for which the metadata should be made available.
 
 
   Examples:
