@@ -84,7 +84,8 @@ jobs:
           checkout: "false"
           dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
           dockerhub_token: ${{ secrets.DOCKERHUB_TOKEN }}
-          tag: "${{ env.DOCKERHUB_NAMESPACE }}/${{ steps.extract-service-name.outputs.name }}:${{ steps.extract-service-version.outputs.version }}-${{ github.sha }}"
+          dockerhub_repository: ${{ steps.extract-service-name.outputs.name }}
+          tag: "${{ steps.extract-service-version.outputs.version }}-${{ github.sha }}"
           trivy_severity: "CRITICAL"
           flavor: "${{ matrix.flavor }}"
           working_directory: "services/${{ matrix.service }}"
