@@ -20,7 +20,7 @@ from fis.core import models
 
 
 class DecryptionError(RuntimeError):
-    """Thrown when decryption with the provided private key failed"""
+    """Raised when decryption with the provided private key failed"""
 
     def __init__(self):
         message = "Could not decrypt received payload with the given key."
@@ -28,18 +28,27 @@ class DecryptionError(RuntimeError):
 
 
 class VaultCommunicationError(RuntimeError):
-    """Thrown when interaction with the vault resulted in an error"""
+    """Raised when interaction with the vault resulted in an error"""
 
     def __init__(self, *, message) -> None:
         super().__init__(message)
 
 
 class WrongDecryptedFormatError(RuntimeError):
-    """Thrown when the decrypted payload"""
+    """Raised when the decrypted payload"""
 
     def __init__(self, *, cause: str):
         message = f"Decrypted payload does not conform to expected format: {
             cause}."
+        super().__init__(message)
+
+
+class NoBucketInformationError(RuntimeError):
+    """Raised when the incoming metadata lacks a bucket ID and no fallback is configured."""
+
+    def __init__(self, *, file_id: str):
+        message = f"No bucket ID present in the metadata for file {
+            file_id} and source_bucket_id config option is not set to populate from fallback"
         super().__init__(message)
 
 

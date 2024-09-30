@@ -26,6 +26,7 @@ from fis.adapters.inbound.fastapi_.http_authorization import (
 from fis.core.models import EncryptedPayload, UploadMetadata
 from fis.ports.inbound.ingest import (
     DecryptionError,
+    NoBucketInformationError,
     VaultCommunicationError,
     WrongDecryptedFormatError,
 )
@@ -76,9 +77,12 @@ async def ingest_legacy_metadata(
     except VaultCommunicationError as error:
         raise HTTPException(status_code=500, detail=str(error)) from error
 
-    await upload_metadata_processor.populate_by_event(
-        upload_metadata=decrypted_metadata, secret_id=secret_id
-    )
+    try:
+        await upload_metadata_processor.populate_by_event(
+            upload_metadata=decrypted_metadata, secret_id=secret_id
+        )
+    except NoBucketInformationError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
 
     return Response(status_code=202)
 
@@ -100,9 +104,12 @@ async def ingest_metadata(
     """Process metadata, file secret id and send success event"""
     secret_id = payload.secret_id
 
-    await upload_metadata_processor.populate_by_event(
-        upload_metadata=payload, secret_id=secret_id
-    )
+    try:
+        await upload_metadata_processor.populate_by_event(
+            upload_metadata=payload, secret_id=secret_id
+        )
+    except NoBucketInformationError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
 
     return Response(status_code=202)
 
