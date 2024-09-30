@@ -142,7 +142,7 @@ async def test_api_calls(monkeypatch, joint_fixture: JointFixture):
     assert response.status_code == 403
 
     # test malformed payload
-    nonsense_payload = payload.model_copy(update={"payload": "abcdefghijklmn"})  # type: ignore
+    nonsense_payload = payload.model_copy(update={"payload": "abcdefghijklmn"})
     response = await joint_fixture.rest_client.post(
         "/federated/ingest_metadata",
         json=nonsense_payload.model_dump(),
