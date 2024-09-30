@@ -114,7 +114,7 @@ async def test_api_calls(monkeypatch, joint_fixture: JointFixture):
         upload_date=expected_upload_date,
         file_id=TEST_PAYLOAD.file_id,
         object_id=TEST_PAYLOAD.object_id,
-        bucket_id=joint_fixture.config.source_bucket_id,
+        bucket_id=TEST_PAYLOAD.bucket_id,
         s3_endpoint_alias=TEST_PAYLOAD.storage_alias,
         decrypted_size=TEST_PAYLOAD.unencrypted_size,
         decryption_secret_id=secret_id,
@@ -142,7 +142,7 @@ async def test_api_calls(monkeypatch, joint_fixture: JointFixture):
     assert response.status_code == 403
 
     # test malformed payload
-    nonsense_payload = payload.model_copy(update={"payload": "abcdefghijklmn"})
+    nonsense_payload = payload.model_copy(update={"payload": "abcdefghijklmn"})  # type: ignore
     response = await joint_fixture.rest_client.post(
         "/federated/ingest_metadata",
         json=nonsense_payload.model_dump(),
@@ -198,7 +198,7 @@ async def test_legacy_api_calls(monkeypatch, joint_fixture: JointFixture):
         upload_date=expected_upload_date,
         file_id=TEST_PAYLOAD.file_id,
         object_id=TEST_PAYLOAD.object_id,
-        bucket_id=joint_fixture.config.source_bucket_id,
+        bucket_id=TEST_PAYLOAD.bucket_id,
         s3_endpoint_alias=TEST_PAYLOAD.storage_alias,
         decrypted_size=TEST_PAYLOAD.unencrypted_size,
         decryption_secret_id=secret_id,

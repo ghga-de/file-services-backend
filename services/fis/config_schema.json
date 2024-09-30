@@ -172,19 +172,6 @@
       "title": "Private Key",
       "type": "string"
     },
-    "source_bucket_id": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "description": "ID of the bucket the object(s) corresponding to the upload metadata have been uploaded to. Only set this as a fallback option for metadata that does not contain the bucket ID.",
-      "title": "Source Bucket Id"
-    },
     "token_hashes": {
       "description": "List of token hashes corresponding to the tokens that can be used to authenticate calls to this service.",
       "items": {

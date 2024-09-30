@@ -43,15 +43,6 @@ class WrongDecryptedFormatError(RuntimeError):
         super().__init__(message)
 
 
-class NoBucketInformationError(RuntimeError):
-    """Raised when the incoming metadata lacks a bucket ID and no fallback is configured."""
-
-    def __init__(self, *, file_id: str):
-        message = f"No bucket ID present in the metadata for file {
-            file_id} and source_bucket_id config option is not set to populate from fallback"
-        super().__init__(message)
-
-
 class LegacyUploadMetadataProcessorPort(ABC):
     """Port for legacy S3 upload metadata processor"""
 

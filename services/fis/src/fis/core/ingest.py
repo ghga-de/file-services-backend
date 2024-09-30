@@ -28,7 +28,6 @@ from fis.core import models
 from fis.ports.inbound.ingest import (
     DecryptionError,
     LegacyUploadMetadataProcessorPort,
-    NoBucketInformationError,
     UploadMetadataProcessorPort,
     VaultCommunicationError,
     WrongDecryptedFormatError,
@@ -47,12 +46,6 @@ class ServiceConfig(BaseSettings):
         description="Base64 encoded private key of the keypair whose public key is used "
         + "to encrypt the payload.",
     )
-    source_bucket_id: str | None = Field(
-        default=None,
-        description="ID of the bucket the object(s) corresponding to the upload metadata "
-        "have been uploaded to. Only set this as a fallback option for metadata "
-        "that does not contain the bucket ID.",
-    )
     token_hashes: list[str] = Field(
         default=...,
         description="List of token hashes corresponding to the tokens that can be used "
@@ -64,7 +57,6 @@ async def _send_file_metadata(
     *,
     dao: FileUploadValidationSuccessDao,
     upload_metadata: models.UploadMetadataBase,
-    source_bucket_id: str,
     secret_id: str,
 ):
     """Send FileUploadValidationSuccess event to downstream services"""
@@ -72,7 +64,7 @@ async def _send_file_metadata(
         upload_date=now_as_utc().isoformat(),
         file_id=upload_metadata.file_id,
         object_id=upload_metadata.object_id,
-        bucket_id=source_bucket_id,
+        bucket_id=upload_metadata.bucket_id,
         s3_endpoint_alias=upload_metadata.storage_alias,
         decrypted_size=upload_metadata.unencrypted_size,
         decryption_secret_id=secret_id,
@@ -124,24 +116,8 @@ class LegacyUploadMetadataProcessor(LegacyUploadMetadataProcessorPort):
         self, *, upload_metadata: models.LegacyUploadMetadata, secret_id: str
     ):
         """Send FileUploadValidationSuccess event to be processed by downstream services"""
-        bucket_id = upload_metadata.bucket_id
-        if not bucket_id:
-            if not self._config.source_bucket_id:
-                no_bucket_information = NoBucketInformationError(
-                    file_id=upload_metadata.file_id
-                )
-                log.error(no_bucket_information)
-                raise no_bucket_information
-            bucket_id = self._config.source_bucket_id
-            log.warning(
-                "No bucket ID found in metdata for file %s. Using configured bucket ID %s",
-                upload_metadata.file_id,
-                bucket_id,
-            )
-
         await _send_file_metadata(
             dao=self._file_validation_success_dao,
-            source_bucket_id=bucket_id,
             secret_id=secret_id,
             upload_metadata=upload_metadata,
         )
@@ -184,24 +160,8 @@ class UploadMetadataProcessor(UploadMetadataProcessorPort):
         self, *, upload_metadata: models.UploadMetadata, secret_id: str
     ):
         """Send FileUploadValidationSuccess event to be processed by downstream services"""
-        bucket_id = upload_metadata.bucket_id
-        if not bucket_id:
-            if not self._config.source_bucket_id:
-                no_bucket_information = NoBucketInformationError(
-                    file_id=upload_metadata.file_id
-                )
-                log.error(no_bucket_information)
-                raise no_bucket_information
-            bucket_id = self._config.source_bucket_id
-            log.warning(
-                "No bucket ID found in metdata for file %s. Using configured bucket ID %s",
-                upload_metadata.file_id,
-                bucket_id,
-            )
-
         await _send_file_metadata(
             dao=self._file_validation_success_dao,
-            source_bucket_id=bucket_id,
             secret_id=secret_id,
             upload_metadata=upload_metadata,
         )
