@@ -49,7 +49,7 @@ async def test_reregistration(
     an exception). Test PR/Push workflow message
     """
     storage = joint_fixture.s3
-    storage_alias = joint_fixture.endpoint_aliases.node1
+    storage_alias = joint_fixture.storage_aliases.node1
 
     # place example content in the staging bucket:
     file_object = tmp_file.model_copy(
@@ -102,7 +102,7 @@ async def test_reregistration_with_updated_metadata(
     expected exception.
     """
     storage = joint_fixture.s3
-    storage_alias = joint_fixture.endpoint_aliases.node1
+    storage_alias = joint_fixture.storage_aliases.node1
     # place example content in the staging bucket:
     file_object = tmp_file.model_copy(
         update={
@@ -175,7 +175,7 @@ async def test_stage_checksum_mismatch(
     await joint_fixture.file_metadata_dao.insert(EXAMPLE_METADATA)
 
     storage = joint_fixture.s3
-    storage_alias = joint_fixture.endpoint_aliases.node1
+    storage_alias = joint_fixture.storage_aliases.node1
 
     bucket_id = joint_fixture.config.object_storages[storage_alias].bucket
     # place the content for an example file in the permanent storage:
