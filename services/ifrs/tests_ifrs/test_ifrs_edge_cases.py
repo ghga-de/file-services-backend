@@ -151,17 +151,24 @@ async def test_reregistration_with_updated_metadata(
         assert expected_message in caplog.messages
 
 
-async def test_stage_non_existing_file(joint_fixture: JointFixture):
+async def test_stage_non_existing_file(joint_fixture: JointFixture, caplog):
     """Check that requesting to stage a non-registered file fails with the expected
     exception.
     """
-    with pytest.raises(FileRegistryPort.FileNotInRegistryError):
-        await joint_fixture.file_registry.stage_registered_file(
-            file_id="notregisteredfile001",
-            decrypted_sha256=EXAMPLE_METADATA_BASE.decrypted_sha256,
-            outbox_object_id=EXAMPLE_METADATA.object_id,
-            outbox_bucket_id=joint_fixture.outbox_bucket,
-        )
+    file_id = "notregisteredfile001"
+    error = joint_fixture.file_registry.FileNotInRegistryError(file_id=file_id)
+
+    caplog.clear()
+    await joint_fixture.file_registry.stage_registered_file(
+        file_id=file_id,
+        decrypted_sha256=EXAMPLE_METADATA_BASE.decrypted_sha256,
+        outbox_object_id=EXAMPLE_METADATA.object_id,
+        outbox_bucket_id=joint_fixture.outbox_bucket,
+    )
+    assert len(caplog.records) == 1
+    record = caplog.records[0]
+    assert record.message == str(error)
+    assert record.levelname == "ERROR"
 
 
 async def test_stage_checksum_mismatch(
