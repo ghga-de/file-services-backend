@@ -20,6 +20,7 @@ import logging
 from ghga_event_schemas.pydantic_ import FileUploadValidationSuccess
 from ghga_service_commons.utils.crypt import decrypt
 from ghga_service_commons.utils.utc_dates import now_as_utc
+from hexkit.protocols.dao import ResourceNotFoundError
 from nacl.exceptions import CryptoError
 from pydantic import Field, ValidationError
 from pydantic_settings import BaseSettings
@@ -112,6 +113,14 @@ class LegacyUploadMetadataProcessor(LegacyUploadMetadataProcessorPort):
             log.error(format_error)
             raise format_error from error
 
+    async def has_already_been_processed(self, *, file_id: str):
+        """Check if file metadata has already been seen and successfully processed."""
+        try:
+            await self._file_validation_success_dao.get_by_id(id_=file_id)
+        except ResourceNotFoundError:
+            return False
+        return True
+
     async def populate_by_event(
         self, *, upload_metadata: models.LegacyUploadMetadata, secret_id: str
     ):
@@ -155,6 +164,14 @@ class UploadMetadataProcessor(UploadMetadataProcessorPort):
             raise decrypt_error from error
 
         return decrypted
+
+    async def has_already_been_processed(self, *, file_id: str):
+        """Check if file metadata has already been seen and successfully processed."""
+        try:
+            await self._file_validation_success_dao.get_by_id(id_=file_id)
+        except ResourceNotFoundError:
+            return False
+        return True
 
     async def populate_by_event(
         self, *, upload_metadata: models.UploadMetadata, secret_id: str

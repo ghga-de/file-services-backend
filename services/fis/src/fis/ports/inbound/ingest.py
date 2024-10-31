@@ -54,6 +54,11 @@ class LegacyUploadMetadataProcessorPort(ABC):
         ...
 
     @abstractmethod
+    async def has_already_been_processed(self, *, file_id: str) -> bool:
+        """Check if file metadata has already been seen and successfully processed."""
+        ...
+
+    @abstractmethod
     async def populate_by_event(
         self, *, upload_metadata: models.LegacyUploadMetadata, secret_id: str
     ):
@@ -72,6 +77,11 @@ class UploadMetadataProcessorPort(ABC):
     @abstractmethod
     async def decrypt_secret(self, *, encrypted: models.EncryptedPayload) -> str:
         """Decrypt file secret payload"""
+        ...
+
+    @abstractmethod
+    async def has_already_been_processed(self, *, file_id: str) -> bool:
+        """Check if file metadata has already been seen and successfully processed."""
         ...
 
     @abstractmethod
