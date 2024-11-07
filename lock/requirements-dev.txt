@@ -422,9 +422,9 @@ ghga-event-schemas==3.3.1 \
     --hash=sha256:6b21b45efd8a1a5dbbc3b671f3d23390b728dd19669ce39a7153acb5487f1256 \
     --hash=sha256:845e72aa8045c52fbb42a215dcd95dd8436c841788b1d8edb80794584faab09a
     # via fsb (pyproject.toml)
-ghga-service-commons==3.1.6 \
-    --hash=sha256:5fe20a5bd9f36d1e097eccbc9f5544dfc13be24354019fd87a80ad2b94897c88 \
-    --hash=sha256:ec81f0a33303dbf61ce08562404483ec9d777366b81b6d7a6d00036b0a885ed7
+ghga-service-commons==3.1.7 \
+    --hash=sha256:00d7c22638d456cd1d3caf450b18069ffeb8319db79e7c16f980a3f8b4998909 \
+    --hash=sha256:ff9c23ed48b97cc0db38df3e05e7243fb3132ce7fd75bf8b49fba92d4152c178
     # via fsb (pyproject.toml)
 h11==0.14.0 \
     --hash=sha256:8f19fbbe99e72420ff35c00b27a34cb9937e902a8b810e2c88300c6f0a3b699d \
