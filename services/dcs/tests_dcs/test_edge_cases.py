@@ -22,9 +22,6 @@ import httpx
 import pytest
 import pytest_asyncio
 from fastapi import status
-from ghga_service_commons.api.mock_router import (  # noqa: F401
-    assert_all_responses_were_requested,
-)
 from ghga_service_commons.utils.utc_dates import now_as_utc
 from pytest_httpx import HTTPXMock, httpx_mock  # noqa: F401
 
@@ -135,6 +132,9 @@ async def test_access_non_existing(joint_fixture: JointFixture):
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
+@pytest.mark.httpx_mock(
+    assert_all_responses_were_requested=False, can_send_already_matched_responses=True
+)
 async def test_deletion_config_error(
     storage_unavailable_fixture: StorageUnavailableFixture,
     httpx_mock: HTTPXMock,  # noqa: F811
@@ -151,6 +151,9 @@ async def test_deletion_config_error(
         await data_repository.delete_file(file_id=storage_unavailable_fixture.file_id)
 
 
+@pytest.mark.httpx_mock(
+    assert_all_responses_were_requested=False, can_send_already_matched_responses=True
+)
 async def test_drs_config_error(
     storage_unavailable_fixture: StorageUnavailableFixture,
     httpx_mock: HTTPXMock,  # noqa: F811
