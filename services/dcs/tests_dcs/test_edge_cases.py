@@ -34,8 +34,6 @@ from tests_dcs.fixtures.utils import (
     generate_work_order_token,
 )
 
-unintercepted_hosts: list[str] = ["localhost"]
-
 pytestmark = pytest.mark.asyncio()
 
 
@@ -71,16 +69,6 @@ async def storage_unavailable_fixture(joint_fixture: JointFixture):
         joint=joint_fixture,
         file_id=test_file.file_id,
     )
-
-
-@pytest.fixture
-def non_mocked_hosts() -> list:
-    """Fixture used by httpx_mock to determine which requests to intercept
-
-    We only want to intercept calls to the EKSS API, so this list will include
-    localhost and the host from the S3 fixture's connection URL.
-    """
-    return unintercepted_hosts
 
 
 async def test_get_health(joint_fixture: JointFixture):

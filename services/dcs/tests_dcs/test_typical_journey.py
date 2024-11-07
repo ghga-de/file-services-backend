@@ -38,18 +38,10 @@ unintercepted_hosts: list[str] = ["localhost"]
 pytestmark = pytest.mark.asyncio()
 
 
-@pytest.fixture
-def non_mocked_hosts() -> list:
-    """Fixture used by httpx_mock to determine which requests to intercept
-
-    We only want to intercept calls to the EKSS API, so this list will include
-    localhost and the host from the S3 fixture's connection URL.
-    """
-    return unintercepted_hosts
-
-
 @pytest.mark.httpx_mock(
-    assert_all_responses_were_requested=False, can_send_already_matched_responses=True
+    assert_all_responses_were_requested=False,
+    can_send_already_matched_responses=True,
+    should_mock=lambda request: request.url.host not in unintercepted_hosts,
 )
 async def test_happy_journey(
     populated_fixture: PopulatedFixture,
