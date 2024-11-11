@@ -79,7 +79,7 @@ async def test_legacy_decryption_sad(joint_fixture: JointFixture):
 
     payload = LegacyUploadMetadata(
         **TEST_PAYLOAD.model_dump(),
-        file_secret=base64.b64encode(os.urandom(32)).decode("utf-8"),  # type: ignore
+        file_secret=base64.b64encode(os.urandom(32)).decode("utf-8"),
     )
 
     encrypted_payload = EncryptedPayload(
