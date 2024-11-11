@@ -29,7 +29,7 @@ from hexkit.providers.akafka.testutils import (
     check_recorded_events,
 )
 
-from fis.core.models import EncryptedPayload, LegacyUploadMetadata, UploadMetadata
+from fis.core.models import EncryptedPayload, UploadMetadata
 from tests_fis.fixtures.joint import TEST_PAYLOAD, JointFixture
 
 pytestmark = pytest.mark.asyncio()
@@ -150,7 +150,7 @@ async def test_api_calls(monkeypatch, joint_fixture: JointFixture):
             headers=headers,
         )
 
-    assert response.status_code == 202
+    assert response.status_code == 204
     assert len(event_recorder.recorded_events) == 0
 
     # test missing authorization
@@ -171,13 +171,13 @@ async def test_api_calls(monkeypatch, joint_fixture: JointFixture):
 
 async def test_legacy_api_calls(monkeypatch, joint_fixture: JointFixture):
     """Test functionality with incoming API call"""
-    payload = LegacyUploadMetadata(
-        **TEST_PAYLOAD.model_dump(),
-        file_secret=base64.b64encode(os.urandom(32)).decode("utf-8"),
-    )
+    file_secret = base64.b64encode(os.urandom(32)).decode("utf-8")
+    payload = TEST_PAYLOAD.model_dump()
+    payload["file_secret"] = file_secret
+
     encrypted_payload = EncryptedPayload(
         payload=encrypt(
-            data=payload.model_dump_json(),
+            data=json.dumps(payload),
             key=joint_fixture.keypair.public,
         )
     )
@@ -250,7 +250,7 @@ async def test_legacy_api_calls(monkeypatch, joint_fixture: JointFixture):
             json=encrypted_payload.model_dump(),
             headers=headers,
         )
-    assert response.status_code == 202
+    assert response.status_code == 204
     assert len(event_recorder.recorded_events) == 0
 
     # test missing authorization

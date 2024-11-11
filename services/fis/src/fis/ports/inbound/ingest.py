@@ -16,6 +16,8 @@
 
 from abc import ABC, abstractmethod
 
+from pydantic import SecretStr
+
 from fis.core import models
 
 
@@ -66,7 +68,7 @@ class LegacyUploadMetadataProcessorPort(ABC):
         ...
 
     @abstractmethod
-    async def store_secret(self, *, file_secret: str) -> str:
+    async def store_secret(self, *, file_secret: SecretStr) -> str:
         """Communicate with HashiCorp Vault to store file secret and get secret ID"""
         ...
 
@@ -75,7 +77,7 @@ class UploadMetadataProcessorPort(ABC):
     """Port for S3 upload metadata processor"""
 
     @abstractmethod
-    async def decrypt_secret(self, *, encrypted: models.EncryptedPayload) -> str:
+    async def decrypt_secret(self, *, encrypted: models.EncryptedPayload) -> SecretStr:
         """Decrypt file secret payload"""
         ...
 
@@ -92,6 +94,6 @@ class UploadMetadataProcessorPort(ABC):
         ...
 
     @abstractmethod
-    async def store_secret(self, *, file_secret: str) -> str:
+    async def store_secret(self, *, file_secret: SecretStr) -> str:
         """Communicate with HashiCorp Vault to store file secret and get secret ID"""
         ...

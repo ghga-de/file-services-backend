@@ -22,7 +22,7 @@ from ghga_service_commons.utils.crypt import decrypt
 from ghga_service_commons.utils.utc_dates import now_as_utc
 from hexkit.protocols.dao import ResourceNotFoundError
 from nacl.exceptions import CryptoError
-from pydantic import Field, ValidationError
+from pydantic import Field, SecretStr, ValidationError
 from pydantic_settings import BaseSettings
 
 from fis.core import models
@@ -131,7 +131,7 @@ class LegacyUploadMetadataProcessor(LegacyUploadMetadataProcessorPort):
             upload_metadata=upload_metadata,
         )
 
-    async def store_secret(self, *, file_secret: str) -> str:
+    async def store_secret(self, *, file_secret: SecretStr) -> str:
         """Communicate with HashiCorp Vault to store file secret and get secret ID"""
         try:
             return self._vault_adapter.store_secret(secret=file_secret)
@@ -155,10 +155,12 @@ class UploadMetadataProcessor(UploadMetadataProcessorPort):
         self._file_validation_success_dao = file_validation_success_dao
         self._vault_adapter = vault_adapter
 
-    async def decrypt_secret(self, *, encrypted: models.EncryptedPayload) -> str:
+    async def decrypt_secret(self, *, encrypted: models.EncryptedPayload) -> SecretStr:
         """Decrypt file secret payload"""
         try:
-            decrypted = decrypt(data=encrypted.payload, key=self._config.private_key)
+            decrypted = SecretStr(
+                decrypt(data=encrypted.payload, key=self._config.private_key)
+            )
         except (ValueError, CryptoError) as error:
             decrypt_error = DecryptionError()
             raise decrypt_error from error
@@ -183,7 +185,7 @@ class UploadMetadataProcessor(UploadMetadataProcessorPort):
             upload_metadata=upload_metadata,
         )
 
-    async def store_secret(self, *, file_secret: str) -> str:
+    async def store_secret(self, *, file_secret: SecretStr) -> str:
         """Communicate with HashiCorp Vault to store file secret and get secret ID"""
         try:
             return self._vault_adapter.store_secret(secret=file_secret)

@@ -70,7 +70,7 @@ async def ingest_legacy_metadata(
     if await upload_metadata_processor.has_already_been_processed(
         file_id=decrypted_metadata.file_id
     ):
-        return Response(status_code=202)
+        return Response(status_code=204)
 
     file_secret = decrypted_metadata.file_secret
 
@@ -105,12 +105,14 @@ async def ingest_metadata(
     """Process metadata, file secret id and send success event"""
     secret_id = payload.secret_id
 
-    if not await upload_metadata_processor.has_already_been_processed(
+    if await upload_metadata_processor.has_already_been_processed(
         file_id=payload.file_id
     ):
-        await upload_metadata_processor.populate_by_event(
-            upload_metadata=payload, secret_id=secret_id
-        )
+        return Response(status_code=204)
+
+    await upload_metadata_processor.populate_by_event(
+        upload_metadata=payload, secret_id=secret_id
+    )
 
     return Response(status_code=202)
 
