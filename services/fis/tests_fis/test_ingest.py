@@ -34,7 +34,7 @@ pytestmark = pytest.mark.asyncio()
 
 async def test_legacy_decryption_happy(joint_fixture: JointFixture):
     """Test decryption with valid keypair and correct file upload metadata format."""
-    # Can't use the LegacyUploadMetadata directly, as dump_json will obfuscate the secret
+    # Can't use LegacyUploadMetadata directly, as dump_json will obfuscate the secret
     file_secret = base64.b64encode(os.urandom(32)).decode("utf-8")
     payload = TEST_PAYLOAD.model_dump()
     payload["file_secret"] = file_secret
