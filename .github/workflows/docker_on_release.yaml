@@ -164,13 +164,10 @@ jobs:
       - name: Check if docker image already exists
         id: check-image-exists
         run: |
-          # pipefail set by default, join with "or" to not cancel run on missing image
-          docker pull "docker.io/${{ steps.docker-tag.outputs.tag }}" ||
-          if [ $? -eq 0 ]
-          then
-            # if the image exists, fail this step and consequently all subsequent steps
-            exit 1
-          fi
+          # disable some defaults so all of there are no early exits
+          set +eo pipefail
+          docker pull "docker.io/${{ steps.docker-tag.outputs.tag }}"
+          test $? -eq 0  && exit 1  || exit 0
 
       - name: Ensure that tag complies with semantic versioning.
         uses: matt-usurp/validate-semver@v2
