@@ -169,7 +169,7 @@ jobs:
           if [ $? -eq 0 ]
           then
             # if the image exists, fail this step and consequently all subsequent steps
-            exit 1
+            exit -1
           fi
 
       - name: Ensure that tag complies with semantic versioning.
