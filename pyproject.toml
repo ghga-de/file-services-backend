@@ -7,6 +7,7 @@ dependencies = [
     "ghga-service-commons[api, auth, crypt] >= 3.1",
     "ghga-event-schemas >= 3.3",
     "hexkit[akafka, s3, mongodb] >= 3.6",
+    "httpx >= 0.27",
     "crypt4gh>=1.6",
     "hvac>=2",
 ]
