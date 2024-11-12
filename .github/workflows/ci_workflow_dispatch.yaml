@@ -10,7 +10,7 @@ on:
       - labeled
 
 env:
-  DOCKERHUB_NAMESPACE: ghga
+  DOCKERHUB_NAMESPACE: mephenor
   DOCKERHUB_PLATFORMS: "linux/amd64,linux/arm64"
   TRIVY_SEVERITY: "CRITICAL,HIGH"
   IFRS_CONFIG_YAML: ./services/ifrs/dev_config.yaml
