@@ -27,7 +27,7 @@ inputs:
     description: "The DockerHub token used to authenticate"
     required: true
   service:
-    description: "Abbreviation of the service to push as "
+    description: "Abbreviation of the service to push"
     required: true
   tag:
     description: "The tag used to publish to the registry."
