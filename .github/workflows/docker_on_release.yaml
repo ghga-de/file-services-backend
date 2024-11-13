@@ -21,8 +21,6 @@ on:
 
 env:
   DOCKERHUB_NAMESPACE: ghga
-  DOCKERHUB_PLATFORMS: "linux/amd64,linux/arm64"
-  TRIVY_SEVERITY: "CRITICAL,HIGH"
   IFRS_CONFIG_YAML: ./services/ifrs/dev_config.yaml
   IRS_CONFIG_YAML: ./services/irs/dev_config.yaml
   PCS_CONFIG_YAML: ./services/pcs/dev_config.yaml
@@ -161,6 +159,11 @@ jobs:
         run: |
           echo tag="${{ env.DOCKERHUB_NAMESPACE }}/${{ steps.extract-service-name.outputs.name }}:${{ steps.extract-service-version.outputs.version }}" >> $GITHUB_OUTPUT
 
+      - name: Ensure that tag complies with semantic versioning.
+        uses: matt-usurp/validate-semver@v2
+        with:
+          version: ${{ steps.extract-service-version.outputs.version }}
+
       - name: Check if docker image already exists
         id: check-image-exists
         run: |
@@ -168,52 +171,16 @@ jobs:
           set +eo pipefail
           # fail explicitly if we already have an image
           docker pull "docker.io/${{ steps.docker-tag.outputs.tag }}"
-          test $? -eq 0  && exit 1  || exit 0
+          test $? -eq 0  && image_exists=true || image_exists=false
+          echo image_exists="$image_exists" >> $GITHUB_OUTPUT
 
-      - name: Ensure that tag complies with semantic versioning.
-        uses: matt-usurp/validate-semver@v2
+      - name: Push to Docker Hub
+        id: docker-push
+        if: ${{ steps.check-image-exists.outputs.image_exists == 'false' }}
+        uses: ./.github/workflows/push_to_docker
         with:
-          version: ${{ steps.extract-service-version.outputs.version }}
-
-      - name: Symlink requirement files
-        id: symlink-requirements
-        run: cp -r lock services/${{ matrix.service }}/lock
-
-      - name: Prepare Dockerfile
-        id: prepare-dockerfile
-        run: cp Dockerfile services/${{ matrix.service }}/ && sed -i "s/\(ENTRYPOINT \)\[\]/\1[\"${{ matrix.service }}\"]/" services/${{ matrix.service }}/Dockerfile
-
-      - uses: docker/setup-qemu-action@v3
-        name: Set up QEMU
-
-      - uses: docker/setup-buildx-action@v3
-        name: Set up Docker Buildx
-
-      - uses: docker/login-action@v3
-        name: Login to DockerHub
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - uses: docker/build-push-action@v5
-        name: Build and push
-        id: docker_build
-        with:
-          push: true
-          platforms: "${{ env.DOCKERHUB_PLATFORMS }}"
-          tags: "${{ steps.docker-tag.outputs.tag }}"
-          context: "services/${{ matrix.service }}"
-
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: "docker.io/${{ steps.docker-tag.outputs.tag }}"
-          format: "table"
-          exit-code: "1"
-          ignore-unfixed: true
-          vuln-type: "os,library"
-          severity: ${{ env.TRIVY_SEVERITY }}
-
-      - name: Image digest
-        shell: bash
-        run: echo ${{ steps.docker_build.outputs.digest }}
+          dockerhub_namespace: ${{ env.DOCKERHUB_NAMESPACE }}
+          dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+          dockerhub_token: ${{ secrets.DOCKERHUB_TOKEN }}
+          service: ${{ matrix.service }}
+          tag: ${{ steps.docker-tag.outputs.tag }}
