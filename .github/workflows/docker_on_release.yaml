@@ -170,9 +170,12 @@ jobs:
           # disable some defaults so there are no early exits
           set +eo pipefail
           # fail explicitly if we already have an image
-          docker pull "docker.io/${{ steps.docker-tag.outputs.tag }}"
-          test $? -eq 0  && image_exists=true || image_exists=false
-          echo image_exists="$image_exists" >> $GITHUB_OUTPUT
+          if docker pull "docker.io/${{ steps.docker-tag.outputs.tag }}"
+          then
+            echo image_exists=true >> $GITHUB_OUTPUT
+          else
+            echo image_exists=false >> $GITHUB_OUTPUT
+          fi
 
       - name: Push to Docker Hub
         id: docker-push
