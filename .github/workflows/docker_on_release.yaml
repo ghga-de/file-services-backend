@@ -20,7 +20,6 @@ on:
       types: [published]
 
 env:
-  DOCKERHUB_NAMESPACE: ghga
   IFRS_CONFIG_YAML: ./services/ifrs/dev_config.yaml
   IRS_CONFIG_YAML: ./services/irs/dev_config.yaml
   PCS_CONFIG_YAML: ./services/pcs/dev_config.yaml
@@ -157,7 +156,7 @@ jobs:
       - name: Create current docker tag
         id: docker-tag
         run: |
-          echo tag="${{ env.DOCKERHUB_NAMESPACE }}/${{ steps.extract-service-name.outputs.name }}:${{ steps.extract-service-version.outputs.version }}" >> $GITHUB_OUTPUT
+          echo tag="ghga/${{ steps.extract-service-name.outputs.name }}:${{ steps.extract-service-version.outputs.version }}" >> $GITHUB_OUTPUT
 
       - name: Ensure that tag complies with semantic versioning.
         uses: matt-usurp/validate-semver@v2
@@ -182,7 +181,6 @@ jobs:
         if: ${{ steps.check-image-exists.outputs.image_exists == 'false' }}
         uses: ./.github/workflows/push_to_docker
         with:
-          dockerhub_namespace: ${{ env.DOCKERHUB_NAMESPACE }}
           dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
           dockerhub_token: ${{ secrets.DOCKERHUB_TOKEN }}
           service: ${{ matrix.service }}

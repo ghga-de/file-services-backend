@@ -17,9 +17,6 @@ name: "Push a service to Docker Hub"
 description: "Build the image for a specific service and push it to Docker Hub"
 
 inputs:
-  dockerhub_namespace:
-    description: "The namespace used to publish to the registry."
-    required: true
   dockerhub_username:
     description: "The DockerHub username"
     required: true
