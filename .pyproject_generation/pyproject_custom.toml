@@ -9,6 +9,7 @@ dependencies = [
     "hexkit[akafka, s3, mongodb] >= 3.6",
     "crypt4gh>=1.6",
     "hvac>=2",
+    "httpx>=0.27",
 ]
 
 [project.urls]

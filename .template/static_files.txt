@@ -22,7 +22,6 @@ scripts/update_hook_revs.py
 scripts/list_outdated_dependencies.py
 scripts/README.md
 
-lock/requirements-dev-template.in
 
 .gitattributes
 .gitignore
