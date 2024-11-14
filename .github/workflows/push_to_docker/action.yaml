@@ -51,10 +51,12 @@ runs:
 
     - name: Symlink requirement files
       id: symlink-requirements
+      shell: bash
       run: cp -r lock services/${{ inputs.service }}/lock
 
     - name: Prepare Dockerfile
       id: prepare-dockerfile
+      shell: bash
       run: cp Dockerfile services/${{ inputs.service }}/ && sed -i "s/\(ENTRYPOINT \)\[\]/\1[\"${{ inputs.service }}\"]/" services/${{ inputs.service }}/Dockerfile
 
     - uses: docker/setup-qemu-action@v3
