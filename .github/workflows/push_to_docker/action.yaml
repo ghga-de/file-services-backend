@@ -1,0 +1,93 @@
+# Copyright 2021 - 2024 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
+# for the German Human Genome-Phenome Archive (GHGA)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: "Push a service to Docker Hub"
+description: "Build the image for a specific service and push it to Docker Hub"
+
+inputs:
+  dockerhub_username:
+    description: "The DockerHub username"
+    required: true
+  dockerhub_token:
+    description: "The DockerHub token used to authenticate"
+    required: true
+  service:
+    description: "Abbreviation of the service to push"
+    required: true
+  tag:
+    description: "The tag used to publish to the registry."
+    required: true
+
+env:
+  DOCKERHUB_PLATFORMS: "linux/amd64,linux/arm64"
+  TRIVY_SEVERITY: "CRITICAL,HIGH"
+  IFRS_CONFIG_YAML: ./services/ifrs/dev_config.yaml
+  IRS_CONFIG_YAML: ./services/irs/dev_config.yaml
+  PCS_CONFIG_YAML: ./services/pcs/dev_config.yaml
+  UCS_CONFIG_YAML: ./services/ucs/dev_config.yaml
+  DCS_CONFIG_YAML: ./services/dcs/dev_config.yaml
+  EKSS_CONFIG_YAML: ./services/ekss/dev_config.yaml
+  FIS_CONFIG_YAML: ./services/fis/dev_config.yaml
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Symlink requirement files
+      id: symlink-requirements
+      run: cp -r lock services/${{ inputs.service }}/lock
+
+    - name: Prepare Dockerfile
+      id: prepare-dockerfile
+      run: cp Dockerfile services/${{ inputs.service }}/ && sed -i "s/\(ENTRYPOINT \)\[\]/\1[\"${{ inputs.service }}\"]/" services/${{ inputs.service }}/Dockerfile
+
+    - uses: docker/setup-qemu-action@v3
+      name: Set up QEMU
+
+    - uses: docker/setup-buildx-action@v3
+      name: Set up Docker Buildx
+
+    - uses: docker/login-action@v3
+      name: Login to DockerHub
+      with:
+        username: ${{ inputs.dockerhub_username }}
+        password: ${{ inputs.dockerhub_token }}
+
+    - uses: docker/build-push-action@v5
+      name: Build and push
+      id: docker_build
+      with:
+        push: true
+        platforms: "${{ env.DOCKERHUB_PLATFORMS }}"
+        tags: "${{ inputs.tag }}"
+        context: "services/${{ inputs.service }}"
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: "docker.io/${{ inputs.tag }}"
+        format: "table"
+        exit-code: "1"
+        ignore-unfixed: true
+        vuln-type: "os,library"
+        severity: ${{ env.TRIVY_SEVERITY }}
+
+    - name: Image digest
+      shell: bash
+      run: echo ${{ steps.docker_build.outputs.digest }}
