@@ -51,26 +51,28 @@ runs:
 
     - name: Symlink requirement files
       id: symlink-requirements
+      shell: bash
       run: cp -r lock services/${{ inputs.service }}/lock
 
     - name: Prepare Dockerfile
       id: prepare-dockerfile
+      shell: bash
       run: cp Dockerfile services/${{ inputs.service }}/ && sed -i "s/\(ENTRYPOINT \)\[\]/\1[\"${{ inputs.service }}\"]/" services/${{ inputs.service }}/Dockerfile
 
-    - uses: docker/setup-qemu-action@v3
-      name: Set up QEMU
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
 
-    - uses: docker/setup-buildx-action@v3
-      name: Set up Docker Buildx
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
 
-    - uses: docker/login-action@v3
-      name: Login to DockerHub
+    - name: Login to DockerHub
+      uses: docker/login-action@v3
       with:
         username: ${{ inputs.dockerhub_username }}
         password: ${{ inputs.dockerhub_token }}
 
-    - uses: docker/build-push-action@v5
-      name: Build and push
+    - name: Build and push
+      uses: docker/build-push-action@v5
       id: docker_build
       with:
         push: true
