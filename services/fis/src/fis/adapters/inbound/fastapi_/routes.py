@@ -54,6 +54,11 @@ async def health():
     status_code=status.HTTP_202_ACCEPTED,
     response_description="Received and decrypted data successfully.",
     deprecated=True,
+    responses={
+        status.HTTP_409_CONFLICT: {
+            "description": "Metadata for the given file ID has already been processed."
+        }
+    },
 )
 async def ingest_legacy_metadata(
     encrypted_payload: EncryptedPayload,
@@ -101,6 +106,11 @@ async def ingest_legacy_metadata(
     tags=["FileIngestService"],
     status_code=status.HTTP_202_ACCEPTED,
     response_description="Received and decrypted data successfully.",
+    responses={
+        status.HTTP_409_CONFLICT: {
+            "description": "Metadata for the given file ID has already been processed."
+        }
+    },
 )
 async def ingest_metadata(
     payload: UploadMetadata,

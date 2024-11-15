@@ -105,7 +105,7 @@ components:
       scheme: bearer
       type: http
 info:
-  description: A service to ingest s3 file upload metadata produced by thedata-steward-kit
+  description: A service to ingest s3 file upload metadata produced by the data-steward-kit
     upload command
   title: File Ingest Service
   version: 4.0.1
@@ -127,6 +127,8 @@ paths:
             application/json:
               schema: {}
           description: Received and decrypted data successfully.
+        '409':
+          description: Metadata for the given file ID has already been processed.
         '422':
           content:
             application/json:
@@ -198,6 +200,8 @@ paths:
             application/json:
               schema: {}
           description: Received and decrypted data successfully.
+        '409':
+          description: Metadata for the given file ID has already been processed.
         '422':
           content:
             application/json:
