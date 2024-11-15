@@ -150,7 +150,10 @@ async def test_api_calls(monkeypatch, joint_fixture: JointFixture):
             headers=headers,
         )
 
-    assert response.status_code == 204
+    assert response.status_code == 409
+    assert response.json() == {
+        "error": f"Metadata for file {TEST_PAYLOAD.file_id} has already been processed."
+    }
     assert len(event_recorder.recorded_events) == 0
 
     # test missing authorization
@@ -250,7 +253,10 @@ async def test_legacy_api_calls(monkeypatch, joint_fixture: JointFixture):
             json=encrypted_payload.model_dump(),
             headers=headers,
         )
-    assert response.status_code == 204
+    assert response.status_code == 409
+    assert response.json() == {
+        "error": f"Metadata for file {TEST_PAYLOAD.file_id} has already been processed."
+    }
     assert len(event_recorder.recorded_events) == 0
 
     # test missing authorization
