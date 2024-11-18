@@ -16,8 +16,13 @@
 """Tests edge cases not covered by the typical journey test."""
 
 import logging
+from unittest.mock import AsyncMock
 
 import pytest
+from ghga_event_schemas import pydantic_ as event_schemas
+from ghga_service_commons.utils.utc_dates import now_as_utc
+from hexkit.custom_types import JsonObject
+from hexkit.providers.akafka.provider.daosub import CHANGE_EVENT_TYPE
 from hexkit.providers.s3.testutils import (
     FileObject,
     S3Fixture,  # noqa: F401
@@ -29,6 +34,32 @@ from tests_ifrs.fixtures.example_data import EXAMPLE_METADATA, EXAMPLE_METADATA_
 from tests_ifrs.fixtures.joint import JointFixture
 
 pytestmark = pytest.mark.asyncio()
+
+TEST_FILE_ID = "test_id"
+TEST_NONSTAGED_FILE_REQUESTED = event_schemas.NonStagedFileRequested(
+    file_id=TEST_FILE_ID,
+    target_object_id="",
+    target_bucket_id="",
+    s3_endpoint_alias="",
+    decrypted_sha256="",
+)
+
+TEST_FILE_UPLOAD_VALIDATION_SUCCESS = event_schemas.FileUploadValidationSuccess(
+    upload_date=now_as_utc().isoformat(),
+    file_id=TEST_FILE_ID,
+    object_id="",
+    bucket_id="",
+    s3_endpoint_alias="",
+    decrypted_size=0,
+    decryption_secret_id="",
+    content_offset=0,
+    encrypted_part_size=0,
+    encrypted_parts_md5=[],
+    encrypted_parts_sha256=[],
+    decrypted_sha256="",
+)
+
+TEST_FILE_DELETION_REQUESTED = event_schemas.FileDeletionRequested(file_id=TEST_FILE_ID)
 
 
 async def test_register_with_empty_staging(joint_fixture: JointFixture):
@@ -223,3 +254,46 @@ async def test_storage_db_inconsistency(joint_fixture: JointFixture):
             outbox_object_id=EXAMPLE_METADATA.object_id,
             outbox_bucket_id=joint_fixture.outbox_bucket,
         )
+
+
+@pytest.mark.parametrize(
+    "upsertion_event, topic_config_name, method_name",
+    [
+        (
+            TEST_FILE_DELETION_REQUESTED.model_dump(),
+            "files_to_delete_topic",
+            "delete_file",
+        ),
+        (
+            TEST_FILE_UPLOAD_VALIDATION_SUCCESS.model_dump(),
+            "files_to_register_topic",
+            "register_file",
+        ),
+        (
+            TEST_NONSTAGED_FILE_REQUESTED.model_dump(),
+            "files_to_stage_topic",
+            "stage_registered_file",
+        ),
+    ],
+)
+@pytest.mark.asyncio()
+async def test_outbox_subscriber_routing(
+    joint_fixture: JointFixture,
+    upsertion_event: JsonObject,
+    topic_config_name: str,
+    method_name: str,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Make sure the outbox subscriber calls the correct method on the file registry."""
+    topic = getattr(joint_fixture.config, topic_config_name)
+    mock = AsyncMock()
+    monkeypatch.setattr(joint_fixture.file_registry, method_name, mock)
+    await joint_fixture.kafka.publish_event(
+        payload=upsertion_event,
+        type_=CHANGE_EVENT_TYPE,
+        topic=topic,
+        key=TEST_FILE_ID,
+    )
+
+    await joint_fixture.outbox_subscriber.run(forever=False)
+    mock.assert_awaited_once()
