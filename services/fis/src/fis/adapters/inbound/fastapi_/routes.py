@@ -59,7 +59,12 @@ async def health():
             "description": "Metadata for the given file ID has already been processed."
         },
         status.HTTP_422_UNPROCESSABLE_ENTITY: {
-            "description": "Either the payload is malformed or could not be decrypted."
+            "description": "Either the payload is malformed or could not be decrypted.",
+            "content": {
+                "application/json": {
+                    "schema": {"$ref": "#/components/schemas/HTTPValidationError"}
+                }
+            },
         },
     },
 )
@@ -147,8 +152,13 @@ async def ingest_metadata(
     response_description="Received and stored secret successfully.",
     responses={
         status.HTTP_422_UNPROCESSABLE_ENTITY: {
-            "description": "Either the payload is malformed or could not be decrypted."
-        }
+            "description": "Either the payload is malformed or could not be decrypted.",
+            "content": {
+                "application/json": {
+                    "schema": {"$ref": "#/components/schemas/HTTPValidationError"}
+                }
+            },
+        },
     },
 )
 async def ingest_secret(

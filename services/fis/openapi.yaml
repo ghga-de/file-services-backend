@@ -159,6 +159,10 @@ paths:
               schema: {}
           description: Received and stored secret successfully.
         '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
           description: Either the payload is malformed or could not be decrypted.
       security:
       - HTTPBearer: []
@@ -199,6 +203,10 @@ paths:
         '409':
           description: Metadata for the given file ID has already been processed.
         '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
           description: Either the payload is malformed or could not be decrypted.
       security:
       - HTTPBearer: []
