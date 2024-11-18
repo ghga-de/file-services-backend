@@ -78,7 +78,7 @@ class NonstagedFileRequestedTranslator(
         )
 
     async def deleted(self, resource_id: str) -> None:
-        """Consume event indicating the deletion of a NonStagedFileRequested event."""
+        """This should never be called because these events are stateless and not saved."""
         log.warning(
             "Received DELETED-type event for NonStagedFileRequested with resource ID '%s'",
             resource_id,
@@ -109,7 +109,7 @@ class FileDeletionRequestedTranslator(
         await self._file_registry.delete_file(file_id=resource_id)
 
     async def deleted(self, resource_id: str) -> None:
-        """Consume event indicating the deletion of a File Deletion Request."""
+        """This should never be called because these events are stateless and not saved."""
         log.warning(
             "Received DELETED-type event for FileDeletionRequested with resource ID '%s'",
             resource_id,
@@ -157,7 +157,7 @@ class FileValidationSuccessTranslator(
         )
 
     async def deleted(self, resource_id: str) -> None:
-        """Consume event indicating the deletion of a FileUploadValidationSuccess events."""
+        """This should never be called because these events are stateless and not saved."""
         log.warning(
             "Received DELETED-type event for FileUploadValidationSuccess with resource ID '%s'",
             resource_id,
