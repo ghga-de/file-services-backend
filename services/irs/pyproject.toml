@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "irs"
-version = "4.0.1"
+version = "4.0.2"
 description = "Interrogation Room Service"
 readme = "README.md"
 authors = [
