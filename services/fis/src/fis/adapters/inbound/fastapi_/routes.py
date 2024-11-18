@@ -57,7 +57,10 @@ async def health():
     responses={
         status.HTTP_409_CONFLICT: {
             "description": "Metadata for the given file ID has already been processed."
-        }
+        },
+        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+            "description": "Either the payload is malformed or could not be decrypted."
+        },
     },
 )
 async def ingest_legacy_metadata(
@@ -142,6 +145,11 @@ async def ingest_metadata(
     tags=["FileIngestService"],
     status_code=status.HTTP_200_OK,
     response_description="Received and stored secret successfully.",
+    responses={
+        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+            "description": "Either the payload is malformed or could not be decrypted."
+        }
+    },
 )
 async def ingest_secret(
     encrypted_payload: EncryptedPayload,
