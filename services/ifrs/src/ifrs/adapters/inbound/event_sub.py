@@ -79,7 +79,7 @@ class NonstagedFileRequestedTranslator(
 
     async def deleted(self, resource_id: str) -> None:
         """This should never be called because these events are stateless and not saved."""
-        log.warning(
+        log.error(
             "Received DELETED-type event for NonStagedFileRequested with resource ID '%s'",
             resource_id,
         )
@@ -110,7 +110,7 @@ class FileDeletionRequestedTranslator(
 
     async def deleted(self, resource_id: str) -> None:
         """This should never be called because these events are stateless and not saved."""
-        log.warning(
+        log.error(
             "Received DELETED-type event for FileDeletionRequested with resource ID '%s'",
             resource_id,
         )
@@ -158,7 +158,7 @@ class FileValidationSuccessTranslator(
 
     async def deleted(self, resource_id: str) -> None:
         """This should never be called because these events are stateless and not saved."""
-        log.warning(
+        log.error(
             "Received DELETED-type event for FileUploadValidationSuccess with resource ID '%s'",
             resource_id,
         )
