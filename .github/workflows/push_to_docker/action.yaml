@@ -29,17 +29,14 @@ inputs:
   tag:
     description: "The tag used to publish to the registry."
     required: true
-
-env:
-  DOCKERHUB_PLATFORMS: "linux/amd64,linux/arm64"
-  TRIVY_SEVERITY: "CRITICAL,HIGH"
-  IFRS_CONFIG_YAML: ./services/ifrs/dev_config.yaml
-  IRS_CONFIG_YAML: ./services/irs/dev_config.yaml
-  PCS_CONFIG_YAML: ./services/pcs/dev_config.yaml
-  UCS_CONFIG_YAML: ./services/ucs/dev_config.yaml
-  DCS_CONFIG_YAML: ./services/dcs/dev_config.yaml
-  EKSS_CONFIG_YAML: ./services/ekss/dev_config.yaml
-  FIS_CONFIG_YAML: ./services/fis/dev_config.yaml
+  dockerhub_platforms:
+    description: "Platforms passed to DockerHub build and push action."
+    required: true
+    default: "linux/amd64,linux/arm64"
+  trivy_severity:
+    description: "Severities of vulnerabilities to scanned for and displayed."
+    required: true
+    default: "CRITICAL,HIGH"
 
 runs:
   using: composite
@@ -76,7 +73,7 @@ runs:
       id: docker_build
       with:
         push: true
-        platforms: "${{ env.DOCKERHUB_PLATFORMS }}"
+        platforms: "${{ inputs.dockerhub_platforms }}"
         tags: "${{ inputs.tag }}"
         context: "services/${{ inputs.service }}"
 
@@ -90,7 +87,7 @@ runs:
         exit-code: "1"
         ignore-unfixed: true
         vuln-type: "os,library"
-        severity: ${{ env.TRIVY_SEVERITY }}
+        severity: ${{ inputs.trivy_severity }}
 
     - name: Image digest
       shell: bash
