@@ -82,6 +82,8 @@ runs:
 
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
+      env:
+        TRIVY_DB_REPOSITORY: "ghcr.io/aquasecurity/trivy-db,public.ecr.aws/aquasecurity/trivy-db"
       with:
         image-ref: "docker.io/${{ inputs.tag }}"
         format: "table"
