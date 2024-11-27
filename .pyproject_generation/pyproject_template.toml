@@ -42,7 +42,6 @@ fixable = [
 ignore = [
     "E",
     "W",
-    "PLW",
     "PLW", # pylint warnings
     "RUF001", # ambiguous unicode character strings
     "RUF010", # explicit conversion to string or repr: !s or !r
