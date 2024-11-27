@@ -54,10 +54,12 @@ fixable = [
     "UP",
     "I",
     "D",
+    "RUF022",
 ]
 ignore = [
     "E",
     "W",
+    "PLW",
     "PLW",
     "RUF001",
     "RUF010",
@@ -72,6 +74,7 @@ ignore = [
     "D206",
     "D300",
     "UP040",
+    "PLC0206",
 ]
 select = [
     "C90",
@@ -132,7 +135,7 @@ no_site_packages = false
 explicit_package_bases = true
 
 [tool.pytest.ini_options]
-minversion = "7.1"
+minversion = "8.0"
 asyncio_mode = "strict"
 
 [tool.coverage.paths]
