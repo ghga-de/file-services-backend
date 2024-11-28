@@ -220,15 +220,7 @@ class FileRegistry(FileRegistryPort):
             file.storage_alias
         )
 
-        if await object_storage.does_object_exist(
-            bucket_id=outbox_bucket_id, object_id=outbox_object_id
-        ):
-            # the content is already where it should go, there is nothing to do
-            log.info(
-                "Object corresponding to file ID '%s' is already in storage.", file_id
-            )
-            return
-
+        # Make sure the file exists in permanent storage before trying to copy it
         if not await object_storage.does_object_exist(
             bucket_id=permanent_bucket_id, object_id=file.object_id
         ):
