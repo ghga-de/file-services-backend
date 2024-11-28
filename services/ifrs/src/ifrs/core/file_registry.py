@@ -192,6 +192,8 @@ class FileRegistry(FileRegistryPort):
                 When encountering inconsistency between the registry (the database) and
                 the permanent storage. This is an internal service error, which should
                 not happen, and not the fault of the client.
+            self.CopyOperationError:
+                When
         """
         try:
             file = await self._file_metadata_dao.get_by_id(file_id)
@@ -230,12 +232,25 @@ class FileRegistry(FileRegistryPort):
             log.critical(msg=not_in_storage_error, extra={"file_id": file_id})
             raise not_in_storage_error
 
-        await object_storage.copy_object(
-            source_bucket_id=permanent_bucket_id,
-            source_object_id=file.object_id,
-            dest_bucket_id=outbox_bucket_id,
-            dest_object_id=outbox_object_id,
-        )
+        # Copy the file from permanent storage bucket to the outbox (download) bucket
+        try:
+            await object_storage.copy_object(
+                source_bucket_id=permanent_bucket_id,
+                source_object_id=file.object_id,
+                dest_bucket_id=outbox_bucket_id,
+                dest_object_id=outbox_object_id,
+            )
+        except object_storage.ObjectAlreadyExistsError:
+            # the content is already where it should go, there is nothing to do
+            log.info(
+                "Object corresponding to file ID '%s' is already in storage.", file_id
+            )
+            return
+        except Exception as exc:
+            # Irreconcilable object error -- event needs investigation
+            obj_error = self.CopyOperationError(file_id=file_id, exc_text=str(exc))
+            log.critical(obj_error)
+            raise obj_error from exc
 
         log.info(
             "Object corresponding to file ID '%s' has been staged to the outbox.",
