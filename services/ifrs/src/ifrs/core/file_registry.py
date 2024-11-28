@@ -193,7 +193,7 @@ class FileRegistry(FileRegistryPort):
                 the permanent storage. This is an internal service error, which should
                 not happen, and not the fault of the client.
             self.CopyOperationError:
-                When
+                When an error occurs while attempting to copy the object to the outbox.
         """
         try:
             file = await self._file_metadata_dao.get_by_id(file_id)
