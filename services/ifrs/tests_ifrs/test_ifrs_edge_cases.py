@@ -327,8 +327,9 @@ async def test_error_during_copy(joint_fixture: JointFixture, caplog):
     # Verify the log message exists
     assert caplog.records
     assert caplog.records[0].message == (
-        "Fatal error occurred while staging file with the ID 'examplefile001' to the"
-        + " outbox. The exception is: The bucket with ID 'outbox-bucket' does not exist."
+        "Fatal error occurred while copying file with the ID 'examplefile001' to the"
+        + " bucket 'outbox-bucket'. The exception is: The bucket with ID 'outbox-bucket'"
+        + " does not exist."
     )
 
     # Upload the file to the outbox bucket so we trigger ObjectAlreadyExistsError
@@ -347,7 +348,7 @@ async def test_error_during_copy(joint_fixture: JointFixture, caplog):
 
     assert caplog.records
     assert caplog.records[0].getMessage() == (
-        "Object corresponding to file ID 'examplefile001' is already in storage."
+        "Object corresponding to file ID 'examplefile001' is already in the outbox."
     )
 
 
@@ -384,5 +385,5 @@ async def test_copy_when_file_exists_in_outbox(joint_fixture: JointFixture, capl
     # Check the log
     assert caplog.records
     assert caplog.records[0].getMessage() == (
-        "Object corresponding to file ID 'examplefile001' is already in storage."
+        "Object corresponding to file ID 'examplefile001' is already in the outbox."
     )

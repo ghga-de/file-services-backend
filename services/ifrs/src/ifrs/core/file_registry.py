@@ -97,6 +97,9 @@ class FileRegistry(FileRegistryPort):
                 When the file content is not present in the storage staging.
             ValueError:
                 When the configuration for the storage alias is not found.
+            self.CopyOperationError:
+                When an error occurs while attempting to copy the object to the
+                permanent storage bucket.
         """
         storage_alias = file_without_object_id.storage_alias
 
@@ -138,6 +141,7 @@ class FileRegistry(FileRegistryPort):
             **file_without_object_id.model_dump(), object_id=object_id
         )
 
+        # Make sure the object exists in the source bucket (staging)
         if not await object_storage.does_object_exist(
             bucket_id=staging_bucket_id, object_id=staging_object_id
         ):
@@ -150,13 +154,32 @@ class FileRegistry(FileRegistryPort):
             )
             raise content_not_in_staging
 
-        await object_storage.copy_object(
-            source_bucket_id=staging_bucket_id,
-            source_object_id=staging_object_id,
-            dest_bucket_id=permanent_bucket_id,
-            dest_object_id=object_id,
-        )
+        # Copy the file from staging to permanent storage
+        try:
+            await object_storage.copy_object(
+                source_bucket_id=staging_bucket_id,
+                source_object_id=staging_object_id,
+                dest_bucket_id=permanent_bucket_id,
+                dest_object_id=object_id,
+            )
+        except object_storage.ObjectAlreadyExistsError:
+            # the content is already where it should go, there is nothing to do
+            log.info(
+                "Object corresponding to file ID '%s' is already in permanent storage.",
+                file_without_object_id.file_id,
+            )
+            return
+        except Exception as exc:
+            # Irreconcilable object error -- event needs investigation
+            obj_error = self.CopyOperationError(
+                file_id=file_without_object_id.file_id,
+                dest_bucket_id=permanent_bucket_id,
+                exc_text=str(exc),
+            )
+            log.critical(obj_error)
+            raise obj_error from exc
 
+        # Log the registration and publish an event
         log.info("Inserting file with file ID '%s'.", file.file_id)
         await self._file_metadata_dao.insert(file)
 
@@ -243,12 +266,15 @@ class FileRegistry(FileRegistryPort):
         except object_storage.ObjectAlreadyExistsError:
             # the content is already where it should go, there is nothing to do
             log.info(
-                "Object corresponding to file ID '%s' is already in storage.", file_id
+                "Object corresponding to file ID '%s' is already in the outbox.",
+                file_id,
             )
             return
         except Exception as exc:
             # Irreconcilable object error -- event needs investigation
-            obj_error = self.CopyOperationError(file_id=file_id, exc_text=str(exc))
+            obj_error = self.CopyOperationError(
+                file_id=file_id, dest_bucket_id=outbox_bucket_id, exc_text=str(exc)
+            )
             log.critical(obj_error)
             raise obj_error from exc
 
