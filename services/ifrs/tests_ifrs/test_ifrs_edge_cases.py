@@ -300,7 +300,7 @@ async def test_outbox_subscriber_routing(
 
 
 async def test_error_during_copy(joint_fixture: JointFixture, caplog):
-    """Errors during `object_storage.copy_object` should be logged without crashing."""
+    """Errors during `object_storage.copy_object` should be logged and re-raised."""
     # Insert FileMetadata record into the DB
     dao = joint_fixture.file_metadata_dao
     await dao.insert(EXAMPLE_METADATA)
