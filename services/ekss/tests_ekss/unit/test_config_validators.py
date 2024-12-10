@@ -26,14 +26,14 @@ def test_private_key():
     private_key = CONFIG.server_private_key.get_secret_value()
 
     with pytest.raises(ValueError, match="Incorrect padding"):
-        _ = Config(server_public_key=public_key, server_private_key="abc" + private_key)  # type:ignore
+        _ = Config(server_public_key=public_key, server_private_key="abc" + private_key)
 
     with pytest.raises(
         ValueError, match="Length of decoded private key did not match expectation"
     ):
         _ = Config(
             server_public_key=public_key, server_private_key="abcd" + private_key
-        )  # type:ignore
+        )
 
 
 def test_public_key():
@@ -42,11 +42,10 @@ def test_public_key():
     private_key = CONFIG.server_private_key.get_secret_value()
 
     with pytest.raises(ValueError, match="Incorrect padding"):
-        _ = Config(server_public_key="abc" + public_key, server_private_key=private_key)  # type:ignore
-
+        _ = Config(server_public_key="abc" + public_key, server_private_key=private_key)
     with pytest.raises(
         ValueError, match="Length of decoded public key did not match expectation"
     ):
         _ = Config(
             server_public_key="abcd" + public_key, server_private_key=private_key
-        )  # type:ignore
+        )
