@@ -99,6 +99,7 @@ async def test_happy_journey(
     ):
         response = await joint_fixture.rest_client.get(f"/objects/{drs_id}", timeout=5)
     assert response.status_code == status.HTTP_202_ACCEPTED
+    assert "Cache-Control" not in response.headers
     retry_after = int(response.headers["Retry-After"])
     # the example file is small, so we expect the minimum wait time
     assert retry_after == joint_fixture.config.retry_after_min
@@ -134,6 +135,12 @@ async def test_happy_journey(
         in_topic=joint_fixture.config.download_served_event_topic,
     ):
         drs_object_response = await joint_fixture.rest_client.get(f"/objects/{drs_id}")
+
+    assert "Cache-Control" in drs_object_response.headers
+    assert (
+        drs_object_response.headers["Cache-Control"]
+        == f"max-age={joint_fixture.config.presigned_url_expires_after - 5}"
+    )
 
     # download file bytes:
     presigned_url = drs_object_response.json()["access_methods"][0]["access_url"]["url"]

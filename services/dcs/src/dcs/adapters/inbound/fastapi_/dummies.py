@@ -27,5 +27,6 @@ from dcs.ports.inbound.data_repository import DataRepositoryPort
 
 data_repo_port = DependencyDummy("data_repo_port")
 auth_provider = DependencyDummy("auth_provider")
+download_url_max_age = DependencyDummy("download_url_max_age")
 
 DataRepositoryDummy = Annotated[DataRepositoryPort, Depends(data_repo_port)]

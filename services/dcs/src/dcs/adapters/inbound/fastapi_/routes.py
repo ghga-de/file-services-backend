@@ -16,7 +16,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Response, status
 
 from dcs.adapters.inbound.fastapi_ import (
     dummies,
@@ -98,6 +98,7 @@ async def get_drs_object(
     work_order_context: Annotated[
         WorkOrderContext, http_authorization.require_work_order_context
     ],
+    url_validity_period: Annotated[int, Depends(dummies.download_url_max_age)],
 ):
     """
     Get info about a ``DrsObject``. The object_id parameter refers to the file id
@@ -106,9 +107,15 @@ async def get_drs_object(
     if not work_order_context.file_id == object_id:
         raise http_exceptions.HttpWrongFileAuthorizationError()
 
+    # Instruct clients to refresh their download URL shortly before it expires
+    url_validity = max(5, url_validity_period - 5)
+    cache_control_header = {"Cache-Control": f"max-age={url_validity}"}
     try:
         drs_object = await data_repository.access_drs_object(drs_id=object_id)
-        return drs_object
+
+        return Response(
+            content=drs_object.model_dump_json(), headers=cache_control_header
+        )
 
     except data_repository.RetryAccessLaterError as retry_later_error:
         # tell client to retry after 5 minutes
