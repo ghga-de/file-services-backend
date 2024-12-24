@@ -379,21 +379,6 @@ The service requires the following configuration parameters:
   ```
 
 
-- **`url_expiration_buffer`** *(integer)*: Buffer time in seconds before the presigned URL expires, used to instruct clients to refresh their download URL shortly before it expires. Should be less than presigned_url_expires_after. Exclusive minimum: `0`. Default: `5`.
-
-
-  Examples:
-
-  ```json
-  5
-  ```
-
-
-  ```json
-  10
-  ```
-
-
 - **`cache_timeout`** *(integer)*: Time in days since last access after which a file present in the outbox should be unstaged and has to be requested from permanent storage again for the next request. Default: `7`.
 
 
