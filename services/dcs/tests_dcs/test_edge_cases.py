@@ -27,12 +27,12 @@ from ghga_service_commons.api.testing import AsyncTestClient
 from ghga_service_commons.utils.utc_dates import now_as_utc
 from pytest_httpx import HTTPXMock, httpx_mock  # noqa: F401
 
-from dcs.adapters.inbound.fastapi_.routes import router
 from dcs.config import Config
 from dcs.core import models
 from dcs.inject import prepare_rest_app
 from dcs.ports.outbound.dao import DrsObjectDaoPort
 from tests_dcs.fixtures.joint import EXAMPLE_FILE, JointFixture, PopulatedFixture
+from tests_dcs.fixtures.mock_api.app import router
 from tests_dcs.fixtures.utils import (
     generate_token_signing_keys,
     generate_work_order_token,
