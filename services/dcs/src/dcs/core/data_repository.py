@@ -28,7 +28,7 @@ from ghga_service_commons.utils.multinode_storage import (
     S3ObjectStoragesConfig,
 )
 from hexkit.protocols.objstorage import ObjectStorageProtocol
-from pydantic import Field, PositiveInt, field_validator
+from pydantic import Field, PositiveInt, field_validator, model_validator
 from pydantic_settings import BaseSettings
 
 from dcs.adapters.outbound.http import exceptions
@@ -56,21 +56,21 @@ class DataRepositoryConfig(BaseSettings):
         examples=["drs://localhost:8080/"],
     )
     staging_speed: int = Field(
-        100,
+        default=100,
         description="When trying to access a DRS object that is not yet in the outbox,"
         + " assume that this many megabytes can be staged per second.",
         title="Staging speed in MB/s",
         examples=[100, 500],
     )
     retry_after_min: int = Field(
-        5,
+        default=5,
         description="When trying to access a DRS object that is not yet in the outbox,"
         + " wait at least this number of seconds before trying again.",
         title="Minimum retry time in seconds when staging",
         examples=[5, 10],
     )
     retry_after_max: int = Field(
-        300,
+        default=300,
         description="When trying to access a DRS object that is not yet in the outbox,"
         + " wait at most this number of seconds before trying again.",
         title="Maximum retry time in seconds when staging",
@@ -98,7 +98,7 @@ class DataRepositoryConfig(BaseSettings):
         examples=[5, 10],
     )
     cache_timeout: int = Field(
-        7,
+        default=7,
         description="Time in days since last access after which a file present in the "
         + "outbox should be unstaged and has to be requested from permanent storage again "
         + "for the next request.",
@@ -117,6 +117,19 @@ class DataRepositoryConfig(BaseSettings):
             raise ValueError(message)
 
         return value
+
+    @model_validator(mode="after")
+    def check_url_expiration_buffer(self):
+        """Check that the buffer is less than the expiration time."""
+        value = self.url_expiration_buffer
+        if value >= self.presigned_url_expires_after:
+            message = (
+                "url_expiration_buffer must be less than presigned_url_expires_after"
+                + f", got: {value} (should be less than"
+                + f" {self.presigned_url_expires_after})"
+            )
+            raise ValueError(message)
+        return self
 
 
 class DataRepository(DataRepositoryPort):

@@ -29,6 +29,7 @@ from pytest_httpx import HTTPXMock, httpx_mock  # noqa: F401
 
 from dcs.config import Config
 from dcs.core import models
+from dcs.core.data_repository import DataRepositoryConfig
 from dcs.inject import prepare_rest_app
 from dcs.ports.outbound.dao import DrsObjectDaoPort
 from tests_dcs.fixtures.joint import EXAMPLE_FILE, JointFixture, PopulatedFixture
@@ -239,3 +240,21 @@ async def test_cache_headers(
 
         assert "Cache-Control" in response.headers
         assert response.headers["Cache-Control"] == f"max-age={expected_url_max_age}"
+
+
+async def test_cache_param_validation():
+    """Test that the http cache-related config parameters are validated correctly"""
+    with pytest.raises(ValueError):
+        DataRepositoryConfig(
+            drs_server_uri="",
+            ekss_base_url="",
+            presigned_url_expires_after=0,
+            url_expiration_buffer=10,
+        )
+    with pytest.raises(ValueError):
+        DataRepositoryConfig(
+            drs_server_uri="",
+            ekss_base_url="",
+            presigned_url_expires_after=10,
+            url_expiration_buffer=10,
+        )
