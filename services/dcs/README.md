@@ -43,13 +43,13 @@ We recommend using the provided Docker container.
 
 A pre-build version is available at [docker hub](https://hub.docker.com/repository/docker/ghga/download-controller-service):
 ```bash
-docker pull ghga/download-controller-service:2.0.7
+docker pull ghga/download-controller-service:2.1.0
 ```
 
 Or you can build the container yourself from the [`./Dockerfile`](./Dockerfile):
 ```bash
 # Execute in the repo's root dir:
-docker build -t ghga/download-controller-service:2.0.7 .
+docker build -t ghga/download-controller-service:2.1.0 .
 ```
 
 For production-ready deployment, we recommend using Kubernetes, however,
@@ -57,7 +57,7 @@ for simple use cases, you could execute the service using docker
 on a single server:
 ```bash
 # The entrypoint is preconfigured:
-docker run -p 8080:8080 ghga/download-controller-service:2.0.7 --help
+docker run -p 8080:8080 ghga/download-controller-service:2.1.0 --help
 ```
 
 If you prefer not to use containers, you may install the service from source:
@@ -376,6 +376,21 @@ The service requires the following configuration parameters:
 
   ```json
   60
+  ```
+
+
+- **`url_expiration_buffer`** *(integer)*: Buffer time in seconds before the presigned URL expires, used to instruct clients to refresh their download URL shortly before it expires. Should be less than presigned_url_expires_after. Exclusive minimum: `0`. Default: `5`.
+
+
+  Examples:
+
+  ```json
+  5
+  ```
+
+
+  ```json
+  10
   ```
 
 

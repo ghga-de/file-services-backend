@@ -98,7 +98,7 @@ async def get_drs_object(
     work_order_context: Annotated[
         WorkOrderContext, http_authorization.require_work_order_context
     ],
-    url_validity_period: Annotated[int, Depends(dummies.download_url_max_age)],
+    config: dummies.DataRepoConfigDependency,
 ):
     """
     Get info about a ``DrsObject``. The object_id parameter refers to the file id
@@ -108,11 +108,12 @@ async def get_drs_object(
         raise http_exceptions.HttpWrongFileAuthorizationError()
 
     # Instruct clients to refresh their download URL shortly before it expires
-    url_validity = max(5, url_validity_period - 5)
-    cache_control_header = {"Cache-Control": f"max-age={url_validity}"}
+    expires_after = config.presigned_url_expires_after
+    buffer = config.url_expiration_buffer
+    url_max_age = max(buffer, expires_after - buffer)
+    cache_control_header = {"Cache-Control": f"max-age={url_max_age}"}
     try:
         drs_object = await data_repository.access_drs_object(drs_id=object_id)
-
         return Response(
             content=drs_object.model_dump_json(), headers=cache_control_header
         )

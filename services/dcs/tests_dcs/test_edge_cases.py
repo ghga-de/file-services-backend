@@ -17,18 +17,22 @@
 
 import re
 from dataclasses import dataclass
+from unittest.mock import AsyncMock
 
 import httpx
 import pytest
 import pytest_asyncio
 from fastapi import status
+from ghga_service_commons.api.testing import AsyncTestClient
 from ghga_service_commons.utils.utc_dates import now_as_utc
 from pytest_httpx import HTTPXMock, httpx_mock  # noqa: F401
 
+from dcs.adapters.inbound.fastapi_.routes import router
+from dcs.config import Config
 from dcs.core import models
+from dcs.inject import prepare_rest_app
 from dcs.ports.outbound.dao import DrsObjectDaoPort
 from tests_dcs.fixtures.joint import EXAMPLE_FILE, JointFixture, PopulatedFixture
-from tests_dcs.fixtures.mock_api.app import router
 from tests_dcs.fixtures.utils import (
     generate_token_signing_keys,
     generate_work_order_token,
@@ -191,3 +195,47 @@ async def test_register_file_twice(populated_fixture: PopulatedFixture, caplog):
     failure_message = f"Could not register file with id '{
         example_file.file_id}' as an entry already exists for this id."
     assert failure_message in caplog.messages
+
+
+@pytest.mark.parametrize(
+    "url_validity, buffer, expected_url_max_age",
+    [
+        (60, 10, 50),
+        (15, 10, 10),
+        (5, 10, 10),
+    ],
+    ids=["Normal", "UseBufferAsMinimum", "ValidityLessThanBuffer"],
+)
+async def test_cache_headers(
+    joint_fixture: JointFixture,
+    url_validity: int,
+    buffer: int,
+    expected_url_max_age: int,
+    monkeypatch,
+):
+    """Test that the cache headers are set correctly"""
+    joint_config = joint_fixture.config.model_dump()
+    joint_config.update(
+        presigned_url_expires_after=url_validity,
+        url_expiration_buffer=buffer,
+    )
+    config = Config(**joint_config)
+    work_order_token = generate_work_order_token(
+        file_id="test-file",
+        jwk=joint_fixture.jwk,
+        valid_seconds=120,
+    )
+    headers = httpx.Headers({"Authorization": f"Bearer {work_order_token}"})
+    monkeypatch.setattr(
+        joint_fixture.data_repository,
+        "access_drs_object",
+        AsyncMock(return_value=EXAMPLE_FILE),
+    )
+    async with prepare_rest_app(
+        config=config, data_repo_override=joint_fixture.data_repository
+    ) as app:
+        async with AsyncTestClient(app) as client:
+            response = await client.get("/objects/test-file", headers=headers)
+
+        assert "Cache-Control" in response.headers
+        assert response.headers["Cache-Control"] == f"max-age={expected_url_max_age}"

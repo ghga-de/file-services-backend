@@ -23,10 +23,12 @@ from typing import Annotated
 from fastapi import Depends
 from ghga_service_commons.api.di import DependencyDummy
 
+from dcs.core.data_repository import DataRepositoryConfig
 from dcs.ports.inbound.data_repository import DataRepositoryPort
 
 data_repo_port = DependencyDummy("data_repo_port")
 auth_provider = DependencyDummy("auth_provider")
-download_url_max_age = DependencyDummy("download_url_max_age")
+data_repo_config = DependencyDummy("data_repo_config")
 
 DataRepositoryDummy = Annotated[DataRepositoryPort, Depends(data_repo_port)]
+DataRepoConfigDependency = Annotated[DataRepositoryConfig, Depends(data_repo_config)]

@@ -386,6 +386,17 @@
       "title": "Presigned URL expiration time in seconds",
       "type": "integer"
     },
+    "url_expiration_buffer": {
+      "default": 5,
+      "description": "Buffer time in seconds before the presigned URL expires, used to instruct clients to refresh their download URL shortly before it expires. Should be less than presigned_url_expires_after.",
+      "examples": [
+        5,
+        10
+      ],
+      "exclusiveMinimum": 0,
+      "title": "Download URL expiration buffer time (sec)",
+      "type": "integer"
+    },
     "cache_timeout": {
       "default": 7,
       "description": "Time in days since last access after which a file present in the outbox should be unstaged and has to be requested from permanent storage again for the next request.",

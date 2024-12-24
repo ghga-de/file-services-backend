@@ -89,6 +89,14 @@ class DataRepositoryConfig(BaseSettings):
         title="Presigned URL expiration time in seconds",
         examples=[30, 60],
     )
+    url_expiration_buffer: PositiveInt = Field(
+        default=5,
+        description="Buffer time in seconds before the presigned URL expires, used to"
+        + " instruct clients to refresh their download URL shortly before it expires."
+        + " Should be less than presigned_url_expires_after.",
+        title="Download URL expiration buffer time (sec)",
+        examples=[5, 10],
+    )
     cache_timeout: int = Field(
         7,
         description="Time in days since last access after which a file present in the "

@@ -65,4 +65,5 @@ service_name: dcs
 staging_speed: 100
 unstaged_download_collection: unstagedDownloadRequested
 unstaged_download_event_topic: file-downloads
+url_expiration_buffer: 5
 workers: 1

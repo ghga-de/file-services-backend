@@ -129,9 +129,7 @@ async def prepare_rest_app(
     ):
         app.dependency_overrides[dummies.auth_provider] = lambda: auth_context
         app.dependency_overrides[dummies.data_repo_port] = lambda: data_repository
-        app.dependency_overrides[dummies.download_url_max_age] = (
-            lambda: config.presigned_url_expires_after
-        )
+        app.dependency_overrides[dummies.data_repo_config] = lambda: config
         yield app
 
 
