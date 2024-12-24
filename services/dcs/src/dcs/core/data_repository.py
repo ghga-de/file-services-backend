@@ -28,7 +28,7 @@ from ghga_service_commons.utils.multinode_storage import (
     S3ObjectStoragesConfig,
 )
 from hexkit.protocols.objstorage import ObjectStorageProtocol
-from pydantic import Field, PositiveInt, field_validator, model_validator
+from pydantic import Field, PositiveInt, field_validator
 from pydantic_settings import BaseSettings
 
 from dcs.adapters.outbound.http import exceptions
@@ -89,14 +89,6 @@ class DataRepositoryConfig(BaseSettings):
         title="Presigned URL expiration time in seconds",
         examples=[30, 60],
     )
-    url_expiration_buffer: PositiveInt = Field(
-        default=5,
-        description="Buffer time in seconds before the presigned URL expires, used to"
-        + " instruct clients to refresh their download URL shortly before it expires."
-        + " Should be less than presigned_url_expires_after.",
-        title="Download URL expiration buffer time (sec)",
-        examples=[5, 10],
-    )
     cache_timeout: int = Field(
         default=7,
         description="Time in days since last access after which a file present in the "
@@ -117,19 +109,6 @@ class DataRepositoryConfig(BaseSettings):
             raise ValueError(message)
 
         return value
-
-    @model_validator(mode="after")
-    def check_url_expiration_buffer(self):
-        """Check that the buffer is less than the expiration time."""
-        value = self.url_expiration_buffer
-        if value >= self.presigned_url_expires_after:
-            message = (
-                "url_expiration_buffer must be less than presigned_url_expires_after"
-                + f", got: {value} (should be less than"
-                + f" {self.presigned_url_expires_after})"
-            )
-            raise ValueError(message)
-        return self
 
 
 class DataRepository(DataRepositoryPort):

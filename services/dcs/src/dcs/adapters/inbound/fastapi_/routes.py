@@ -107,11 +107,8 @@ async def get_drs_object(
     if not work_order_context.file_id == object_id:
         raise http_exceptions.HttpWrongFileAuthorizationError()
 
-    # Instruct clients to refresh their download URL shortly before it expires
     expires_after = config.presigned_url_expires_after
-    buffer = config.url_expiration_buffer
-    url_max_age = max(buffer, expires_after - buffer)
-    cache_control_header = {"Cache-Control": f"max-age={url_max_age}"}
+    cache_control_header = {"Cache-Control": f"max-age={expires_after}"}
     try:
         drs_object = await data_repository.access_drs_object(drs_id=object_id)
         return Response(

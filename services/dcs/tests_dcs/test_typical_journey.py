@@ -139,7 +139,7 @@ async def test_happy_journey(
     assert "Cache-Control" in drs_object_response.headers
     assert (
         drs_object_response.headers["Cache-Control"]
-        == f"max-age={joint_fixture.config.presigned_url_expires_after - 5}"
+        == f"max-age={joint_fixture.config.presigned_url_expires_after}"
     )
 
     # download file bytes:
