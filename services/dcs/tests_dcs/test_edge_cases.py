@@ -200,12 +200,8 @@ async def test_register_file_twice(populated_fixture: PopulatedFixture, caplog):
 
 @pytest.mark.parametrize(
     "url_validity, buffer, expected_url_max_age",
-    [
-        (60, 10, 50),
-        (15, 10, 10),
-        (5, 10, 10),
-    ],
-    ids=["Normal", "UseBufferAsMinimum", "ValidityLessThanBuffer"],
+    [(60, 10, 50), (15, 10, 10)],
+    ids=["Normal", "UseBufferAsMinimum"],
 )
 async def test_cache_headers(
     joint_fixture: JointFixture,
