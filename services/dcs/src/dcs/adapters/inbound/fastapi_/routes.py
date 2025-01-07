@@ -118,9 +118,11 @@ async def get_drs_object(
 
     except data_repository.RetryAccessLaterError as retry_later_error:
         # tell client to retry after 5 minutes
-        return http_responses.HttpObjectNotInOutboxResponse(
+        response = http_responses.HttpObjectNotInOutboxResponse(
             retry_after=retry_later_error.retry_after
         )
+        response.headers["Cache-Control"] = "no-store"
+        return response
 
     except data_repository.DrsObjectNotFoundError as object_not_found_error:
         raise http_exceptions.HttpObjectNotFoundError(
