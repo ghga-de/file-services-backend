@@ -140,7 +140,7 @@ async def test_happy_journey(
     assert "Cache-Control" in drs_object_response.headers
     cache_headers = drs_object_response.headers["Cache-Control"]
     max_age_header = f"max-age={joint_fixture.config.presigned_url_expires_after}"
-    assert max_age_header == cache_headers
+    assert cache_headers == f"{max_age_header}, private"
 
     # download file bytes:
     presigned_url = drs_object_response.json()["access_methods"][0]["access_url"]["url"]
