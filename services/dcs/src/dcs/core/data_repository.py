@@ -89,7 +89,7 @@ class DataRepositoryConfig(BaseSettings):
         title="Presigned URL expiration time in seconds",
         examples=[30, 60],
     )
-    cache_timeout: int = Field(
+    outbox_cache_timeout: int = Field(
         default=7,
         description="Time in days since last access after which a file present in the "
         + "outbox should be unstaged and has to be requested from permanent storage again "
@@ -257,8 +257,8 @@ class DataRepository(DataRepositoryPort):
         Check if files present in the outbox have outlived their allocated time and remove
         all that do.
         For each file in the outbox, its 'last_accessed' field is checked and compared
-        to the current datetime. If the threshold configured in the cache_timeout option
-        is met or exceeded, the corresponding file is removed from the outbox.
+        to the current datetime. If the threshold configured in the outbox_cache_timeout
+        option is met or exceeded, the corresponding file is removed from the outbox.
         """
         # Run on demand through CLI, so crashing should be ok if the alias is not configured
         log.info(
@@ -274,7 +274,9 @@ class DataRepository(DataRepositoryPort):
             log.critical(storage_alias_not_configured)
             raise storage_alias_not_configured from exc
 
-        threshold = utc_dates.now_as_utc() - timedelta(days=self._config.cache_timeout)
+        threshold = utc_dates.now_as_utc() - timedelta(
+            days=self._config.outbox_cache_timeout
+        )
 
         # filter to get all files in outbox that should be removed
         object_ids = await object_storage.list_all_object_ids(bucket_id=bucket_id)
@@ -293,7 +295,7 @@ class DataRepository(DataRepositoryPort):
                 log.critical(cleanup_error)
                 raise cleanup_error from error
 
-            # only remove file if last access is later than cache timeout days ago
+            # only remove file if last access is later than oubtox_cache_timeout days ago
             if drs_object.last_accessed <= threshold:
                 log.info(
                     f"Deleting object '{object_id}' from storage '{
