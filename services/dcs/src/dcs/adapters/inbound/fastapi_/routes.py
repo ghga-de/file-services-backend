@@ -176,4 +176,6 @@ async def get_envelope(
     ) as communication_error:
         raise http_exceptions.HttpInternalServerError() from communication_error
 
-    return http_responses.HttpEnvelopeResponse(envelope=envelope)
+    response = http_responses.HttpEnvelopeResponse(envelope=envelope)
+    response.headers["Cache-Control"] = "no-store"
+    return response

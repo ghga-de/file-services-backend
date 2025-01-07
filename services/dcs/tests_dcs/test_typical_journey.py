@@ -153,6 +153,8 @@ async def test_happy_journey(
         f"/objects/{drs_id}/envelopes", timeout=5
     )
     assert response.status_code == status.HTTP_200_OK
+    assert "Cache-Control" in response.headers
+    assert response.headers["Cache-Control"] == "no-store"
 
     response = await joint_fixture.rest_client.get(
         "/objects/invalid_id/envelopes", timeout=5
