@@ -108,9 +108,8 @@ async def get_drs_object(
         raise http_exceptions.HttpWrongFileAuthorizationError()
 
     expires_after = config.presigned_url_expires_after
-    cache_control_header = {
-        "Cache-Control": f"max-age={expires_after}, must-revalidate"
-    }
+    cache_control_header = {"Cache-Control": f"max-age={expires_after}"}
+
     try:
         drs_object = await data_repository.access_drs_object(drs_id=object_id)
         return Response(

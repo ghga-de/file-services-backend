@@ -137,12 +137,10 @@ async def test_happy_journey(
         drs_object_response = await joint_fixture.rest_client.get(f"/objects/{drs_id}")
 
     # Verify that the response contains the expected cache-control headers
-    #  the expected headers are "must-revalidate" and "max-age={n}"
     assert "Cache-Control" in drs_object_response.headers
-    cache_headers = drs_object_response.headers["Cache-Control"].split(", ")
+    cache_headers = drs_object_response.headers["Cache-Control"]
     max_age_header = f"max-age={joint_fixture.config.presigned_url_expires_after}"
-    assert max_age_header in cache_headers
-    assert "must-revalidate" in cache_headers
+    assert max_age_header == cache_headers
 
     # download file bytes:
     presigned_url = drs_object_response.json()["access_methods"][0]["access_url"]["url"]
