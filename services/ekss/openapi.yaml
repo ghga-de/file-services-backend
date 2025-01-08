@@ -289,14 +289,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HttpDecodingError'
-          description: One of the inputs provided to the API could not be decoded
-            as base64 string.
+          description: One of the provided inputs could not be decoded as base64 string.
         '502':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/HttpSecretInsertionError'
-          description: Failed to successfully inset secret into vault.
+          description: Failed to successfully insert secret into vault.
         '504':
           content:
             application/json:
@@ -373,8 +372,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HttpDecodingError'
-          description: One of the inputs provided to the API could not be decoded
-            as base64 string.
+          description: One of the provided inputs could not be decoded as base64 string.
       summary: Get personalized envelope containing Crypt4GH file encryption/decryption
         key
       tags:
