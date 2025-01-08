@@ -99,7 +99,7 @@ async def test_invalid_pubkey(
     *,
     first_part_fixture: FirstPartFixture,  # noqa: F811
 ):
-    """Test request response for /secrets endpoint with first char replaced in envelope"""
+    """Test request response for /secrets endpoint with an invalid public key"""
     app.dependency_overrides[config_injector] = lambda: first_part_fixture.vault.config
 
     payload = first_part_fixture.content
@@ -146,7 +146,7 @@ async def test_non_base64_envelope(
     *,
     first_part_fixture: FirstPartFixture,  # noqa: F811
 ):
-    """Test request response for /secrets endpoint with first char replaced in envelope"""
+    """Test request response for /secrets endpoint with malformed envelope"""
     app.dependency_overrides[config_injector] = lambda: first_part_fixture.vault.config
 
     payload = first_part_fixture.content
