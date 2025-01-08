@@ -58,7 +58,7 @@ ERROR_RESPONSES = {
     },
     "decodingError": {
         "description": (
-            "One of the inputs provided to the API could not be decoded as base64 string."
+            "One of the provided inputs could not be decoded as base64 string."
         ),
         "model": exceptions.HttpDecodingError.get_body_model(),
     },
