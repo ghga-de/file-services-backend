@@ -45,7 +45,7 @@ ERROR_RESPONSES = {
         "model": exceptions.HttpEnvelopeDecryptionError.get_body_model(),
     },
     "secretInsertionError": {
-        "description": ("Failed to successfully inset secret into vault."),
+        "description": ("Failed to successfully insert secret into vault."),
         "model": exceptions.HttpSecretInsertionError.get_body_model(),
     },
     "vaultConnectionError": {
