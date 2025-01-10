@@ -164,7 +164,7 @@ class DataRepository(DataRepositoryPort):
             access_url=access_url,
         )
 
-    async def access_drs_object(self, *, drs_id: str) -> models.DrsObjectResponseModel:
+    async def access_drs_object(self, *, drs_id: str) -> models.DrsObjectResponseModel:  # noqa: PLR0915
         """
         Serve the specified DRS object with access information.
         If it does not exists in the outbox, yet, a RetryAccessLaterError is raised that
@@ -202,7 +202,7 @@ class DataRepository(DataRepositoryPort):
             bucket_id=bucket_id, object_id=drs_object.object_id
         ):
             request_duration = perf_counter() - request_started
-            log.info(f"S3 lookup took {request_duration:.2f} seconds")
+            log.info(f"S3 lookup took {request_duration:.3f} seconds. ({drs_id})")
             log.info(f"File not in outbox for '{drs_id}'. Request staging...")
 
             # publish an outbox event to request a stage of the corresponding file:
@@ -214,7 +214,12 @@ class DataRepository(DataRepositoryPort):
                 decrypted_sha256=drs_object.decrypted_sha256,
             )
 
+            request_started = perf_counter()
             await self._nonstaged_file_requested_dao.upsert(unstaged_file_dto)
+            request_duration = perf_counter() - request_started
+            log.info(
+                f"Upserting staging request took {request_duration:.3f} seconds. ({drs_id})"
+            )
 
             # calculate the required time in seconds based on the decrypted file size
             # (actually the encrypted file is staged, but this is an estimate anyway)
@@ -227,30 +232,51 @@ class DataRepository(DataRepositoryPort):
             raise self.RetryAccessLaterError(retry_after=retry_after)
 
         request_duration = perf_counter() - request_started
-        log.info(f"S3 lookup took {request_duration:.2f} seconds")
+        log.info(f"S3 lookup took {request_duration:.3f} seconds. ({drs_id})")
 
         # Successfully staged, update access information now
         log.debug(f"Updating access time of for '{drs_id}'.")
         drs_object_with_access_time.last_accessed = utc_dates.now_as_utc()
-        await self._drs_object_dao.update(drs_object_with_access_time)
 
+        request_started = perf_counter()
+        await self._drs_object_dao.update(drs_object_with_access_time)
+        request_duration = perf_counter() - request_started
+        log.info(
+            f"Updating access time took {request_duration:.3f} seconds. ({drs_id})"
+        )
+
+        request_started = perf_counter()
         drs_object_with_access = await self._get_access_model(
             drs_object=drs_object,
             object_storage=object_storage,
             bucket_id=bucket_id,
         )
+        request_duration = perf_counter() - request_started
+        log.info(
+            f"Getting access model took {request_duration:.3f} seconds. ({drs_id})"
+        )
 
+        request_started = perf_counter()
         # publish an event indicating the served download:
         await self._event_publisher.download_served(
             drs_object=drs_object_with_uri,
             target_bucket_id=bucket_id,
         )
-        log.info(f"Sent download served event for '{drs_id}'.")
+        request_duration = perf_counter() - request_started
+        log.info(
+            f"Sent download served event for '{drs_id}'. ({request_duration:.3f} seconds)"
+        )
 
+        request_started = perf_counter()
         # CLI needs to have the encrypted size to correctly download all file parts
         encrypted_size = await object_storage.get_object_size(
             bucket_id=bucket_id, object_id=drs_object.object_id
         )
+        request_duration = perf_counter() - request_started
+        log.info(
+            f"S3 object size lookup took {request_duration:.3f} seconds. ({drs_id})"
+        )
+
         return drs_object_with_access.convert_to_drs_response_model(size=encrypted_size)
 
     async def cleanup_outbox_buckets(
