@@ -34,7 +34,6 @@ def must_run_all(non_service_changes: list[str]) -> bool:
     for file in non_service_changes:
         if file.startswith(
             (
-                ".github/",
                 ".pyproject_generation/",
                 ".readme_generation/",
                 ".template/",
