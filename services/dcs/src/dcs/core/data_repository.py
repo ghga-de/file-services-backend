@@ -195,7 +195,8 @@ class DataRepository(DataRepositoryPort):
             log.critical(storage_alias_not_configured)
             raise storage_alias_not_configured from exc
 
-        # check if the file corresponding to the DRS object is already in the outbox:
+        # check if the file corresponding to the DRS object is already in the outbox
+        # and log time needed for check
         request_started = perf_counter()
         if not await object_storage.does_object_exist(
             bucket_id=bucket_id, object_id=drs_object.object_id
