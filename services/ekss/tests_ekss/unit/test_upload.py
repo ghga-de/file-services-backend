@@ -18,6 +18,7 @@
 import pytest
 
 from ekss.core.envelope_decryption import extract_envelope_content
+from tests_ekss.fixtures.config import get_config
 from tests_ekss.fixtures.file import (
     FirstPartFixture,
     first_part_fixture,  # noqa: F401
@@ -34,9 +35,12 @@ async def test_extract(
     """Test envelope extraction/file secret insertion"""
     client_pubkey = first_part_fixture.client_pubkey
 
+    config = get_config()
     submitter_secret, offset = await extract_envelope_content(
         file_part=first_part_fixture.content,
         client_pubkey=client_pubkey,
+        server_private_key_path=config.server_private_key_path,
+        passphrase=config.private_key_passphrase,
     )
 
     secret_id = first_part_fixture.vault.adapter.store_secret(secret=submitter_secret)

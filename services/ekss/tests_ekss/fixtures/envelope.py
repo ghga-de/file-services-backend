@@ -18,6 +18,7 @@
 import os
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass
+from pathlib import Path
 
 import pytest_asyncio
 
@@ -35,8 +36,8 @@ from tests_ekss.fixtures.vault import (
 class EnvelopeFixture:
     """Fixture for GET call to create an envelope"""
 
-    client_pk: bytes
-    client_sk: bytes
+    public_key_path: Path
+    private_key_path: Path
     secret_id: str
     secret: bytes
     vault: VaultFixture
@@ -58,8 +59,8 @@ async def envelope_fixture(
     secret_id = vault_fixture.adapter.store_secret(secret=secret)
 
     yield EnvelopeFixture(
-        client_pk=generate_keypair_fixture.public_key,
-        client_sk=generate_keypair_fixture.private_key,
+        public_key_path=generate_keypair_fixture.public_key_path,
+        private_key_path=generate_keypair_fixture.private_key_path,
         secret_id=secret_id,
         secret=secret,
         vault=vault_fixture,

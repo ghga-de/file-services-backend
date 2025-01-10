@@ -19,11 +19,12 @@ import io
 
 import crypt4gh.header
 import pytest
+from crypt4gh.keys import get_private_key, get_public_key
 from fastapi.testclient import TestClient
 
 from ekss.adapters.inbound.fastapi_.deps import config_injector
 from ekss.adapters.inbound.fastapi_.main import setup_app
-from ekss.config import CONFIG
+from tests_ekss.fixtures.config import DEFAULT_CONFIG, get_config
 from tests_ekss.fixtures.envelope import (
     EnvelopeFixture,
     envelope_fixture,  # noqa: F401
@@ -31,7 +32,7 @@ from tests_ekss.fixtures.envelope import (
 from tests_ekss.fixtures.keypair import generate_keypair_fixture  # noqa: F401
 from tests_ekss.fixtures.vault import vault_fixture  # noqa: F401
 
-app = setup_app(CONFIG)
+app = setup_app(DEFAULT_CONFIG)
 client = TestClient(app=app)
 
 
@@ -41,20 +42,26 @@ async def test_get_envelope(
     envelope_fixture: EnvelopeFixture,  # noqa: F811
 ):
     """Test request response for /secrets/../envelopes/.. endpoint with valid data"""
-    app.dependency_overrides[config_injector] = lambda: envelope_fixture.vault.config
+    config = get_config(sources=[envelope_fixture.vault.config])
+    app.dependency_overrides[config_injector] = lambda: config
 
     secret_id = envelope_fixture.secret_id
-    client_pk = base64.urlsafe_b64encode(envelope_fixture.client_pk).decode("utf-8")
+    client_pk = base64.urlsafe_b64encode(
+        get_public_key(envelope_fixture.public_key_path)
+    ).decode("utf-8")
     response = client.get(url=f"/secrets/{secret_id}/envelopes/{client_pk}")
     assert response.status_code == 200
     body = response.json()
     content = base64.b64decode(body["content"])
     assert content
-    keys = [(0, envelope_fixture.client_sk, None)]
+    client_sk = get_private_key(
+        envelope_fixture.private_key_path, callback=lambda: None
+    )
+    keys = [(0, client_sk, None)]
     session_keys, _ = crypt4gh.header.deconstruct(
         infile=io.BytesIO(content),
         keys=keys,
-        sender_pubkey=base64.b64decode(CONFIG.server_public_key),
+        sender_pubkey=get_public_key(DEFAULT_CONFIG.server_public_key_path),
     )
     assert session_keys[0] == envelope_fixture.secret
 
@@ -65,10 +72,13 @@ async def test_wrong_id(
     envelope_fixture: EnvelopeFixture,  # noqa: F811
 ):
     """Test request response for /secrets/../envelopes/.. endpoint with invalid secret_id"""
-    app.dependency_overrides[config_injector] = lambda: envelope_fixture.vault.config
+    config = get_config(sources=[envelope_fixture.vault.config])
+    app.dependency_overrides[config_injector] = lambda: config
 
     secret_id = "wrong_id"
-    client_pk = base64.urlsafe_b64encode(envelope_fixture.client_pk).decode("utf-8")
+    client_pk = base64.urlsafe_b64encode(
+        get_public_key(envelope_fixture.public_key_path)
+    ).decode("utf-8")
     response = client.get(url=f"/secrets/{secret_id}/envelopes/{client_pk}")
     assert response.status_code == 404
     body = response.json()

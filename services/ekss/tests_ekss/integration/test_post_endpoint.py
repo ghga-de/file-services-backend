@@ -19,11 +19,12 @@ import io
 
 import crypt4gh.header
 import pytest
+from crypt4gh.keys import get_private_key
 from fastapi.testclient import TestClient
 
 from ekss.adapters.inbound.fastapi_.deps import config_injector
 from ekss.adapters.inbound.fastapi_.main import setup_app
-from ekss.config import CONFIG
+from tests_ekss.fixtures.config import DEFAULT_CONFIG, get_config
 from tests_ekss.fixtures.file import (
     FirstPartFixture,
     first_part_fixture,  # noqa: F401
@@ -31,7 +32,7 @@ from tests_ekss.fixtures.file import (
 from tests_ekss.fixtures.keypair import generate_keypair_fixture  # noqa: F401
 from tests_ekss.fixtures.vault import vault_fixture  # noqa: F401
 
-app = setup_app(CONFIG)
+app = setup_app(DEFAULT_CONFIG)
 client = TestClient(app=app)
 
 
@@ -41,7 +42,8 @@ async def test_post_secrets(
     first_part_fixture: FirstPartFixture,  # noqa: F811
 ):
     """Test request response for /secrets endpoint with valid data"""
-    app.dependency_overrides[config_injector] = lambda: first_part_fixture.vault.config
+    config = get_config(sources=[first_part_fixture.vault.config])
+    app.dependency_overrides[config_injector] = lambda: config
 
     payload = first_part_fixture.content
 
@@ -57,7 +59,9 @@ async def test_post_secrets(
     body = response.json()
     submitter_secret = base64.b64decode(body["submitter_secret"])
 
-    server_private_key = base64.b64decode(CONFIG.server_private_key.get_secret_value())
+    server_private_key = get_private_key(
+        config.server_private_key_path, callback=lambda: config.private_key_passphrase
+    )
     # (method - only 0 supported for now, private_key, public_key)
     keys = [(0, server_private_key, None)]
     session_keys, _ = crypt4gh.header.deconstruct(
@@ -76,7 +80,8 @@ async def test_corrupted_header(
     first_part_fixture: FirstPartFixture,  # noqa: F811
 ):
     """Test request response for /secrets endpoint with first char replaced in envelope"""
-    app.dependency_overrides[config_injector] = lambda: first_part_fixture.vault.config
+    config = get_config(sources=[first_part_fixture.vault.config])
+    app.dependency_overrides[config_injector] = lambda: config
 
     payload = b"k" + first_part_fixture.content[2:]
     content = base64.b64encode(payload).decode("utf-8")
@@ -100,7 +105,8 @@ async def test_invalid_pubkey(
     first_part_fixture: FirstPartFixture,  # noqa: F811
 ):
     """Test request response for /secrets endpoint with an invalid public key"""
-    app.dependency_overrides[config_injector] = lambda: first_part_fixture.vault.config
+    config = get_config(sources=[first_part_fixture.vault.config])
+    app.dependency_overrides[config_injector] = lambda: config
 
     payload = first_part_fixture.content
     content = base64.b64encode(payload).decode("utf-8")
@@ -122,7 +128,8 @@ async def test_missing_envelope(
     first_part_fixture: FirstPartFixture,  # noqa: F811
 ):
     """Test request response for /secrets endpoint without envelope"""
-    app.dependency_overrides[config_injector] = lambda: first_part_fixture.vault.config
+    config = get_config(sources=[first_part_fixture.vault.config])
+    app.dependency_overrides[config_injector] = lambda: config
 
     payload = first_part_fixture.content
     content = base64.b64encode(payload).decode("utf-8")
@@ -147,7 +154,8 @@ async def test_non_base64_envelope(
     first_part_fixture: FirstPartFixture,  # noqa: F811
 ):
     """Test request response for /secrets endpoint with malformed envelope"""
-    app.dependency_overrides[config_injector] = lambda: first_part_fixture.vault.config
+    config = get_config(sources=[first_part_fixture.vault.config])
+    app.dependency_overrides[config_injector] = lambda: config
 
     payload = first_part_fixture.content
     content = "abc" + base64.b64encode(payload).decode("utf-8")

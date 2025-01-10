@@ -14,16 +14,16 @@
 # limitations under the License.
 """First-file-part fixture"""
 
-import base64
 import io
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass
 
 import crypt4gh.lib
 import pytest_asyncio
+from crypt4gh.keys import get_private_key, get_public_key
 from ghga_service_commons.utils import temp_files
 
-from ekss.config import CONFIG
+from tests_ekss.fixtures.config import get_config
 from tests_ekss.fixtures.keypair import (
     KeypairFixture,
     generate_keypair_fixture,  # noqa: F401
@@ -53,18 +53,23 @@ async def first_part_fixture(
     file_size = 20 * 1024**2
     part_size = 16 * 1024**2
 
+    config = get_config()
     with temp_files.big_temp_file(file_size) as raw_file:
         with io.BytesIO() as encrypted_file:
-            server_pubkey = base64.b64decode(CONFIG.server_public_key)
-            keys = [(0, generate_keypair_fixture.private_key, server_pubkey)]
+            server_pubkey = get_public_key(config.server_public_key_path)
+            private_key = get_private_key(
+                generate_keypair_fixture.private_key_path, callback=lambda: None
+            )
+            keys = [(0, private_key, server_pubkey)]
             # rewind input file for reading
             raw_file.seek(0)
             crypt4gh.lib.encrypt(keys=keys, infile=raw_file, outfile=encrypted_file)
             # rewind output file for reading
             encrypted_file.seek(0)
             part = encrypted_file.read(part_size)
+            public_key = get_public_key(generate_keypair_fixture.public_key_path)
             yield FirstPartFixture(
-                client_pubkey=generate_keypair_fixture.public_key,
+                client_pubkey=public_key,
                 content=part,
                 vault=vault_fixture,
             )

@@ -15,13 +15,12 @@
 """Provides a fixture around MongoDB, prefilling the DB with test data"""
 
 import os
-from collections.abc import AsyncGenerator
+from collections.abc import Generator
 from dataclasses import dataclass
 from pathlib import Path
 from tempfile import mkstemp
 
 import pytest_asyncio
-from crypt4gh.keys import get_private_key, get_public_key
 from crypt4gh.keys.c4gh import generate as generate_keypair
 
 
@@ -29,12 +28,12 @@ from crypt4gh.keys.c4gh import generate as generate_keypair
 class KeypairFixture:
     """Fixture containing a keypair"""
 
-    public_key: bytes
-    private_key: bytes
+    public_key_path: Path
+    private_key_path: Path
 
 
 @pytest_asyncio.fixture
-async def generate_keypair_fixture() -> AsyncGenerator[KeypairFixture, None]:
+def generate_keypair_fixture() -> Generator[KeypairFixture, None]:
     """Creates a keypair using crypt4gh"""
     # Crypt4GH always writes to file and tmp_path fixture causes permission issues
 
@@ -44,10 +43,14 @@ async def generate_keypair_fixture() -> AsyncGenerator[KeypairFixture, None]:
     # Crypt4GH does not reset the umask it sets, so we need to deal with it
     original_umask = os.umask(0o022)
     generate_keypair(seckey=sk_file, pubkey=pk_file)
-    public_key = get_public_key(pk_path)
-    private_key = get_private_key(sk_path, lambda: None)
     os.umask(original_umask)
 
-    Path(pk_path).unlink()
-    Path(sk_path).unlink()
-    yield KeypairFixture(public_key=public_key, private_key=private_key)
+    public_key_path = Path(pk_path)
+    private_key_path = Path(sk_path)
+
+    yield KeypairFixture(
+        public_key_path=public_key_path, private_key_path=private_key_path
+    )
+
+    public_key_path.unlink()
+    private_key_path.unlink()
