@@ -38,7 +38,6 @@ def must_run_all(non_service_changes: list[str]) -> bool:
                 ".readme_generation/",
                 ".template/",
                 ".lock/",
-                "scripts/",
                 "pyproject.toml",
             )
         ) or Path(file).name in (
