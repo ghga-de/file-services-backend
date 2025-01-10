@@ -20,6 +20,7 @@ import logging
 import re
 import uuid
 from datetime import timedelta
+from time import perf_counter
 
 from ghga_event_schemas import pydantic_ as event_schemas
 from ghga_service_commons.utils import utc_dates
@@ -195,9 +196,12 @@ class DataRepository(DataRepositoryPort):
             raise storage_alias_not_configured from exc
 
         # check if the file corresponding to the DRS object is already in the outbox:
+        request_started = perf_counter()
         if not await object_storage.does_object_exist(
             bucket_id=bucket_id, object_id=drs_object.object_id
         ):
+            request_duration = perf_counter() - request_started
+            log.info(f"S3 lookup took {request_duration:.2f} seconds")
             log.info(f"File not in outbox for '{drs_id}'. Request staging...")
 
             # publish an outbox event to request a stage of the corresponding file:
@@ -220,6 +224,9 @@ class DataRepository(DataRepositoryPort):
             retry_after = min(retry_after, config.retry_after_max)
             # instruct to retry later:
             raise self.RetryAccessLaterError(retry_after=retry_after)
+
+        request_duration = perf_counter() - request_started
+        log.info(f"S3 lookup took {request_duration:.2f} seconds")
 
         # Successfully staged, update access information now
         log.debug(f"Updating access time of for '{drs_id}'.")
