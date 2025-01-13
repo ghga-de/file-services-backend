@@ -24,13 +24,11 @@ from crypt4gh.keys import get_private_key, get_public_key
 from fastapi.testclient import TestClient
 from ghga_service_commons.utils import temp_files
 
-from ekss.adapters.inbound.fastapi_.deps import config_injector
-from ekss.adapters.inbound.fastapi_.main import setup_app
 from ekss.config import Config
-from tests_ekss.fixtures.config import SERVICE_CONFIG, get_config
 from tests_ekss.fixtures.keypair import (
     KeypairFixture,
     generate_keypair_fixture,  # noqa: F401
+    patch_config_and_app,
 )
 from tests_ekss.fixtures.vault import (
     VaultFixture,
@@ -61,11 +59,7 @@ async def first_part_fixture(
 
     with temp_files.big_temp_file(file_size) as raw_file:
         with io.BytesIO() as encrypted_file:
-            config = get_config(sources=[vault_fixture.config, SERVICE_CONFIG])
-            app = setup_app(config)
-            app.dependency_overrides[config_injector] = lambda: config
-            client = TestClient(app=app)
-
+            config, client = patch_config_and_app(vault_fixture.config)
             server_pubkey = get_public_key(config.server_public_key_path)
             private_key = get_private_key(
                 generate_keypair_fixture.private_key_path,

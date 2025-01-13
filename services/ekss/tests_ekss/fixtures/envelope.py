@@ -23,13 +23,11 @@ from pathlib import Path
 import pytest_asyncio
 from fastapi.testclient import TestClient
 
-from ekss.adapters.inbound.fastapi_.deps import config_injector
-from ekss.adapters.inbound.fastapi_.main import setup_app
 from ekss.config import Config
-from tests_ekss.fixtures.config import SERVICE_CONFIG, get_config
 from tests_ekss.fixtures.keypair import (
     KeypairFixture,
     generate_keypair_fixture,  # noqa: F401
+    patch_config_and_app,
 )
 from tests_ekss.fixtures.vault import (
     VaultFixture,
@@ -63,12 +61,7 @@ async def envelope_fixture(
     secret = os.urandom(32)
     # put secret in database
     secret_id = vault_fixture.adapter.store_secret(secret=secret)
-
-    config = get_config(sources=[vault_fixture.config, SERVICE_CONFIG])
-    app = setup_app(config)
-    app.dependency_overrides[config_injector] = lambda: config
-    client = TestClient(app=app)
-
+    config, client = patch_config_and_app(vault_fixture.config)
     yield EnvelopeFixture(
         client=client,
         config=config,

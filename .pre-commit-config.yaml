@@ -27,7 +27,7 @@ repos:
       - id: trailing-whitespace
         exclude: '.*\.md'
       - id: end-of-file-fixer
-        exclude: '.*\.json|example_config.yaml|.*\.sec|.*\.pub'
+        exclude: '.*\.json|example_config.yaml'
       - id: check-yaml
       - id: check-added-large-files
       - id: check-ast
