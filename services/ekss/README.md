@@ -96,6 +96,34 @@ ekss --help
 ### Parameters
 
 The service requires the following configuration parameters:
+- **`server_private_key_path`** *(string, format: path, required)*: Path to the Crypt4GH private key file.
+
+
+  Examples:
+
+  ```json
+  "./key.sec"
+  ```
+
+
+- **`server_public_key_path`** *(string, format: path, required)*: Path to the Crypt4GH public key file.
+
+
+  Examples:
+
+  ```json
+  "./key.pub"
+  ```
+
+
+- **`private_key_passphrase`**: Passphrase needed to read the content of the private key file. Only needed if the private key is encrypted. Default: `null`.
+
+  - **Any of**
+
+    - *string*
+
+    - *null*
+
 - **`log_level`** *(string)*: The minimum log level to capture. Must be one of: `["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "TRACE"]`. Default: `"INFO"`.
 
 - **`service_name`** *(string)*: Default: `"encryption_key_store"`.
@@ -351,26 +379,6 @@ The service requires the following configuration parameters:
 
   ```json
   false
-  ```
-
-
-- **`server_private_key`** *(string, format: password, required)*: Base64 encoded server Crypt4GH private key.
-
-
-  Examples:
-
-  ```json
-  "server_private_key"
-  ```
-
-
-- **`server_public_key`** *(string, required)*: Base64 encoded server Crypt4GH public key.
-
-
-  Examples:
-
-  ```json
-  "server_public_key"
   ```
 
 

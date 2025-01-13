@@ -108,8 +108,8 @@ class ServiceConfig(BaseSettings):
     private_key_passphrase: str | None = Field(
         default=None,
         description=(
-            "Passphrase needed to red the content of the private key file. "
-            + "Only needed if the key is encrypted."
+            "Passphrase needed to read the content of the private key file. "
+            + "Only needed if the private key is encrypted."
         ),
     )
 
