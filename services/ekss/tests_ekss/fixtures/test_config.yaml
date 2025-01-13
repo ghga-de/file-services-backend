@@ -7,6 +7,6 @@ vault_secrets_mount_point: secret
 vault_kube_role: dummy-role
 service_instance_id: "1"
 
-server_private_key_path: /workspace/services/ekss/tests_ekss/fixtures/test.sec
-server_public_key_path: /workspace/services/ekss/tests_ekss/fixtures/test.pub
+server_private_key_path: test.sec
+server_public_key_path: test.pub
 private_key_passphrase: test

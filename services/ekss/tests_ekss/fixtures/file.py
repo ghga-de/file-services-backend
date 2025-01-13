@@ -21,9 +21,13 @@ from dataclasses import dataclass
 import crypt4gh.lib
 import pytest_asyncio
 from crypt4gh.keys import get_private_key, get_public_key
+from fastapi.testclient import TestClient
 from ghga_service_commons.utils import temp_files
 
-from tests_ekss.fixtures.config import get_config
+from ekss.adapters.inbound.fastapi_.deps import config_injector
+from ekss.adapters.inbound.fastapi_.main import setup_app
+from ekss.config import Config
+from tests_ekss.fixtures.config import SERVICE_CONFIG, get_config
 from tests_ekss.fixtures.keypair import (
     KeypairFixture,
     generate_keypair_fixture,  # noqa: F401
@@ -38,6 +42,8 @@ from tests_ekss.fixtures.vault import (
 class FirstPartFixture:
     """Fixture for envelope extraction"""
 
+    config: Config
+    client: TestClient
     client_pubkey: bytes
     content: bytes
     vault: VaultFixture
@@ -53,12 +59,17 @@ async def first_part_fixture(
     file_size = 20 * 1024**2
     part_size = 16 * 1024**2
 
-    config = get_config()
     with temp_files.big_temp_file(file_size) as raw_file:
         with io.BytesIO() as encrypted_file:
+            config = get_config(sources=[vault_fixture.config, SERVICE_CONFIG])
+            app = setup_app(config)
+            app.dependency_overrides[config_injector] = lambda: config
+            client = TestClient(app=app)
+
             server_pubkey = get_public_key(config.server_public_key_path)
             private_key = get_private_key(
-                generate_keypair_fixture.private_key_path, callback=lambda: None
+                generate_keypair_fixture.private_key_path,
+                callback=lambda: config.private_key_passphrase,
             )
             keys = [(0, private_key, server_pubkey)]
             # rewind input file for reading
@@ -69,6 +80,8 @@ async def first_part_fixture(
             part = encrypted_file.read(part_size)
             public_key = get_public_key(generate_keypair_fixture.public_key_path)
             yield FirstPartFixture(
+                config=config,
+                client=client,
                 client_pubkey=public_key,
                 content=part,
                 vault=vault_fixture,

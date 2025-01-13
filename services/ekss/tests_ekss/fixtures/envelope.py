@@ -21,7 +21,12 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pytest_asyncio
+from fastapi.testclient import TestClient
 
+from ekss.adapters.inbound.fastapi_.deps import config_injector
+from ekss.adapters.inbound.fastapi_.main import setup_app
+from ekss.config import Config
+from tests_ekss.fixtures.config import SERVICE_CONFIG, get_config
 from tests_ekss.fixtures.keypair import (
     KeypairFixture,
     generate_keypair_fixture,  # noqa: F401
@@ -36,6 +41,8 @@ from tests_ekss.fixtures.vault import (
 class EnvelopeFixture:
     """Fixture for GET call to create an envelope"""
 
+    client: TestClient
+    config: Config
     public_key_path: Path
     private_key_path: Path
     secret_id: str
@@ -54,11 +61,17 @@ async def envelope_fixture(
     That secret id corresponds to a random secret created and put into the database
     """
     secret = os.urandom(32)
-
     # put secret in database
     secret_id = vault_fixture.adapter.store_secret(secret=secret)
 
+    config = get_config(sources=[vault_fixture.config, SERVICE_CONFIG])
+    app = setup_app(config)
+    app.dependency_overrides[config_injector] = lambda: config
+    client = TestClient(app=app)
+
     yield EnvelopeFixture(
+        client=client,
+        config=config,
         public_key_path=generate_keypair_fixture.public_key_path,
         private_key_path=generate_keypair_fixture.private_key_path,
         secret_id=secret_id,
