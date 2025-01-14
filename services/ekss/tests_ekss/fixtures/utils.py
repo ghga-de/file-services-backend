@@ -31,5 +31,3 @@ def get_test_client(config: Config) -> TestClient:
     app = setup_app(config)
     app.dependency_overrides[config_injector] = lambda: config
     return TestClient(app=app)
-
-
