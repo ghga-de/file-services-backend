@@ -16,43 +16,18 @@
 
 import os
 from collections.abc import Generator
-from dataclasses import dataclass
+from contextlib import contextmanager
 from pathlib import Path
 from tempfile import mkstemp
 
-import pytest_asyncio
 from crypt4gh.keys.c4gh import generate as generate_keypair
-from fastapi.testclient import TestClient
-from pydantic_settings import BaseSettings
 
-from ekss.adapters.inbound.fastapi_.deps import config_injector
-from ekss.adapters.inbound.fastapi_.main import setup_app
-from ekss.config import Config
-from tests_ekss.fixtures.config import SERVICE_CONFIG, get_config
+from ekss.config import ServiceConfig
 
 
-@dataclass
-class KeypairFixture:
-    """Fixture containing a keypair"""
-
-    public_key_path: Path
-    private_key_path: Path
-
-
-@pytest_asyncio.fixture
-def generate_keypair_fixture() -> Generator[KeypairFixture, None]:
-    """Creates a keypair using crypt4gh"""
-    public_key_path, private_key_path = generate_new_keypair()
-    yield KeypairFixture(
-        public_key_path=public_key_path, private_key_path=private_key_path
-    )
-
-    public_key_path.unlink()
-    private_key_path.unlink()
-
-
-def generate_new_keypair(passphrase: str | None = None) -> tuple[Path, Path]:
-    """Generate a new keypair in tmp"""
+@contextmanager
+def tmp_keypair(passphrase: str | None = None) -> Generator[ServiceConfig, None]:
+    """Creates a keypair in tmp using crypt4gh and yields the resulting ServiceConfig"""
     # Crypt4GH always writes to file and umask inside of its code causes permission issues
     sk_file, sk_path = mkstemp(prefix="private", suffix=".key")
     pk_file, pk_path = mkstemp(prefix="public", suffix=".key")
@@ -69,23 +44,13 @@ def generate_new_keypair(passphrase: str | None = None) -> tuple[Path, Path]:
     public_key_path = Path(pk_path)
     private_key_path = Path(sk_path)
 
-    return public_key_path, private_key_path
-
-
-def patch_config_and_app(config_to_patch: BaseSettings) -> tuple[Config, TestClient]:
-    """Update key paths, inject new config, setup app and return config and test client"""
-    public_key_path, private_key_path = generate_new_keypair(
-        passphrase=SERVICE_CONFIG.private_key_passphrase
-    )
-    service_config = SERVICE_CONFIG.model_copy(
-        update={
-            "server_public_key_path": public_key_path,
-            "server_private_key_path": private_key_path,
-        }
+    service_config = ServiceConfig(
+        server_private_key_path=private_key_path,
+        server_public_key_path=public_key_path,
+        private_key_passphrase=passphrase,
     )
 
-    config = get_config(sources=[config_to_patch, service_config])
-    app = setup_app(config)
-    app.dependency_overrides[config_injector] = lambda: config
-    client = TestClient(app=app)
-    return config, client
+    yield service_config
+
+    public_key_path.unlink()
+    private_key_path.unlink()

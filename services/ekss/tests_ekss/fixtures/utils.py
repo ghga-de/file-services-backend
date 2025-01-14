@@ -17,6 +17,20 @@
 
 from pathlib import Path
 
+from fastapi.testclient import TestClient
+
+from ekss.adapters.inbound.fastapi_.deps import config_injector
+from ekss.adapters.inbound.fastapi_.main import setup_app
+from ekss.config import Config
+
 BASE_DIR = Path(__file__).parent.resolve()
+
+
+def get_test_client(config: Config) -> TestClient:
+    """Return a configured TestClient instance"""
+    app = setup_app(config)
+    app.dependency_overrides[config_injector] = lambda: config
+    return TestClient(app=app)
+
 
 print(BASE_DIR)
