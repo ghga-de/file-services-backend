@@ -33,4 +33,3 @@ def get_test_client(config: Config) -> TestClient:
     return TestClient(app=app)
 
 
-print(BASE_DIR)
