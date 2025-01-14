@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Implements functionality for envelope encrytion"""
+"""Implements functionality for envelope encryption"""
 
 from pathlib import Path
 
