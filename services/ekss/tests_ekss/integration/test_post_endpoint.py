@@ -25,7 +25,8 @@ from tests_ekss.fixtures.file import (
     FirstPartFixture,
     first_part_fixture,  # noqa: F401
 )
-from tests_ekss.fixtures.keypair import generate_keypair_fixture  # noqa: F401
+from tests_ekss.fixtures.keypair import tmp_keypair  # noqa: F401
+from tests_ekss.fixtures.utils import get_test_client
 from tests_ekss.fixtures.vault import vault_fixture  # noqa: F401
 
 
@@ -43,8 +44,8 @@ async def test_post_secrets(
         ),
         "file_part": base64.b64encode(payload).decode("utf-8"),
     }
-
-    response = first_part_fixture.client.post(url="/secrets", json=request_body)
+    client = get_test_client(first_part_fixture.config)
+    response = client.post(url="/secrets", json=request_body)
     assert response.status_code == 200
     body = response.json()
     submitter_secret = base64.b64decode(body["submitter_secret"])
@@ -81,7 +82,8 @@ async def test_corrupted_header(
         "file_part": content,
     }
 
-    response = first_part_fixture.client.post(url="/secrets", json=request_body)
+    client = get_test_client(first_part_fixture.config)
+    response = client.post(url="/secrets", json=request_body)
     assert response.status_code == 400
     body = response.json()
     assert body["exception_id"] == "malformedOrMissingEnvelopeError"
@@ -101,7 +103,8 @@ async def test_invalid_pubkey(
         "file_part": content,
     }
 
-    response = first_part_fixture.client.post(url="/secrets", json=request_body)
+    client = get_test_client(first_part_fixture.config)
+    response = client.post(url="/secrets", json=request_body)
     assert response.status_code == 422
     body = response.json()
     assert body["exception_id"] == "decodingError"
@@ -124,7 +127,8 @@ async def test_missing_envelope(
         "file_part": content,
     }
 
-    response = first_part_fixture.client.post(url="/secrets", json=request_body)
+    client = get_test_client(first_part_fixture.config)
+    response = client.post(url="/secrets", json=request_body)
     assert response.status_code == 400
     body = response.json()
     assert body["exception_id"] == "malformedOrMissingEnvelopeError"
@@ -146,7 +150,8 @@ async def test_non_base64_envelope(
         "file_part": content,
     }
 
-    response = first_part_fixture.client.post(url="/secrets", json=request_body)
+    client = get_test_client(first_part_fixture.config)
+    response = client.post(url="/secrets", json=request_body)
     assert response.status_code == 422
     body = response.json()
     assert body["exception_id"] == "decodingError"

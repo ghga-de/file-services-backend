@@ -25,7 +25,8 @@ from tests_ekss.fixtures.envelope import (
     EnvelopeFixture,
     envelope_fixture,  # noqa: F401
 )
-from tests_ekss.fixtures.keypair import generate_keypair_fixture  # noqa: F401
+from tests_ekss.fixtures.keypair import tmp_keypair  # noqa: F401
+from tests_ekss.fixtures.utils import get_test_client
 from tests_ekss.fixtures.vault import vault_fixture  # noqa: F401
 
 
@@ -39,15 +40,15 @@ async def test_get_envelope(
     client_pk = base64.urlsafe_b64encode(
         get_public_key(envelope_fixture.public_key_path)
     ).decode("utf-8")
-    response = envelope_fixture.client.get(
-        url=f"/secrets/{secret_id}/envelopes/{client_pk}"
-    )
+    client = get_test_client(envelope_fixture.config)
+    response = client.get(url=f"/secrets/{secret_id}/envelopes/{client_pk}")
     assert response.status_code == 200
     body = response.json()
     content = base64.b64decode(body["content"])
     assert content
     client_sk = get_private_key(
-        envelope_fixture.private_key_path, callback=lambda: None
+        envelope_fixture.private_key_path,
+        callback=lambda: envelope_fixture.config.private_key_passphrase,
     )
     keys = [(0, client_sk, None)]
     session_keys, _ = crypt4gh.header.deconstruct(
@@ -68,9 +69,8 @@ async def test_wrong_id(
     client_pk = base64.urlsafe_b64encode(
         get_public_key(envelope_fixture.public_key_path)
     ).decode("utf-8")
-    response = envelope_fixture.client.get(
-        url=f"/secrets/{secret_id}/envelopes/{client_pk}"
-    )
+    client = get_test_client(envelope_fixture.config)
+    response = client.get(url=f"/secrets/{secret_id}/envelopes/{client_pk}")
     assert response.status_code == 404
     body = response.json()
     assert body["exception_id"] == "secretNotFoundError"
