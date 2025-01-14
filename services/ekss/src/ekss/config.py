@@ -92,7 +92,7 @@ class VaultConfig(BaseSettings):
         return value
 
 
-class ServiceConfig(BaseSettings):
+class Crypt4GHConfig(BaseSettings):
     """Service specific configuration"""
 
     server_private_key_path: Path = Field(
@@ -115,7 +115,7 @@ class ServiceConfig(BaseSettings):
 
 
 @config_from_yaml(prefix="ekss")
-class Config(ApiConfigBase, VaultConfig, LoggingConfig, ServiceConfig):
+class Config(ApiConfigBase, VaultConfig, LoggingConfig, Crypt4GHConfig):
     """Config parameters and their defaults."""
 
     service_name: str = "encryption_key_store"

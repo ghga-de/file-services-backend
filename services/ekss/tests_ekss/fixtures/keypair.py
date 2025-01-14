@@ -22,12 +22,12 @@ from tempfile import mkstemp
 
 from crypt4gh.keys.c4gh import generate as generate_keypair
 
-from ekss.config import ServiceConfig
+from ekss.config import Crypt4GHConfig
 
 
 @contextmanager
-def tmp_keypair(passphrase: str | None = None) -> Generator[ServiceConfig, None]:
-    """Creates a keypair in tmp using crypt4gh and yields the resulting ServiceConfig"""
+def tmp_keypair(passphrase: str | None = None) -> Generator[Crypt4GHConfig, None]:
+    """Creates a keypair in tmp using crypt4gh and yields the resulting Crypt4GHConfig"""
     # Crypt4GH always writes to file and umask inside of its code causes permission issues
     sk_file, sk_path = mkstemp(prefix="private", suffix=".key")
     pk_file, pk_path = mkstemp(prefix="public", suffix=".key")
@@ -44,7 +44,7 @@ def tmp_keypair(passphrase: str | None = None) -> Generator[ServiceConfig, None]
     public_key_path = Path(pk_path)
     private_key_path = Path(sk_path)
 
-    service_config = ServiceConfig(
+    service_config = Crypt4GHConfig(
         server_private_key_path=private_key_path,
         server_public_key_path=public_key_path,
         private_key_passphrase=passphrase,

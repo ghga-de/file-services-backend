@@ -19,7 +19,7 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings
 
-from ekss.config import Config, ServiceConfig
+from ekss.config import Config
 from tests_ekss.fixtures.utils import BASE_DIR
 
 TEST_CONFIG_YAML = BASE_DIR / "test_config.yaml"
@@ -42,9 +42,3 @@ def get_config(
 
 
 DEFAULT_CONFIG = get_config()
-
-SERVICE_CONFIG = ServiceConfig(
-    server_private_key_path=BASE_DIR / "test.sec",
-    server_public_key_path=BASE_DIR / "test.pub",
-    private_key_passphrase="test",
-)
