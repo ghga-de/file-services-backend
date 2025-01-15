@@ -87,6 +87,7 @@ class EventPubTranslator(EventPublisherPort):
             s3_endpoint_alias=file.storage_alias,
             file_id=file.file_id,
             object_id=file.object_id,
+            object_size=file.object_size,
             bucket_id=bucket_id,
             decrypted_sha256=file.decrypted_sha256,
             decrypted_size=file.decrypted_size,
