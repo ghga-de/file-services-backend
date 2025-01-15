@@ -44,13 +44,13 @@ def tmp_keypair(passphrase: str | None = None) -> Generator[Crypt4GHConfig, None
     public_key_path = Path(pk_path)
     private_key_path = Path(sk_path)
 
-    service_config = Crypt4GHConfig(
+    crypt4gh_config = Crypt4GHConfig(
         server_private_key_path=private_key_path,
         server_public_key_path=public_key_path,
         private_key_passphrase=passphrase,
     )
 
-    yield service_config
+    yield crypt4gh_config
 
     public_key_path.unlink()
     private_key_path.unlink()
