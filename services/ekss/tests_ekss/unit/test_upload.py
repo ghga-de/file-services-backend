@@ -22,7 +22,6 @@ from tests_ekss.fixtures.file import (
     FirstPartFixture,
     first_part_fixture,  # noqa: F401
 )
-from tests_ekss.fixtures.keypair import tmp_keypair  # noqa: F401
 from tests_ekss.fixtures.vault import vault_fixture  # noqa: F401
 
 

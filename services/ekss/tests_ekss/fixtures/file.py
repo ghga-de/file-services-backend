@@ -56,7 +56,7 @@ async def first_part_fixture(
         io.BytesIO() as encrypted_file,
         tmp_keypair(DEFAULT_CONFIG.private_key_passphrase) as crypt4gh_config,
     ):
-        config = get_config([vault_fixture.config, keypair_config])
+        config = get_config([vault_fixture.config, crypt4gh_config])
         server_pubkey = get_public_key(config.server_public_key_path)
         private_key = get_private_key(
             config.server_private_key_path,

@@ -25,12 +25,12 @@ from tests_ekss.fixtures.file import (
     FirstPartFixture,
     first_part_fixture,  # noqa: F401
 )
-from tests_ekss.fixtures.keypair import tmp_keypair  # noqa: F401
 from tests_ekss.fixtures.utils import get_test_client
 from tests_ekss.fixtures.vault import vault_fixture  # noqa: F401
 
+pytestmark = pytest.mark.asyncio()
 
-@pytest.mark.asyncio
+
 async def test_post_secrets(
     *,
     first_part_fixture: FirstPartFixture,  # noqa: F811
@@ -66,7 +66,6 @@ async def test_post_secrets(
     assert body["offset"] > 0
 
 
-@pytest.mark.asyncio
 async def test_corrupted_header(
     *,
     first_part_fixture: FirstPartFixture,  # noqa: F811
@@ -89,7 +88,6 @@ async def test_corrupted_header(
     assert body["exception_id"] == "malformedOrMissingEnvelopeError"
 
 
-@pytest.mark.asyncio
 async def test_invalid_pubkey(
     *,
     first_part_fixture: FirstPartFixture,  # noqa: F811
@@ -110,7 +108,6 @@ async def test_invalid_pubkey(
     assert body["exception_id"] == "decodingError"
 
 
-@pytest.mark.asyncio
 async def test_missing_envelope(
     *,
     first_part_fixture: FirstPartFixture,  # noqa: F811
@@ -134,7 +131,6 @@ async def test_missing_envelope(
     assert body["exception_id"] == "malformedOrMissingEnvelopeError"
 
 
-@pytest.mark.asyncio
 async def test_non_base64_envelope(
     *,
     first_part_fixture: FirstPartFixture,  # noqa: F811

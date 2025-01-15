@@ -56,7 +56,7 @@ async def envelope_fixture(
     # put secret in database
     secret_id = vault_fixture.adapter.store_secret(secret=secret)
     with tmp_keypair(DEFAULT_CONFIG.private_key_passphrase) as crypt4gh_config:
-        config = get_config([vault_fixture.config, keypair_config])
+        config = get_config([vault_fixture.config, crypt4gh_config])
         yield EnvelopeFixture(
             config=config,
             public_key_path=config.server_public_key_path,

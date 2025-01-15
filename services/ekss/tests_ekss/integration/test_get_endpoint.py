@@ -25,12 +25,12 @@ from tests_ekss.fixtures.envelope import (
     EnvelopeFixture,
     envelope_fixture,  # noqa: F401
 )
-from tests_ekss.fixtures.keypair import tmp_keypair  # noqa: F401
 from tests_ekss.fixtures.utils import get_test_client
 from tests_ekss.fixtures.vault import vault_fixture  # noqa: F401
 
+pytestmark = pytest.mark.asyncio()
 
-@pytest.mark.asyncio
+
 async def test_get_envelope(
     *,
     envelope_fixture: EnvelopeFixture,  # noqa: F811
@@ -59,7 +59,6 @@ async def test_get_envelope(
     assert session_keys[0] == envelope_fixture.secret
 
 
-@pytest.mark.asyncio
 async def test_wrong_id(
     *,
     envelope_fixture: EnvelopeFixture,  # noqa: F811
