@@ -55,7 +55,7 @@ async def envelope_fixture(
     secret = os.urandom(32)
     # put secret in database
     secret_id = vault_fixture.adapter.store_secret(secret=secret)
-    with tmp_keypair(DEFAULT_CONFIG.private_key_passphrase) as keypair_config:
+    with tmp_keypair(DEFAULT_CONFIG.private_key_passphrase) as crypt4gh_config:
         config = get_config([vault_fixture.config, keypair_config])
         yield EnvelopeFixture(
             config=config,
