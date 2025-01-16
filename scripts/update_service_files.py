@@ -53,8 +53,7 @@ def suppress_print(service: str):
         with redirect_stdout(io.StringIO()):
             yield
     except Exception as e:
-        cli.echo_warning(f"Unable to complete for '{
-            service}'. See error below:")
+        cli.echo_warning(f"Unable to complete for '{service}'. See error below:")
         cli.echo_failure(str(e))
         exit(1)
 
@@ -102,8 +101,9 @@ def service_specific(func: Callable) -> Callable:
 
             for i, svc in enumerate(all_services):
                 print(
-                    f"{PREV_LINE}( ) {status} {func_name}...({
-                        i + 1}/{service_count}): {svc.name}",
+                    f"{PREV_LINE}( ) {status} {func_name}...({i + 1}/{service_count}): {
+                        svc.name
+                    }",
                 )
                 with suppress_print(svc.name) if not check else nullcontext():
                     func(svc.name, *args, **kwargs)
@@ -111,16 +111,18 @@ def service_specific(func: Callable) -> Callable:
                     print(PREV_LINE + PREV_LINE)
 
             cli.echo_success(
-                f"{line_prefix}(✓) {status} {func_name}...({
-                    service_count}/{service_count}): {report}"
+                f"{line_prefix}(✓) {status} {func_name}...({service_count}/{
+                    service_count
+                }): {report}"
             )
 
         else:
             print(f"( ) {status} {func_name} for {service}...")
             func(service, *args, **kwargs)
             cli.echo_success(
-                f"{PREV_LINE}{PREV_LINE}(✓) {status} {func_name} for {
-                    service}... {report}"
+                f"{PREV_LINE}{PREV_LINE}(✓) {status} {func_name} for {service}... {
+                    report
+                }"
             )
 
     return wrapper
@@ -185,7 +187,7 @@ def precommit_hooks(check: bool = CheckFlag):
 @app.command(name="all-for")
 def update_service_specific(service: str = ServiceArg, check: bool = CheckFlag):
     """Run all *service-specific* update scripts for one or all services, in order."""
-    print(f"Running all scripts for {service if service else "all services"}.")
+    print(f"Running all scripts for {service if service else 'all services'}.")
     config_docs(service=service, check=check)
     openapi_docs(service=service, check=check)
     service_readme(service=service, check=check)

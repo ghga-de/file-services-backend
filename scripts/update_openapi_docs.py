@@ -73,9 +73,9 @@ def get_openapi_spec() -> str:
         stdout=subprocess.PIPE,
         stderr=subprocess.DEVNULL,
     ) as process:
-        assert (
-            process.wait() == 0 and process.stdout is not None
-        ), "Failed to get openapi."
+        assert process.wait() == 0 and process.stdout is not None, (
+            "Failed to get openapi."
+        )
         raw_openapi = process.stdout.read().decode("utf-8").strip("\n")
 
     openapi_spec = json.loads(raw_openapi)

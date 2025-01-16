@@ -271,6 +271,7 @@ async def test_success_event(monkeypatch, joint_fixture: JointFixture):
         "decrypted_size": data.file_size,
         "decryption_secret_id": secret_id,
         "content_offset": data.offset,
+        "encrypted_size": data.file_size,
         "encrypted_part_size": part_size,
         "encrypted_parts_md5": encrypted_parts_md5,
         "encrypted_parts_sha256": encrypted_parts_sha256,
