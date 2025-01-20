@@ -272,6 +272,51 @@ The service requires the following configuration parameters:
   ```
 
 
+- **`lock_collection`** *(string, required)*: The name of the collection containing the DB Lock document for this service.
+
+
+  Examples:
+
+  ```json
+  "ifrsLock"
+  ```
+
+
+  ```json
+  "dcsLock"
+  ```
+
+
+- **`db_version_collection`** *(string, required)*: The name of the collection containing DB version information for this service.
+
+
+  Examples:
+
+  ```json
+  "ifrsDbVersions"
+  ```
+
+
+- **`migration_wait_sec`** *(integer, required)*: The number of seconds to wait before checking the DB version again.
+
+
+  Examples:
+
+  ```json
+  5
+  ```
+
+
+  ```json
+  30
+  ```
+
+
+  ```json
+  180
+  ```
+
+
 ## Definitions
 
 
