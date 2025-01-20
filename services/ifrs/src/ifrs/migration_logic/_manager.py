@@ -280,24 +280,22 @@ class MigrationManager:
                 await lock_collection.insert_one(
                     {
                         "_id": 0,
-                        "lock_acquired": False,
-                        "acquired_at": "",
+                        "lock_acquired": True,
+                        "acquired_at": now_as_utc().isoformat(),
                     }
                 )
             except DuplicateKeyError:
                 # another instance inserted the doc first, so stop and wait to retry
                 return False
 
-        # Lock database so other instances can't attempt migrations
-        async with self._lock_db():
-            if not self._lock_acquired:
-                return False
+        if not self._lock_acquired:
+            return False
 
-            # Initialize db version collection
-            await self._record_migration(
-                version=1,
-                total_duration_ms=duration_in_ms(time() - init_start),
-            )
+        # Initialize db version collection
+        await self._record_migration(
+            version=1,
+            total_duration_ms=duration_in_ms(time() - init_start),
+        )
         return True
 
     def _get_sequence(self, *, current_ver: int, target_ver: int) -> list[int]:
