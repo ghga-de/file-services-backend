@@ -314,15 +314,6 @@
       "title": "Db Name",
       "type": "string"
     },
-    "lock_collection": {
-      "description": "The name of the collection containing the DB Lock document for this service",
-      "examples": [
-        "ifrsLock",
-        "dcsLock"
-      ],
-      "title": "Lock Collection",
-      "type": "string"
-    },
     "db_version_collection": {
       "description": "The name of the collection containing DB version information for this service",
       "examples": [
@@ -357,7 +348,6 @@
     "kafka_servers",
     "db_connection_str",
     "db_name",
-    "lock_collection",
     "db_version_collection",
     "migration_wait_sec"
   ],

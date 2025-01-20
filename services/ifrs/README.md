@@ -272,21 +272,6 @@ The service requires the following configuration parameters:
   ```
 
 
-- **`lock_collection`** *(string, required)*: The name of the collection containing the DB Lock document for this service.
-
-
-  Examples:
-
-  ```json
-  "ifrsLock"
-  ```
-
-
-  ```json
-  "dcsLock"
-  ```
-
-
 - **`db_version_collection`** *(string, required)*: The name of the collection containing DB version information for this service.
 
 
