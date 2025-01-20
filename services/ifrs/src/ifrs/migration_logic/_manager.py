@@ -17,12 +17,12 @@
 import logging
 from contextlib import asynccontextmanager, suppress
 from time import sleep, time
-from typing import Any, Literal
+from typing import Literal, TypedDict
 
 from ghga_service_commons.utils.utc_dates import now_as_utc
 from hexkit.providers.mongodb import MongoDbConfig
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
-from pydantic import BaseModel, Field
+from pydantic import Field
 from pymongo.errors import DuplicateKeyError
 
 from ._utils import MigrationDefinition, Reversible
@@ -53,21 +53,13 @@ class MigrationConfig(MongoDbConfig):
     )
 
 
-class DbVersionRecord(BaseModel):
+class DbVersionRecord(TypedDict):
     """Model containing information about DB versions and how they were achieved."""
 
-    version: int = Field(..., description="The database version")
-    details: dict[str, Any] = Field(
-        ...,
-        description="Extra information about the migration to this version. ",
-        examples=[
-            {
-                "completed": "2025-01-17T13:42:58.396538+00:00",
-                "migration_type": "FORWARD",
-                "total_duration_ms": 5000,
-            }
-        ],
-    )
+    version: int
+    completed: str
+    migration_type: MigrationType
+    total_duration_ms: int
 
 
 class MigrationStepError(RuntimeError):
@@ -105,8 +97,8 @@ class DbVersioningInitError(RuntimeError):
 def _get_db_version_from_records(version_docs: list[DbVersionRecord]) -> int:
     """Gets the current DB version from the documents found in the version collection."""
     # Make sure we know what the latest version is, not just the max
-    version_docs.sort(key=lambda doc: doc.details["completed"])
-    return version_docs[-1].version if version_docs else 0
+    version_docs.sort(key=lambda doc: doc["completed"])
+    return version_docs[-1]["version"] if version_docs else 0
 
 
 class MigrationManager:
@@ -183,9 +175,10 @@ class MigrationManager:
         """Gets the DB version information from the database."""
         collection = self.db[self.config.db_version_collection]
         # use a filter to avoid picking up the lock doc, just in case
-        version_docs = [
-            DbVersionRecord(**doc) async for doc in collection.find({"_id": {"$ne": 0}})
-        ]
+        version_docs = []
+        async for doc in collection.find({"_id": {"$ne": 0}}):
+            doc.pop("_id")
+            version_docs.append(DbVersionRecord(**doc))  # type: ignore
         return version_docs
 
     @asynccontextmanager
@@ -246,14 +239,14 @@ class MigrationManager:
 
     async def _record_migration(self, *, version: int, total_duration_ms: int):
         """Insert a DbVersionRecord with processing information"""
-        details: dict[str, Any] = {
-            "completed": now_as_utc().isoformat(),
-            "total_duration_ms": total_duration_ms,
-            "migration_type": self._migration_type,
-        }
-        record = DbVersionRecord(version=version, details=details)
+        record = DbVersionRecord(
+            version=version,
+            completed=now_as_utc().isoformat(),
+            migration_type=self._migration_type,
+            total_duration_ms=total_duration_ms,
+        )
         version_collection = self.db[self.config.db_version_collection]
-        await version_collection.insert_one(record.model_dump())
+        await version_collection.insert_one(record)
 
     async def _initialize_versioning(self) -> bool:
         """Create and acquire the DB lock, then add the versioning collection.
