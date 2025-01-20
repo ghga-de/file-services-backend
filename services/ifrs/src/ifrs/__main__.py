@@ -18,12 +18,10 @@
 import asyncio
 
 from ifrs.main import consume_events
-from ifrs.migrations import run_db_migrations
 
 
 def run_forever():
     """Main entrypoint for setup.cfg"""
-    asyncio.run(run_db_migrations())
     asyncio.run(consume_events(run_forever=True))
 
 
