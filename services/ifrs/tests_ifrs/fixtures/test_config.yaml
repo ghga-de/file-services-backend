@@ -19,6 +19,5 @@ file_staged_event_topic: internal-file-registry
 file_staged_event_type: file_staged_for_download
 file_deleted_event_topic: internal-file-registry
 file_deleted_event_type: file_deleted
-lock_collection: ifrs_db_lock
-db_version_collection: ifrs_db_versions
+db_version_collection: ifrsDbVersions
 migration_wait_sec: 2
