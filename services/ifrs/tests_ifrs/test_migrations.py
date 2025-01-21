@@ -58,17 +58,15 @@ async def test_v2_migration(
     # Set up test data - we want some random object sizes to verify we're not accidentally
     #  reading some dummy value somewhere. Record the sizes so we can check later that
     #  what we retrieve is correct.
-    test_data = []
-    sizes = []
+    test_data_sizes = {}
     base = EXAMPLE_METADATA_BASE.model_dump()
     base.pop("file_id")
     for n in range(1, 10):
         metadata_base = base.copy()
         metadata_base["_id"] = f"examplefile00{n}"
         metadata_base["object_id"] = f"objectid00{n}"
-        test_data.append(metadata_base)
         size = randint(1000, 4000)
-        sizes.append(size)
+        test_data_sizes[metadata_base["_id"]] = size
         coll.insert_one(metadata_base)
 
         # Upload a temp file object with the given size to our S3 fixture
@@ -77,7 +75,7 @@ async def test_v2_migration(
         ) as f:
             await s3.populate_file_objects([f])
 
-    post_insert = [_ for _ in coll.find()]
+    post_insert = coll.find().to_list()
     assert len(post_insert) == 9
     for doc in post_insert:
         assert "object_size" not in doc
@@ -87,11 +85,11 @@ async def test_v2_migration(
     await run_db_migrations(config=config)
 
     # Make sure the docs from file_metadata were updated with the right size values
-    post_apply = [_ for _ in coll.find()]
+    post_apply = coll.find().to_list()
     assert len(post_apply) == 9
-    for doc, size in zip(post_apply, sizes, strict=True):
+    for doc in post_apply:
         assert "object_size" in doc
-        assert doc["object_size"] == size
+        assert doc["object_size"] == test_data_sizes[doc["_id"]]
 
     # Unapply the v2 migration, which will fail because the current model requires
     #  the `object_size` field.
@@ -99,11 +97,11 @@ async def test_v2_migration(
         await run_db_migrations(config=config, target_version=1)
 
     # Make sure the docs from file_metadata were updated with the right size values
-    post_failed_unapply = [_ for _ in coll.find()]
+    post_failed_unapply = coll.find().to_list()
     assert len(post_failed_unapply) == 9
-    for doc, size in zip(post_failed_unapply, sizes, strict=True):
+    for doc in post_failed_unapply:
         assert "object_size" in doc
-        assert doc["object_size"] == size
+        assert doc["object_size"] == test_data_sizes[doc["_id"]]
 
     # Monkeypatch the pydantic model to resemble the old version so we can test reversal
     class PatchedFileMetadata(FileMetadataBase):
@@ -114,7 +112,7 @@ async def test_v2_migration(
     )
     await run_db_migrations(config=config, target_version=1)
 
-    post_unapply = [_ for _ in coll.find()]
+    post_unapply = coll.find().to_list()
     assert len(post_unapply) == 9
     for doc in post_unapply:
         assert "object_size" not in doc
