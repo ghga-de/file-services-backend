@@ -39,7 +39,8 @@ def validate_doc(doc: Document, *, model: type[BaseModel], id_field: str):
     if doc != doc_from_model:
         raise RuntimeError(
             f"Doc validation failed for model '{model.__name__}',"
-            + f" expected: {str(doc_from_model)}, but got {doc}"
+            + f" expected: {str(doc_from_model)}, but got {doc}. Ensure the model"
+            + " definition is up-to-date."
         )
 
 
