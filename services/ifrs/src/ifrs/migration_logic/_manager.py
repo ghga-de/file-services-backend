@@ -264,14 +264,14 @@ class MigrationManager:
                 return True
         return False
 
-    def _get_sequence(self, *, current_ver: int, target_ver: int) -> list[int]:
+    def _get_version_sequence(self, *, current_ver: int) -> list[int]:
         """Return an ordered list of the version migrations to apply/unapply"""
         # In forward case, we don't need to apply current ver
         # in backward case, we don't want to unapply the target ver
         step_range = (
-            range(current_ver, target_ver, -1)
+            range(current_ver, self.target_ver, -1)
             if self._migration_type == "BACKWARD"
-            else range(current_ver + 1, target_ver + 1)
+            else range(current_ver + 1, self.target_ver + 1)
         )
         steps = list(step_range)
         return steps
@@ -302,15 +302,15 @@ class MigrationManager:
 
         Raises `MigrationError` if unsuccessful.
         """
-        seq = self._get_sequence(current_ver=current_ver, target_ver=self.target_ver)
-        migrations = [self._fetch_migration_cls(ver) for ver in seq]
+        ver_sequence = self._get_version_sequence(current_ver=current_ver)
+        migrations = [self._fetch_migration_cls(ver) for ver in ver_sequence]
         unapplying = self._migration_type == "BACKWARD"
         try:
             # Execute & time each migration in order to get to the target DB version
-            for v, migration_cls in zip(seq, migrations, strict=True):
+            for version, migration_cls in zip(ver_sequence, migrations, strict=True):
                 # Determine if this is the last migration to apply/unapply
                 last_ver_called = self.target_ver + 1 if unapplying else self.target_ver
-                is_final_migration = v == last_ver_called
+                is_final_migration = version == last_ver_called
 
                 # instantiate MigrationDefinition
                 migration = migration_cls(
