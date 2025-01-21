@@ -309,8 +309,7 @@ class MigrationManager:
         for version, migration_cls in zip(ver_sequence, migrations, strict=True):
             try:
                 # Determine if this is the last migration to apply/unapply
-                last_ver_called = self.target_ver + 1 if unapplying else self.target_ver
-                is_final_migration = version == last_ver_called
+                is_final_migration = version == ver_sequence[-1]
 
                 # instantiate MigrationDefinition
                 migration = migration_cls(
