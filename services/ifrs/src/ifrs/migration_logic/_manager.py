@@ -305,9 +305,9 @@ class MigrationManager:
         ver_sequence = self._get_version_sequence(current_ver=current_ver)
         migrations = [self._fetch_migration_cls(ver) for ver in ver_sequence]
         unapplying = self._migration_type == "BACKWARD"
-        try:
-            # Execute & time each migration in order to get to the target DB version
-            for version, migration_cls in zip(ver_sequence, migrations, strict=True):
+        # Execute & time each migration in order to get to the target DB version
+        for version, migration_cls in zip(ver_sequence, migrations, strict=True):
+            try:
                 # Determine if this is the last migration to apply/unapply
                 last_ver_called = self.target_ver + 1 if unapplying else self.target_ver
                 is_final_migration = version == last_ver_called
@@ -321,12 +321,12 @@ class MigrationManager:
 
                 # Call apply/unapply based on migration type
                 await migration.unapply() if unapplying else await migration.apply()
-        except BaseException as exc:
-            error = MigrationStepError(
-                current_ver=current_ver, target_ver=self.target_ver, err_info=str(exc)
-            )
-            log.critical(error)
-            raise error from exc
+            except BaseException as exc:
+                error = MigrationStepError(
+                    current_ver=version, target_ver=self.target_ver, err_info=str(exc)
+                )
+                log.critical(error)
+                raise error from exc
 
     async def _migrate_db(self) -> bool:
         """Ensure the database is up to date before running the actual app.
