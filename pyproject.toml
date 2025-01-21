@@ -10,6 +10,19 @@ dependencies = [
     "crypt4gh>=1.6",
     "hvac>=2",
     "httpx>=0.27",
+    "opentelemetry-api==1.29.0",
+    "opentelemetry-sdk==1.29.0",
+    "opentelemetry-distro==0.50b0",
+    "opentelemetry-instrumentation==0.50b0",
+    "opentelemetry-instrumentation-aiokafka==0.50b0",
+    "opentelemetry-instrumentation-asyncio==0.50b0",
+    "opentelemetry-instrumentation-botocore==0.50b0",
+    "opentelemetry-instrumentation-click==0.50b0",
+    "opentelemetry-instrumentation-fastapi==0.50b0",
+    "opentelemetry-instrumentation-httpx==0.50b0",
+    "opentelemetry-instrumentation-logging==0.50b0",
+    "opentelemetry-instrumentation-pymongo==0.50b0",
+    "opentelemetry-instrumentation-urllib3==0.50b0",
 ]
 readme = "README.md"
 authors = [
