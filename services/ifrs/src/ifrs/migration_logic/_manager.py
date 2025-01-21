@@ -15,8 +15,9 @@
 """Tools to run database migrations in services"""
 
 import logging
+from asyncio import sleep
 from contextlib import asynccontextmanager, suppress
-from time import sleep, time
+from time import time
 from typing import Literal, TypedDict
 
 from ghga_service_commons.utils.utc_dates import now_as_utc
@@ -380,4 +381,4 @@ class MigrationManager:
 
         # need to implement some kind of total time limit, warning logging, etc. later
         while not await self._migrate_db():
-            sleep(self.config.migration_wait_sec)
+            await sleep(self.config.migration_wait_sec)
