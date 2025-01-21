@@ -124,7 +124,7 @@ class MigrationDefinition:
             output_doc = await method(doc)
 
             # do validation against model only if we're on the last migration because
-            # the model defined in code may is not guaranteed to match until that time
+            # the model defined in code is not guaranteed to match until that time
             if validation_model and (self._is_final_migration or force_validate):
                 validate_doc(output_doc, model=validation_model, id_field=id_field)
 
