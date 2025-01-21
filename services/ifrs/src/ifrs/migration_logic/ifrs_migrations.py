@@ -51,22 +51,20 @@ class V2Migration(MigrationDefinition, Reversible):
 
     async def apply(self):
         """Populate `object_size` field on docs in the file_metadata collection"""
-        await self.migrate_docs_in_collection(
-            coll_name=METADATA_COLLECTION,
-            change_function=self.add_object_size,
-            validation_model=FileMetadata,
-            id_field="file_id",
-        )
-        await self.stage_new_collections(METADATA_COLLECTION)
-        await self.drop_old_collections(METADATA_COLLECTION, enforce_indexes=False)
+        async with self.auto_finalize(METADATA_COLLECTION, copy_indexes=False):
+            await self.migrate_docs_in_collection(
+                coll_name=METADATA_COLLECTION,
+                change_function=self.add_object_size,
+                validation_model=FileMetadata,
+                id_field="file_id",
+            )
 
     async def unapply(self):
         """Remove `object_size`"""
-        await self.migrate_docs_in_collection(
-            coll_name=METADATA_COLLECTION,
-            change_function=self.remove_object_size,
-            validation_model=FileMetadata,
-            id_field="file_id",
-        )
-        await self.stage_new_collections(METADATA_COLLECTION)
-        await self.drop_old_collections(METADATA_COLLECTION, enforce_indexes=False)
+        async with self.auto_finalize(METADATA_COLLECTION, copy_indexes=False):
+            await self.migrate_docs_in_collection(
+                coll_name=METADATA_COLLECTION,
+                change_function=self.remove_object_size,
+                validation_model=FileMetadata,
+                id_field="file_id",
+            )

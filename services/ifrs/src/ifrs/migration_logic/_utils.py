@@ -17,6 +17,7 @@
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Callable
+from contextlib import asynccontextmanager
 from copy import deepcopy
 from typing import Any
 
@@ -64,14 +65,60 @@ class MigrationDefinition:
             raise ValueError("Migration version has not been assigned")
 
         self._db = db
-        unapply = "_unapply" if unapplying else ""
-        self._temp_prefix = f"tmp_v{self.version}{unapply}"
+        self._temp_prefix = f"tmp_v{self.version}{'_unapply' if unapplying else ''}"
         self._new_prefix = f"{self._temp_prefix}_new"
         self._old_prefix = f"{self._temp_prefix}_old"
-        self._is_final_migration = is_final_migration
-        self._indexes_applied = False
-        self._collections_staged = False
         self._log_blurb = f"for {'downgrade' if unapplying else 'upgrade'} to DB version {self.version}"
+
+        # Used to determine if it should be safe to use model definitions for validation
+        self._is_final_migration = is_final_migration
+
+        # Tracks which collections have had indexes copied over from old collections
+        self._indexes_copied: set[str] = set()
+
+        # Tracks which collections have been staged
+        self._staged_collections: set[str] = set()
+
+    @asynccontextmanager
+    async def auto_finalize(self, coll_names: str | list[str], copy_indexes: bool):
+        """Use within `apply()` or `unapply()` to
+
+        Should be used for most migrations, but complex migrations might need to take
+        a more manual approach. For that reason, this context manager is optional.
+
+        If an error occurs during the migration process, staged changes will be unstaged
+        and dropped. If a subsequent error occurs during cleanup, it is logged with a
+        recommendation to restore the database.
+        """
+        try:
+            # Yield to run the actual migration
+            yield
+            await self.stage_new_collections(coll_names)
+
+            # copy indexes if needed (not implemented yet)
+            if copy_indexes:
+                pass
+            # Drop old collections. Don't do the index copy check unless we perform the
+            #  index copying via this method. Otherwise we can't be sure it wasn't
+            #  handled some other way
+            await self.drop_old_collections(enforce_indexes=copy_indexes)
+        except BaseException as exc:
+            try:
+                for staged in self._staged_collections:
+                    await self.unstage_collection(staged)
+                    await self._db.drop_collection(self.new_temp_name(staged))
+            except BaseException as exc_in_cleanup:
+                log.critical(
+                    "Error occurred while cleaning up migration failure. State cannot"
+                    + " be assured to be recoverable. Database restore recommended."
+                    + " Exception info: %s",
+                    str(exc_in_cleanup),
+                )
+                raise
+            log.critical(
+                "Migration failed but cleanup was successful. Error: %s", str(exc)
+            )
+            raise
 
     @staticmethod
     def _add_prefix(name: str, prefix: str) -> str:
@@ -84,7 +131,7 @@ class MigrationDefinition:
         """Add `self._new_prefix` to a plain collection name."""
         return self._add_prefix(coll_name, self._new_prefix)
 
-    def get_prefixed_old_name(self, coll_name: str) -> str:
+    def old_temp_name(self, coll_name: str) -> str:
         """Add `self._old_prefix` to plain collection name."""
         return self._add_prefix(coll_name, self._old_prefix)
 
@@ -94,7 +141,7 @@ class MigrationDefinition:
 
     def get_old_temp_names(self, coll_name: list[str]) -> list[str]:
         """Add `self._old_prefix` to a list of plain collection names."""
-        return [self.get_prefixed_old_name(name) for name in coll_name]
+        return [self.old_temp_name(name) for name in coll_name]
 
     async def migrate_docs_in_collection(
         self,
@@ -111,13 +158,15 @@ class MigrationDefinition:
         resulting doc data when this is the last migration to be applied/unapplied OR
         `always_validate` is True.
         """
-        if self._collections_staged:
+        if coll_name in self._staged_collections:
             raise RuntimeError("Collections already staged, changes shouldn't be made.")
 
         old_collection = self._db[coll_name]
         method = change_function
 
+        # Drop the temp collection first to make sure we're starting fresh.
         temp_new_coll_name = self.new_temp_name(coll_name)
+        await self._db.drop_collection(temp_new_coll_name)
         temp_new_collection = self._db[temp_new_coll_name]
 
         # naive implementation - update to use batching and bulk inserts
@@ -133,56 +182,82 @@ class MigrationDefinition:
             await temp_new_collection.insert_one(output_doc)
         log.debug("Changes applied to collection '%s' %s", coll_name, self._log_blurb)
 
-    async def stage_collection(self, coll_name: str):
+    async def stage_collection(self, original_coll_name: str):
         """Stage a single collection"""
-        old_collection = self._db[coll_name]
-        temp_old_coll_name = self.get_prefixed_old_name(coll_name)
+        # Don't do anything if it's already staged
+        if original_coll_name in self._staged_collections:
+            return
+
+        # Rename the old collection by giving it a prefix
+        # e.g. "users" -> "tmp_v7_old_users"
+        old_collection = self._db[original_coll_name]
+        temp_old_coll_name = self.old_temp_name(original_coll_name)
         await old_collection.rename(temp_old_coll_name)
 
-        temp_new_coll_name = self.new_temp_name(coll_name)
+        # Rename the new, temp collection by removing its prefix
+        # e.g. "tmp_v7_new_users" -> "users"
+        temp_new_coll_name = self.new_temp_name(original_coll_name)
         new_collection = self._db[temp_new_coll_name]
-        await new_collection.rename(coll_name)
-        log.debug("Staged changes for collection %s", coll_name)
+        await new_collection.rename(original_coll_name)
 
-    async def stage_new_collections(self, coll_names: str | list[str]):
-        """Rename old collections to temporarily move them aside without dropping them.
-        Remove temporary prefix from updated collections.
+        # Mark this collection as staged
+        self._staged_collections.add(original_coll_name)
+        log.debug("Staged changes for collection %s", original_coll_name)
+
+    async def unstage_collection(self, original_coll_name: str):
+        """Reverse steps from `stage_collection()`"""
+        # Add the prefix back to the new collection
+        # e.g. "users" -> "tmp_v7_new_users"
+        temp_new_coll_name = self.new_temp_name(original_coll_name)
+        new_collection = self._db[original_coll_name]
+        await new_collection.rename(temp_new_coll_name)
+
+        # Remove the prefix from the old collection
+        # e.g. "tmp_v7_old_users" -> "users"
+        temp_old_coll_name = self.old_temp_name(original_coll_name)
+        old_collection = self._db[temp_old_coll_name]
+        await old_collection.rename(temp_old_coll_name)
+
+        # Remove this collection from the "staged" tracking set
+        self._staged_collections.remove(original_coll_name)
+        log.debug("Unstaged changes for collection %s", original_coll_name)
+
+    async def stage_new_collections(self, original_coll_names: str | list[str]):
+        """Rename old collections to temporarily move them aside without dropping them,
+        then remove the temporary prefix from the migrated collections.
 
         Assumes apply or unapply has completed.
         """
-        if isinstance(coll_names, str):
-            coll_names = [coll_names]
-        for coll_name in coll_names:
+        if isinstance(original_coll_names, str):
+            original_coll_names = [original_coll_names]
+        for coll_name in original_coll_names:
             await self.stage_collection(coll_name)
-        self._collections_staged = True
         log.info("Temp collections staged %s", self._log_blurb)
 
-    async def copy_indexes(self, coll_names: list[str]):
+    async def copy_indexes(self, *, coll_names: str | list[str]):
         """Copy the indexes from old collections to new."""
-        # self._indexes_applied = True
-        # log.info("Indexes copied to new collections %s", self._log_blurb)
+        if isinstance(coll_names, str):
+            coll_names = [coll_names]
         raise NotImplementedError()
 
-    async def drop_old_collections(
-        self, coll_names: str | list[str], enforce_indexes: bool
-    ):
-        """Drop collections.
+    async def drop_old_collections(self, *, enforce_indexes: bool):
+        """Drop the old, pre-migration version of all staged collections.
 
         Args
-        - `coll_names`: list of the original un-prefixed collection names modified in
-            this migration.
         - `enforce_indexes`: Raise an error if indexes haven't been copied over to the
             replacement collections. This is not always useful, since the collections
             might undergo changes that make old indexes obsolete. This should be set to
             True for modifications that don't involve changes to the collections' indexes.
         """
-        if enforce_indexes and not self._indexes_applied:
-            raise RuntimeError("Indexes have not been applied to migrated collections")
-        if isinstance(coll_names, str):
-            coll_names = [coll_names]
-        for to_drop in [f"{self._old_prefix}_{coll_name}" for coll_name in coll_names]:
-            collection = self._db[to_drop]
+        if enforce_indexes and not self._indexes_copied:
+            raise RuntimeError("Indexes have not been applied to staged collections")
+
+        for coll_to_drop in list(self._staged_collections):
+            old_temp_name = self.old_temp_name(coll_to_drop)
+            collection = self._db[old_temp_name]
             await collection.drop()
+            log.debug("Dropped old collection")
+            self._staged_collections.remove(coll_to_drop)
 
     @abstractmethod
     async def apply(self):

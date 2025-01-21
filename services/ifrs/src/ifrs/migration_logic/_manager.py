@@ -319,7 +319,9 @@ class MigrationManager:
                 await migration.unapply() if unapplying else await migration.apply()
             except BaseException as exc:
                 error = MigrationStepError(
-                    current_ver=version, target_ver=self.target_ver, err_info=str(exc)
+                    current_ver=version - 1,
+                    target_ver=self.target_ver,
+                    err_info=str(exc),
                 )
                 log.critical(error)
                 raise error from exc
