@@ -108,27 +108,23 @@ class MigrationManager:
     The `migrate_or_wait` method must be called before any instance of the service
     begins its main execution loop.
 
-    Reserved DB version numbers:
-    - 0 = db versioning not yet implemented
-    - 1 = db versioning implemented
+    Version 1 is reserved for the framework as a way to mark when versioning was added.
 
     Example usage:
     ```
     from my_service.config import Config  # inherits from MongoDbConfig
-    from ghga_service_commons.migration import MigrationManager, MigrationMap
+    from <module with this class> import MigrationManager
+    from <module with migration code> import V2Migration, V3Migration
 
     DB_VERSION = 2  # the current expected DB version
-    MY_MIGRATION_MAP = MigrationMap({
-        2: V2Migration,
-        # future migrations will go here
-    })
+    MY_MIGRATION_MAP = {2: V2Migration, 3: V3Migration} # etc.
 
     def migrate_my_service():
         # Called before starting my_service
         config = Config()
 
-        with MigrationManager(config, DB_VERSION, MY_MIGRATION_MAP) as mm:
-            mm.migrate_or_wait()
+        async with MigrationManager(config, DB_VERSION, MY_MIGRATION_MAP) as mm:
+            await mm.migrate_or_wait()
     ```
     """
 
