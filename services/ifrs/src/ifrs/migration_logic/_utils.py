@@ -195,8 +195,8 @@ class MigrationDefinition:
 
         # Rename the old collection by giving it a prefix
         # e.g. "users" -> "tmp_v7_old_users"
-        old_collection = self._db[original_coll_name]
         temp_old_coll_name = self.old_temp_name(original_coll_name)
+        old_collection = self._db[original_coll_name]
         await old_collection.rename(temp_old_coll_name)
 
         # Rename the new, temp collection by removing its prefix
