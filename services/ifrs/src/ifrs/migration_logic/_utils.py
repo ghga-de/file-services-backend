@@ -80,8 +80,13 @@ class MigrationDefinition:
         self._staged_collections: set[str] = set()
 
     @asynccontextmanager
-    async def auto_finalize(self, coll_names: str | list[str], copy_indexes: bool):
-        """Use within `apply()` or `unapply()` to
+    async def auto_finalize(
+        self, coll_names: str | list[str], copy_indexes: bool = False
+    ):
+        """Use within `apply()` or `unapply()` as a context manager to automatically
+        stage the temporary migrated collections for the specified collection names and
+        then drop the old collections. Set `copy_indexes` to True if the indexes are
+        expected to be identical between the old and new collection versions.
 
         Should be used for most migrations, but complex migrations might need to take
         a more manual approach. For that reason, this context manager is optional.
@@ -256,7 +261,9 @@ class MigrationDefinition:
             old_temp_name = self.old_temp_name(coll_to_drop)
             collection = self._db[old_temp_name]
             await collection.drop()
-            log.debug("Dropped old collection")
+            log.debug(
+                "Dropped old collection for '%s' ('%s')", coll_to_drop, old_temp_name
+            )
             self._staged_collections.remove(coll_to_drop)
 
     @abstractmethod
