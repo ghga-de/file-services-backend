@@ -51,7 +51,7 @@ class V2Migration(MigrationDefinition, Reversible):
 
     async def apply(self):
         """Populate `object_size` field on docs in the file_metadata collection"""
-        async with self.auto_finalize(METADATA_COLLECTION, copy_indexes=False):
+        async with self.auto_finalize(METADATA_COLLECTION):
             await self.migrate_docs_in_collection(
                 coll_name=METADATA_COLLECTION,
                 change_function=self.add_object_size,
@@ -61,7 +61,7 @@ class V2Migration(MigrationDefinition, Reversible):
 
     async def unapply(self):
         """Remove `object_size`"""
-        async with self.auto_finalize(METADATA_COLLECTION, copy_indexes=False):
+        async with self.auto_finalize(METADATA_COLLECTION):
             await self.migrate_docs_in_collection(
                 coll_name=METADATA_COLLECTION,
                 change_function=self.remove_object_size,

@@ -102,7 +102,7 @@ class MigrationDefinition:
 
             # copy indexes if needed (not implemented yet)
             if copy_indexes:
-                pass
+                raise NotImplementedError("Index copying is not yet implemented")
             # Drop old collections. Don't do the index copy check unless we perform the
             #  index copying via this method. Otherwise we can't be sure it wasn't
             #  handled some other way
