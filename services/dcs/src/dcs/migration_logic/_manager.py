@@ -45,7 +45,7 @@ class MigrationConfig(MongoDbConfig):
     db_version_collection: str = Field(
         ...,
         description="The name of the collection containing DB version information for this service",
-        examples=["ifrsDbVersions"],
+        examples=["dcsDbVersions"],
     )
     migration_wait_sec: int = Field(
         ...,

@@ -333,7 +333,7 @@
     "db_version_collection": {
       "description": "The name of the collection containing DB version information for this service",
       "examples": [
-        "ifrsDbVersions"
+        "dcsDbVersions"
       ],
       "title": "Db Version Collection",
       "type": "string"

@@ -305,7 +305,7 @@ The service requires the following configuration parameters:
   Examples:
 
   ```json
-  "ifrsDbVersions"
+  "dcsDbVersions"
   ```
 
 
