@@ -24,7 +24,6 @@ from ghga_service_commons.utils.multinode_storage import (
 from hexkit.providers.mongodb.testutils import MongoDbFixture
 from hexkit.providers.s3.testutils import S3Fixture, temp_file_object
 from motor.motor_asyncio import AsyncIOMotorClient
-from pydantic import BaseModel
 
 from ifrs.core.models import FileMetadataBase
 from ifrs.migration_logic._manager import MigrationStepError
@@ -141,20 +140,20 @@ async def test_drop_or_rename_nonexistent_collection(mongodb: MongoDbFixture):
 
 @pytest.mark.asyncio
 async def test_stage_unstage(mongodb: MongoDbFixture):
-    """Stage and immediately unstage a collection."""
+    """Stage and immediately unstage a collection with collection name collisions."""
     config = get_config(sources=[mongodb.config])
-    client = AsyncIOMotorClient(config.db_connection_str.get_secret_value())
+    client: AsyncIOMotorClient = AsyncIOMotorClient(
+        config.db_connection_str.get_secret_value()
+    )
     db = client.get_database(config.db_name)
-    og_name = "coll1"
-    coll = client[config.db_name][og_name]
+    coll_name = "coll1"
+    collection = client[config.db_name][coll_name]
 
-    class Model(BaseModel):
-        field: str
-
-    doc = Model(field="test")
-    await coll.insert_one(doc.model_dump())
+    # Insert a dummy doc so our migration has something to do
+    await collection.insert_one({"field": "test"})
 
     async def change_function(doc):
+        """Dummy change function for running `migration_docs_in_collection`"""
         return doc
 
     class TestMig(MigrationDefinition):
@@ -162,11 +161,19 @@ async def test_stage_unstage(mongodb: MongoDbFixture):
 
         async def apply(self):
             await self.migrate_docs_in_collection(
-                coll_name=og_name,
+                coll_name=coll_name,
                 change_function=change_function,
             )
-            await self.stage_collection(og_name)
-            await self.unstage_collection(og_name)
+            # Create tmp_v2_old_coll1 for name collision upon staging 'coll1'
+            # The correct behavior is to drop the collection upon rename if it exists
+            temp_coll = client[config.db_name][f"tmp_v2_old_{coll_name}"]
+            await temp_coll.insert_one({"some": "document"})
+            await self.stage_collection(coll_name)
+
+            # Create tmp_v2_new_coll1 for name collision upon unstaging 'coll1'
+            temp_coll = client[config.db_name][f"tmp_v2_new_{coll_name}"]
+            await temp_coll.insert_one({"some": "document"})
+            await self.unstage_collection(coll_name)
 
     migdef = TestMig(db=db, is_final_migration=False, unapplying=False)
     await migdef.apply()
