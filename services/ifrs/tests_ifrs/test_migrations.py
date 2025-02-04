@@ -23,9 +23,12 @@ from ghga_service_commons.utils.multinode_storage import (
 )
 from hexkit.providers.mongodb.testutils import MongoDbFixture
 from hexkit.providers.s3.testutils import S3Fixture, temp_file_object
+from motor.motor_asyncio import AsyncIOMotorClient
+from pydantic import BaseModel
 
 from ifrs.core.models import FileMetadataBase
 from ifrs.migration_logic._manager import MigrationStepError
+from ifrs.migration_logic._utils import MigrationDefinition
 from ifrs.migrations import run_db_migrations
 from tests_ifrs.fixtures.config import get_config
 from tests_ifrs.fixtures.example_data import EXAMPLE_METADATA_BASE
@@ -134,3 +137,36 @@ async def test_drop_or_rename_nonexistent_collection(mongodb: MongoDbFixture):
 
     versions = version_coll.find().to_list()
     assert len(versions) == 2
+
+
+@pytest.mark.asyncio
+async def test_stage_unstage(mongodb: MongoDbFixture):
+    """Stage and immediately unstage a collection."""
+    config = get_config(sources=[mongodb.config])
+    client = AsyncIOMotorClient(config.db_connection_str.get_secret_value())
+    db = client.get_database(config.db_name)
+    og_name = "coll1"
+    coll = client[config.db_name][og_name]
+
+    class Model(BaseModel):
+        field: str
+
+    doc = Model(field="test")
+    await coll.insert_one(doc.model_dump())
+
+    async def change_function(doc):
+        return doc
+
+    class TestMig(MigrationDefinition):
+        version = 2
+
+        async def apply(self):
+            await self.migrate_docs_in_collection(
+                coll_name=og_name,
+                change_function=change_function,
+            )
+            await self.stage_collection(og_name)
+            await self.unstage_collection(og_name)
+
+    migdef = TestMig(db=db, is_final_migration=False, unapplying=False)
+    await migdef.apply()

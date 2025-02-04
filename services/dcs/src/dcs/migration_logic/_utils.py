@@ -231,7 +231,7 @@ class MigrationDefinition:
         # e.g. "tmp_v7_old_users" -> "users"
         temp_old_coll_name = self.old_temp_name(original_coll_name)
         old_collection = self._db[temp_old_coll_name]
-        await old_collection.rename(temp_old_coll_name)
+        await old_collection.rename(original_coll_name)
 
         # Remove this collection from the "staged" tracking set
         self._staged_collections.remove(original_coll_name)
