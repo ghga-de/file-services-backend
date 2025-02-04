@@ -19,6 +19,11 @@ import logging
 
 from ghga_event_schemas import pydantic_ as event_schemas
 from hexkit.protocols.daosub import DaoSubscriberProtocol
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.resources import SERVICE_NAME, Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
@@ -26,6 +31,15 @@ from ifrs.core.models import FileMetadataBase
 from ifrs.ports.inbound.file_registry import FileRegistryPort
 
 log = logging.getLogger(__name__)
+
+resource = Resource(attributes={SERVICE_NAME: "Internal File Registry Service"})
+
+trace_provider = TracerProvider(resource=resource)
+processor = BatchSpanProcessor(OTLPSpanExporter(endpoint="http://jaeger"))
+trace_provider.add_span_processor(processor)
+trace.set_tracer_provider(trace_provider)
+
+tracer = trace.get_tracer(__name__)
 
 
 class OutboxSubTranslatorConfig(BaseSettings):
@@ -66,6 +80,7 @@ class NonstagedFileRequestedTranslator(
         self._file_registry = file_registry
         self.event_topic = config.files_to_stage_topic
 
+    @tracer.start_as_current_span("non staged file requested - change")
     async def changed(
         self, resource_id: str, update: event_schemas.NonStagedFileRequested
     ) -> None:
@@ -102,6 +117,7 @@ class FileDeletionRequestedTranslator(
         self._file_registry = file_registry
         self.event_topic = config.files_to_delete_topic
 
+    @tracer.start_as_current_span("file deletion requested - change")
     async def changed(
         self, resource_id: str, update: event_schemas.FileDeletionRequested
     ) -> None:
@@ -133,6 +149,7 @@ class FileValidationSuccessTranslator(
         self._file_registry = file_registry
         self.event_topic = config.files_to_register_topic
 
+    @tracer.start_as_current_span("file upload validation success - change")
     async def changed(
         self, resource_id: str, update: event_schemas.FileUploadValidationSuccess
     ) -> None:

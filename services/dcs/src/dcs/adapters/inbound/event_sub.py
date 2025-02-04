@@ -22,6 +22,7 @@ from ghga_event_schemas.validation import get_validated_payload
 from hexkit.custom_types import Ascii, JsonObject
 from hexkit.protocols.daosub import DaoSubscriberProtocol
 from hexkit.protocols.eventsub import EventSubscriberProtocol
+from opentelemetry import trace
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
@@ -29,6 +30,7 @@ from dcs.core import models
 from dcs.ports.inbound.data_repository import DataRepositoryPort
 
 log = logging.getLogger(__name__)
+tracer = trace.get_tracer_provider().get_tracer(__name__)
 
 __all__ = [
     "EventSubTranslator",
@@ -94,6 +96,7 @@ class EventSubTranslator(EventSubscriberProtocol):
 
         await self._data_repository.register_new_file(file=file)
 
+    @tracer.start_as_current_span("consume files to register")
     async def _consume_validated(
         self, *, payload: JsonObject, type_: Ascii, topic: Ascii, key: str
     ) -> None:
@@ -131,6 +134,7 @@ class FileDeletionRequestedListener(
         self._data_repository = data_repository
         self.event_topic = config.files_to_delete_topic
 
+    @tracer.start_as_current_span("consume files to delete - change")
     async def changed(
         self, resource_id: str, update: event_schemas.FileDeletionRequested
     ) -> None:

@@ -30,6 +30,11 @@ from hexkit.providers.akafka import (
 )
 from hexkit.providers.mongodb import MongoDbDaoFactory
 from hexkit.providers.mongokafka import MongoKafkaDaoPublisherFactory
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.resources import SERVICE_NAME, Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 from dcs.adapters.inbound.event_sub import (
     EventSubTranslator,
@@ -72,6 +77,14 @@ async def get_nonstaged_file_requested_dao(
 @asynccontextmanager
 async def prepare_core(*, config: Config) -> AsyncGenerator[DataRepositoryPort, None]:
     """Constructs and initializes all core components and their outbound dependencies."""
+    # initialize otel tracing
+    resource = Resource(attributes={SERVICE_NAME: "Download Controller Service"})
+    trace_provider = TracerProvider(resource=resource)
+    processor = BatchSpanProcessor(OTLPSpanExporter(endpoint="http://jaeger"))
+    trace_provider.add_span_processor(processor)
+    trace.set_tracer_provider(trace_provider)
+
+    # actual setup
     dao_factory = MongoDbDaoFactory(config=config)
     drs_object_dao = await get_drs_dao(dao_factory=dao_factory)
     object_storages = S3ObjectStorages(config=config)

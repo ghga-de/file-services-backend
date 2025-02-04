@@ -18,6 +18,11 @@ from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Response, status
 from fastapi.responses import JSONResponse
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.resources import SERVICE_NAME, Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 from fis.adapters.inbound.fastapi_ import dummies
 from fis.adapters.inbound.fastapi_.http_authorization import (
@@ -31,6 +36,15 @@ from fis.ports.inbound.ingest import (
     WrongDecryptedFormatError,
 )
 
+resource = Resource(attributes={SERVICE_NAME: "File Ingest Service"})
+
+trace_provider = TracerProvider(resource=resource)
+processor = BatchSpanProcessor(OTLPSpanExporter(endpoint="http://jaeger"))
+trace_provider.add_span_processor(processor)
+trace.set_tracer_provider(trace_provider)
+
+tracer = trace.get_tracer(__name__)
+
 router = APIRouter()
 
 
@@ -40,6 +54,7 @@ router = APIRouter()
     tags=["FileIngestService"],
     status_code=200,
 )
+@tracer.start_as_current_span("health endpoint")
 async def health():
     """Used to test if this service is alive"""
     return {"status": "OK"}
@@ -68,6 +83,7 @@ async def health():
         },
     },
 )
+@tracer.start_as_current_span("legacy ingest endpoint")
 async def ingest_legacy_metadata(
     encrypted_payload: EncryptedPayload,
     upload_metadata_processor: dummies.LegacyUploadProcessor,
@@ -120,6 +136,7 @@ async def ingest_legacy_metadata(
         }
     },
 )
+@tracer.start_as_current_span("federated ingest endpoint")
 async def ingest_metadata(
     payload: UploadMetadata,
     upload_metadata_processor: dummies.UploadProcessorPort,
@@ -161,6 +178,7 @@ async def ingest_metadata(
         },
     },
 )
+@tracer.start_as_current_span("federated secret ingest")
 async def ingest_secret(
     encrypted_payload: EncryptedPayload,
     upload_metadata_processor: dummies.UploadProcessorPort,

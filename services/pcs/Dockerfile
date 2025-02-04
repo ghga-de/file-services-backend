@@ -48,4 +48,4 @@ WORKDIR /home/appuser
 USER appuser
 ENV PYTHONUNBUFFERED=1
 
-ENTRYPOINT ["opentelemetry-instrument", "service"]
+ENTRYPOINT ["opentelemetry-instrument", "pcs"]
