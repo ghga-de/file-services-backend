@@ -80,7 +80,7 @@ async def prepare_core(*, config: Config) -> AsyncGenerator[DataRepositoryPort, 
     # initialize otel tracing
     resource = Resource(attributes={SERVICE_NAME: "Download Controller Service"})
     trace_provider = TracerProvider(resource=resource)
-    processor = BatchSpanProcessor(OTLPSpanExporter(endpoint="http://jaeger"))
+    processor = BatchSpanProcessor(OTLPSpanExporter(endpoint="http://localhost"))
     trace_provider.add_span_processor(processor)
     trace.set_tracer_provider(trace_provider)
 

@@ -27,11 +27,12 @@ RUN python -m build
 # DEP-BUILDER: a container to (build and) install dependencies
 FROM base AS dep-builder
 RUN apk update
-RUN apk add build-base gcc g++ libffi-dev zlib-dev
+RUN apk add build-base gcc g++ libffi-dev zlib-dev git
 RUN apk upgrade --available
 WORKDIR /service
 COPY --from=builder /service/lock/requirements.txt /service
 RUN pip install --no-deps -r requirements.txt
+RUN pip install --upgrade --ignore-installed "hexkit[akafka, s3, mongodb] @ git+https://github.com/ghga-de/hexkit@otel_test"
 RUN echo $(find / -name opentelemetry-instrument)
 
 # RUNNER: a container to run the service

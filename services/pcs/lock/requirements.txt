@@ -1,38 +1,3 @@
-aiokafka==0.11.0 \
-    --hash=sha256:0973a245b8b9daf8ef6814253a80a700f1f54d2da7d88f6fe479f46e0fd83053 \
-    --hash=sha256:0d80590c4ef0ba546a299cee22ea27c3360c14241ec43a8e6904653f7b22d328 \
-    --hash=sha256:0e957b42ae959365efbb45c9b5de38032c573608553c3670ad8695cc210abec9 \
-    --hash=sha256:1d519bf9875ac867fb19d55de3750833b1eb6379a08de29a68618e24e6a49fc0 \
-    --hash=sha256:1f8ae91f0373830e4664376157fe61b611ca7e573d8a559b151aef5bf53df46c \
-    --hash=sha256:224db2447f6c1024198d8342e7099198f90401e2fa29c0762afbc51eadf5c490 \
-    --hash=sha256:230170ce2e8a0eb852e2e8b78b08ce2e29b77dfe2c51bd56f5ab4be0f332a63b \
-    --hash=sha256:3711fa64ee8640dcd4cb640f1030f9439d02e85acd57010d09053017092d8cc2 \
-    --hash=sha256:38e1917e706c1158d5e1f612d1fc1b40f706dc46c534e73ab4de8ae2868a31be \
-    --hash=sha256:419dd28c8ed6e926061bdc60929af08a6b52f1721e1179d9d21cc72ae28fd6f6 \
-    --hash=sha256:4e0cc080a7f4c659ee4e1baa1c32adedcccb105a52156d4909f357d76fac0dc1 \
-    --hash=sha256:516e1d68d9a377860b2e17453580afe304605bc71894f684d3e7b6618f6f939f \
-    --hash=sha256:55a07a39d82c595223a17015ea738d152544cee979d3d6d822707a082465621c \
-    --hash=sha256:560839ae6bc13e71025d71e94df36980f5c6e36a64916439e598b6457267a37f \
-    --hash=sha256:59f4b935589ebb244620afad8bf3320e3bc86879a8b1c692ad06bd324f6c6127 \
-    --hash=sha256:6ef3e7c8a923e502caa4d24041f2be778fd7f9ee4587bf0bcb4f74cac05122fa \
-    --hash=sha256:702aec15b63bad5e4476294bcb1cb177559149fce3e59335794f004c279cbd6a \
-    --hash=sha256:73584be8ba7906e3f33ca0f08f6af21a9ae31b86c6b635b93db3b1e6f452657b \
-    --hash=sha256:807f699cf916369b1a512e4f2eaec714398c202d8803328ef8711967d99a56ce \
-    --hash=sha256:818a6f8e44b02113b9e795bee6029c8a4e525ab38f29d7adb0201f3fec74c808 \
-    --hash=sha256:8ba981956243767b37c929845c398fda2a2e35a4034d218badbe2b62e6f98f96 \
-    --hash=sha256:926f93fb6a39891fd4364494432b479c0602f9cac708778d4a262a2c2e20d3b4 \
-    --hash=sha256:9a478a14fd23fd1ffe9c7a21238d818b5f5e0626f7f06146b687f3699298391b \
-    --hash=sha256:acfd0a5d0aec762ba73eeab73b23edce14f315793f063b6a4b223b6f79e36bb8 \
-    --hash=sha256:d59fc7aec088c9ffc02d37e61591f053459bd11912cf04c70ac4f7e60405667d \
-    --hash=sha256:d724b6fc484e453b373052813e4e543fc028a22c3fbda10e13b6829740000b8a \
-    --hash=sha256:eaafe134de57b184f3c030e1a11051590caff7953c8bf58048eefd8d828e39d7 \
-    --hash=sha256:eac78a009b713e28b5b4c4daae9d062acbf2b7980e5734467643a810134583b5 \
-    --hash=sha256:ee0c61a2dcabbe4474ff237d708f9bd663dd2317e03a9cb7239a212c9ee05b12 \
-    --hash=sha256:f1c85f66eb3564c5e74d8e4c25df4ac1fd94f1a6f6e66f005aafa6f791bde215 \
-    --hash=sha256:f2def07fe1720c4fe37c0309e355afa9ff4a28e0aabfe847be0692461ac69352
-    # via
-    #   -c lock/requirements-dev.txt
-    #   hexkit
 annotated-types==0.7.0 \
     --hash=sha256:1f02e8b43a8fbbc3f3e0d4f0f4bfc8131bcb4eebe8849b8e5c773f3a1c582a53 \
     --hash=sha256:aff07c09a53a08bc8cfccb9c85b05f1aa9a2a6f23728d790723543408344ce89
@@ -53,12 +18,6 @@ asgiref==3.8.1 \
     # via
     #   -c lock/requirements-dev.txt
     #   opentelemetry-instrumentation-asgi
-async-timeout==5.0.1 \
-    --hash=sha256:39e3809566ff85354557ec2398b55e096c8364bacac9405a7a1fa429e77fe76c \
-    --hash=sha256:d9321a7a3d5a6a5e187e824d2fa0793ce379a202935782d555d6e9d2735677d3
-    # via
-    #   -c lock/requirements-dev.txt
-    #   aiokafka
 attrs==25.1.0 \
     --hash=sha256:1c97078a80c814273a76b2a298a932eb681c87415c11dee0a6921de7f1b02c3e \
     --hash=sha256:c75a69e28a550a7e93789579c22aa26b0f5b83b75dc4e08fe092980051e1090a
@@ -95,20 +54,6 @@ bcrypt==4.2.1 \
     # via
     #   -c lock/requirements-dev.txt
     #   crypt4gh
-boto3==1.36.11 \
-    --hash=sha256:641dd772eac111d9443258f0f5491c57c2af47bddae94a8d32de19edb5bf7b1c \
-    --hash=sha256:b40fbf2c0f22e55b67df95475a68bb72be5169097180a875726b6b884339ac8b
-    # via
-    #   -c lock/requirements-dev.txt
-    #   hexkit
-botocore==1.36.11 \
-    --hash=sha256:82c5660027f696608d0e55feb08c146c11c7ebeba7615961c7765dcf6009a00d \
-    --hash=sha256:c919be883f95b9e0c3021429a365d40cd7944b8345a07af30dc8d891ceefe07a
-    # via
-    #   -c lock/requirements-dev.txt
-    #   boto3
-    #   hexkit
-    #   s3transfer
 certifi==2025.1.31 \
     --hash=sha256:3d5da6925056f6f18f119200434a4780a94263f10d1c21d032a6f6b2baa20651 \
     --hash=sha256:ca78db4565a652026a4db2bcdf68f2fb589ea80d0be70e03929ed730746b84fe
@@ -346,7 +291,6 @@ dnspython==2.7.0 \
     # via
     #   -c lock/requirements-dev.txt
     #   email-validator
-    #   pymongo
 docopt==0.6.2 \
     --hash=sha256:49b3a825280bd66b3aa83585ef59c4a8c82f2c8a522dbe754a8bc8d08c85c491
     # via
@@ -454,7 +398,6 @@ hexkit==3.8.1 \
     --hash=sha256:d33b390e861e41deb54217ce85d0a5f3c8fe6ddc3656514d45cc173fe2775553
     # via
     #   -c lock/requirements-dev.txt
-    #   fsb (pyproject.toml)
     #   ghga-service-commons
 httpcore==1.0.7 \
     --hash=sha256:8551cb62a169ec7162ac7be8d4817d561f60e08eaa485234898414bb5a8a0b4c \
@@ -536,20 +479,12 @@ importlib-metadata==8.5.0 \
     # via
     #   -c lock/requirements-dev.txt
     #   opentelemetry-api
-jmespath==1.0.1 \
-    --hash=sha256:02e2e4cc71b5bcab88332eebf907519190dd9e6e82107fa7f83b1003a6252980 \
-    --hash=sha256:90261b206d6defd58fdd5e85f478bf633a2901798906be2ad389150c5c60edbe
-    # via
-    #   -c lock/requirements-dev.txt
-    #   boto3
-    #   botocore
 jsonschema==4.23.0 \
     --hash=sha256:d71497fef26351a33265337fa77ffeb82423f3ea21283cd9467bb03999266bc4 \
     --hash=sha256:fbadb6f8b144a8f8cf9f0b89ba94501d143e50411a1278633f56a7acf7fd5566
     # via
     #   -c lock/requirements-dev.txt
     #   ghga-event-schemas
-    #   hexkit
 jsonschema-specifications==2024.10.1 \
     --hash=sha256:0f38b83639958ce1152d02a7f062902c41c8fd20d558b0c34344292d417ae272 \
     --hash=sha256:a09a0680616357d9a0ecf05c12ad234479f549239d0f5b55f3deea67475da9bf
@@ -574,12 +509,6 @@ mdurl==0.1.2 \
     # via
     #   -c lock/requirements-dev.txt
     #   markdown-it-py
-motor==3.7.0 \
-    --hash=sha256:0dfa1f12c812bd90819c519b78bed626b5a9dbb29bba079ccff2bfa8627e0fec \
-    --hash=sha256:61bdf1afded179f008d423f98066348157686f25a90776ea155db5f47f57d605
-    # via
-    #   -c lock/requirements-dev.txt
-    #   hexkit
 opentelemetry-api==1.29.0 \
     --hash=sha256:5fcd94c4141cc49c736271f3e1efb777bebe9cc535759c54c936cca4f1b312b8 \
     --hash=sha256:d04a6cf78aad09614f52964ecb38021e248f5714dc32c2e0d8fd99517b4d69cf
@@ -592,14 +521,12 @@ opentelemetry-api==1.29.0 \
     #   opentelemetry-instrumentation
     #   opentelemetry-instrumentation-aiokafka
     #   opentelemetry-instrumentation-asgi
-    #   opentelemetry-instrumentation-asyncio
     #   opentelemetry-instrumentation-botocore
-    #   opentelemetry-instrumentation-click
     #   opentelemetry-instrumentation-fastapi
     #   opentelemetry-instrumentation-httpx
     #   opentelemetry-instrumentation-logging
     #   opentelemetry-instrumentation-pymongo
-    #   opentelemetry-instrumentation-urllib3
+    #   opentelemetry-instrumentation-requests
     #   opentelemetry-propagator-aws-xray
     #   opentelemetry-sdk
     #   opentelemetry-semantic-conventions
@@ -643,13 +570,12 @@ opentelemetry-instrumentation==0.50b0 \
     #   opentelemetry-distro
     #   opentelemetry-instrumentation-aiokafka
     #   opentelemetry-instrumentation-asgi
-    #   opentelemetry-instrumentation-asyncio
     #   opentelemetry-instrumentation-botocore
     #   opentelemetry-instrumentation-fastapi
     #   opentelemetry-instrumentation-httpx
     #   opentelemetry-instrumentation-logging
     #   opentelemetry-instrumentation-pymongo
-    #   opentelemetry-instrumentation-urllib3
+    #   opentelemetry-instrumentation-requests
 opentelemetry-instrumentation-aiokafka==0.50b0 \
     --hash=sha256:953368eb56abe020b446331f1560907d1b3c66394ed1c06e59eb025057f75192 \
     --hash=sha256:cde4a7522e4b5fdeaa7b5c5f5b478ebd1ac2b297bc1b2347d79b66058edb9791
@@ -662,21 +588,9 @@ opentelemetry-instrumentation-asgi==0.50b0 \
     # via
     #   -c lock/requirements-dev.txt
     #   opentelemetry-instrumentation-fastapi
-opentelemetry-instrumentation-asyncio==0.50b0 \
-    --hash=sha256:279f77ff9ecd2107ad75f852176fdc4db876c46a3fd3bf315746c80d37c7744c \
-    --hash=sha256:9f4b9e667f779e23792330889e70c22579158ba10ceb56e92a38ddb7178678f9
-    # via
-    #   -c lock/requirements-dev.txt
-    #   fsb (pyproject.toml)
 opentelemetry-instrumentation-botocore==0.50b0 \
     --hash=sha256:450c6f43adf3ce917d6832b9a4cc2ce7c8554ef0c0a2ce39eccc086fd5cdf741 \
     --hash=sha256:ffe856f24e1275cb9694bfdda49240d08a01f191b4725fdbd2b4622bea6aeed7
-    # via
-    #   -c lock/requirements-dev.txt
-    #   fsb (pyproject.toml)
-opentelemetry-instrumentation-click==0.50b0 \
-    --hash=sha256:1c6462e2e838c99f275e910bec62c331714d8519a733df9973ca4e936dce0785 \
-    --hash=sha256:a48bdbd4069980ee7254b703e14559c033cd744d691cfecacc0e641e856d6963
     # via
     #   -c lock/requirements-dev.txt
     #   fsb (pyproject.toml)
@@ -704,9 +618,9 @@ opentelemetry-instrumentation-pymongo==0.50b0 \
     # via
     #   -c lock/requirements-dev.txt
     #   fsb (pyproject.toml)
-opentelemetry-instrumentation-urllib3==0.50b0 \
-    --hash=sha256:2c4a1d9f128eaf753871b1d90659c744691d039a6601ba546081347ae192bd0e \
-    --hash=sha256:c679b3908645b7d4d07c36960fe0efef490b403983e314108450146cc89bd675
+opentelemetry-instrumentation-requests==0.50b0 \
+    --hash=sha256:2c60a890988d6765de9230004d0af9071b3b2e1ddba4ca3b631cfb8a1722208d \
+    --hash=sha256:f8088c76f757985b492aad33331d21aec2f99c197472a57091c2e986a4b7ec8b
     # via
     #   -c lock/requirements-dev.txt
     #   fsb (pyproject.toml)
@@ -741,13 +655,11 @@ opentelemetry-semantic-conventions==0.50b0 \
     #   opentelemetry-instrumentation
     #   opentelemetry-instrumentation-aiokafka
     #   opentelemetry-instrumentation-asgi
-    #   opentelemetry-instrumentation-asyncio
     #   opentelemetry-instrumentation-botocore
-    #   opentelemetry-instrumentation-click
     #   opentelemetry-instrumentation-fastapi
     #   opentelemetry-instrumentation-httpx
     #   opentelemetry-instrumentation-pymongo
-    #   opentelemetry-instrumentation-urllib3
+    #   opentelemetry-instrumentation-requests
     #   opentelemetry-sdk
 opentelemetry-util-http==0.50b0 \
     --hash=sha256:21f8aedac861ffa3b850f8c0a6c373026189eb8630ac6e14a2bf8c55695cc090 \
@@ -757,13 +669,12 @@ opentelemetry-util-http==0.50b0 \
     #   opentelemetry-instrumentation-asgi
     #   opentelemetry-instrumentation-fastapi
     #   opentelemetry-instrumentation-httpx
-    #   opentelemetry-instrumentation-urllib3
+    #   opentelemetry-instrumentation-requests
 packaging==24.2 \
     --hash=sha256:09abb1bccd265c01f4a3aa3f7a7db064b36514d2cba19a2f694fe6150451a759 \
     --hash=sha256:c228a6dc5e932d346bc5739379109d49e8853dd8223571c7c5b55260edc0b97f
     # via
     #   -c lock/requirements-dev.txt
-    #   aiokafka
     #   opentelemetry-instrumentation
 protobuf==5.29.3 \
     --hash=sha256:0a18ed4a24198528f2333802eb075e59dea9d679ab7a6c5efb017a59004d849f \
@@ -913,55 +824,6 @@ pygments==2.19.1 \
     # via
     #   -c lock/requirements-dev.txt
     #   rich
-pymongo==4.11 \
-    --hash=sha256:0197fe47e31bee488e82e7ab73e6a351a191bbd6e25cf4a380622e4b1ffcd143 \
-    --hash=sha256:06e82968ea031aebc18820898b102efed1ea8dc21b51eff2a81dc9ba4191fa6b \
-    --hash=sha256:17966e98d0350b578a337f053cc541458c296236d4b5b4b8adb76f5e82644fb8 \
-    --hash=sha256:17d4b787afed3163e5faa147b028d8ec7996a5388328499588c5c5858f26ab8a \
-    --hash=sha256:1971039a8e3aab139e0382b26a9670cd34f43c5301da267360b9a640b637d09b \
-    --hash=sha256:212f14a882659a45db472f0bc0fdf83c16fad4e7e4d4257187797779c461320e \
-    --hash=sha256:21b9969e155c4b16a160fbe90c390a07ca7514479af6c3811b1d15ead26e10ba \
-    --hash=sha256:254aa90fafead13aca8dbcfbc407e2f6f7c125fce726925bd96adc74b6226f9e \
-    --hash=sha256:314648ec4d5eaa755233343d6d110348371988257de35f5a84667b709262deab \
-    --hash=sha256:38f777f5e43f3acd651a79aaf95abf29e8e7f85429a12ce32c4b7f2f877b2200 \
-    --hash=sha256:488e3440f5bedcbf494fd02c0a433cb5be7e55ba44dc72202813e1007a865e6a \
-    --hash=sha256:4c0ab91c06bf79dd3d3fd5f2a53fe22db8036084ddcfaacd80e83828b6eb4f25 \
-    --hash=sha256:5837ee73ffa4a943360320d7b9b917da2752a4cb536e23a6eaca418c1c64f60a \
-    --hash=sha256:5c7e5e500cc408f7f2aa38a4a6ed96d78a4c4cce3bcc6f1a55113f0b9d7823dd \
-    --hash=sha256:64ad12ae8d79f18ec30d807b9b9b9802c30427c39599d8b1833bc00e63f0e4bb \
-    --hash=sha256:74f02b7dbb3b15c2e48c7bb28941f6198dc73ced09683738180a9fdbfc0983b2 \
-    --hash=sha256:7ac81987985275abeb53f5faa5c4a7f7890df9368c0f730fe37460a6301d94d7 \
-    --hash=sha256:7cf9d18444259d86cd7028ac428f4fe7fbdefa3450575126ad2ee4447db0f52f \
-    --hash=sha256:8436f90f26379c167d47b61ac78c48224af98f3136ece380b74158cbef2ad6a7 \
-    --hash=sha256:85cfc99af2ae0fb8699e15b1f3479018216eb75d80f0082973a876ecfdf1022e \
-    --hash=sha256:8e5a56a508612c64906d5375ebee413cee2fc432c09abd9cb4d9e23ac8bcdd3a \
-    --hash=sha256:981ae0caa245bedf9af3af9159ae71b05444e35dd61a0250235b5c58dcd69178 \
-    --hash=sha256:9a04f49d6f1fa4f4e6a98ef76b4881b4a9c7decd8a90ee5c9aeff087662e2d8a \
-    --hash=sha256:a308ad2eeaee370b3b4154a82840c8f8f9b18ccc76b71812323d243a7bda98a2 \
-    --hash=sha256:ae7f636010ce54885f1ea19c37ea2cb744d976ce689361a776fd0e991d020b81 \
-    --hash=sha256:b4878e92ae255a05756399a4e2b428f0fd3529561eacd9f4781a70ad5311397e \
-    --hash=sha256:b7246f2060ba03dcc25ade803bc6a3c39f1cc7db93297875edd251ca8cf5cac7 \
-    --hash=sha256:b7af60e034e04c3206dfbe2a7bbcc46057ca4f9ad8ed66869bf669c02a1e6e99 \
-    --hash=sha256:b885210269455e05f5704887a4c7b3b99d03c9ab37f320005acc21d1761f1656 \
-    --hash=sha256:bb3ce0ce49cfe5c31db046d567403adb2d158459cf10d7c71f6d72f2324c900a \
-    --hash=sha256:bedcf4a602042cb2c19ae3ee450fbdd5832095ae5b563e004f7c0d307a22c9e1 \
-    --hash=sha256:c3a7ead31317d3a3eabc17486c75ad109f3d514a702002e52da474b59dd8acce \
-    --hash=sha256:c3b67a2949240d63a0b8b1094e1d2d4b94dedf0317ac6e14164adc9aaf260963 \
-    --hash=sha256:c72165e4ee884c3c9ac85a443f20dd01849c9df26b38ff25b08260330ed78202 \
-    --hash=sha256:c7f2309384de675e7e25104fc5947acb65ad3ba69dc8246095d57ff1220dfcbb \
-    --hash=sha256:cf0a36fae1187fc2bdf3c527dc68c6bfd7c89726fbbf3215460b82e28bd8b81e \
-    --hash=sha256:d33c80afcbfdd2934917fedfa005251484ca8d98767c74793c35d5f24b8e48f1 \
-    --hash=sha256:d4a275ea70f597d3fd77bdc83054307a65749b2c669bc5045cb4620930eed596 \
-    --hash=sha256:d4db6f7515f5087ae9deecc3b60d3d8a512b1a0a9bff93113bc9edf20ed29ab9 \
-    --hash=sha256:e43b0533f291a8883e52fd7a8919353ae7038d50ef17873983877c2f6b76330e \
-    --hash=sha256:e84e27d6fa4b3e532043daf89d52d2cfbd7b4697b44b86a7b3db8cacdcfcc58c \
-    --hash=sha256:ec86da9ce746de890b8d470a1f12f3d2634786fee002a4c56bdbbfd59e23f1f7 \
-    --hash=sha256:ee3cc9bce848a1024d1c96717540f3f30cba885df9610be70c0653764e30ae6e \
-    --hash=sha256:f300d1811bd33940b2dd1907dbe2b4ae473003a384d6a764babb3ea5a4edede4 \
-    --hash=sha256:ff5176a083252a769e5bfb1a950d0e37da585c313e1a4af98903e22e7cf4c475
-    # via
-    #   -c lock/requirements-dev.txt
-    #   motor
 pynacl==1.5.0 \
     --hash=sha256:06b8f6fa7f5de8d5d2f7573fe8c863c051225a27b61e6860fd047b1775807858 \
     --hash=sha256:0c84947a22519e013607c9be43706dd42513f9e6ae5d39d3613ca1e142fba44d \
@@ -977,12 +839,6 @@ pynacl==1.5.0 \
     #   -c lock/requirements-dev.txt
     #   crypt4gh
     #   ghga-service-commons
-python-dateutil==2.9.0.post0 \
-    --hash=sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3 \
-    --hash=sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427
-    # via
-    #   -c lock/requirements-dev.txt
-    #   botocore
 python-dotenv==1.0.1 \
     --hash=sha256:e324ee90a023d808f1959c46bcbc04446a10ced277783dc6ee09987c37ec10ca \
     --hash=sha256:f7b63ef50f1b690dddf550d03497b66d609393b40b564ed0d674909a68ebf16a
@@ -1177,24 +1033,12 @@ rpds-py==0.22.3 \
     #   -c lock/requirements-dev.txt
     #   jsonschema
     #   referencing
-s3transfer==0.11.2 \
-    --hash=sha256:3b39185cb72f5acc77db1a58b6e25b977f28d20496b6e58d6813d75f464d632f \
-    --hash=sha256:be6ecb39fadd986ef1701097771f87e4d2f821f27f6071c872143884d2950fbc
-    # via
-    #   -c lock/requirements-dev.txt
-    #   boto3
 shellingham==1.5.4 \
     --hash=sha256:7ecfff8f2fd72616f7481040475a65b2bf8af90a56c89140852d1120324e8686 \
     --hash=sha256:8dbca0739d487e5bd35ab3ca4b36e11c4078f3a234bfce294b0a0291363404de
     # via
     #   -c lock/requirements-dev.txt
     #   typer
-six==1.17.0 \
-    --hash=sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274 \
-    --hash=sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81
-    # via
-    #   -c lock/requirements-dev.txt
-    #   python-dateutil
 sniffio==1.3.1 \
     --hash=sha256:2f6da418d1f1e0fddd844478f41680e794e6051915791a034ff65e5f100525a2 \
     --hash=sha256:f4324edc670a0f49750a81b895f35c3adb843cca46f0530f79fc1babb23789dc
@@ -1218,7 +1062,6 @@ typing-extensions==4.12.2 \
     --hash=sha256:1a7ead55c7e559dd4dee8856e3a88b41225abfe1ce8df57b7c13915fe121ffb8
     # via
     #   -c lock/requirements-dev.txt
-    #   aiokafka
     #   anyio
     #   fastapi
     #   jwcrypto
@@ -1232,7 +1075,6 @@ urllib3==2.3.0 \
     --hash=sha256:f8c5449b3cf0861679ce7e0503c7b44b5ec981bec0d1d3795a07f1ba96f0204d
     # via
     #   -c lock/requirements-dev.txt
-    #   botocore
     #   requests
 uvicorn==0.29.0 \
     --hash=sha256:2c2aac7ff4f4365c206fd773a39bf4ebd1047c238f8b8268ad996829323473de \
@@ -1513,10 +1355,7 @@ wrapt==1.17.2 \
     #   -c lock/requirements-dev.txt
     #   deprecated
     #   opentelemetry-instrumentation
-    #   opentelemetry-instrumentation-asyncio
-    #   opentelemetry-instrumentation-click
     #   opentelemetry-instrumentation-httpx
-    #   opentelemetry-instrumentation-urllib3
 zipp==3.21.0 \
     --hash=sha256:2c9958f6430a2040341a52eb608ed6dd93ef4392e02ffe219417c1b28b5dd1f4 \
     --hash=sha256:ac1bbe05fd2991f160ebce24ffbac5f6d11d83dc90891255885223d42b3cd931

@@ -39,7 +39,7 @@ from fis.ports.inbound.ingest import (
 resource = Resource(attributes={SERVICE_NAME: "File Ingest Service"})
 
 trace_provider = TracerProvider(resource=resource)
-processor = BatchSpanProcessor(OTLPSpanExporter(endpoint="http://jaeger"))
+processor = BatchSpanProcessor(OTLPSpanExporter(endpoint="http://localhost"))
 trace_provider.add_span_processor(processor)
 trace.set_tracer_provider(trace_provider)
 
