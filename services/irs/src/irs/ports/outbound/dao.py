@@ -15,9 +15,9 @@
 #
 """DAO interface used for accessing the database."""
 
-from hexkit.protocols.dao import DaoNaturalId
+from hexkit.protocols.dao import Dao
 
 from irs.core import models
 
-StagingObjectDaoPort = DaoNaturalId[models.StagingObject]
-FingerprintDaoPort = DaoNaturalId[models.UploadReceivedFingerprint]
+StagingObjectDaoPort = Dao[models.StagingObject]
+FingerprintDaoPort = Dao[models.UploadReceivedFingerprint]
