@@ -118,6 +118,16 @@ class FileRegistry(FileRegistryPort):
             if await self._is_file_registered(
                 file_without_object_id=file_without_object_id
             ):
+                # HOTFIX: 13 Feb 2025 - remove once this event is published via outbox
+                # Publish registration event anyway
+                registered_file = await self._file_metadata_dao.get_by_id(
+                    file_without_object_id.file_id
+                )
+                await self._event_publisher.file_internally_registered(
+                    file=registered_file, bucket_id=permanent_bucket_id
+                )
+                # ^^ end of fix (update test_ifrs_edge_cases.py as well when removing)
+
                 # There is nothing to do:
                 log.info(
                     "File with ID '%s' is already registered.",
