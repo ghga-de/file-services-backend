@@ -49,12 +49,12 @@ jobs:
         id: get-release-tag
         run: |
           # get the two latest tags
-          tags=$(git tag | sort --sort=version | tail -n 2)
+          tags=$(git log --simplify-by-decoration --decorate --pretty=oneline | grep -Po "(?<=tag: ).*?(?=[\),])" | head -n 2)
           # check if there are actually two
           if [ $(echo "$tags" | wc -l) -eq 2 ]
           then
             # get commit hash for tag and write to output
-            tag=$(echo "$tags" | head -n1)
+            tag=$(echo "$tags" | cut -d' ' -f1 | tail -n 1)
             commit=$(git rev-parse "$tag"^{commit})
             echo "commit=$commit" >> $GITHUB_OUTPUT
           fi
