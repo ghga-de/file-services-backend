@@ -54,7 +54,7 @@ jobs:
           if [ $(echo "$tags" | wc -l) -eq 2 ]
           then
             # get commit hash for tag and write to output
-            tag=$(echo "$tags" | cut -d' ' -f1)
+            tag=$(echo "$tags" | cut -d' ' -f1 | tail -n 1)
             commit=$(git rev-parse "$tag"^{commit})
             echo "commit=$commit" >> $GITHUB_OUTPUT
           fi
