@@ -24,7 +24,6 @@ from ucs.config import Config
 from ucs.inject import (
     get_file_upload_received_dao,
     prepare_event_subscriber,
-    prepare_outbox_subscriber,
     prepare_rest_app,
     prepare_storage_inspector,
 )
@@ -46,12 +45,8 @@ async def consume_events(run_forever: bool = True):
 
     async with (
         prepare_event_subscriber(config=config) as event_subscriber,
-        prepare_outbox_subscriber(config=config) as outbox_subscriber,
     ):
-        await asyncio.gather(
-            event_subscriber.run(forever=run_forever),
-            outbox_subscriber.run(forever=run_forever),
-        )
+        await asyncio.gather(event_subscriber.run(forever=run_forever))
 
 
 async def check_inbox_buckets():
