@@ -24,7 +24,7 @@ from ghga_service_commons.utils.multinode_storage import (
     S3ObjectStorageNodeConfig,
     S3ObjectStoragesConfig,
 )
-from hexkit.providers.akafka import KafkaEventSubscriber, KafkaOutboxSubscriber
+from hexkit.providers.akafka import KafkaEventSubscriber
 from hexkit.providers.akafka.testutils import KafkaFixture
 from hexkit.providers.mongodb.testutils import MongoDbFixture
 from hexkit.providers.s3.testutils import S3Fixture
@@ -34,7 +34,6 @@ from irs.inject import (
     get_file_validation_success_dao,
     prepare_core,
     prepare_event_subscriber,
-    prepare_outbox_subscriber,
 )
 from irs.ports.inbound.interrogator import InterrogatorPort
 from irs.ports.outbound.daopub import FileUploadValidationSuccessDao
@@ -60,7 +59,6 @@ class JointFixture:
 
     config: Config
     event_subscriber: KafkaEventSubscriber
-    outbox_subscriber: KafkaOutboxSubscriber
     interrogator: InterrogatorPort
     kafka: KafkaFixture
     keypair: KeypairFixture
@@ -89,7 +87,10 @@ async def joint_fixture(
             endpoint_aliases.node1: node_config,
         }
     )
-    config = get_config(sources=[kafka.config, mongodb.config, object_storage_config])
+    config = get_config(
+        sources=[kafka.config, mongodb.config, object_storage_config],
+        kafka_enable_dlq=True,
+    )
 
     # Create joint_fixture using the inject module
     async with (
@@ -97,15 +98,11 @@ async def joint_fixture(
         prepare_event_subscriber(
             config=config, interrogator_override=interrogator
         ) as event_subscriber,
-        prepare_outbox_subscriber(
-            config=config, interrogator_override=interrogator
-        ) as outbox_subscriber,
         get_file_validation_success_dao(config=config) as dao,
     ):
         yield JointFixture(
             config=config,
             event_subscriber=event_subscriber,
-            outbox_subscriber=outbox_subscriber,
             interrogator=interrogator,
             kafka=kafka,
             keypair=keypair_fixture,
