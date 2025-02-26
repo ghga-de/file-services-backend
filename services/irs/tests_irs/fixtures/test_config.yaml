@@ -2,6 +2,7 @@ service_name: irs
 ekss_base_url: http://ekss:8080/
 kafka_servers:
   - kafka:9092
+kafka_enable_dlq: True
 service_instance_id: "001"
 
 object_storages:

@@ -52,7 +52,7 @@ async def test_outbox_subscriber_routing(joint_fixture: JointFixture):
     mock = AsyncMock()
     joint_fixture.interrogator.interrogate = mock
 
-    await joint_fixture.outbox_subscriber.run(forever=False)
+    await joint_fixture.event_subscriber.run(forever=False)
     mock.assert_awaited_once()
 
 
@@ -68,7 +68,7 @@ async def test_deletion_logs(joint_fixture: JointFixture, logot: Logot):
         key=TEST_FILE_ID,
     )
     # consume that event
-    await joint_fixture.outbox_subscriber.run(forever=False)
+    await joint_fixture.event_subscriber.run(forever=False)
 
     # verify the log
     logot.assert_logged(

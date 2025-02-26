@@ -21,9 +21,9 @@ from contextlib import asynccontextmanager
 from ghga_service_commons.utils.context import asyncnullcontext
 from ghga_service_commons.utils.multinode_storage import S3ObjectStorages
 from hexkit.providers.akafka.provider import (
+    ComboTranslator,
     KafkaEventPublisher,
     KafkaEventSubscriber,
-    KafkaOutboxSubscriber,
 )
 from hexkit.providers.mongodb import MongoDbDaoFactory
 from hexkit.providers.mongokafka import MongoKafkaDaoPublisherFactory
@@ -115,34 +115,23 @@ async def prepare_event_subscriber(
             interrogator=interrogator,
             config=config,
         )
-
-        async with KafkaEventSubscriber.construct(
-            config=config, translator=event_sub_translator
-        ) as event_subscriber:
-            yield event_subscriber
-
-
-@asynccontextmanager
-async def prepare_outbox_subscriber(
-    *,
-    config: Config,
-    interrogator_override: InterrogatorPort | None = None,
-) -> AsyncGenerator[KafkaOutboxSubscriber, None]:
-    """Construct and initialize an outbox subscriber with all its dependencies.
-
-    By default, the core dependencies are automatically prepared but you can also
-    provide them using the interrogator_override parameter.
-    """
-    async with prepare_core_with_override(
-        config=config, interrogator_override=interrogator_override
-    ) as interrogator:
         outbox_sub_translator = FileUploadReceivedSubTranslator(
             interrogator=interrogator,
             config=config,
         )
-        async with KafkaOutboxSubscriber.construct(
-            config=config, translators=[outbox_sub_translator]
-        ) as event_subscriber:
+        combo_translator = ComboTranslator(
+            translators=[
+                event_sub_translator,
+                outbox_sub_translator,
+            ]
+        )
+
+        async with (
+            KafkaEventPublisher.construct(config=config) as dlq_publisher,
+            KafkaEventSubscriber.construct(
+                config=config, translator=combo_translator, dlq_publisher=dlq_publisher
+            ) as event_subscriber,
+        ):
             yield event_subscriber
 
 

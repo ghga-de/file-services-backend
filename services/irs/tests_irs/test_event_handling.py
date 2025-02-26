@@ -30,8 +30,11 @@ from hexkit.utils import calc_part_size
 from irs.adapters.outbound.dao import get_fingerprint_dao, get_staging_object_dao
 from irs.core.models import InterrogationSubject, UploadReceivedFingerprint
 from tests_irs.fixtures.config import Config
+from tests_irs.fixtures.files_for_testing import (
+    EncryptedData,
+    create_test_file,
+)
 from tests_irs.fixtures.joint import INBOX_BUCKET_ID, STAGING_BUCKET_ID, JointFixture
-from tests_irs.fixtures.test_files import EncryptedData, create_test_file
 
 EKSS_NEW_SECRET = os.urandom(32)
 
@@ -144,7 +147,7 @@ async def test_failure_event(monkeypatch, joint_fixture: JointFixture):
         in_topic=joint_fixture.config.interrogation_topic,
     ) as event_recorder:
         await joint_fixture.kafka.publish_event(**event_in)
-        await joint_fixture.outbox_subscriber.run(forever=False)
+        await joint_fixture.event_subscriber.run(forever=False)
 
     recorded_events = event_recorder.recorded_events
 
@@ -233,7 +236,7 @@ async def test_success_event(monkeypatch, joint_fixture: JointFixture):
     async with joint_fixture.kafka.record_events(
         in_topic=joint_fixture.config.file_upload_validation_success_topic,
     ) as event_recorder:
-        await joint_fixture.outbox_subscriber.run(forever=False)
+        await joint_fixture.event_subscriber.run(forever=False)
 
     recorded_events = event_recorder.recorded_events
 
@@ -342,7 +345,7 @@ async def test_fingerprint_already_present(
     # reset captured logs
     caplog.clear()
     await joint_fixture.kafka.publish_event(**event_in)
-    await joint_fixture.outbox_subscriber.run(forever=False)
+    await joint_fixture.event_subscriber.run(forever=False)
     assert (
         f"Payload for file ID '{seen_event.file_id}' has already been processed."
         in caplog.messages
