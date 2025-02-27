@@ -47,9 +47,9 @@ def _incoming_event_file_registered(
     payload: dict[str, object], config: Config
 ) -> Mapping[str, object]:
     """Emulate incoming file registered event"""
-    type_ = config.file_registered_event_type
+    type_ = config.file_internally_registered_type
     key = payload["file_id"]
-    topic = config.file_registered_event_topic
+    topic = config.file_internally_registered_topic
     event = {"payload": payload, "type_": type_, "key": key, "topic": topic}
     return event
 
@@ -60,7 +60,7 @@ def _incoming_event_upload_received(
     """Emulate incoming upload received event"""
     type_ = CHANGED_EVENT_TYPE
     key = payload["file_id"]
-    topic = config.upload_received_event_topic
+    topic = config.file_upload_received_topic
     event = {"payload": payload, "type_": type_, "key": key, "topic": topic}
     return event
 
@@ -144,7 +144,7 @@ async def test_failure_event(monkeypatch, joint_fixture: JointFixture):
     )
 
     async with joint_fixture.kafka.record_events(
-        in_topic=joint_fixture.config.interrogation_topic,
+        in_topic=joint_fixture.config.file_interrogations_topic,
     ) as event_recorder:
         await joint_fixture.kafka.publish_event(**event_in)
         await joint_fixture.event_subscriber.run(forever=False)
@@ -287,7 +287,7 @@ async def test_success_event(monkeypatch, joint_fixture: JointFixture):
     )
 
     async with joint_fixture.kafka.record_events(
-        in_topic=joint_fixture.config.file_registered_event_topic,
+        in_topic=joint_fixture.config.file_internally_registered_topic,
     ) as event_recorder:
         await joint_fixture.kafka.publish_event(**remove_event)
         await joint_fixture.event_subscriber.run(forever=False)

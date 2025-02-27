@@ -13,12 +13,12 @@ object_storages:
       s3_access_key_id: test
       s3_secret_access_key: test
 
-file_registered_event_topic: internal-file-registry
+file_internally_registered_topic: internal-file-registry
 file_upload_validation_success_topic: file-upload-validation-success
-file_registered_event_type: file_registered
-interrogation_topic: file-interrogations
+file_internally_registered_type: file_registered
+file_interrogations_topic: file-interrogations
 interrogation_failure_type: file_validation_failed
-upload_received_event_topic: uploads
+file_upload_received_topic: uploads
 
 object_stale_after_minutes: 1440
 

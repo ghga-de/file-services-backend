@@ -17,12 +17,14 @@
 import logging
 
 from ghga_event_schemas import pydantic_ as event_schemas
+from ghga_event_schemas.configs import (
+    FileInternallyRegisteredEventsConfig,
+    FileUploadReceivedEventsConfig,
+)
 from ghga_event_schemas.validation import get_validated_payload
 from hexkit.custom_types import Ascii, JsonObject
 from hexkit.protocols.daosub import DaoSubscriberProtocol
 from hexkit.protocols.eventsub import EventSubscriberProtocol
-from pydantic import Field
-from pydantic_settings import BaseSettings
 
 from irs.core.models import InterrogationSubject
 from irs.ports.inbound.interrogator import InterrogatorPort
@@ -30,21 +32,8 @@ from irs.ports.inbound.interrogator import InterrogatorPort
 log = logging.getLogger(__name__)
 
 
-class EventSubTranslatorConfig(BaseSettings):
+class EventSubTranslatorConfig(FileInternallyRegisteredEventsConfig):
     """Config for publishing file upload-related events."""
-
-    file_registered_event_topic: str = Field(
-        default=...,
-        description="Name of the topic used for events indicating that a new file has"
-        + " been internally registered.",
-        examples=["internal-file-registry"],
-    )
-    file_registered_event_type: str = Field(
-        default=...,
-        description="The type used for events indicating that a new file has"
-        + " been internally registered.",
-        examples=["file_registered"],
-    )
 
 
 class EventSubTranslator(EventSubscriberProtocol):
@@ -61,8 +50,8 @@ class EventSubTranslator(EventSubscriberProtocol):
         self._config = config
         self._interrogator = interrogator
 
-        self.topics_of_interest = [config.file_registered_event_topic]
-        self.types_of_interest = [config.file_registered_event_type]
+        self.topics_of_interest = [config.file_internally_registered_topic]
+        self.types_of_interest = [config.file_internally_registered_type]
 
     async def _consume_validated(
         self, *, payload: JsonObject, type_: Ascii, topic: Ascii, key: str
@@ -76,7 +65,7 @@ class EventSubTranslator(EventSubscriberProtocol):
             topic (str): Name of the topic the event was published to.
             key (str): The key associated with the event.
         """
-        if type_ == self._config.file_registered_event_type:
+        if type_ == self._config.file_internally_registered_type:
             await self._consume_file_internally_registered(payload=payload)
         else:
             raise RuntimeError(f"Unexpected event of type: {type_}")
@@ -97,14 +86,8 @@ class EventSubTranslator(EventSubscriberProtocol):
         )
 
 
-class OutboxSubTranslatorConfig(BaseSettings):
+class OutboxSubTranslatorConfig(FileUploadReceivedEventsConfig):
     """Config for the outbox subscriber"""
-
-    upload_received_event_topic: str = Field(
-        default=...,
-        description="Name of the topic to publish events that inform about new file uploads.",
-        examples=["uploads", "file-uploads"],
-    )
 
 
 class FileUploadReceivedSubTranslator(
@@ -124,7 +107,7 @@ class FileUploadReceivedSubTranslator(
         interrogator: InterrogatorPort,
     ):
         self._interrogator = interrogator
-        self.event_topic = config.upload_received_event_topic
+        self.event_topic = config.file_upload_received_topic
 
     async def changed(
         self, resource_id: str, update: event_schemas.FileUploadReceived
