@@ -200,14 +200,6 @@
       "title": "Object Storages",
       "type": "object"
     },
-    "file_upload_validation_success_topic": {
-      "description": "The name of the topic use to publish FileUploadValidationSuccess events.",
-      "examples": [
-        "file-upload-validation-success"
-      ],
-      "title": "File Upload Validation Success Topic",
-      "type": "string"
-    },
     "file_validations_collection": {
       "default": "fileValidations",
       "description": "The name of the collection used to store FileUploadValidationSuccess events.",
@@ -389,7 +381,6 @@
     "file_internally_registered_topic",
     "file_internally_registered_type",
     "object_storages",
-    "file_upload_validation_success_topic",
     "kafka_servers",
     "mongo_dsn",
     "db_name",

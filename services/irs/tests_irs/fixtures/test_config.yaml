@@ -14,7 +14,6 @@ object_storages:
       s3_secret_access_key: test
 
 file_internally_registered_topic: internal-file-registry
-file_upload_validation_success_topic: file-upload-validation-success
 file_internally_registered_type: file_registered
 file_interrogations_topic: file-interrogations
 interrogation_failure_type: file_validation_failed

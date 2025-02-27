@@ -234,7 +234,7 @@ async def test_success_event(monkeypatch, joint_fixture: JointFixture):
     await joint_fixture.kafka.publish_event(**event_in)
 
     async with joint_fixture.kafka.record_events(
-        in_topic=joint_fixture.config.file_upload_validation_success_topic,
+        in_topic=joint_fixture.config.file_interrogations_topic,
     ) as event_recorder:
         await joint_fixture.event_subscriber.run(forever=False)
 

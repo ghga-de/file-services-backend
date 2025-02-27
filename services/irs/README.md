@@ -143,16 +143,6 @@ The service requires the following configuration parameters:
 
   - **Additional properties**: Refer to *[#/$defs/S3ObjectStorageNodeConfig](#%24defs/S3ObjectStorageNodeConfig)*.
 
-- **`file_upload_validation_success_topic`** *(string, required)*: The name of the topic use to publish FileUploadValidationSuccess events.
-
-
-  Examples:
-
-  ```json
-  "file-upload-validation-success"
-  ```
-
-
 - **`file_validations_collection`** *(string)*: The name of the collection used to store FileUploadValidationSuccess events. Default: `"fileValidations"`.
 
 
