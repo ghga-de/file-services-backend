@@ -32,7 +32,7 @@ async def test_event_subscriber_dlq(joint_fixture: JointFixture):
     await joint_fixture.kafka.publish_event(
         payload={"some_key": "some_value"},
         type_="upserted",
-        topic=config.upload_received_event_topic,
+        topic=config.file_upload_received_topic,
         key="test",
     )
     async with joint_fixture.kafka.record_events(
@@ -79,16 +79,16 @@ async def test_consume_from_retry(joint_fixture: JointFixture):
         type_="upserted",
         topic=config.service_name + "-retry",
         key="test",
-        headers={"original_topic": config.upload_received_event_topic},
+        headers={"original_topic": config.file_upload_received_topic},
     )
 
     # Publish the non-outbox event
     await joint_fixture.kafka.publish_event(
         payload=event_payload.model_dump(),
-        type_=config.file_registered_event_type,
+        type_=config.file_internally_registered_type,
         topic=config.service_name + "-retry",
         key="test",
-        headers={"original_topic": config.file_registered_event_topic},
+        headers={"original_topic": config.file_internally_registered_topic},
     )
 
     # Consume the events (successful if it doesn't hang)

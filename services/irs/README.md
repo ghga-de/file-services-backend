@@ -84,7 +84,7 @@ The service requires the following configuration parameters:
 
 - **`log_traceback`** *(boolean)*: Whether to include exception tracebacks in log messages. Default: `true`.
 
-- **`interrogation_topic`** *(string, required)*: Name of the topic used for events informing about the outcome of file validations.
+- **`file_interrogations_topic`** *(string, required)*: The name of the topic use to publish file interrogation outcome events.
 
 
   Examples:
@@ -94,64 +94,54 @@ The service requires the following configuration parameters:
   ```
 
 
-- **`interrogation_failure_type`** *(string, required)*: The type used for events informing about the failure of a file validation.
+- **`interrogation_failure_type`** *(string, required)*: The type used for events informing about failed file validations.
 
 
   Examples:
 
   ```json
-  "file_validation_failed"
+  "file_interrogation_failed"
   ```
 
 
-- **`upload_received_event_topic`** *(string, required)*: Name of the topic to publish events that inform about new file uploads.
+- **`file_upload_received_topic`** *(string, required)*: The name of the topic used for FileUploadReceived events.
 
 
   Examples:
 
   ```json
-  "uploads"
+  "received-file-uploads"
   ```
 
 
-  ```json
-  "file-uploads"
-  ```
-
-
-- **`file_registered_event_topic`** *(string, required)*: Name of the topic used for events indicating that a new file has been internally registered.
+- **`file_internally_registered_topic`** *(string, required)*: Name of the topic used for events indicating that a file has been registered for download.
 
 
   Examples:
 
   ```json
-  "internal-file-registry"
+  "file-registrations"
   ```
 
 
-- **`file_registered_event_type`** *(string, required)*: The type used for events indicating that a new file has been internally registered.
+  ```json
+  "file-registrations-internal"
+  ```
+
+
+- **`file_internally_registered_type`** *(string, required)*: The type used for event indicating that that a file has been registered for download.
 
 
   Examples:
 
   ```json
-  "file_registered"
+  "file_internally_registered"
   ```
 
 
 - **`object_storages`** *(object, required)*: Can contain additional properties.
 
   - **Additional properties**: Refer to *[#/$defs/S3ObjectStorageNodeConfig](#%24defs/S3ObjectStorageNodeConfig)*.
-
-- **`file_upload_validation_success_topic`** *(string, required)*: The name of the topic use to publish FileUploadValidationSuccess events.
-
-
-  Examples:
-
-  ```json
-  "file-upload-validation-success"
-  ```
-
 
 - **`file_validations_collection`** *(string)*: The name of the collection used to store FileUploadValidationSuccess events. Default: `"fileValidations"`.
 

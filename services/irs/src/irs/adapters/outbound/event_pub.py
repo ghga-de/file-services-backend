@@ -17,32 +17,16 @@
 import json
 
 from ghga_event_schemas import pydantic_ as event_schemas
+from ghga_event_schemas.configs import FileInterrogationFailureEventsConfig
 from hexkit.protocols.eventpub import EventPublisherProtocol
-from pydantic import Field
-from pydantic_settings import BaseSettings
 
 from irs.core.models import InterrogationSubject
 from irs.core.staging_handler import StagingHandler
 from irs.ports.outbound.event_pub import EventPublisherPort
 
 
-class EventPubTanslatorConfig(BaseSettings):
+class EventPubTanslatorConfig(FileInterrogationFailureEventsConfig):
     """Config for publishing file upload-related events."""
-
-    interrogation_topic: str = Field(
-        default=...,
-        description=(
-            "Name of the topic used for events informing about the outcome of file validations."
-        ),
-        examples=["file-interrogations"],
-    )
-    interrogation_failure_type: str = Field(
-        default=...,
-        description=(
-            "The type used for events informing about the failure of a file validation."
-        ),
-        examples=["file_validation_failed"],
-    )
 
 
 class EventPublisher(EventPublisherPort):
@@ -74,6 +58,6 @@ class EventPublisher(EventPublisherPort):
         await self._provider.publish(
             payload=json.loads(event_payload.model_dump_json()),
             type_=self._config.interrogation_failure_type,
-            topic=self._config.interrogation_topic,
+            topic=self._config.file_interrogations_topic,
             key=subject.file_id,
         )

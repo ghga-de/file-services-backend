@@ -1,12 +1,12 @@
 db_name: dev
 ekss_base_url: http://ekss:8080/
-file_registered_event_topic: internal-file-registry
-file_registered_event_type: file_registered
-file_upload_validation_success_topic: file-upload-validation-success
+file_internally_registered_topic: internal-file-registry
+file_internally_registered_type: file_registered
+file_interrogations_topic: file-interrogations
+file_upload_received_topic: uploads
 file_validations_collection: fileValidations
 generate_correlation_id: true
 interrogation_failure_type: file_validation_failed
-interrogation_topic: file-interrogations
 kafka_dlq_topic: dlq
 kafka_enable_dlq: true
 kafka_max_message_size: 1048576
@@ -36,4 +36,3 @@ object_storages:
       s3_session_token: null
 service_instance_id: '001'
 service_name: irs
-upload_received_event_topic: uploads
