@@ -43,13 +43,13 @@ We recommend using the provided Docker container.
 
 A pre-build version is available at [docker hub](https://hub.docker.com/repository/docker/ghga/download-controller-service):
 ```bash
-docker pull ghga/download-controller-service:5.0.0
+docker pull ghga/download-controller-service:5.1.0
 ```
 
 Or you can build the container yourself from the [`./Dockerfile`](./Dockerfile):
 ```bash
 # Execute in the repo's root dir:
-docker build -t ghga/download-controller-service:5.0.0 .
+docker build -t ghga/download-controller-service:5.1.0 .
 ```
 
 For production-ready deployment, we recommend using Kubernetes, however,
@@ -57,7 +57,7 @@ for simple use cases, you could execute the service using docker
 on a single server:
 ```bash
 # The entrypoint is preconfigured:
-docker run -p 8080:8080 ghga/download-controller-service:5.0.0 --help
+docker run -p 8080:8080 ghga/download-controller-service:5.1.0 --help
 ```
 
 If you prefer not to use containers, you may install the service from source:
@@ -527,6 +527,26 @@ The service requires the following configuration parameters:
 
   ```json
   30
+  ```
+
+
+  ```json
+  60
+  ```
+
+
+- **`http_call_timeout`** *(integer)*: Time in seconds after which http calls from this service should timeout. Exclusive minimum: `0`. Default: `3`.
+
+
+  Examples:
+
+  ```json
+  1
+  ```
+
+
+  ```json
+  5
   ```
 
 
