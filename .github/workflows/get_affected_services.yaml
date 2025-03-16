@@ -45,7 +45,7 @@ jobs:
       - name: Changed Files since ${{ inputs.base_sha }}
         id: changed-files
         if: ${{ inputs.base_sha != '' }}
-        uses: tj-actions/changed-files@v44
+        uses: step-security/changed-files@v45
         with:
           base_sha: ${{ inputs.base_sha }}
           fetch_depth: ${{ inputs.fetch_depth_compare }}
@@ -55,7 +55,7 @@ jobs:
       - name: Changed Files since last commit
         id: changed-files-no-base
         if: ${{ inputs.base_sha == '' }}
-        uses: tj-actions/changed-files@v44
+        uses: step-security/changed-files@v45
 
       # Combine results from last steps into one output
       # As they are run conditionally, this just forwards the chosen action output to
