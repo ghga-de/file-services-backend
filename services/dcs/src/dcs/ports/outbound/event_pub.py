@@ -24,6 +24,12 @@ class EventPublisherPort(ABC):
     """A port through which DRS-specific events are communicated with the outside."""
 
     @abstractmethod
+    async def nonstaged_file_requested(
+        self, *, drs_object: models.DrsObject, bucket_id: str
+    ):
+        """Publish an event to request staging of the corresponding file"""
+
+    @abstractmethod
     async def download_served(
         self,
         *,
