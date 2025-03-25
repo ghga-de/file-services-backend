@@ -38,7 +38,7 @@ from hexkit.providers.s3.testutils import S3Fixture
 
 from ifrs.adapters.outbound.dao import get_file_metadata_dao
 from ifrs.config import Config
-from ifrs.inject import prepare_core, prepare_outbox_subscriber
+from ifrs.inject import prepare_core, prepare_event_subscriber
 from ifrs.ports.inbound.file_registry import FileRegistryPort
 from ifrs.ports.outbound.dao import FileMetadataDaoPort
 from tests_ifrs.fixtures.config import get_config
@@ -99,7 +99,7 @@ async def joint_fixture(
 
     # Prepare the file registry (core)
     async with prepare_core(config=config) as file_registry:
-        async with prepare_outbox_subscriber(
+        async with prepare_event_subscriber(
             config=config,
             core_override=file_registry,
         ) as outbox_subscriber:

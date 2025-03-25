@@ -20,7 +20,7 @@ from hexkit.config import config_from_yaml
 from hexkit.log import LoggingConfig
 from hexkit.providers.akafka import KafkaConfig
 
-from ifrs.adapters.inbound.event_sub import OutboxSubTranslatorConfig
+from ifrs.adapters.inbound.event_sub import EventSubTranslatorConfig
 from ifrs.adapters.outbound.event_pub import EventPubTranslatorConfig
 from ifrs.migration_logic import MigrationConfig
 
@@ -29,7 +29,7 @@ from ifrs.migration_logic import MigrationConfig
 class Config(
     MigrationConfig,
     KafkaConfig,
-    OutboxSubTranslatorConfig,
+    EventSubTranslatorConfig,
     EventPubTranslatorConfig,
     S3ObjectStoragesConfig,
     LoggingConfig,

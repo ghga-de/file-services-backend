@@ -173,21 +173,6 @@ The service requires the following configuration parameters:
   ```
 
 
-- **`files_to_stage_topic`** *(string, required)*: Name of the topic used for events indicating that a download was requested for a file that is not yet available in the outbox.
-
-
-  Examples:
-
-  ```json
-  "file-downloads"
-  ```
-
-
-  ```json
-  "file-stage-requests"
-  ```
-
-
 - **`file_interrogations_topic`** *(string, required)*: The name of the topic use to publish file interrogation outcome events.
 
 
@@ -198,6 +183,16 @@ The service requires the following configuration parameters:
   ```
 
 
+- **`interrogation_success_type`** *(string, required)*: The type used for events informing about successful file validations.
+
+
+  Examples:
+
+  ```json
+  "file_interrogation_success"
+  ```
+
+
 - **`file_deletion_request_topic`** *(string, required)*: The name of the topic to receive events informing about files to delete.
 
 
@@ -205,6 +200,36 @@ The service requires the following configuration parameters:
 
   ```json
   "file-deletion-requests"
+  ```
+
+
+- **`file_deletion_request_type`** *(string, required)*: The type used for events indicating that a request to delete a file has been received.
+
+
+  Examples:
+
+  ```json
+  "file_deletion_requested"
+  ```
+
+
+- **`files_to_stage_topic`** *(string, required)*: Name of the topic used for events indicating that a download was requested for a file that is not yet available in the outbox.
+
+
+  Examples:
+
+  ```json
+  "file-staging-requests"
+  ```
+
+
+- **`files_to_stage_type`** *(string, required)*: The type used for non-staged file request events.
+
+
+  Examples:
+
+  ```json
+  "file_staging_requested"
   ```
 
 
@@ -230,7 +255,7 @@ The service requires the following configuration parameters:
 
 - **`kafka_ssl_keyfile`** *(string)*: Optional filename containing the client private key. Default: `""`.
 
-- **`kafka_ssl_password`** *(string, format: password)*: Optional password to be used for the client private key. Default: `""`.
+- **`kafka_ssl_password`** *(string, format: password, write-only)*: Optional password to be used for the client private key. Default: `""`.
 
 - **`generate_correlation_id`** *(boolean)*: A flag, which, if False, will result in an error when trying to publish an event without a valid correlation ID set for the context. If True, the a newly correlation ID will be generated and used in the event header. Default: `true`.
 
@@ -347,7 +372,7 @@ The service requires the following configuration parameters:
   ```
 
 
-- **`mongo_dsn`** *(string, format: multi-host-uri, required)*: MongoDB connection string. Might include credentials. For more information see: https://naiveskill.com/mongodb-connection-string/.
+- **`mongo_dsn`** *(string, format: multi-host-uri, required)*: MongoDB connection string. Might include credentials. For more information see: https://naiveskill.com/mongodb-connection-string/. Length must be at least 1.
 
 
   Examples:
@@ -465,7 +490,7 @@ to talk to an S3 service in the backend.<br>  Args:
     ```
 
 
-  - **`s3_secret_access_key`** *(string, format: password, required)*: Part of credentials for login into the S3 service. See: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html.
+  - **`s3_secret_access_key`** *(string, format: password, required, write-only)*: Part of credentials for login into the S3 service. See: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html.
 
 
     Examples:
