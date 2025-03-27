@@ -22,7 +22,7 @@ from hexkit.providers.akafka import KafkaConfig
 from hexkit.providers.mongokafka import MongoKafkaConfig
 
 from pcs.adapters.inbound.fastapi_.config import TokenHashConfig
-from pcs.adapters.outbound.daopub import OutboxDaoConfig
+from pcs.adapters.outbound.event_pub import EventPubTranslatorConfig
 
 SERVICE_NAME = "pcs"
 
@@ -34,7 +34,7 @@ class Config(
     KafkaConfig,
     TokenHashConfig,
     LoggingConfig,
-    OutboxDaoConfig,
+    EventPubTranslatorConfig,
 ):
     """Config parameters and their defaults."""
 
