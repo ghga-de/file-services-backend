@@ -221,13 +221,13 @@ The service requires the following configuration parameters:
   ```
 
 
-- **`file_validations_collection`** *(string)*: The name of the collection used to store FileUploadValidationSuccess events. Default: `"fileValidations"`.
+- **`interrogation_success_type`** *(string, required)*: The type used for events informing about successful file validations.
 
 
   Examples:
 
   ```json
-  "fileValidations"
+  "file_interrogation_success"
   ```
 
 
@@ -360,7 +360,7 @@ The service requires the following configuration parameters:
 
 - **`kafka_ssl_keyfile`** *(string)*: Optional filename containing the client private key. Default: `""`.
 
-- **`kafka_ssl_password`** *(string, format: password)*: Optional password to be used for the client private key. Default: `""`.
+- **`kafka_ssl_password`** *(string, format: password, write-only)*: Optional password to be used for the client private key. Default: `""`.
 
 - **`kafka_max_message_size`** *(integer)*: The largest message size that can be transmitted, in bytes. Only services that have a need to send/receive larger messages should set this. Exclusive minimum: `0`. Default: `1048576`.
 
@@ -462,7 +462,7 @@ The service requires the following configuration parameters:
   ```
 
 
-- **`mongo_dsn`** *(string, format: multi-host-uri, required)*: MongoDB connection string. Might include credentials. For more information see: https://naiveskill.com/mongodb-connection-string/.
+- **`mongo_dsn`** *(string, format: multi-host-uri, required)*: MongoDB connection string. Might include credentials. For more information see: https://naiveskill.com/mongodb-connection-string/. Length must be at least 1.
 
 
   Examples:
@@ -505,6 +505,67 @@ The service requires the following configuration parameters:
 
   ```json
   null
+  ```
+
+
+- **`db_version_collection`** *(string, required)*: The name of the collection containing DB version information for this service.
+
+
+  Examples:
+
+  ```json
+  "ifrsDbVersions"
+  ```
+
+
+- **`migration_wait_sec`** *(integer, required)*: The number of seconds to wait before checking the DB version again.
+
+
+  Examples:
+
+  ```json
+  5
+  ```
+
+
+  ```json
+  30
+  ```
+
+
+  ```json
+  180
+  ```
+
+
+- **`migration_max_wait_sec`**: The maximum number of seconds to wait for migrations to complete before raising an error. Default: `null`.
+
+  - **Any of**
+
+    - *integer*
+
+    - *null*
+
+
+  Examples:
+
+  ```json
+  null
+  ```
+
+
+  ```json
+  300
+  ```
+
+
+  ```json
+  600
+  ```
+
+
+  ```json
+  3600
   ```
 
 
