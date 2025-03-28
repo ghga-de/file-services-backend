@@ -5,7 +5,6 @@ file_internally_registered_type: file_registered
 file_interrogations_topic: file-interrogations
 file_upload_received_topic: uploads
 file_upload_received_type: file_upload_received
-file_validations_collection: fileValidations
 generate_correlation_id: true
 interrogation_failure_type: file_interrogation_failure
 interrogation_success_type: file_interrogation_success

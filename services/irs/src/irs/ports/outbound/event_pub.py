@@ -17,7 +17,7 @@
 
 from abc import ABC, abstractmethod
 
-from irs.core.models import InterrogationSubject
+from irs.core.models import InterrogationSubject, ProcessingResult
 from irs.core.staging_handler import StagingHandler
 
 
@@ -33,4 +33,15 @@ class EventPublisherPort(ABC):
         cause: str = "Checksum mismatch",
     ) -> None:
         """Publish event informing that a validation was not successful."""
+        ...
+
+    @abstractmethod
+    async def publish_validation_success(
+        self,
+        *,
+        processing_result: ProcessingResult,
+        staging_handler: StagingHandler,
+        subject: InterrogationSubject,
+    ) -> None:
+        """Publish event informing that a file validation was successful."""
         ...

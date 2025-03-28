@@ -160,6 +160,14 @@
       "title": "File Interrogations Topic",
       "type": "string"
     },
+    "interrogation_success_type": {
+      "description": "The type used for events informing about successful file validations.",
+      "examples": [
+        "file_interrogation_success"
+      ],
+      "title": "Interrogation Success Type",
+      "type": "string"
+    },
     "interrogation_failure_type": {
       "description": "The type used for events informing about failed file validations.",
       "examples": [
@@ -207,23 +215,6 @@
       },
       "title": "Object Storages",
       "type": "object"
-    },
-    "interrogation_success_type": {
-      "description": "The type used for events informing about successful file validations.",
-      "examples": [
-        "file_interrogation_success"
-      ],
-      "title": "Interrogation Success Type",
-      "type": "string"
-    },
-    "file_validations_collection": {
-      "default": "fileValidations",
-      "description": "The name of the collection used to store FileUploadValidationSuccess events.",
-      "examples": [
-        "fileValidations"
-      ],
-      "title": "File Validations Collection",
-      "type": "string"
     },
     "kafka_servers": {
       "description": "A list of connection strings to connect to Kafka bootstrap servers.",
@@ -392,13 +383,13 @@
     "object_stale_after_minutes",
     "service_instance_id",
     "file_interrogations_topic",
+    "interrogation_success_type",
     "interrogation_failure_type",
     "file_upload_received_topic",
     "file_upload_received_type",
     "file_internally_registered_topic",
     "file_internally_registered_type",
     "object_storages",
-    "interrogation_success_type",
     "kafka_servers",
     "mongo_dsn",
     "db_name",

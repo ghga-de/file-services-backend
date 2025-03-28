@@ -225,7 +225,7 @@ async def test_success_event(monkeypatch, joint_fixture: JointFixture):
     }
     expected_event_out = ExpectedEvent(
         payload=payload_out,
-        type_="upserted",
+        type_=joint_fixture.config.interrogation_success_type,
         key=data.file_id,
     )
 

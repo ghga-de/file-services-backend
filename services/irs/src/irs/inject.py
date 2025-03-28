@@ -22,39 +22,30 @@ from ghga_service_commons.utils.context import asyncnullcontext
 from ghga_service_commons.utils.multinode_storage import S3ObjectStorages
 from hexkit.providers.akafka.provider import KafkaEventPublisher, KafkaEventSubscriber
 from hexkit.providers.mongodb import MongoDbDaoFactory
-from hexkit.providers.mongokafka import MongoKafkaDaoPublisherFactory
+from hexkit.providers.mongokafka import PersistentKafkaPublisher
 
 from irs.adapters.inbound.event_sub import EventSubTranslator
 from irs.adapters.outbound.dao import get_fingerprint_dao, get_staging_object_dao
-from irs.adapters.outbound.daopub import OutboxDaoPublisherFactory
 from irs.adapters.outbound.event_pub import EventPublisher
 from irs.config import Config
 from irs.core.interrogator import Interrogator
 from irs.core.storage_inspector import StagingInspector
 from irs.ports.inbound.interrogator import InterrogatorPort
-from irs.ports.outbound.daopub import FileUploadValidationSuccessDao
 
 
 @asynccontextmanager
-async def get_mongo_kafka_dao_factory(
-    config: Config,
-) -> AsyncGenerator[MongoKafkaDaoPublisherFactory, None]:
-    """Get a MongoDB DAO publisher factory."""
-    async with MongoKafkaDaoPublisherFactory.construct(config=config) as factory:
-        yield factory
-
-
-@asynccontextmanager
-async def get_file_validation_success_dao(
-    *, config: Config
-) -> AsyncGenerator[FileUploadValidationSuccessDao, None]:
-    """Get a FileUploadValidationSuccess dao."""
-    async with get_mongo_kafka_dao_factory(config=config) as dao_publisher_factory:
-        outbox_dao_factory = OutboxDaoPublisherFactory(
-            config=config, dao_publisher_factory=dao_publisher_factory
-        )
-        outbox_dao = await outbox_dao_factory.get_file_validation_success_dao()
-        yield outbox_dao
+async def get_persistent_publisher(
+    config: Config, dao_factory: MongoDbDaoFactory | None = None
+) -> AsyncGenerator[PersistentKafkaPublisher, None]:
+    """Construct and return a PersistentKafkaPublisher."""
+    dao_factory = dao_factory or MongoDbDaoFactory(config=config)
+    async with PersistentKafkaPublisher.construct(
+        config=config,
+        dao_factory=dao_factory,
+        compacted_topics={config.file_interrogations_topic},
+        collection_name="irsPersistedEvents",
+    ) as persistent_publisher:
+        yield persistent_publisher
 
 
 @asynccontextmanager
@@ -64,15 +55,15 @@ async def prepare_core(*, config: Config) -> AsyncGenerator[InterrogatorPort, No
     fingerprint_dao = await get_fingerprint_dao(dao_factory=dao_factory)
     staging_object_dao = await get_staging_object_dao(dao_factory=dao_factory)
 
-    async with (
-        KafkaEventPublisher.construct(config=config) as event_pub_provider,
-        get_file_validation_success_dao(config=config) as outbox_dao,
-    ):
-        event_publisher = EventPublisher(config=config, provider=event_pub_provider)
+    async with get_persistent_publisher(
+        config=config, dao_factory=dao_factory
+    ) as persistent_pub_provider:
+        event_publisher = EventPublisher(
+            config=config, provider=persistent_pub_provider
+        )
         object_storages = S3ObjectStorages(config=config)
         yield Interrogator(
             event_publisher=event_publisher,
-            file_validation_success_dao=outbox_dao,
             fingerprint_dao=fingerprint_dao,
             staging_object_dao=staging_object_dao,
             object_storages=object_storages,

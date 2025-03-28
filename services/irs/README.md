@@ -94,6 +94,16 @@ The service requires the following configuration parameters:
   ```
 
 
+- **`interrogation_success_type`** *(string, required)*: The type used for events informing about successful file validations.
+
+
+  Examples:
+
+  ```json
+  "file_interrogation_success"
+  ```
+
+
 - **`interrogation_failure_type`** *(string, required)*: The type used for events informing about failed file validations.
 
 
@@ -152,26 +162,6 @@ The service requires the following configuration parameters:
 - **`object_storages`** *(object, required)*: Can contain additional properties.
 
   - **Additional properties**: Refer to *[#/$defs/S3ObjectStorageNodeConfig](#%24defs/S3ObjectStorageNodeConfig)*.
-
-- **`interrogation_success_type`** *(string, required)*: The type used for events informing about successful file validations.
-
-
-  Examples:
-
-  ```json
-  "file_interrogation_success"
-  ```
-
-
-- **`file_validations_collection`** *(string)*: The name of the collection used to store FileUploadValidationSuccess events. Default: `"fileValidations"`.
-
-
-  Examples:
-
-  ```json
-  "fileValidations"
-  ```
-
 
 - **`kafka_servers`** *(array, required)*: A list of connection strings to connect to Kafka bootstrap servers.
 
