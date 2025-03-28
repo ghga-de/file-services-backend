@@ -23,5 +23,3 @@ file_staged_topic: file-stagings
 file_staged_type: file_staged_for_download
 file_deleted_topic: file-deletions
 file_deleted_type: file_deleted
-db_version_collection: ifrsDbVersions
-migration_wait_sec: 2
