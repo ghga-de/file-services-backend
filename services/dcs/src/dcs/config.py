@@ -22,6 +22,7 @@ from ghga_service_commons.utils.multinode_storage import S3ObjectStoragesConfig
 from hexkit.config import config_from_yaml
 from hexkit.log import LoggingConfig
 from hexkit.providers.akafka import KafkaConfig
+from hexkit.providers.mongodb import MongoDbConfig
 from pydantic import Field
 
 from dcs.adapters.inbound.event_sub import (
@@ -31,7 +32,6 @@ from dcs.adapters.inbound.event_sub import (
 from dcs.adapters.inbound.fastapi_.configure import DrsApiConfig
 from dcs.adapters.outbound.event_pub import EventPubTranslatorConfig
 from dcs.core.data_repository import DataRepositoryConfig
-from dcs.migration_logic import MigrationConfig
 
 
 class WorkOrderTokenConfig(AuthConfig):
@@ -53,7 +53,7 @@ class Config(
     DrsApiConfig,
     WorkOrderTokenConfig,
     DataRepositoryConfig,
-    MigrationConfig,
+    MongoDbConfig,
     KafkaConfig,
     EventPubTranslatorConfig,
     EventSubTranslatorConfig,

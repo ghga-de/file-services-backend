@@ -20,19 +20,16 @@ from hexkit.log import configure_logging
 
 from dcs.config import Config
 from dcs.inject import (
-    get_nonstaged_file_requested_dao,
     prepare_event_subscriber,
     prepare_outbox_cleaner,
     prepare_rest_app,
 )
-from dcs.migrations import run_db_migrations
 
 
 async def run_rest_app():
     """Run the HTTP REST API."""
     config = Config()
     configure_logging(config=config)
-    await run_db_migrations(config=config)
 
     async with prepare_rest_app(config=config) as app:
         await run_server(app=app, config=config)
@@ -42,7 +39,6 @@ async def consume_events(run_forever: bool = True):
     """Run an event consumer listening to the specified topics."""
     config = Config()
     configure_logging(config=config)
-    await run_db_migrations(config=config)
 
     async with prepare_event_subscriber(config=config) as event_subscriber:
         await event_subscriber.run(forever=run_forever)
@@ -52,7 +48,6 @@ async def run_outbox_cleanup():
     """Check if outbox buckets contains files that should be cleaned up and perform clean-up."""
     config = Config()
     configure_logging(config=config)
-    await run_db_migrations(config=config)
 
     async with prepare_outbox_cleaner(config=config) as cleanup_outbox:
         await cleanup_outbox
@@ -62,10 +57,9 @@ async def publish_events(*, all: bool = False):
     """Publish pending events. Set `--all` to (re)publish all events regardless of status."""
     config = Config()
     configure_logging(config=config)
-    await run_db_migrations(config=config)
-
-    async with get_nonstaged_file_requested_dao(config=config) as dao:
-        if all:
-            await dao.republish()
-        else:
-            await dao.publish_pending()
+    # TODO: Implement this
+    # async with get(config=config) as dao:
+    #     if all:
+    #         await dao.republish()
+    #     else:
+    #         await dao.publish_pending()
