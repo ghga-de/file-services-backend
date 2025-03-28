@@ -31,7 +31,7 @@ async def test_event_subscriber_dlq(joint_fixture: JointFixture):
     # Publish an event with a bogus payload to a topic/type this service expects
     await joint_fixture.kafka.publish_event(
         payload={"some_key": "some_value"},
-        type_="upserted",
+        type_=config.file_upload_received_type,
         topic=config.file_upload_received_topic,
         key="test",
     )
@@ -76,7 +76,7 @@ async def test_consume_from_retry(joint_fixture: JointFixture):
     # Publish the outbox event
     await joint_fixture.kafka.publish_event(
         payload=outbox_payload.model_dump(),
-        type_="upserted",
+        type_=config.file_upload_received_type,
         topic=config.service_name + "-retry",
         key="test",
         headers={"original_topic": config.file_upload_received_topic},

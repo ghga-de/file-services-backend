@@ -20,18 +20,11 @@ from contextlib import asynccontextmanager
 
 from ghga_service_commons.utils.context import asyncnullcontext
 from ghga_service_commons.utils.multinode_storage import S3ObjectStorages
-from hexkit.providers.akafka.provider import (
-    ComboTranslator,
-    KafkaEventPublisher,
-    KafkaEventSubscriber,
-)
+from hexkit.providers.akafka.provider import KafkaEventPublisher, KafkaEventSubscriber
 from hexkit.providers.mongodb import MongoDbDaoFactory
 from hexkit.providers.mongokafka import MongoKafkaDaoPublisherFactory
 
-from irs.adapters.inbound.event_sub import (
-    EventSubTranslator,
-    FileUploadReceivedSubTranslator,
-)
+from irs.adapters.inbound.event_sub import EventSubTranslator
 from irs.adapters.outbound.dao import get_fingerprint_dao, get_staging_object_dao
 from irs.adapters.outbound.daopub import OutboxDaoPublisherFactory
 from irs.adapters.outbound.event_pub import EventPublisher
@@ -115,21 +108,13 @@ async def prepare_event_subscriber(
             interrogator=interrogator,
             config=config,
         )
-        outbox_sub_translator = FileUploadReceivedSubTranslator(
-            interrogator=interrogator,
-            config=config,
-        )
-        combo_translator = ComboTranslator(
-            translators=[
-                event_sub_translator,
-                outbox_sub_translator,
-            ]
-        )
 
         async with (
             KafkaEventPublisher.construct(config=config) as dlq_publisher,
             KafkaEventSubscriber.construct(
-                config=config, translator=combo_translator, dlq_publisher=dlq_publisher
+                config=config,
+                translator=event_sub_translator,
+                dlq_publisher=dlq_publisher,
             ) as event_subscriber,
         ):
             yield event_subscriber

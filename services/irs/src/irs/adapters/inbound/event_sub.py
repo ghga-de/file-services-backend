@@ -23,7 +23,6 @@ from ghga_event_schemas.configs import (
 )
 from ghga_event_schemas.validation import get_validated_payload
 from hexkit.custom_types import Ascii, JsonObject
-from hexkit.protocols.daosub import DaoSubscriberProtocol
 from hexkit.protocols.eventsub import EventSubscriberProtocol
 
 from irs.core.models import InterrogationSubject
@@ -32,8 +31,10 @@ from irs.ports.inbound.interrogator import InterrogatorPort
 log = logging.getLogger(__name__)
 
 
-class EventSubTranslatorConfig(FileInternallyRegisteredEventsConfig):
-    """Config for publishing file upload-related events."""
+class EventSubTranslatorConfig(
+    FileInternallyRegisteredEventsConfig, FileUploadReceivedEventsConfig
+):
+    """Config for consuming file upload-related events."""
 
 
 class EventSubTranslator(EventSubscriberProtocol):
@@ -50,8 +51,14 @@ class EventSubTranslator(EventSubscriberProtocol):
         self._config = config
         self._interrogator = interrogator
 
-        self.topics_of_interest = [config.file_internally_registered_topic]
-        self.types_of_interest = [config.file_internally_registered_type]
+        self.topics_of_interest = [
+            config.file_internally_registered_topic,
+            config.file_upload_received_topic,
+        ]
+        self.types_of_interest = [
+            config.file_internally_registered_type,
+            config.file_upload_received_type,
+        ]
 
     async def _consume_validated(
         self, *, payload: JsonObject, type_: Ascii, topic: Ascii, key: str
@@ -67,6 +74,8 @@ class EventSubTranslator(EventSubscriberProtocol):
         """
         if type_ == self._config.file_internally_registered_type:
             await self._consume_file_internally_registered(payload=payload)
+        elif type_ == self._config.file_upload_received_type:
+            await self._consume_file_upload_received(payload=payload)
         else:
             raise RuntimeError(f"Unexpected event of type: {type_}")
 
@@ -85,52 +94,21 @@ class EventSubTranslator(EventSubscriberProtocol):
             storage_alias=validated_payload.s3_endpoint_alias,
         )
 
+    async def _consume_file_upload_received(self, *, payload: JsonObject):
+        """Consume a file upload event."""
+        validated_payload = get_validated_payload(
+            payload=payload,
+            schema=event_schemas.FileUploadReceived,
+        )
 
-class OutboxSubTranslatorConfig(FileUploadReceivedEventsConfig):
-    """Config for the outbox subscriber"""
-
-
-class FileUploadReceivedSubTranslator(
-    DaoSubscriberProtocol[event_schemas.FileUploadReceived]
-):
-    """A triple hexagonal translator compatible with the DaoSubscriberProtocol that
-    is used to received events relevant for file uploads.
-    """
-
-    event_topic: str
-    dto_model = event_schemas.FileUploadReceived
-
-    def __init__(
-        self,
-        *,
-        config: OutboxSubTranslatorConfig,
-        interrogator: InterrogatorPort,
-    ):
-        self._interrogator = interrogator
-        self.event_topic = config.file_upload_received_topic
-
-    async def changed(
-        self, resource_id: str, update: event_schemas.FileUploadReceived
-    ) -> None:
-        """Consume upsertion event for a FileUploadReceived event schema.
-
-        Idempotence is handled by a 'fingerprinting' mechanism in the Interrogator.
-        """
         subject = InterrogationSubject(
-            file_id=update.file_id,
-            inbox_bucket_id=update.bucket_id,
-            inbox_object_id=update.object_id,
-            storage_alias=update.s3_endpoint_alias,
-            decrypted_size=update.decrypted_size,
-            expected_decrypted_sha256=update.expected_decrypted_sha256,
-            upload_date=update.upload_date,
-            submitter_public_key=update.submitter_public_key,
+            file_id=validated_payload.file_id,
+            inbox_bucket_id=validated_payload.bucket_id,
+            inbox_object_id=validated_payload.object_id,
+            storage_alias=validated_payload.s3_endpoint_alias,
+            decrypted_size=validated_payload.decrypted_size,
+            expected_decrypted_sha256=validated_payload.expected_decrypted_sha256,
+            upload_date=validated_payload.upload_date,
+            submitter_public_key=validated_payload.submitter_public_key,
         )
         await self._interrogator.interrogate(subject=subject)
-
-    async def deleted(self, resource_id: str) -> None:
-        """Consume event indicating the deletion of the event -- only log a warning."""
-        log.warning(
-            "Received DELETED-type event for FileUploadReceived with resource ID '%s'",
-            resource_id,
-        )

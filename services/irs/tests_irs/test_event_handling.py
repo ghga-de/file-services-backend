@@ -40,8 +40,6 @@ EKSS_NEW_SECRET = os.urandom(32)
 
 pytestmark = pytest.mark.asyncio()
 
-CHANGED_EVENT_TYPE = "upserted"
-
 
 def _incoming_event_file_registered(
     payload: dict[str, object], config: Config
@@ -58,7 +56,7 @@ def _incoming_event_upload_received(
     payload: dict[str, object], config: Config
 ) -> Mapping[str, object]:
     """Emulate incoming upload received event"""
-    type_ = CHANGED_EVENT_TYPE
+    type_ = config.file_upload_received_type
     key = payload["file_id"]
     topic = config.file_upload_received_topic
     event = {"payload": payload, "type_": type_, "key": key, "topic": topic}
