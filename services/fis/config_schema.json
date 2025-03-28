@@ -523,6 +523,15 @@
         3600
       ],
       "title": "Migration Max Wait Sec"
+    },
+    "file_validations_collection": {
+      "default": "fileValidations",
+      "description": "The name of the collection used to store FileUploadValidationSuccess events.",
+      "examples": [
+        "fileValidations"
+      ],
+      "title": "File Validations Collection",
+      "type": "string"
     }
   },
   "required": [

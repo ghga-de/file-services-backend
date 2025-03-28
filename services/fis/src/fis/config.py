@@ -19,6 +19,7 @@ from hexkit.config import config_from_yaml
 from hexkit.log import LoggingConfig
 from hexkit.providers.mongodb.migrations import MigrationConfig
 from hexkit.providers.mongokafka import MongoKafkaConfig
+from pydantic import Field
 
 from fis.adapters.outbound.event_pub import EventPubTranslatorConfig
 from fis.adapters.outbound.vault import VaultConfig
@@ -40,6 +41,15 @@ class Config(
     """Config parameters and their defaults."""
 
     service_name: str = SERVICE_NAME
+
+    # Remove this parameter once the v2 migration has been run in production
+    file_validations_collection: str = Field(
+        default="fileValidations",
+        description=(
+            "The name of the collection used to store FileUploadValidationSuccess events."
+        ),
+        examples=["fileValidations"],
+    )
 
 
 CONFIG = Config()  # type: ignore [call-arg]

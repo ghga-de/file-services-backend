@@ -8,6 +8,7 @@ db_name: dev
 db_version_collection: fisDbVersions
 docs_url: /docs
 file_interrogations_topic: file-interrogations
+file_validations_collection: fileValidations
 generate_correlation_id: true
 host: 127.0.0.1
 interrogation_success_type: file_interrogation_success

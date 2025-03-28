@@ -569,6 +569,16 @@ The service requires the following configuration parameters:
   ```
 
 
+- **`file_validations_collection`** *(string)*: The name of the collection used to store FileUploadValidationSuccess events. Default: `"fileValidations"`.
+
+
+  Examples:
+
+  ```json
+  "fileValidations"
+  ```
+
+
 
 ### Usage:
 

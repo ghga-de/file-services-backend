@@ -17,7 +17,6 @@
 
 from hexkit.providers.mongodb.migrations import (
     MigrationDefinition,
-    Reversible,
     validate_doc,
 )
 from hexkit.providers.mongokafka.provider.persistent_pub import PersistentKafkaEvent
@@ -25,21 +24,25 @@ from hexkit.providers.mongokafka.provider.persistent_pub import PersistentKafkaE
 from fis.config import Config
 
 
-class V2Migration(MigrationDefinition, Reversible):
+class V2Migration(MigrationDefinition):
     """Move stored outbox events from the `file-validations` to two new collections:
 
     1. `ingestedFiles`: where each document merely contains the file ID
     2. `fisPersistedEvents`: a collection used for event persistence (replaces outbox)
+
+    This migration is not reversible because it would require writing migrations for
+    most other file services only for the purpose of making them reversible too.
     """
 
     version = 2
 
     async def apply(self):
         """Perform the migration."""
-        file_validations_collection = self._db["file-validations"]
+        config = Config()
+        outbox_collection_name = config.file_validations_collection
+        file_validations_collection = self._db[outbox_collection_name]
         ingested_files_collection = self._db["ingestedFiles"]
         persisted_events_collection = self._db["fisPersistedEvents"]
-        config = Config()
 
         topic = config.file_interrogations_topic
         type_ = config.interrogation_success_type
@@ -47,6 +50,7 @@ class V2Migration(MigrationDefinition, Reversible):
         # Get the file ID and metadata from the outbox events
         async for doc in file_validations_collection.find():
             file_id = doc.pop("_id")
+            doc["file_id"] = file_id
             outbox_metadata = doc.pop("__metadata__", {})
             persistent_event = {
                 "_id": f"{topic}:{file_id}",
@@ -56,12 +60,14 @@ class V2Migration(MigrationDefinition, Reversible):
                 "key": file_id,
                 "headers": {},
                 "correlation_id": outbox_metadata.get("correlation_id"),
-                "created": doc["upload_date"],
+                "created": doc["upload_date"].replace("+00:00", "Z"),
                 "published": outbox_metadata.get("published"),
             }
 
             # Validate the persistent event
-            validate_doc(persistent_event, model=PersistentKafkaEvent, id_field="id")
+            validate_doc(
+                {**persistent_event}, model=PersistentKafkaEvent, id_field="id"
+            )
 
             # Insert records into the v2 collections
             await ingested_files_collection.insert_one({"_id": file_id})
@@ -69,29 +75,3 @@ class V2Migration(MigrationDefinition, Reversible):
 
         # Drop the old outbox events collection
         await file_validations_collection.drop()
-
-    async def unapply(self):
-        """Unapply the migration"""
-        ingested_files_collection = self._db["ingestedFiles"]
-        persisted_events_collection = self._db["fisPersistedEvents"]
-
-        # Get old collection name from config
-        config = Config()
-        collection_name = getattr(config, "file_validations_collection")  # noqa: B009
-        file_validations_collection = self._db[collection_name]
-
-        # Convert persisted events back into the outbox event format with __metadata__
-        async for doc in persisted_events_collection.find():
-            file_id = doc.pop("_id")
-            doc_to_insert = doc.pop("payload")
-            doc_to_insert["_id"] = file_id
-            doc_to_insert["__metadata__"] = {
-                "deleted": False,
-                "published": doc.pop("published"),
-                "correlation_id": doc.pop("correlation_id"),
-            }
-            await file_validations_collection.insert_one(doc_to_insert)
-
-        # Drop both v2 collections
-        await ingested_files_collection.drop()
-        await persisted_events_collection.drop()
