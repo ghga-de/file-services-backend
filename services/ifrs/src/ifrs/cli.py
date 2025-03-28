@@ -15,13 +15,28 @@
 
 """Entrypoint of the package"""
 
-from ifrs.cli import cli
+import asyncio
+from typing import Annotated
+
+import typer
+
+from ifrs.main import consume_events, publish_events
+
+cli = typer.Typer()
 
 
-def run():
-    """Run the service"""
-    cli()
+@cli.command(name="consume-events")
+def sync_consume_events(run_forever: bool = True):
+    """Run an event consumer listening to the specified topic."""
+    asyncio.run(consume_events(run_forever=run_forever))
 
 
-if __name__ == "__main__":
-    run()
+@cli.command(name="publish-events")
+def sync_run_publish_events(
+    all: Annotated[
+        bool,
+        typer.Option(help="Set to (re)publish all events regardless of status"),
+    ] = False,
+):
+    """Publish pending events."""
+    asyncio.run(publish_events(all=all))

@@ -18,7 +18,7 @@
 from hexkit.log import configure_logging
 
 from ifrs.config import Config
-from ifrs.inject import prepare_event_subscriber
+from ifrs.inject import get_persistent_publisher, prepare_event_subscriber
 
 
 async def consume_events(run_forever: bool = True):
@@ -28,3 +28,15 @@ async def consume_events(run_forever: bool = True):
 
     async with prepare_event_subscriber(config=config) as event_subscriber:
         await event_subscriber.run(forever=run_forever)
+
+
+async def publish_events(*, all: bool = False):
+    """Publish pending events. Set `--all` to (re)publish all events regardless of status."""
+    config = Config()
+    configure_logging(config=config)
+
+    async with get_persistent_publisher(config=config) as persistent_publisher:
+        if all:
+            await persistent_publisher.republish()
+        else:
+            await persistent_publisher.publish_pending()

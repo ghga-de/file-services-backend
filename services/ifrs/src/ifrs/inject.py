@@ -33,12 +33,11 @@ from ifrs.ports.inbound.file_registry import FileRegistryPort
 
 
 @asynccontextmanager
-async def prepare_core(*, config: Config) -> AsyncGenerator[FileRegistryPort, None]:
-    """Constructs and initializes all core components and their outbound dependencies."""
-    dao_factory = MongoDbDaoFactory(config=config)
-    object_storages = S3ObjectStorages(config=config)
-    file_metadata_dao = await dao.get_file_metadata_dao(dao_factory=dao_factory)
-
+async def get_persistent_publisher(
+    config: Config, dao_factory: MongoDbDaoFactory | None = None
+) -> AsyncGenerator[PersistentKafkaPublisher, None]:
+    """Construct and return a PersistentKafkaPublisher."""
+    dao_factory = dao_factory or MongoDbDaoFactory(config=config)
     async with PersistentKafkaPublisher.construct(
         config=config,
         dao_factory=dao_factory,
@@ -48,6 +47,19 @@ async def prepare_core(*, config: Config) -> AsyncGenerator[FileRegistryPort, No
         },
         topics_not_stored={config.file_staged_topic},
         collection_name="ifrsPersistedEvents",
+    ) as persistent_publisher:
+        yield persistent_publisher
+
+
+@asynccontextmanager
+async def prepare_core(*, config: Config) -> AsyncGenerator[FileRegistryPort, None]:
+    """Constructs and initializes all core components and their outbound dependencies."""
+    dao_factory = MongoDbDaoFactory(config=config)
+    object_storages = S3ObjectStorages(config=config)
+    file_metadata_dao = await dao.get_file_metadata_dao(dao_factory=dao_factory)
+
+    async with get_persistent_publisher(
+        config=config, dao_factory=dao_factory
     ) as persistent_kafka_publisher:
         event_publisher = EventPubTranslator(
             config=config, provider=persistent_kafka_publisher
