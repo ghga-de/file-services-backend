@@ -56,13 +56,13 @@ The service requires the following configuration parameters:
   ```
 
 
-- **`file_upload_received_collection`** *(string, required)*: The name of the collection used to store FileUploadReceived events. The value should use hyphens in place of underscores if needed.
+- **`file_upload_received_type`** *(string, required)*: The name of the type used for FileUploadReceived events.
 
 
   Examples:
 
   ```json
-  "fileUploads"
+  "file_upload_received"
   ```
 
 
@@ -93,6 +93,16 @@ The service requires the following configuration parameters:
 
   ```json
   "file-deletion-requests"
+  ```
+
+
+- **`file_deletion_request_type`** *(string, required)*: The type used for events indicating that a request to delete a file has been received.
+
+
+  Examples:
+
+  ```json
+  "file_deletion_requested"
   ```
 
 
@@ -220,7 +230,7 @@ The service requires the following configuration parameters:
 
 - **`kafka_ssl_keyfile`** *(string)*: Optional filename containing the client private key. Default: `""`.
 
-- **`kafka_ssl_password`** *(string, format: password)*: Optional password to be used for the client private key. Default: `""`.
+- **`kafka_ssl_password`** *(string, format: password, write-only)*: Optional password to be used for the client private key. Default: `""`.
 
 - **`generate_correlation_id`** *(boolean)*: A flag, which, if False, will result in an error when inbound requests don't possess a correlation ID. If True, requests without a correlation ID will be assigned a newly generated ID in the correlation ID middleware function. Default: `true`.
 
@@ -341,7 +351,7 @@ The service requires the following configuration parameters:
 
   - **Additional properties**: Refer to *[#/$defs/S3ObjectStorageNodeConfig](#%24defs/S3ObjectStorageNodeConfig)*.
 
-- **`mongo_dsn`** *(string, format: multi-host-uri, required)*: MongoDB connection string. Might include credentials. For more information see: https://naiveskill.com/mongodb-connection-string/.
+- **`mongo_dsn`** *(string, format: multi-host-uri, required)*: MongoDB connection string. Might include credentials. For more information see: https://naiveskill.com/mongodb-connection-string/. Length must be at least 1.
 
 
   Examples:
@@ -384,6 +394,67 @@ The service requires the following configuration parameters:
 
   ```json
   null
+  ```
+
+
+- **`db_version_collection`** *(string, required)*: The name of the collection containing DB version information for this service.
+
+
+  Examples:
+
+  ```json
+  "ifrsDbVersions"
+  ```
+
+
+- **`migration_wait_sec`** *(integer, required)*: The number of seconds to wait before checking the DB version again.
+
+
+  Examples:
+
+  ```json
+  5
+  ```
+
+
+  ```json
+  30
+  ```
+
+
+  ```json
+  180
+  ```
+
+
+- **`migration_max_wait_sec`**: The maximum number of seconds to wait for migrations to complete before raising an error. Default: `null`.
+
+  - **Any of**
+
+    - *integer*
+
+    - *null*
+
+
+  Examples:
+
+  ```json
+  null
+  ```
+
+
+  ```json
+  300
+  ```
+
+
+  ```json
+  600
+  ```
+
+
+  ```json
+  3600
   ```
 
 
@@ -521,7 +592,7 @@ to talk to an S3 service in the backend.<br>  Args:
     ```
 
 
-  - **`s3_secret_access_key`** *(string, format: password, required)*: Part of credentials for login into the S3 service. See: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html.
+  - **`s3_secret_access_key`** *(string, format: password, required, write-only)*: Part of credentials for login into the S3 service. See: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html.
 
 
     Examples:

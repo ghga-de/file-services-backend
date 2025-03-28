@@ -17,6 +17,10 @@
 
 from typing import Protocol
 
+from ghga_service_commons.utils.utc_dates import UTCDatetime
+
+from ucs.core import models
+
 
 class EventPublisherPort(Protocol):
     """An interface for an adapter that publishes events happening to this service."""
@@ -24,3 +28,15 @@ class EventPublisherPort(Protocol):
     async def publish_deletion_successful(self, *, file_id: str) -> None:
         """Publish event informing that deletion of data and metadata for the given file ID has succeeded."""
         ...
+
+    async def publish_upload_received(  # noqa: PLR0913
+        self,
+        *,
+        file_metadata: models.FileMetadata,
+        upload_date: UTCDatetime,
+        submitter_public_key: str,
+        object_id: str,
+        bucket_id: str,
+        storage_alias: str,
+    ) -> None:
+        """Publish an outbox event relaying that a new file upload was received."""
