@@ -32,7 +32,7 @@ file_internally_registered_topic: internal-file-registry
 file_internally_registered_type: file_registered
 file_registered_for_download_topic: file-downloads
 file_registered_for_download_type: file_registered
-files_to_stage_topic: file-downloads
+files_to_stage_topic: staging-requests
 files_to_stage_type: file_staging_requested
 generate_correlation_id: true
 host: 127.0.0.1

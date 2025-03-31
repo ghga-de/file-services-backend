@@ -47,7 +47,12 @@ async def get_persistent_publisher(
     async with PersistentKafkaPublisher.construct(
         config=config,
         dao_factory=dao_factory,
-        compacted_topics={config.file_deleted_topic},
+        compacted_topics={
+            config.file_deleted_topic,
+            config.download_served_topic,
+            config.file_registered_for_download_topic,
+        },
+        topics_not_stored={config.files_to_stage_topic},
         collection_name="dcsPersistedEvents",
     ) as persistent_publisher:
         yield persistent_publisher
