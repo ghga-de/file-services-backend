@@ -56,11 +56,10 @@ async def test_v2_migration(mongodb: MongoDbFixture):
 
     # Make test data (outbox events)
     events = [make_test_event(file_id=f"event{i}") for i in range(3)]
-    outbox_events = []
     outbox_name = config.file_validations_collection
     outbox_collection = db[outbox_name]
     for event in events:
-        outbox_events.append(
+        outbox_collection.insert_one(
             {
                 **event.model_dump(exclude={"file_id"}),
                 "_id": event.file_id,
@@ -71,7 +70,6 @@ async def test_v2_migration(mongodb: MongoDbFixture):
                 },
             }
         )
-        outbox_collection.insert_one(outbox_events[-1])
 
     # Run the migration
     await run_db_migrations(config=config, target_version=2)
@@ -88,4 +86,7 @@ async def test_v2_migration(mongodb: MongoDbFixture):
         assert not doc["published"]
         assert doc["_id"] == f"{config.file_interrogations_topic}:{doc['key']}"
         assert doc["payload"]["file_id"] == doc["key"]
+
+        index = int(doc["key"][-1])
+        assert doc["payload"] == events[index].model_dump()
     assert outbox_name not in db.list_collection_names()
