@@ -66,7 +66,7 @@ class EventPubTranslator(EventPublisherPort):
         bucket_id: str,
         storage_alias: str,
     ) -> None:
-        """Publish an outbox event relaying that a new file upload was received."""
+        """Publish an event relaying that a new file upload was received."""
         event_payload = event_schemas.FileUploadReceived(
             s3_endpoint_alias=storage_alias,
             file_id=file_metadata.file_id,

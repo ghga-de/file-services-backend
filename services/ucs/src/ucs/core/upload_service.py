@@ -466,7 +466,7 @@ class UploadService(UploadServicePort):
         await self._daos.upload_attempts.update(updated_upload)
         log.info("Marked upload '%s' as completed.", upload_id)
 
-        # publish an outbox event relaying that a new upload was received:
+        # publish an event relaying that a new upload was received:
         file = await self._daos.file_metadata.get_by_id(upload.file_id)
         await self._event_publisher.publish_upload_received(
             file_metadata=file,

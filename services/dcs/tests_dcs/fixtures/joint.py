@@ -144,7 +144,7 @@ async def joint_fixture(
     # create storage entities:
     await s3.populate_buckets(buckets=[bucket_id])
 
-    # prepare everything except the outbox subscriber
+    # prepare everything
     async with (
         prepare_core(config=config) as data_repository,
         prepare_rest_app(config=config, data_repo_override=data_repository) as app,

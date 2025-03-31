@@ -299,7 +299,7 @@ async def test_event_subscriber_routing(
         key=TEST_FILE_ID,
     )
 
-    await joint_fixture.outbox_subscriber.run(forever=False)
+    await joint_fixture.event_subscriber.run(forever=False)
     mock.assert_awaited_once()
 
 

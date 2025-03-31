@@ -30,7 +30,7 @@ from ghga_service_commons.utils.multinode_storage import (
     S3ObjectStorageNodeConfig,
     S3ObjectStoragesConfig,
 )
-from hexkit.providers.akafka.provider import KafkaOutboxSubscriber
+from hexkit.providers.akafka import KafkaEventSubscriber
 from hexkit.providers.akafka.testutils import KafkaFixture
 from hexkit.providers.mongodb import MongoDbDaoFactory
 from hexkit.providers.mongodb.testutils import MongoDbFixture
@@ -67,10 +67,10 @@ class JointFixture:
     file_metadata_dao: FileMetadataDaoPort
     file_registry: FileRegistryPort
     kafka: KafkaFixture
-    outbox_subscriber: KafkaOutboxSubscriber
     outbox_bucket: str
     staging_bucket: str
     storage_aliases: StorageAliases
+    event_subscriber: KafkaEventSubscriber
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -102,7 +102,7 @@ async def joint_fixture(
         async with prepare_event_subscriber(
             config=config,
             core_override=file_registry,
-        ) as outbox_subscriber:
+        ) as event_subscriber:
             yield JointFixture(
                 config=config,
                 mongodb=mongodb,
@@ -110,7 +110,7 @@ async def joint_fixture(
                 file_metadata_dao=file_metadata_dao,
                 file_registry=file_registry,
                 kafka=kafka,
-                outbox_subscriber=outbox_subscriber,
+                event_subscriber=event_subscriber,
                 outbox_bucket=OUTBOX_BUCKET,
                 staging_bucket=STAGING_BUCKET,
                 storage_aliases=storage_aliases,

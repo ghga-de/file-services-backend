@@ -39,4 +39,4 @@ class EventPublisherPort(Protocol):
         bucket_id: str,
         storage_alias: str,
     ) -> None:
-        """Publish an outbox event relaying that a new file upload was received."""
+        """Publish an event relaying that a new file upload was received."""
