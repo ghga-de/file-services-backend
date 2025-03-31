@@ -20,6 +20,7 @@ from hexkit.log import configure_logging
 
 from dcs.config import Config
 from dcs.inject import (
+    get_persistent_publisher,
     prepare_event_subscriber,
     prepare_outbox_cleaner,
     prepare_rest_app,
@@ -57,9 +58,9 @@ async def publish_events(*, all: bool = False):
     """Publish pending events. Set `--all` to (re)publish all events regardless of status."""
     config = Config()
     configure_logging(config=config)
-    # TODO: Implement this
-    # async with get(config=config) as dao:
-    #     if all:
-    #         await dao.republish()
-    #     else:
-    #         await dao.publish_pending()
+
+    async with get_persistent_publisher(config=config) as persistent_publisher:
+        if all:
+            await persistent_publisher.republish()
+        else:
+            await persistent_publisher.publish_pending()
