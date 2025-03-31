@@ -14,8 +14,10 @@ object_storages:
 file_internally_registered_topic: internal-file-registry
 file_internally_registered_type: file_registered
 file_interrogations_topic: file-interrogations
-interrogation_failure_type: file_validation_failed
+interrogation_success_type: file_interrogation_success
+interrogation_failure_type: file_interrogation_failure
 file_upload_received_topic: uploads
+file_upload_received_type: file_upload_received
 
 object_stale_after_minutes: 1440
 

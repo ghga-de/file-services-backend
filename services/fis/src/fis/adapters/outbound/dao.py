@@ -1,4 +1,4 @@
-# Copyright 2021 - 2024 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
+# Copyright 2021 - 2025 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,23 +12,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Temporary database migration logic, copied from IFRS until added to hexkit"""
+"""DAO translators for accessing the database."""
 
-from ._manager import (
-    MigrationConfig,
-    MigrationManager,
-    MigrationMap,
-    MigrationStepError,
-)
-from ._utils import Document, MigrationDefinition, Reversible, validate_doc
+from hexkit.protocols.dao import DaoFactoryProtocol
 
-__all__ = [
-    "Document",
-    "MigrationConfig",
-    "MigrationDefinition",
-    "MigrationManager",
-    "MigrationMap",
-    "MigrationStepError",
-    "Reversible",
-    "validate_doc",
-]
+from fis.core.models import FileIdModel
+from fis.ports.outbound.dao import FileDao
+
+
+async def get_file_dao(*, dao_factory: DaoFactoryProtocol) -> FileDao:
+    """Setup the DAOs using the specified provider of the DaoFactoryProtocol."""
+    return await dao_factory.get_dao(
+        name="ingestedFiles",
+        dto_model=FileIdModel,
+        id_field="file_id",
+    )

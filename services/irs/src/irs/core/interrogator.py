@@ -1,4 +1,4 @@
-# Copyright 2021 - 2024 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
+# Copyright 2021 - 2025 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,7 +19,6 @@ import uuid
 from logging import getLogger
 
 from crypt4gh.lib import CryptoError
-from ghga_event_schemas import pydantic_ as event_schemas
 from ghga_service_commons.utils.multinode_storage import S3ObjectStorages
 from hexkit.protocols.dao import ResourceNotFoundError
 from hexkit.utils import calc_part_size
@@ -37,7 +36,6 @@ from irs.core.segment_processor import CipherSegmentProcessor
 from irs.core.staging_handler import StagingHandler, StorageIds
 from irs.ports.inbound.interrogator import InterrogatorPort
 from irs.ports.outbound.dao import FingerprintDaoPort, StagingObjectDaoPort
-from irs.ports.outbound.daopub import FileUploadValidationSuccessDao
 from irs.ports.outbound.event_pub import EventPublisherPort
 
 log = getLogger(__name__)
@@ -50,14 +48,12 @@ class Interrogator(InterrogatorPort):
         self,
         *,
         event_publisher: EventPublisherPort,
-        file_validation_success_dao: FileUploadValidationSuccessDao,
         fingerprint_dao: FingerprintDaoPort,
         staging_object_dao: StagingObjectDaoPort,
         object_storages: S3ObjectStorages,
     ):
         """Initialize class instance with configs and outbound adapter objects."""
         self._event_publisher = event_publisher
-        self._file_validation_success_dao = file_validation_success_dao
         self._fingerprint_dao = fingerprint_dao
         self._staging_object_dao = staging_object_dao
         self._object_storages = object_storages
@@ -134,30 +130,6 @@ class Interrogator(InterrogatorPort):
 
         return ProcessingResult(offset=offset, secret_id=secret_id, checksums=checksums)
 
-    async def _publish_validation_success(
-        self,
-        *,
-        processing_result: ProcessingResult,
-        staging_handler: StagingHandler,
-        subject: InterrogationSubject,
-    ) -> None:
-        """Publish event informing that a validation was successful."""
-        file_upload_validation_success = event_schemas.FileUploadValidationSuccess(
-            s3_endpoint_alias=subject.storage_alias,
-            file_id=subject.file_id,
-            object_id=staging_handler.staging.object_id,
-            bucket_id=staging_handler.staging.bucket_id,
-            upload_date=subject.upload_date,
-            decrypted_size=subject.decrypted_size,
-            decryption_secret_id=processing_result.secret_id,
-            content_offset=processing_result.offset,
-            encrypted_part_size=staging_handler.part_size,
-            encrypted_parts_md5=processing_result.checksums.part_checksums_md5,
-            encrypted_parts_sha256=processing_result.checksums.part_checksums_sha256,
-            decrypted_sha256=processing_result.checksums.content_checksum_sha256,
-        )
-        await self._file_validation_success_dao.upsert(file_upload_validation_success)
-
     async def interrogate(self, *, subject: InterrogationSubject) -> None:
         """
         Forwards first file part to encryption key store, retrieves file encryption
@@ -228,7 +200,7 @@ class Interrogator(InterrogatorPort):
                 storage_alias=subject.storage_alias,
             )
             await self._staging_object_dao.insert(dto=staging_object)
-            await self._publish_validation_success(
+            await self._event_publisher.publish_validation_success(
                 processing_result=processing_result,
                 staging_handler=staging_handler,
                 subject=subject,

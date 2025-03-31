@@ -1,4 +1,4 @@
-# Copyright 2021 - 2024 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
+# Copyright 2021 - 2025 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,23 +12,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Temporary database migration logic, some of which will move to a library"""
+"""Define a DAO port for a DAO that stores/queries file IDs"""
 
-from ._manager import (
-    MigrationConfig,
-    MigrationManager,
-    MigrationMap,
-    MigrationStepError,
+from hexkit.protocols.dao import (  # noqa: F401
+    Dao,
+    ResourceAlreadyExistsError,
+    ResourceNotFoundError,
 )
-from ._utils import Document, MigrationDefinition, Reversible, validate_doc
 
-__all__ = [
-    "Document",
-    "MigrationConfig",
-    "MigrationDefinition",
-    "MigrationManager",
-    "MigrationMap",
-    "MigrationStepError",
-    "Reversible",
-    "validate_doc",
-]
+from fis.core.models import FileIdModel
+
+# port described by a type alias:
+FileDao = Dao[FileIdModel]

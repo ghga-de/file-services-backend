@@ -1,4 +1,4 @@
-# Copyright 2021 - 2024 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
+# Copyright 2021 - 2025 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,11 +21,7 @@ from hexkit.log import LoggingConfig
 from hexkit.providers.mongokafka import MongoKafkaConfig
 from pydantic import Field
 
-from irs.adapters.inbound.event_sub import (
-    EventSubTranslatorConfig,
-    OutboxSubTranslatorConfig,
-)
-from irs.adapters.outbound.daopub import OutboxDaoConfig
+from irs.adapters.inbound.event_sub import EventSubTranslatorConfig
 from irs.adapters.outbound.event_pub import EventPubTanslatorConfig
 from irs.core.storage_inspector import StorageInspectorConfig
 
@@ -35,10 +31,8 @@ SERVICE_NAME: str = "irs"
 @config_from_yaml(prefix=SERVICE_NAME)
 class Config(
     MongoKafkaConfig,
-    OutboxDaoConfig,
     S3ObjectStoragesConfig,
     EventSubTranslatorConfig,
-    OutboxSubTranslatorConfig,
     EventPubTanslatorConfig,
     LoggingConfig,
     StorageInspectorConfig,

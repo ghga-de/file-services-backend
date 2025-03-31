@@ -1,4 +1,4 @@
-# Copyright 2021 - 2024 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
+# Copyright 2021 - 2025 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,8 +40,6 @@ EKSS_NEW_SECRET = os.urandom(32)
 
 pytestmark = pytest.mark.asyncio()
 
-CHANGED_EVENT_TYPE = "upserted"
-
 
 def _incoming_event_file_registered(
     payload: dict[str, object], config: Config
@@ -58,7 +56,7 @@ def _incoming_event_upload_received(
     payload: dict[str, object], config: Config
 ) -> Mapping[str, object]:
     """Emulate incoming upload received event"""
-    type_ = CHANGED_EVENT_TYPE
+    type_ = config.file_upload_received_type
     key = payload["file_id"]
     topic = config.file_upload_received_topic
     event = {"payload": payload, "type_": type_, "key": key, "topic": topic}
@@ -227,7 +225,7 @@ async def test_success_event(monkeypatch, joint_fixture: JointFixture):
     }
     expected_event_out = ExpectedEvent(
         payload=payload_out,
-        type_="upserted",
+        type_=joint_fixture.config.interrogation_success_type,
         key=data.file_id,
     )
 

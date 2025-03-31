@@ -1,4 +1,4 @@
-# Copyright 2021 - 2024 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
+# Copyright 2021 - 2025 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,7 +31,7 @@ async def test_event_subscriber_dlq(joint_fixture: JointFixture):
     # Publish an event with a bogus payload to a topic/type this service expects
     await joint_fixture.kafka.publish_event(
         payload={"some_key": "some_value"},
-        type_="upserted",
+        type_=config.file_upload_received_type,
         topic=config.file_upload_received_topic,
         key="test",
     )
@@ -48,15 +48,10 @@ async def test_event_subscriber_dlq(joint_fixture: JointFixture):
 
 
 async def test_consume_from_retry(joint_fixture: JointFixture):
-    """Verify that this service will correctly get events from the retry topic.
-
-    This involves publishing both outbox and non-outbox events to the retry
-    topic to ensure they are consumed without issue.
-    """
+    """Verify that this service will correctly get events from the retry topic."""
     config = joint_fixture.config
     assert config.kafka_enable_dlq
 
-    outbox_payload = event_schemas.FileDeletionRequested(file_id="123")
     event_payload = event_schemas.FileInternallyRegistered(
         bucket_id="test",
         upload_date="2025-02-25T16:15:28.148287+00:00",
@@ -73,16 +68,7 @@ async def test_consume_from_retry(joint_fixture: JointFixture):
         decryption_secret_id="some-secret",
     )
 
-    # Publish the outbox event
-    await joint_fixture.kafka.publish_event(
-        payload=outbox_payload.model_dump(),
-        type_="upserted",
-        topic=config.service_name + "-retry",
-        key="test",
-        headers={"original_topic": config.file_upload_received_topic},
-    )
-
-    # Publish the non-outbox event
+    # Publish the event
     await joint_fixture.kafka.publish_event(
         payload=event_payload.model_dump(),
         type_=config.file_internally_registered_type,
@@ -92,5 +78,4 @@ async def test_consume_from_retry(joint_fixture: JointFixture):
     )
 
     # Consume the events (successful if it doesn't hang)
-    await joint_fixture.event_subscriber.run(forever=False)
     await joint_fixture.event_subscriber.run(forever=False)

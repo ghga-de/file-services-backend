@@ -1,4 +1,4 @@
-# Copyright 2021 - 2024 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
+# Copyright 2021 - 2025 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,7 +17,7 @@
 
 from abc import ABC, abstractmethod
 
-from irs.core.models import InterrogationSubject
+from irs.core.models import InterrogationSubject, ProcessingResult
 from irs.core.staging_handler import StagingHandler
 
 
@@ -33,4 +33,15 @@ class EventPublisherPort(ABC):
         cause: str = "Checksum mismatch",
     ) -> None:
         """Publish event informing that a validation was not successful."""
+        ...
+
+    @abstractmethod
+    async def publish_validation_success(
+        self,
+        *,
+        processing_result: ProcessingResult,
+        staging_handler: StagingHandler,
+        subject: InterrogationSubject,
+    ) -> None:
+        """Publish event informing that a file validation was successful."""
         ...
