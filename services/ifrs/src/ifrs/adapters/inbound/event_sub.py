@@ -123,3 +123,5 @@ class EventSubTranslator(EventSubscriberProtocol):
             and type_ == self._config.interrogation_success_type
         ):
             await self._consume_file_interrogation_success(payload=payload)
+        else:
+            raise RuntimeError(f"Unexpected event of type: {type_}")
