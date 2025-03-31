@@ -74,26 +74,6 @@ dcs --help
 ### Parameters
 
 The service requires the following configuration parameters:
-- **`file_deletion_request_topic`** *(string, required)*: The name of the topic to receive events informing about files to delete.
-
-
-  Examples:
-
-  ```json
-  "file-deletion-requests"
-  ```
-
-
-- **`file_deletion_request_type`** *(string, required)*: The type used for events indicating that a request to delete a file has been received.
-
-
-  Examples:
-
-  ```json
-  "file_deletion_requested"
-  ```
-
-
 - **`log_level`** *(string)*: The minimum log level to capture. Must be one of: `["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "TRACE"]`. Default: `"INFO"`.
 
 - **`service_name`** *(string)*: Default: `"dcs"`.
@@ -134,6 +114,26 @@ The service requires the following configuration parameters:
 - **`object_storages`** *(object, required)*: Can contain additional properties.
 
   - **Additional properties**: Refer to *[#/$defs/S3ObjectStorageNodeConfig](#%24defs/S3ObjectStorageNodeConfig)*.
+
+- **`file_deletion_request_topic`** *(string, required)*: The name of the topic to receive events informing about files to delete.
+
+
+  Examples:
+
+  ```json
+  "file-deletion-requests"
+  ```
+
+
+- **`file_deletion_request_type`** *(string, required)*: The type used for events indicating that a request to delete a file has been received.
+
+
+  Examples:
+
+  ```json
+  "file_deletion_requested"
+  ```
+
 
 - **`file_internally_registered_topic`** *(string, required)*: Name of the topic used for events indicating that a file has been registered for download.
 

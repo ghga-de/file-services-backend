@@ -23,18 +23,11 @@ from fastapi import FastAPI
 from ghga_service_commons.auth.jwt_auth import JWTAuthContextProvider
 from ghga_service_commons.utils.context import asyncnullcontext
 from ghga_service_commons.utils.multinode_storage import S3ObjectStorages
-from hexkit.providers.akafka import (
-    ComboTranslator,
-    KafkaEventPublisher,
-    KafkaEventSubscriber,
-)
+from hexkit.providers.akafka import KafkaEventPublisher, KafkaEventSubscriber
 from hexkit.providers.mongodb import MongoDbDaoFactory
 from hexkit.providers.mongokafka import PersistentKafkaPublisher
 
-from dcs.adapters.inbound.event_sub import (
-    EventSubTranslator,
-    FileDeletionRequestedListener,
-)
+from dcs.adapters.inbound.event_sub import EventSubTranslator
 from dcs.adapters.inbound.fastapi_ import dummies
 from dcs.adapters.inbound.fastapi_.configure import get_configured_app
 from dcs.adapters.outbound.dao import get_drs_dao
@@ -138,19 +131,12 @@ async def prepare_event_subscriber(
             data_repository=data_repository,
             config=config,
         )
-        outbox_sub_translator = FileDeletionRequestedListener(
-            config=config, data_repository=data_repository
-        )
-
-        combo_translator = ComboTranslator(
-            translators=[event_sub_translator, outbox_sub_translator]
-        )
 
         async with (
             KafkaEventPublisher.construct(config=config) as dlq_publisher,
             KafkaEventSubscriber.construct(
                 config=config,
-                translator=combo_translator,
+                translator=event_sub_translator,
                 dlq_publisher=dlq_publisher,
             ) as event_subscriber,
         ):
