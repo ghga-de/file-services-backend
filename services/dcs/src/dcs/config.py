@@ -36,7 +36,7 @@ class WorkOrderTokenConfig(AuthConfig):
 
     auth_check_claims: dict[str, Any] = Field(
         default=dict.fromkeys(
-            "type file_id user_id user_public_crypt4gh_key full_user_name email iat exp".split()
+            "type file_id user_id user_public_crypt4gh_key full_user_name email iat exp".split()  # noqa: SIM905
         ),
         description="A dict of all GHGA internal claims that shall be verified.",
     )
