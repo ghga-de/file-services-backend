@@ -78,9 +78,7 @@ class LegacyUploadMetadataProcessor(LegacyUploadMetadataProcessorPort):
         self._event_publisher = event_publisher
         self._file_dao = file_dao
 
-    @tracer.start_as_current_span(
-        "LegacyUploadMetadataProcessor.decrypt_payload", record_exception=True
-    )
+    @tracer.start_as_current_span("LegacyUploadMetadataProcessor.decrypt_payload")
     async def decrypt_payload(
         self, *, encrypted: models.EncryptedPayload
     ) -> models.LegacyUploadMetadata:
@@ -150,9 +148,7 @@ class UploadMetadataProcessor(UploadMetadataProcessorPort):
         self._vault_adapter = vault_adapter
         self._file_dao = file_dao
 
-    @tracer.start_as_current_span(
-        "UploadMetadataProcessor.decrypt_secret", record_exception=True
-    )
+    @tracer.start_as_current_span("UploadMetadataProcessor.decrypt_secret")
     async def decrypt_secret(self, *, encrypted: models.EncryptedPayload) -> SecretStr:
         """Decrypt file secret payload"""
         try:

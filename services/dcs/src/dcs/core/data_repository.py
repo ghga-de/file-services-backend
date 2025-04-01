@@ -155,6 +155,7 @@ class DataRepository(DataRepositoryPort):
         bucket_id: str,
     ) -> models.DrsObjectWithAccess:
         """Get a DRS Object model with access information."""
+        # custom non-matching span name, describes the important part of the action better
         with tracer.start_as_current_span("DataRepository.get_presigned_url"):
             access_url = await object_storage.get_object_download_url(
                 bucket_id=bucket_id,
