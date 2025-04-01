@@ -41,8 +41,10 @@ EXCLUDE = [
     ".github",
     ".flake8",
     ".gitignore",
+    ".mypy_cache",
     ".mypy.ini",
     ".pylintrc",
+    ".pytest_cache",
     ".ruff.toml",
     ".ruff_cache",
     ".template/.static_files.txt",
@@ -97,7 +99,7 @@ EXCLUDE_ENDINGS = [
 ]
 
 # exclude any files with names that match any of the following regex:
-EXCLUDE_PATTERN = [r".*\.egg-info.*", r".*__cache__.*", r".*_cache", r".*\.git.*"]
+EXCLUDE_PATTERN = [r".*\.egg-info.*", r".*__cache__.*", r".*\.git.*"]
 
 # The License header, "{year}" will be replaced by current year:
 COPYRIGHT_TEMPLATE = """Copyright {year} {author}

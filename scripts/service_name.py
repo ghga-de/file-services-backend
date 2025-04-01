@@ -16,7 +16,7 @@
 
 import tomllib
 
-from stringcase import spinalcase
+from casefy import kebabcase
 
 from script_utils.cli import run
 
@@ -27,7 +27,7 @@ def main(*, service: str):
         if "-" in description:
             description = description.split("-")[0]
         description = description.title().replace(" ", "")
-        print(spinalcase(description))
+        print(kebabcase(description))
 
 
 if __name__ == "__main__":

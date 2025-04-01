@@ -3,7 +3,7 @@ name = "fsb"
 version = "1.0.0"
 description = "File Services Backend - monorepo housing file services"
 dependencies = [
-    "typer >= 0.12",
+    "typer >= 0.15",
     "ghga-service-commons[api, auth, crypt] >= 4.0",
     "ghga-event-schemas >= 5.0",
     "hexkit[akafka, s3, mongodb] >= 4.2.0",
@@ -53,7 +53,8 @@ exclude = [
 ]
 line-length = 88
 src = [
-    "services",
+    "services/**/src",
+    "services/**/tests_*",
     "examples",
     "scripts",
 ]
@@ -67,8 +68,9 @@ fixable = [
     "RUF022",
 ]
 ignore = [
-    "E",
-    "W",
+    "E111",
+    "E114",
+    "E116",
     "PLW",
     "RUF001",
     "RUF010",
@@ -109,7 +111,7 @@ max-complexity = 10
     "SIM",
     "D",
 ]
-"services/*/tests_*" = [
+"services/**/tests_*" = [
     "S",
     "SIM",
     "PLR",
@@ -144,8 +146,9 @@ no_site_packages = false
 explicit_package_bases = true
 
 [tool.pytest.ini_options]
-minversion = "8.0"
+minversion = "8.3"
 asyncio_mode = "strict"
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.coverage.paths]
 source = [

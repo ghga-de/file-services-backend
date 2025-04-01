@@ -137,9 +137,9 @@ jobs:
         with:
           python-version: 3.12
 
-      - name: Install stringcase and typer
-        id: setup-stringcase
-        run: pip install stringcase typer
+      - name: Install casefy and typer
+        id: setup-casefy
+        run: pip install casefy typer
 
       - name: Extract service name for ${{ matrix.service }}
         id: extract-service-name
