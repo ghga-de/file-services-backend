@@ -26,7 +26,8 @@ exclude = [
 ]
 line-length = 88
 src = [
-    "services",
+    "services/**/src",
+    "services/**/tests_*",
     "examples",
     "scripts",
 ]
@@ -40,8 +41,9 @@ fixable = [
     "RUF022", # sort items in __all__
 ]
 ignore = [
-    "E",
-    "W",
+    "E111", # indentation with invalid multiple (for formatter)
+    "E114", # indentation with invalid multiple comment (for formatter)
+    "E116", # over indentation (for formatter)
     "PLW", # pylint warnings
     "RUF001", # ambiguous unicode character strings
     "RUF010", # explicit conversion to string or repr: !s or !r
@@ -76,30 +78,11 @@ select = [
 max-complexity = 10
 
 [tool.ruff.lint.per-file-ignores]
-"scripts/*" = [
-    "PL",
-    "S",
-    "SIM",
-    "D",
-]
-"services/*/tests_*" = [
-    "S",
-    "SIM",
-    "PLR",
-    "B011",
-]
-".devcontainer/*" = [
-    "S",
-    "SIM",
-    "D",
-]
-"examples/*" = [
-    "S",
-    "D",
-]
-"__init__.py" = [
-    "D",
-]
+"scripts/*" = ["PL", "S", "SIM", "D"]
+"services/**/tests_*" = ["S", "SIM", "PLR", "B011"]
+".devcontainer/*" = ["S", "SIM", "D"]
+"examples/*" = ["S","D"]
+"__init__.py" = ["D"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "pep257"
@@ -117,8 +100,9 @@ no_site_packages = false
 explicit_package_bases = true
 
 [tool.pytest.ini_options]
-minversion = "8.0"
+minversion = "8.3"
 asyncio_mode = "strict"
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.coverage.paths]
 source = [

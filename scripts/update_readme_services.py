@@ -23,8 +23,8 @@ from pathlib import Path
 from string import Template
 
 import jsonschema2md
+from casefy import kebabcase, titlecase
 from pydantic import BaseModel, Field
-from stringcase import spinalcase, titlecase
 
 from script_utils.cli import echo_failure, echo_success, run
 from script_utils.utils import list_service_dirs
@@ -51,7 +51,7 @@ class PackageHeader(BaseModel):
 class PackageName(BaseModel):
     """The name of a package and it's different representations."""
 
-    name: str = Field(..., description="The full name of the package in spinal case.")
+    name: str = Field(..., description="The full name of the package in kebab case.")
     title: str = Field(..., description="The name of the package formatted as title.")
 
 
@@ -106,7 +106,7 @@ class ServiceDetails:
         if "-" in service_name:
             service_name, summary = service_name.split("-", 1)
             header.summary = summary.strip()
-        service_name = spinalcase(service_name.strip().replace(" ", ""))
+        service_name = kebabcase(service_name.strip().replace(" ", ""))
         title = titlecase(service_name)
         name = PackageName(name=service_name, title=title)
 

@@ -54,7 +54,7 @@ runs:
     - name: Prepare Dockerfile
       id: prepare-dockerfile
       shell: bash
-      run: cp Dockerfile services/${{ inputs.service }}/ && sed -i "s/\(ENTRYPOINT \)\[\]/\1[\"${{ inputs.service }}\"]/" services/${{ inputs.service }}/Dockerfile
+      run: cp Dockerfile services/${{ inputs.service }}/ && sed -i "s/\(ENTRYPOINT \)\[\]/\1[\"opentelemetry-instrument\", \"${{ inputs.service }}\"]/" services/${{ inputs.service }}/Dockerfile
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v3

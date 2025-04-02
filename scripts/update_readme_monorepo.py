@@ -23,8 +23,8 @@ import tomllib
 from pathlib import Path
 from string import Template
 
+from casefy import kebabcase, titlecase
 from pydantic import BaseModel, Field
-from stringcase import spinalcase, titlecase
 
 from script_utils.cli import echo_failure, echo_success, run
 from script_utils.utils import list_service_dirs
@@ -108,7 +108,7 @@ def read_package_name() -> PackageName:
         raise RuntimeError("The name of the git origin could not be resolved.")
     git_origin_name = stdout.decode("utf-8").strip()
 
-    repo_name = spinalcase(git_origin_name)
+    repo_name = kebabcase(git_origin_name)
     name = (
         "my-microservice"
         if repo_name == "microservice-repository-template"
