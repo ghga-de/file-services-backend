@@ -22,5 +22,3 @@ file_upload_received_type: file_uploaded
 service_instance_id: "001"
 kafka_servers: ["kafka:9092"]
 kafka_enable_dlq: True
-migration_wait_sec: 10
-db_version_collection: ucsDbVersions

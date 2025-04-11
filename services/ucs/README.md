@@ -15,13 +15,13 @@ We recommend using the provided Docker container.
 
 A pre-built version is available at [docker hub](https://hub.docker.com/repository/docker/ghga/upload-controller-service):
 ```bash
-docker pull ghga/upload-controller-service:5.0.0
+docker pull ghga/upload-controller-service:5.0.1
 ```
 
 Or you can build the container yourself from the [`./Dockerfile`](./Dockerfile):
 ```bash
 # Execute in the repo's root dir:
-docker build -t ghga/upload-controller-service:5.0.0 .
+docker build -t ghga/upload-controller-service:5.0.1 .
 ```
 
 For production-ready deployment, we recommend using Kubernetes, however,
@@ -29,7 +29,7 @@ for simple use cases, you could execute the service using docker
 on a single server:
 ```bash
 # The entrypoint is preconfigured:
-docker run -p 8080:8080 ghga/upload-controller-service:5.0.0 --help
+docker run -p 8080:8080 ghga/upload-controller-service:5.0.1 --help
 ```
 
 If you prefer not to use containers, you may install the service from source:
@@ -394,67 +394,6 @@ The service requires the following configuration parameters:
 
   ```json
   null
-  ```
-
-
-- <a id="properties/db_version_collection"></a>**`db_version_collection`** *(string, required)*: The name of the collection containing DB version information for this service.
-
-
-  Examples:
-
-  ```json
-  "ifrsDbVersions"
-  ```
-
-
-- <a id="properties/migration_wait_sec"></a>**`migration_wait_sec`** *(integer, required)*: The number of seconds to wait before checking the DB version again.
-
-
-  Examples:
-
-  ```json
-  5
-  ```
-
-
-  ```json
-  30
-  ```
-
-
-  ```json
-  180
-  ```
-
-
-- <a id="properties/migration_max_wait_sec"></a>**`migration_max_wait_sec`**: The maximum number of seconds to wait for migrations to complete before raising an error. Default: `null`.
-
-  - **Any of**
-
-    - <a id="properties/migration_max_wait_sec/anyOf/0"></a>*integer*
-
-    - <a id="properties/migration_max_wait_sec/anyOf/1"></a>*null*
-
-
-  Examples:
-
-  ```json
-  null
-  ```
-
-
-  ```json
-  300
-  ```
-
-
-  ```json
-  600
-  ```
-
-
-  ```json
-  3600
   ```
 
 

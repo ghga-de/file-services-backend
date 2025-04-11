@@ -5,7 +5,6 @@ cors_allowed_headers: null
 cors_allowed_methods: null
 cors_allowed_origins: null
 db_name: dev
-db_version_collection: ucsDbVersions
 docs_url: /docs
 file_deleted_topic: file-downloads
 file_deleted_type: file_deleted
@@ -36,8 +35,6 @@ kafka_ssl_password: ''
 log_format: null
 log_level: INFO
 log_traceback: true
-migration_max_wait_sec: null
-migration_wait_sec: 10
 mongo_dsn: '**********'
 mongo_timeout: null
 object_storages:
