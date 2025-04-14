@@ -112,7 +112,7 @@
       "type": "string"
     },
     "service_name": {
-      "default": "internal_file_registry",
+      "default": "ifrs",
       "title": "Service Name",
       "type": "string"
     },

@@ -126,7 +126,7 @@ The service requires the following configuration parameters:
 
 - <a id="properties/log_level"></a>**`log_level`** *(string)*: The minimum log level to capture. Must be one of: `["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "TRACE"]`. Default: `"INFO"`.
 
-- <a id="properties/service_name"></a>**`service_name`** *(string)*: Default: `"encryption_key_store"`.
+- <a id="properties/service_name"></a>**`service_name`** *(string)*: Default: `"ekss"`.
 
 - <a id="properties/service_instance_id"></a>**`service_instance_id`** *(string, required)*: A string that uniquely identifies this instance across all instances of this service. This is included in log messages.
 
