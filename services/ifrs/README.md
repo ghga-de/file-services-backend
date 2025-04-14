@@ -69,7 +69,7 @@ ifrs --help
 The service requires the following configuration parameters:
 - <a id="properties/log_level"></a>**`log_level`** *(string)*: The minimum log level to capture. Must be one of: `["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "TRACE"]`. Default: `"INFO"`.
 
-- <a id="properties/service_name"></a>**`service_name`** *(string)*: Default: `"internal_file_registry"`.
+- <a id="properties/service_name"></a>**`service_name`** *(string)*: Default: `"ifrs"`.
 
 - <a id="properties/service_instance_id"></a>**`service_instance_id`** *(string, required)*: A string that uniquely identifies this instance across all instances of this service. A globally unique Kafka client ID will be created by concatenating the service_name and the service_instance_id.
 

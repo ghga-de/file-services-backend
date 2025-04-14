@@ -114,11 +114,14 @@ class Crypt4GHConfig(BaseSettings):
     )
 
 
-@config_from_yaml(prefix="ekss")
+SERVICE_NAME = "ekss"
+
+
+@config_from_yaml(prefix=SERVICE_NAME)
 class Config(ApiConfigBase, VaultConfig, LoggingConfig, Crypt4GHConfig):
     """Config parameters and their defaults."""
 
-    service_name: str = "encryption_key_store"
+    service_name: str = SERVICE_NAME
 
 
 CONFIG = Config()  # type: ignore

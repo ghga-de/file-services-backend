@@ -24,8 +24,10 @@ from hexkit.providers.mongodb import MongoDbConfig
 from ifrs.adapters.inbound.event_sub import EventSubTranslatorConfig
 from ifrs.adapters.outbound.event_pub import EventPubTranslatorConfig
 
+SERVICE_NAME = "ifrs"
 
-@config_from_yaml(prefix="ifrs")
+
+@config_from_yaml(prefix=SERVICE_NAME)
 class Config(
     MongoDbConfig,
     KafkaConfig,
@@ -36,7 +38,7 @@ class Config(
 ):
     """Config parameters and their defaults."""
 
-    service_name: str = "internal_file_registry"
+    service_name: str = SERVICE_NAME
 
 
 CONFIG = Config()  # type: ignore
