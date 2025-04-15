@@ -33,6 +33,7 @@ ROOT_DIR = Path(__file__).parent.parent.resolve()
 PYPROJECT_TOML_PATH = ROOT_DIR / "pyproject.toml"
 README_GENERATION_DIR = ROOT_DIR / ".readme_generation"
 DESCRIPTION_PATH = README_GENERATION_DIR / "description.md"
+CONFIGURATION_PATH = README_GENERATION_DIR / "configuration.md"
 README_TEMPLATE_PATH = README_GENERATION_DIR / "readme_template_monorepo.md"
 README_PATH = ROOT_DIR / "README.md"
 SERVICE_ROOT = ROOT_DIR / "services"
@@ -66,6 +67,10 @@ class PackageDetails(PackageHeader, PackageName):
 
     description: str = Field(
         ..., description="A markdown-formatted description of the package."
+    )
+    configuration: str = Field(
+        ...,
+        description="A markdown-formatted description of configuration options relevant for deployment.",
     )
     service_readmes: str = Field(..., description="")
 
@@ -125,6 +130,12 @@ def read_package_description() -> str:
     return DESCRIPTION_PATH.read_text()
 
 
+def read_package_configuration() -> str:
+    """Read the package description."""
+
+    return CONFIGURATION_PATH.read_text()
+
+
 def get_service_links() -> str:
     """Get links to all service readmes."""
 
@@ -146,11 +157,13 @@ def get_package_details() -> PackageDetails:
     header = read_toml_package_header()
     name = read_package_name()
     description = read_package_description()
+    configuration = read_package_configuration()
     return PackageDetails(
         **header.model_dump(),
         **name.model_dump(),
         description=description,
         service_readmes=get_service_links(),
+        configuration=configuration,
     )
 
 
