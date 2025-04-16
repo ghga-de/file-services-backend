@@ -10,16 +10,6 @@ dependencies = [
     "crypt4gh >= 1.7",
     "hvac >= 2",
     "httpx >= 0.28",
-    "opentelemetry-api >= 1.31.1",
-    "opentelemetry-sdk >= 1.31.1",
-    "opentelemetry-exporter-otlp-proto-http >= 1.31.1",
-    "opentelemetry-distro >= 0.52b1",
-    "opentelemetry-instrumentation >= 0.52b1",
-    "opentelemetry-instrumentation-aiokafka >= 0.52b1",
-    "opentelemetry-instrumentation-botocore >= 0.52b1",
-    "opentelemetry-instrumentation-fastapi >= 0.52b1",
-    "opentelemetry-instrumentation-httpx >= 0.52b1",
-    "opentelemetry-instrumentation-pymongo >= 0.52b1",
 ]
 
 [project.urls]
