@@ -71,17 +71,18 @@ ERROR_RESPONSES = {
 }
 
 
+@tracer.start_span()
 @router.get(
     "/health",
     summary="health",
     status_code=status.HTTP_200_OK,
 )
-@tracer.start_span()
 async def health():
     """Used to test if this service is alive"""
     return {"status": "OK"}
 
 
+@tracer.start_span()
 @router.post(
     "/secrets",
     summary="Extract file encryption/decryption secret and file content offset from enevelope",
@@ -97,7 +98,6 @@ async def health():
         status.HTTP_504_GATEWAY_TIMEOUT: ERROR_RESPONSES["vaultConnectionError"],
     },
 )
-@tracer.start_span()
 async def post_encryption_secret(
     *,
     envelope_query: models.InboundEnvelopeQuery,
@@ -147,6 +147,7 @@ async def post_encryption_secret(
     }
 
 
+@tracer.start_span()
 @router.get(
     "/secrets/{secret_id}/envelopes/{client_pk}",
     summary="Get personalized envelope containing Crypt4GH file encryption/decryption key",
@@ -159,7 +160,6 @@ async def post_encryption_secret(
         status.HTTP_422_UNPROCESSABLE_ENTITY: ERROR_RESPONSES["decodingError"],
     },
 )
-@tracer.start_span()
 async def get_header_envelope(
     *, secret_id: str, client_pk: str, config: Config = Depends(config_injector)
 ):
@@ -185,6 +185,7 @@ async def get_header_envelope(
     }
 
 
+@tracer.start_span()
 @router.delete(
     "/secrets/{secret_id}",
     summary="Delete the associated secret",
@@ -195,7 +196,6 @@ async def get_header_envelope(
         status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["secretNotFoundError"],
     },
 )
-@tracer.start_span()
 async def delete_secret(*, secret_id: str, config: Config = Depends(config_injector)):
     """Create header envelope for the file secret with given ID encrypted with a given public key"""
     vault = VaultAdapter(config)
