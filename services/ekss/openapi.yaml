@@ -182,6 +182,20 @@ components:
       - offset
       title: InboundEnvelopeContent
       type: object
+    InboundEnvelopeQuery:
+      description: Request object containing first file part and a public key.
+      properties:
+        file_part:
+          title: File Part
+          type: string
+        public_key:
+          title: Public Key
+          type: string
+      required:
+      - file_part
+      - public_key
+      title: InboundEnvelopeQuery
+      type: object
     OutboundEnvelopeContent:
       description: 'Contains the header envelope, which contains the file secret encrypted
         with the
@@ -225,47 +239,30 @@ openapi: 3.1.0
 paths:
   /health:
     get:
-      operationId: traced_function_health_get
-      parameters:
-      - in: query
-        name: args
-        required: true
-        schema:
-          title: Args
-      - in: query
-        name: kwargs
-        required: true
-        schema:
-          title: Kwargs
+      description: Used to test if this service is alive
+      operationId: health_health_get
       responses:
         '200':
           content:
             application/json:
               schema: {}
           description: Successful Response
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
       summary: health
       tags:
       - EncryptionKeyStoreService
   /secrets:
     post:
+      description: 'Extract file encryption/decryption secret, create secret ID and
+        extract
+
+        file content offset'
       operationId: postEncryptionData
-      parameters:
-      - in: query
-        name: args
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InboundEnvelopeQuery'
         required: true
-        schema:
-          title: Args
-      - in: query
-        name: kwargs
-        required: true
-        schema:
-          title: Kwargs
       responses:
         '200':
           content:
@@ -311,18 +308,16 @@ paths:
       - EncryptionKeyStoreService
   /secrets/{secret_id}:
     delete:
+      description: Create header envelope for the file secret with given ID encrypted
+        with a given public key
       operationId: deleteSecret
       parameters:
-      - in: query
-        name: args
+      - in: path
+        name: secret_id
         required: true
         schema:
-          title: Args
-      - in: query
-        name: kwargs
-        required: true
-        schema:
-          title: Kwargs
+          title: Secret Id
+          type: string
       responses:
         '204':
           description: Succesfully deleted secret.
@@ -343,18 +338,22 @@ paths:
       - EncryptionKeyStoreService
   /secrets/{secret_id}/envelopes/{client_pk}:
     get:
+      description: Create header envelope for the file secret with given ID encrypted
+        with a given public key
       operationId: getEncryptionData
       parameters:
-      - in: query
-        name: args
+      - in: path
+        name: secret_id
         required: true
         schema:
-          title: Args
-      - in: query
-        name: kwargs
+          title: Secret Id
+          type: string
+      - in: path
+        name: client_pk
         required: true
         schema:
-          title: Kwargs
+          title: Client Pk
+          type: string
       responses:
         '200':
           content:
