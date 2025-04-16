@@ -23,6 +23,8 @@ from hexkit.log import LoggingConfig
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings
 
+from ekss.constants import SERVICE_NAME
+
 
 class VaultConfig(BaseSettings):
     """Configuration for HashiCorp Vault connection"""
@@ -112,9 +114,6 @@ class Crypt4GHConfig(BaseSettings):
             + "Only needed if the private key is encrypted."
         ),
     )
-
-
-SERVICE_NAME = "ekss"
 
 
 @config_from_yaml(prefix=SERVICE_NAME)

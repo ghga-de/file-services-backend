@@ -26,7 +26,7 @@ from dcs.adapters.inbound.fastapi_ import (
     http_response_models,
     http_responses,
 )
-from dcs.config import SERVICE_NAME
+from dcs.constants import SERVICE_NAME
 from dcs.core.auth_policies import WorkOrderContext
 from dcs.core.models import DrsObjectResponseModel
 from dcs.ports.inbound.data_repository import DataRepositoryPort

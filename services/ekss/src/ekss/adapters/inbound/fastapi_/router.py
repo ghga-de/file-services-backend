@@ -28,7 +28,8 @@ from ekss.adapters.outbound.vault.exceptions import (
     SecretInsertionError,
     SecretRetrievalError,
 )
-from ekss.config import SERVICE_NAME, Config
+from ekss.config import Config
+from ekss.constants import SERVICE_NAME
 from ekss.core.envelope_decryption import extract_envelope_content
 from ekss.core.envelope_encryption import get_envelope
 

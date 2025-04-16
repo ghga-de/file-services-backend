@@ -24,7 +24,8 @@ from hexkit.opentelemetry_setup import SpanTracer
 from hvac.api.auth_methods import Kubernetes
 
 from ekss.adapters.outbound.vault import exceptions
-from ekss.config import SERVICE_NAME, VaultConfig
+from ekss.config import VaultConfig
+from ekss.constants import SERVICE_NAME
 
 log = logging.getLogger(__name__)
 tracer = SpanTracer(SERVICE_NAME)

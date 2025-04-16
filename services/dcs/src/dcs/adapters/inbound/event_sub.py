@@ -27,7 +27,7 @@ from hexkit.custom_types import Ascii, JsonObject
 from hexkit.opentelemetry_setup import SpanTracer
 from hexkit.protocols.eventsub import EventSubscriberProtocol
 
-from dcs.config import SERVICE_NAME
+from dcs.constants import SERVICE_NAME
 from dcs.core import models
 from dcs.ports.inbound.data_repository import DataRepositoryPort
 
