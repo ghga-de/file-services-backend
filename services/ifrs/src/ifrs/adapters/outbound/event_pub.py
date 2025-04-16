@@ -26,7 +26,7 @@ from ghga_event_schemas.configs import (
 from hexkit.opentelemetry_setup import SpanTracer
 from hexkit.protocols.eventpub import EventPublisherProtocol
 
-from ifrs.config import SERVICE_NAME
+from ifrs.constants import SERVICE_NAME
 from ifrs.core import models
 from ifrs.ports.outbound.event_pub import EventPublisherPort
 

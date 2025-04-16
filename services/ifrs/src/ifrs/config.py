@@ -23,8 +23,7 @@ from hexkit.providers.mongodb import MongoDbConfig
 
 from ifrs.adapters.inbound.event_sub import EventSubTranslatorConfig
 from ifrs.adapters.outbound.event_pub import EventPubTranslatorConfig
-
-SERVICE_NAME = "ifrs"
+from ifrs.constants import SERVICE_NAME
 
 
 @config_from_yaml(prefix=SERVICE_NAME)

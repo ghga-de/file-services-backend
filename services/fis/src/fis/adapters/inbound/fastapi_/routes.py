@@ -25,7 +25,7 @@ from fis.adapters.inbound.fastapi_.http_authorization import (
     IngestTokenAuthContext,
     require_token,
 )
-from fis.config import SERVICE_NAME
+from fis.constants import SERVICE_NAME
 from fis.core.models import EncryptedPayload, UploadMetadata
 from fis.ports.inbound.ingest import (
     DecryptionError,

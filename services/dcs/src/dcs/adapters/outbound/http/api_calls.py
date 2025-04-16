@@ -22,7 +22,7 @@ from hexkit.opentelemetry_setup import SpanTracer
 
 from dcs.adapters.outbound.http import exceptions
 from dcs.adapters.outbound.http.exception_translation import ResponseExceptionTranslator
-from dcs.config import SERVICE_NAME
+from dcs.constants import SERVICE_NAME
 
 tracer = SpanTracer(SERVICE_NAME)
 

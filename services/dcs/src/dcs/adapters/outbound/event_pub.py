@@ -27,7 +27,7 @@ from ghga_event_schemas.configs import (
 from hexkit.opentelemetry_setup import SpanTracer
 from hexkit.protocols.eventpub import EventPublisherProtocol
 
-from dcs.config import SERVICE_NAME
+from dcs.constants import SERVICE_NAME
 from dcs.core import models
 from dcs.ports.outbound.event_pub import EventPublisherPort
 

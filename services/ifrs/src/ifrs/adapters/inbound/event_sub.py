@@ -28,7 +28,7 @@ from hexkit.custom_types import JsonObject
 from hexkit.opentelemetry_setup import SpanTracer
 from hexkit.protocols.eventsub import EventSubscriberProtocol
 
-from ifrs.config import SERVICE_NAME
+from ifrs.constants import SERVICE_NAME
 from ifrs.core.models import FileMetadataBase
 from ifrs.ports.inbound.file_registry import FileRegistryPort
 

@@ -24,7 +24,7 @@ from pcs.adapters.inbound.fastapi_.http_authorization import (
     TokenAuthContext,
     require_token,
 )
-from pcs.config import SERVICE_NAME
+from pcs.constants import SERVICE_NAME
 
 tracer = SpanTracer(SERVICE_NAME)
 router = APIRouter()
