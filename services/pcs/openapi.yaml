@@ -30,10 +30,6 @@ components:
       - type
       title: ValidationError
       type: object
-  securitySchemes:
-    HTTPBearer:
-      scheme: bearer
-      type: http
 info:
   description: A service exposing an external API to commission file deletionsfrom
     the wholefile backend.
@@ -43,15 +39,18 @@ openapi: 3.1.0
 paths:
   /files/{file_id}:
     delete:
-      description: Send out an event to delete the file with the given id.
       operationId: deleteFile
       parameters:
-      - in: path
-        name: file_id
+      - in: query
+        name: args
         required: true
         schema:
-          title: File Id
-          type: string
+          title: Args
+      - in: query
+        name: kwargs
+        required: true
+        schema:
+          title: Kwargs
       responses:
         '202':
           content:
@@ -64,21 +63,35 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
-      security:
-      - HTTPBearer: []
       summary: Deletes the corresponding file.
       tags:
       - PurgeControllerService
   /health:
     get:
-      description: Used to test if this service is alive
-      operationId: health_health_get
+      operationId: traced_function_health_get
+      parameters:
+      - in: query
+        name: args
+        required: true
+        schema:
+          title: Args
+      - in: query
+        name: kwargs
+        required: true
+        schema:
+          title: Kwargs
       responses:
         '200':
           content:
             application/json:
               schema: {}
           description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
       summary: health
       tags:
       - PurgeControllerService
