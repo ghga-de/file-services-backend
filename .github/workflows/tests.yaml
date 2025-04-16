@@ -48,4 +48,27 @@ jobs:
 
       - name: Run tests for ${{matrix.service}}
         id: run-tests
-        run: pytest ./services/${{matrix.service}}
+        run: pytest ./services/${{matrix.service}} --cov=${{matrix.service}} --cov-report=xml
+
+      - name: Upload coverage to coveralls
+        id: coveralls
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          COVERALLS_FLAG_NAME: ${{matrix.service}}
+          COVERALLS_PARALLEL: true
+        run: |
+          pip install --upgrade coveralls
+          coveralls --service=github
+
+  coveralls:
+    name: Indicate completion to coveralls.io
+    needs: test
+    runs-on: ubuntu-latest
+    container: python:3-slim
+    steps:
+    - name: Install coveralls
+      run: pip3 install --upgrade coveralls
+    - name: Finished
+      run: coveralls --finish
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

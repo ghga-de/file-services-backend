@@ -48,7 +48,7 @@
       "type": "string"
     },
     "service_name": {
-      "default": "encryption_key_store",
+      "default": "ekss",
       "title": "Service Name",
       "type": "string"
     },

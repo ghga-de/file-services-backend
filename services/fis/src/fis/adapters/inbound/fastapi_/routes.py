@@ -18,13 +18,14 @@ from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Response, status
 from fastapi.responses import JSONResponse
-from opentelemetry import trace
+from hexkit.opentelemetry_setup import SpanTracer
 
 from fis.adapters.inbound.fastapi_ import dummies
 from fis.adapters.inbound.fastapi_.http_authorization import (
     IngestTokenAuthContext,
     require_token,
 )
+from fis.constants import SERVICE_NAME
 from fis.core.models import EncryptedPayload, UploadMetadata
 from fis.ports.inbound.ingest import (
     DecryptionError,
@@ -32,22 +33,23 @@ from fis.ports.inbound.ingest import (
     WrongDecryptedFormatError,
 )
 
-tracer = trace.get_tracer("fis")
+tracer = SpanTracer(SERVICE_NAME)
 router = APIRouter()
 
 
+@tracer.start_span()
 @router.get(
     "/health",
     summary="health",
     tags=["FileIngestService"],
     status_code=200,
 )
-@tracer.start_as_current_span("routes.health")
 async def health():
     """Used to test if this service is alive"""
     return {"status": "OK"}
 
 
+@tracer.start_span()
 @router.post(
     "/legacy/ingest",
     summary="Processes encrypted output data from the S3 upload script and ingests it "
@@ -71,7 +73,6 @@ async def health():
         },
     },
 )
-@tracer.start_as_current_span("routes.ingest_legacy_metadata")
 async def ingest_legacy_metadata(
     encrypted_payload: EncryptedPayload,
     upload_metadata_processor: dummies.LegacyUploadProcessor,
@@ -110,6 +111,7 @@ async def ingest_legacy_metadata(
     return Response(status_code=202)
 
 
+@tracer.start_span()
 @router.post(
     "/federated/ingest_metadata",
     summary="Processes encrypted output data from the S3 upload script and ingests it "
@@ -124,7 +126,6 @@ async def ingest_legacy_metadata(
         }
     },
 )
-@tracer.start_as_current_span("routes.ingest_metadata")
 async def ingest_metadata(
     payload: UploadMetadata,
     upload_metadata_processor: dummies.UploadProcessorPort,
@@ -148,6 +149,7 @@ async def ingest_metadata(
     return Response(status_code=202)
 
 
+@tracer.start_span()
 @router.post(
     "/federated/ingest_secret",
     summary="Store file encryption/decryption secret and return secret ID.",
@@ -166,7 +168,6 @@ async def ingest_metadata(
         },
     },
 )
-@tracer.start_as_current_span("routes.ingest_secret")
 async def ingest_secret(
     encrypted_payload: EncryptedPayload,
     upload_metadata_processor: dummies.UploadProcessorPort,

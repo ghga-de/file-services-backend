@@ -13,28 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Entrypoint of the package"""
+"""Contains service specific constants."""
 
-import asyncio
-
-from ghga_service_commons.api import run_server
-from hexkit.log import configure_logging
-from hexkit.opentelemetry_setup import configure_tracer
-
-from ekss.adapters.inbound.fastapi_.main import (
-    setup_app,
-)
-from ekss.config import CONFIG, Config
-
-app = setup_app(CONFIG)
-
-
-def run(config: Config = CONFIG):
-    """Run the service"""
-    configure_logging(config=config)
-    configure_tracer(service_name="Encryption Key Store Service")
-    asyncio.run(run_server(app="ekss.__main__:app", config=config))
-
-
-if __name__ == "__main__":
-    run()
+SERVICE_NAME = "fis"

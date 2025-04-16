@@ -28,6 +28,7 @@ from pydantic import Field
 from dcs.adapters.inbound.event_sub import EventSubTranslatorConfig
 from dcs.adapters.inbound.fastapi_.configure import DrsApiConfig
 from dcs.adapters.outbound.event_pub import EventPubTranslatorConfig
+from dcs.constants import SERVICE_NAME
 from dcs.core.data_repository import DataRepositoryConfig
 
 
@@ -40,9 +41,6 @@ class WorkOrderTokenConfig(AuthConfig):
         ),
         description="A dict of all GHGA internal claims that shall be verified.",
     )
-
-
-SERVICE_NAME = "dcs"
 
 
 @config_from_yaml(prefix=SERVICE_NAME)

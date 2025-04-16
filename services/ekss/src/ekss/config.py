@@ -23,6 +23,8 @@ from hexkit.log import LoggingConfig
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings
 
+from ekss.constants import SERVICE_NAME
+
 
 class VaultConfig(BaseSettings):
     """Configuration for HashiCorp Vault connection"""
@@ -114,11 +116,11 @@ class Crypt4GHConfig(BaseSettings):
     )
 
 
-@config_from_yaml(prefix="ekss")
+@config_from_yaml(prefix=SERVICE_NAME)
 class Config(ApiConfigBase, VaultConfig, LoggingConfig, Crypt4GHConfig):
     """Config parameters and their defaults."""
 
-    service_name: str = "encryption_key_store"
+    service_name: str = SERVICE_NAME
 
 
 CONFIG = Config()  # type: ignore

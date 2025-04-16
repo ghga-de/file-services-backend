@@ -21,13 +21,9 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from ghga_service_commons.utils.context import asyncnullcontext
+from hexkit.opentelemetry_setup import configure_tracer
 from hexkit.providers.mongodb import MongoDbDaoFactory
 from hexkit.providers.mongokafka import PersistentKafkaPublisher
-from opentelemetry import trace
-from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
-from opentelemetry.sdk.resources import SERVICE_NAME, Resource
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 from fis.adapters.inbound.fastapi_ import dummies
 from fis.adapters.inbound.fastapi_.configure import get_configured_app
@@ -64,11 +60,7 @@ async def prepare_core(
     tuple[UploadMetadataProcessorPort, LegacyUploadMetadataProcessorPort], None
 ]:
     """Constructs and initializes all core components and their outbound dependencies."""
-    resource = Resource(attributes={SERVICE_NAME: "File Ingest Service"})
-    trace_provider = TracerProvider(resource=resource)
-    processor = BatchSpanProcessor(OTLPSpanExporter())
-    trace_provider.add_span_processor(processor)
-    trace.set_tracer_provider(trace_provider)
+    configure_tracer(service_name="File Ingest Service")
 
     vault_adapter = VaultAdapter(config=config)
     dao_factory = MongoDbDaoFactory(config=config)
