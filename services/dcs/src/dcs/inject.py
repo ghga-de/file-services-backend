@@ -23,14 +23,10 @@ from fastapi import FastAPI
 from ghga_service_commons.auth.jwt_auth import JWTAuthContextProvider
 from ghga_service_commons.utils.context import asyncnullcontext
 from ghga_service_commons.utils.multinode_storage import S3ObjectStorages
+from hexkit.opentelemetry_setup import configure_tracer
 from hexkit.providers.akafka import KafkaEventPublisher, KafkaEventSubscriber
 from hexkit.providers.mongodb import MongoDbDaoFactory
 from hexkit.providers.mongokafka import PersistentKafkaPublisher
-from opentelemetry import trace
-from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
-from opentelemetry.sdk.resources import SERVICE_NAME, Resource
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 from dcs.adapters.inbound.event_sub import EventSubTranslator
 from dcs.adapters.inbound.fastapi_ import dummies
@@ -66,11 +62,7 @@ async def get_persistent_publisher(
 @asynccontextmanager
 async def prepare_core(*, config: Config) -> AsyncGenerator[DataRepositoryPort, None]:
     """Constructs and initializes all core components and their outbound dependencies."""
-    resource = Resource(attributes={SERVICE_NAME: "Download Controller Service"})
-    trace_provider = TracerProvider(resource=resource)
-    processor = BatchSpanProcessor(OTLPSpanExporter())
-    trace_provider.add_span_processor(processor)
-    trace.set_tracer_provider(trace_provider)
+    configure_tracer(service_name="Download Controller Service")
 
     dao_factory = MongoDbDaoFactory(config=config)
     drs_object_dao = await get_drs_dao(dao_factory=dao_factory)

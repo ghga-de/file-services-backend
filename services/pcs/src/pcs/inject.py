@@ -20,13 +20,9 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from ghga_service_commons.utils.context import asyncnullcontext
+from hexkit.opentelemetry_setup import configure_tracer
 from hexkit.providers.mongodb import MongoDbDaoFactory
 from hexkit.providers.mongokafka import PersistentKafkaPublisher
-from opentelemetry import trace
-from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
-from opentelemetry.sdk.resources import SERVICE_NAME, Resource
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 from pcs.adapters.inbound.fastapi_ import dummies
 from pcs.adapters.inbound.fastapi_.configure import get_configured_app
@@ -54,11 +50,7 @@ async def get_persistent_publisher(
 @asynccontextmanager
 async def prepare_core(*, config: Config) -> AsyncGenerator[FileDeletionPort, None]:
     """Construct and initialize the core component and its outbound dependencies."""
-    resource = Resource(attributes={SERVICE_NAME: "Purge Controller Service"})
-    trace_provider = TracerProvider(resource=resource)
-    processor = BatchSpanProcessor(OTLPSpanExporter())
-    trace_provider.add_span_processor(processor)
-    trace.set_tracer_provider(trace_provider)
+    configure_tracer(service_name="Purge Controller Service")
 
     dao_factory = MongoDbDaoFactory(config=config)
     async with get_persistent_publisher(

@@ -109,13 +109,13 @@ bcrypt==4.3.0 \
     --hash=sha256:f6746e6fec103fcd509b96bacdfdaa2fbde9a553245dbada284435173a6f1aef \
     --hash=sha256:f81b0ed2639568bf14749112298f9e4e2b28853dab50a8b357e31798686a036d
     # via crypt4gh
-boto3==1.37.33 \
-    --hash=sha256:4390317a1578af73f1514651bd180ba25802dcbe0a23deafa13851d54d3c3203 \
-    --hash=sha256:7b1b1bc69762975824e5a5d570880abebf634f7594f88b3dc175e8800f35be1a
+boto3==1.37.34 \
+    --hash=sha256:586bfa72a00601c04067f9adcbb08ecaf63b05b7d731103f33cb2ce0d6950b1b \
+    --hash=sha256:94ca07328474db3fa605eb99b011512caa73f7161740d365a1f00cfebfb6dd90
     # via hexkit
-botocore==1.37.33 \
-    --hash=sha256:09b213b0d0500040f85c7daee912ea767c724e43ed61909e624c803ff6925222 \
-    --hash=sha256:4a167dfecae51e9140de24067de1c339acde5ade3dad524a4600ac2c72055e23
+botocore==1.37.34 \
+    --hash=sha256:2909b6dbf9c90347c71a6fa0364acee522d6a7664f13d6f7996c9dd1b1f46fac \
+    --hash=sha256:bd9af0db1097befd2028ba8525e32cacc04f26ccb9dbd5d48d6ecd05bc16c27a
     # via
     #   boto3
     #   hexkit
@@ -474,9 +474,9 @@ h11==0.16.0 \
     # via
     #   httpcore
     #   uvicorn
-hexkit==4.4.0 \
-    --hash=sha256:1536cb2876c13a05fe031bdfc333cbf68ab087a70a92e06d8b3583eb41ea9e80 \
-    --hash=sha256:3134dc165b6d425987885f885ce31f43c92fdd8795f7ca25685fcc15ad1d8575
+hexkit==4.5.0 \
+    --hash=sha256:a6aef02e1284e5acae01ba9f8b885e2e97ca85644df392e622029f99ce360ec6 \
+    --hash=sha256:e91b89f051cc3111fc4038ccb14de9215d4c1d462c889237450296fc82205d01
     # via
     #   fsb (pyproject.toml)
     #   ghga-service-commons
@@ -649,9 +649,9 @@ nodeenv==1.9.1 \
     --hash=sha256:6ec12890a2dab7946721edbfbcd91f3319c6ccc9aec47be7c7e6b7011ee6645f \
     --hash=sha256:ba11c9782d29c27c70ffbdda2d7415098754709be8a7056d79a737cd901155c9
     # via pre-commit
-opentelemetry-api==1.32.0 \
-    --hash=sha256:15df743c765078611f376037b0d9111ec5c1febf2ec9440cdd919370faa1ce55 \
-    --hash=sha256:2623280c916f9b19cad0aa4280cb171265f19fd2909b0d47e4f06f7c83b02cb5
+opentelemetry-api==1.32.1 \
+    --hash=sha256:a5be71591694a4d9195caf6776b055aa702e964d961051a0715d05f8632c32fb \
+    --hash=sha256:bbd19f14ab9f15f0e85e43e6a958aa4cb1f36870ee62b7fd205783a112012724
     # via
     #   fsb (pyproject.toml)
     #   hexkit
@@ -667,23 +667,28 @@ opentelemetry-api==1.32.0 \
     #   opentelemetry-propagator-aws-xray
     #   opentelemetry-sdk
     #   opentelemetry-semantic-conventions
-opentelemetry-distro==0.53b0 \
-    --hash=sha256:2f1aa500a771509feaf3b5bc7601cf5b1d255a6d702d608536e7cd03dbf58bc9 \
-    --hash=sha256:4cf709f4e7472b5903fca8cc5641c908538775e40cdbcb6677aa39d951d6d7f0
-    # via fsb (pyproject.toml)
-opentelemetry-exporter-otlp-proto-common==1.32.0 \
-    --hash=sha256:277a63a18768b3b460d082a489f6f80d4ae2c1e6b185bb701c6bd4e91405e4bd \
-    --hash=sha256:2bca672f2a279c4f517115e635c0cc1269d07b2982a36681c521f7e56179a222
-    # via opentelemetry-exporter-otlp-proto-http
-opentelemetry-exporter-otlp-proto-http==1.32.0 \
-    --hash=sha256:a5dfd94603da86e313e4f4fb8d181fd3b64a7c2a9c7b408c3653d2b1bc68d14f \
-    --hash=sha256:e2ffecd6d2220eaf1291a46339f109bc0a57ee7c4c6abb8174df418bf00ce01f
-    # via fsb (pyproject.toml)
-opentelemetry-instrumentation==0.53b0 \
-    --hash=sha256:70600778fd567c9c5fbfca181378ae179c0dec3ff613171707d3d77c360ff105 \
-    --hash=sha256:f2c21d71a3cdf28c656e3d90d247ee7558fb9b0239b3d9e9190266499dbed9d2
+opentelemetry-distro==0.53b1 \
+    --hash=sha256:3d24b6fd4b2c45c450c711932e2813dc13dba25772bb7da77cac56454a52a8ea \
+    --hash=sha256:e01466aadfbebf01cb27c571186636f9fe40920740dcccdde9da3093d6b2af2d
     # via
     #   fsb (pyproject.toml)
+    #   hexkit
+opentelemetry-exporter-otlp-proto-common==1.32.1 \
+    --hash=sha256:a1e9ad3d0d9a9405c7ff8cdb54ba9b265da16da9844fe36b8c9661114b56c5d9 \
+    --hash=sha256:da4edee4f24aaef109bfe924efad3a98a2e27c91278115505b298ee61da5d68e
+    # via opentelemetry-exporter-otlp-proto-http
+opentelemetry-exporter-otlp-proto-http==1.32.1 \
+    --hash=sha256:3cc048b0c295aa2cbafb883feaf217c7525b396567eeeabb5459affb08b7fefe \
+    --hash=sha256:f854a6e7128858213850dbf1929478a802faf50e799ffd2eb4d7424390023828
+    # via
+    #   fsb (pyproject.toml)
+    #   hexkit
+opentelemetry-instrumentation==0.53b1 \
+    --hash=sha256:0e69ca2c75727e8a300de671c4a2ec0e86e63a8e906beaa5d6c9f5228e8687e5 \
+    --hash=sha256:c07850cecfbc51e8b357f56d5886ae5ccaa828635b220d0f5e78f941ea9a83ca
+    # via
+    #   fsb (pyproject.toml)
+    #   hexkit
     #   opentelemetry-distro
     #   opentelemetry-instrumentation-aiokafka
     #   opentelemetry-instrumentation-asgi
@@ -691,50 +696,61 @@ opentelemetry-instrumentation==0.53b0 \
     #   opentelemetry-instrumentation-fastapi
     #   opentelemetry-instrumentation-httpx
     #   opentelemetry-instrumentation-pymongo
-opentelemetry-instrumentation-aiokafka==0.53b0 \
-    --hash=sha256:2fc89ddd82b36be2e02a975383b7e07f21248a01e247102f8f276bc655acffa0 \
-    --hash=sha256:47e1cb14bb93aa5572af7f69018329283fead9d13c2b782cff57a66873a7005a
-    # via fsb (pyproject.toml)
-opentelemetry-instrumentation-asgi==0.53b0 \
-    --hash=sha256:a2e242e0633541150bf8e42ed983f8aeec94acb397bc67a3dbdb47933bfdc7f8 \
-    --hash=sha256:b82d7cecdd6a4239ee87e1c629bfd7dae208142ddbb24528d9a9274eb2bc4e44
+opentelemetry-instrumentation-aiokafka==0.53b1 \
+    --hash=sha256:70c6b432b1ccded38158e2751ee2b8a6d1e8d61e277ba6c9229b3bb6a0064d1b \
+    --hash=sha256:9b2067ad957ed50e2d079e02eb3251c177c0256fe8d852e532e4bdb31ad6f5d2
+    # via
+    #   fsb (pyproject.toml)
+    #   hexkit
+opentelemetry-instrumentation-asgi==0.53b1 \
+    --hash=sha256:5f8422eff0a9e3ecb052a8726335925610bb9bd7bb1acf1619c2c28dc3c04842 \
+    --hash=sha256:74b7a023787c574f2dd5ed9376e5b921c14501ba1b281ec8527eaadc442563e7
     # via opentelemetry-instrumentation-fastapi
-opentelemetry-instrumentation-botocore==0.53b0 \
-    --hash=sha256:6998b9b1564cd15f0b0188652d75bca6d7d155c0c5ed17daf533ea11af85868f \
-    --hash=sha256:cf4d0cc8eb0da3f37fc4f222146355661be3bf7666d7cf30d35830f25af0a5ce
-    # via fsb (pyproject.toml)
-opentelemetry-instrumentation-fastapi==0.53b0 \
-    --hash=sha256:a901ded31595d6e64d35c92379c08d8314baffc8715653ac42349b6140c725ce \
-    --hash=sha256:c29b7b3f5ca5aeb89436a605ac481467630bc761a241cc4258058ba00e6d40ed
-    # via fsb (pyproject.toml)
-opentelemetry-instrumentation-httpx==0.53b0 \
-    --hash=sha256:35b3f84ff0f9cd4ee88b9878776eacdada288136a1a2e87a66120096c4901258 \
-    --hash=sha256:b460764ebe98a0fb8f0939848fc577c16e5be7904aa390b8bd6d8f1b40008cca
-    # via fsb (pyproject.toml)
-opentelemetry-instrumentation-pymongo==0.53b0 \
-    --hash=sha256:1ca4cf5fb1474e5dc418e872acacbf01169a2fbee7cf828c976b60562079f2fe \
-    --hash=sha256:880297aa4fc245b88714ead225edff71ca37e18f1334d875ef1eb27789f542bd
-    # via fsb (pyproject.toml)
+opentelemetry-instrumentation-botocore==0.53b1 \
+    --hash=sha256:10e6e34103c4fafbc0bf1cf7ac9f4c5229a072f87e6788782fe0446281be3371 \
+    --hash=sha256:e0e323e39f3e0c9181a3ab258bcac4e4a28c6518e6ffdde57d533f98c7f65103
+    # via
+    #   fsb (pyproject.toml)
+    #   hexkit
+opentelemetry-instrumentation-fastapi==0.53b1 \
+    --hash=sha256:24e98ddd1bd8164069e68e36c47bb729fefb0a851e6dd520f4fc81c3bbc54147 \
+    --hash=sha256:f8ed5b65e9086b86caeae191fcf798ec7b47469ac7f0341461acc03886278741
+    # via
+    #   fsb (pyproject.toml)
+    #   hexkit
+opentelemetry-instrumentation-httpx==0.53b1 \
+    --hash=sha256:34d0057f2601036b85ad958ed052f1b8ea3439f964cb8f8493cb6cf05d7d1715 \
+    --hash=sha256:aa8636ad704a99c6dcb73b649035d820506e93d5a80e45254fa435f131611a9c
+    # via
+    #   fsb (pyproject.toml)
+    #   hexkit
+opentelemetry-instrumentation-pymongo==0.53b1 \
+    --hash=sha256:2184cc6ded4266af141cfae7ff9d0b074e8f94ad5204ad2acef5ceddc6391132 \
+    --hash=sha256:525088063ff790c12b89c6a97617841d43e51975604d957ca818122fb47760bf
+    # via
+    #   fsb (pyproject.toml)
+    #   hexkit
 opentelemetry-propagator-aws-xray==1.0.2 \
     --hash=sha256:1c99181ee228e99bddb638a0c911a297fa21f1c3a0af951f841e79919b5f1934 \
     --hash=sha256:6b2cee5479d2ef0172307b66ed2ed151f598a0fd29b3c01133ac87ca06326260
     # via opentelemetry-instrumentation-botocore
-opentelemetry-proto==1.32.0 \
-    --hash=sha256:f699269dc037e18fba05442580a8682c9fbd0f4c7f5addfed82c44be0c53c5ff \
-    --hash=sha256:f8b70ae52f4ef8a4e4c0760e87c9071e07ece2618c080d4839bef44c0156cd44
+opentelemetry-proto==1.32.1 \
+    --hash=sha256:bc6385ccf87768f029371535312071a2d09e6c9ebf119ac17dbc825a6a56ba53 \
+    --hash=sha256:fe56df31033ab0c40af7525f8bf4c487313377bbcfdf94184b701a8ccebc800e
     # via
     #   opentelemetry-exporter-otlp-proto-common
     #   opentelemetry-exporter-otlp-proto-http
-opentelemetry-sdk==1.32.0 \
-    --hash=sha256:5ff07fb371d1ab1189fa7047702e2e888b5403c5efcbb18083cae0d5aa5f58d2 \
-    --hash=sha256:ed252d035c22a15536c1f603ca089298daab60850fc2f5ddfa95d95cc1c043ea
+opentelemetry-sdk==1.32.1 \
+    --hash=sha256:8ef373d490961848f525255a42b193430a0637e064dd132fd2a014d94792a092 \
+    --hash=sha256:bba37b70a08038613247bc42beee5a81b0ddca422c7d7f1b097b32bf1c7e2f17
     # via
     #   fsb (pyproject.toml)
+    #   hexkit
     #   opentelemetry-distro
     #   opentelemetry-exporter-otlp-proto-http
-opentelemetry-semantic-conventions==0.53b0 \
-    --hash=sha256:05b7908e1da62d72f9bf717ed25c72f566fe005a2dd260c61b11e025f2552cf6 \
-    --hash=sha256:561da89f766ab51615c0e72b12329e0a1bc16945dbd62c8646ffc74e36a1edff
+opentelemetry-semantic-conventions==0.53b1 \
+    --hash=sha256:21df3ed13f035f8f3ea42d07cbebae37020367a53b47f1ebee3b10a381a00208 \
+    --hash=sha256:4c5a6fede9de61211b2e9fc1e02e8acacce882204cd770177342b6a3be682992
     # via
     #   opentelemetry-instrumentation
     #   opentelemetry-instrumentation-aiokafka
@@ -744,9 +760,9 @@ opentelemetry-semantic-conventions==0.53b0 \
     #   opentelemetry-instrumentation-httpx
     #   opentelemetry-instrumentation-pymongo
     #   opentelemetry-sdk
-opentelemetry-util-http==0.53b0 \
-    --hash=sha256:521111872be0cdfd4346e15e9d4822aeeb8501b094c721ef49c26277b286084e \
-    --hash=sha256:eca40d8cd1c1149081142c44756c0a2da0be306931339b839e1b436a9de101a4
+opentelemetry-util-http==0.53b1 \
+    --hash=sha256:7b0356584400b3406a643e244d36ff1bbb7c95e3b5ed0509d212e4a11c050a0e \
+    --hash=sha256:ee7ecc1cbe4598535a95eaf7742f80c0c924843bf8f7ef3bab4963a228a94dd0
     # via
     #   opentelemetry-instrumentation-asgi
     #   opentelemetry-instrumentation-fastapi
