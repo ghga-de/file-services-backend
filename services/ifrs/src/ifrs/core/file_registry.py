@@ -22,12 +22,12 @@ from contextlib import suppress
 from ghga_service_commons.utils.multinode_storage import ObjectStorages
 from hexkit.opentelemetry_setup import SpanTracer
 
+from ifrs.config import Config
 from ifrs.constants import SERVICE_NAME
 from ifrs.core import models
 from ifrs.ports.inbound.file_registry import FileRegistryPort
 from ifrs.ports.outbound.dao import FileMetadataDaoPort, ResourceNotFoundError
 from ifrs.ports.outbound.event_pub import EventPublisherPort
-from irs.config import Config
 
 log = logging.getLogger(__name__)
 tracer = SpanTracer(SERVICE_NAME)
