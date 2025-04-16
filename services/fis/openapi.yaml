@@ -1,18 +1,5 @@
 components:
   schemas:
-    EncryptedPayload:
-      description: 'Generic model for an encrypted payload.
-
-
-        Can correspond to current/legacy upload metadata or a file secret.'
-      properties:
-        payload:
-          title: Payload
-          type: string
-      required:
-      - payload
-      title: EncryptedPayload
-      type: object
     HTTPValidationError:
       properties:
         detail:
@@ -21,63 +8,6 @@ components:
           title: Detail
           type: array
       title: HTTPValidationError
-      type: object
-    UploadMetadata:
-      description: 'Current model including a secret ID that can be used to retrieve
-        a stored secret
-
-        in place of the actual secret.'
-      properties:
-        bucket_id:
-          title: Bucket Id
-          type: string
-        encrypted_md5_checksums:
-          items:
-            type: string
-          title: Encrypted Md5 Checksums
-          type: array
-        encrypted_sha256_checksums:
-          items:
-            type: string
-          title: Encrypted Sha256 Checksums
-          type: array
-        encrypted_size:
-          title: Encrypted Size
-          type: integer
-        file_id:
-          title: File Id
-          type: string
-        object_id:
-          title: Object Id
-          type: string
-        part_size:
-          title: Part Size
-          type: integer
-        secret_id:
-          title: Secret Id
-          type: string
-        storage_alias:
-          title: Storage Alias
-          type: string
-        unencrypted_checksum:
-          title: Unencrypted Checksum
-          type: string
-        unencrypted_size:
-          title: Unencrypted Size
-          type: integer
-      required:
-      - file_id
-      - object_id
-      - bucket_id
-      - part_size
-      - unencrypted_size
-      - encrypted_size
-      - unencrypted_checksum
-      - encrypted_md5_checksums
-      - encrypted_sha256_checksums
-      - storage_alias
-      - secret_id
-      title: UploadMetadata
       type: object
     ValidationError:
       properties:
@@ -100,10 +30,6 @@ components:
       - type
       title: ValidationError
       type: object
-  securitySchemes:
-    HTTPBearer:
-      scheme: bearer
-      type: http
 info:
   description: A service to ingest s3 file upload metadata produced by the data-steward-kit
     upload command
@@ -113,14 +39,18 @@ openapi: 3.1.0
 paths:
   /federated/ingest_metadata:
     post:
-      description: Process metadata, file secret id and send success event
       operationId: ingestFileUploadMetadata
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UploadMetadata'
+      parameters:
+      - in: query
+        name: args
         required: true
+        schema:
+          title: Args
+      - in: query
+        name: kwargs
+        required: true
+        schema:
+          title: Kwargs
       responses:
         '202':
           content:
@@ -135,23 +65,24 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
-      security:
-      - HTTPBearer: []
       summary: Processes encrypted output data from the S3 upload script and ingests
         it into the Encryption Key Store, Internal File Registry and Download Controller.
       tags:
       - FileIngestService
   /federated/ingest_secret:
     post:
-      description: Decrypt payload and deposit file secret in exchange for a secret
-        id
       operationId: ingestSecret
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/EncryptedPayload'
+      parameters:
+      - in: query
+        name: args
         required: true
+        schema:
+          title: Args
+      - in: query
+        name: kwargs
+        required: true
+        schema:
+          title: Kwargs
       responses:
         '200':
           content:
@@ -164,36 +95,53 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Either the payload is malformed or could not be decrypted.
-      security:
-      - HTTPBearer: []
       summary: Store file encryption/decryption secret and return secret ID.
       tags:
       - FileIngestService
   /health:
     get:
-      description: Used to test if this service is alive
-      operationId: health_health_get
+      operationId: traced_function_health_get
+      parameters:
+      - in: query
+        name: args
+        required: true
+        schema:
+          title: Args
+      - in: query
+        name: kwargs
+        required: true
+        schema:
+          title: Kwargs
       responses:
         '200':
           content:
             application/json:
               schema: {}
           description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
       summary: health
       tags:
       - FileIngestService
   /legacy/ingest:
     post:
       deprecated: true
-      description: Decrypt payload, process metadata, file secret and send success
-        event
       operationId: ingestLegacyFileUploadMetadata
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/EncryptedPayload'
+      parameters:
+      - in: query
+        name: args
         required: true
+        schema:
+          title: Args
+      - in: query
+        name: kwargs
+        required: true
+        schema:
+          title: Kwargs
       responses:
         '202':
           content:
@@ -208,8 +156,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Either the payload is malformed or could not be decrypted.
-      security:
-      - HTTPBearer: []
       summary: Processes encrypted output data from the S3 upload script and ingests
         it into the Encryption Key Store, Internal File Registry and Download Controller.
       tags:
