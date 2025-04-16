@@ -18,15 +18,16 @@
 import base64
 
 import httpx
-from opentelemetry import trace
+from hexkit.opentelemetry_setup import SpanTracer
 
 from dcs.adapters.outbound.http import exceptions
 from dcs.adapters.outbound.http.exception_translation import ResponseExceptionTranslator
+from dcs.config import SERVICE_NAME
 
-tracer = trace.get_tracer("dcs")
+tracer = SpanTracer(SERVICE_NAME)
 
 
-@tracer.start_as_current_span("api_calls.get_envelope_from_ekss")
+@tracer.start_span()
 def get_envelope_from_ekss(
     *, secret_id: str, receiver_public_key: str, api_base: str, timeout: int
 ) -> str:
@@ -61,7 +62,7 @@ def get_envelope_from_ekss(
     return content
 
 
-@tracer.start_as_current_span("api_calls.delete_secret_from_ekss")
+@tracer.start_span()
 def delete_secret_from_ekss(*, secret_id: str, api_base: str, timeout: int) -> None:
     """Calls EKSS to delete a file secret"""
     api_url = f"{api_base}/secrets/{secret_id}"

@@ -23,13 +23,14 @@ from ghga_event_schemas.configs import (
     FileInternallyRegisteredEventsConfig,
     FileStagedEventsConfig,
 )
+from hexkit.opentelemetry_setup import SpanTracer
 from hexkit.protocols.eventpub import EventPublisherProtocol
-from opentelemetry import trace
 
+from ifrs.config import SERVICE_NAME
 from ifrs.core import models
 from ifrs.ports.outbound.event_pub import EventPublisherPort
 
-tracer = trace.get_tracer("ifrs")
+tracer = SpanTracer(SERVICE_NAME)
 
 
 class EventPubTranslatorConfig(
@@ -52,7 +53,7 @@ class EventPubTranslator(EventPublisherPort):
         self._config = config
         self._provider = provider
 
-    @tracer.start_as_current_span("EventPubTranslator.file_internally_registered")
+    @tracer.start_span()
     async def file_internally_registered(
         self, *, file: models.FileMetadata, bucket_id: str
     ) -> None:
@@ -81,7 +82,7 @@ class EventPubTranslator(EventPublisherPort):
             key=file.file_id,
         )
 
-    @tracer.start_as_current_span("EventPubTranslator.file_staged_for_download")
+    @tracer.start_span()
     async def file_staged_for_download(
         self,
         *,
@@ -108,7 +109,7 @@ class EventPubTranslator(EventPublisherPort):
             key=file_id,
         )
 
-    @tracer.start_as_current_span("EventPubTranslator.file_deleted")
+    @tracer.start_span()
     async def file_deleted(self, *, file_id: str) -> None:
         """Communicates the event that a file has been successfully deleted."""
         payload = event_schemas.FileDeletionSuccess(file_id=file_id)
