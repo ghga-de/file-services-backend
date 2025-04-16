@@ -17,14 +17,16 @@
 from ghga_service_commons.api import ApiConfigBase
 from hexkit.config import config_from_yaml
 from hexkit.log import LoggingConfig
+from hexkit.opentelemetry_setup import OpenTelemetryConfig
 from hexkit.providers.mongodb.migrations import MigrationConfig
 from hexkit.providers.mongokafka import MongoKafkaConfig
 from pydantic import Field
 
 from fis.adapters.outbound.event_pub import EventPubTranslatorConfig
 from fis.adapters.outbound.vault import VaultConfig
-from fis.constants import SERVICE_NAME
 from fis.core.ingest import ServiceConfig
+
+SERVICE_NAME = "fis"
 
 
 @config_from_yaml(prefix=SERVICE_NAME)
@@ -36,6 +38,7 @@ class Config(
     ServiceConfig,
     VaultConfig,
     LoggingConfig,
+    OpenTelemetryConfig,
 ):
     """Config parameters and their defaults."""
 
@@ -49,6 +52,3 @@ class Config(
         ),
         examples=["fileValidations"],
     )
-
-
-CONFIG = Config()  # type: ignore [call-arg]

@@ -21,6 +21,7 @@ from ghga_service_commons.auth.ghga import AuthConfig
 from ghga_service_commons.utils.multinode_storage import S3ObjectStoragesConfig
 from hexkit.config import config_from_yaml
 from hexkit.log import LoggingConfig
+from hexkit.opentelemetry_setup import OpenTelemetryConfig
 from hexkit.providers.akafka import KafkaConfig
 from hexkit.providers.mongodb import MongoDbConfig
 from pydantic import Field
@@ -28,8 +29,9 @@ from pydantic import Field
 from dcs.adapters.inbound.event_sub import EventSubTranslatorConfig
 from dcs.adapters.inbound.fastapi_.configure import DrsApiConfig
 from dcs.adapters.outbound.event_pub import EventPubTranslatorConfig
-from dcs.constants import SERVICE_NAME
 from dcs.core.data_repository import DataRepositoryConfig
+
+SERVICE_NAME = "dcs"
 
 
 class WorkOrderTokenConfig(AuthConfig):
@@ -54,6 +56,7 @@ class Config(
     EventSubTranslatorConfig,
     S3ObjectStoragesConfig,
     LoggingConfig,
+    OpenTelemetryConfig,
 ):
     """Config parameters and their defaults."""
 

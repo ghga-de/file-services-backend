@@ -18,12 +18,14 @@
 from ghga_service_commons.utils.multinode_storage import S3ObjectStoragesConfig
 from hexkit.config import config_from_yaml
 from hexkit.log import LoggingConfig
+from hexkit.opentelemetry_setup import OpenTelemetryConfig
 from hexkit.providers.akafka import KafkaConfig
 from hexkit.providers.mongodb import MongoDbConfig
 
 from ifrs.adapters.inbound.event_sub import EventSubTranslatorConfig
 from ifrs.adapters.outbound.event_pub import EventPubTranslatorConfig
-from ifrs.constants import SERVICE_NAME
+
+SERVICE_NAME = "ifrs"
 
 
 @config_from_yaml(prefix=SERVICE_NAME)
@@ -34,10 +36,8 @@ class Config(
     EventPubTranslatorConfig,
     S3ObjectStoragesConfig,
     LoggingConfig,
+    OpenTelemetryConfig,
 ):
     """Config parameters and their defaults."""
 
     service_name: str = SERVICE_NAME
-
-
-CONFIG = Config()  # type: ignore

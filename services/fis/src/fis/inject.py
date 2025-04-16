@@ -21,7 +21,6 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from ghga_service_commons.utils.context import asyncnullcontext
-from hexkit.opentelemetry_setup import configure_tracer
 from hexkit.providers.mongodb import MongoDbDaoFactory
 from hexkit.providers.mongokafka import PersistentKafkaPublisher
 
@@ -60,8 +59,6 @@ async def prepare_core(
     tuple[UploadMetadataProcessorPort, LegacyUploadMetadataProcessorPort], None
 ]:
     """Constructs and initializes all core components and their outbound dependencies."""
-    configure_tracer(service_name="File Ingest Service")
-
     vault_adapter = VaultAdapter(config=config)
     dao_factory = MongoDbDaoFactory(config=config)
     file_dao = await get_file_dao(dao_factory=dao_factory)

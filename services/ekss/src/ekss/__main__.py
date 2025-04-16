@@ -19,7 +19,7 @@ import asyncio
 
 from ghga_service_commons.api import run_server
 from hexkit.log import configure_logging
-from hexkit.opentelemetry_setup import configure_tracer
+from hexkit.opentelemetry_setup import configure_opentelemetry
 
 from ekss.adapters.inbound.fastapi_.main import (
     setup_app,
@@ -32,7 +32,8 @@ app = setup_app(CONFIG)
 def run(config: Config = CONFIG):
     """Run the service"""
     configure_logging(config=config)
-    configure_tracer(service_name="Encryption Key Store Service")
+    configure_opentelemetry(service_name=config.service_name, config=config)
+
     asyncio.run(run_server(app="ekss.__main__:app", config=config))
 
 

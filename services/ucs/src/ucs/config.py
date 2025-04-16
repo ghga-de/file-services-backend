@@ -19,13 +19,15 @@ from ghga_service_commons.api import ApiConfigBase
 from ghga_service_commons.utils.multinode_storage import S3ObjectStoragesConfig
 from hexkit.config import config_from_yaml
 from hexkit.log import LoggingConfig
+from hexkit.opentelemetry_setup import OpenTelemetryConfig
 from hexkit.providers.akafka import KafkaConfig
 from hexkit.providers.mongodb.migrations import MigrationConfig
 from hexkit.providers.mongokafka import MongoKafkaConfig
 
 from ucs.adapters.inbound.event_sub import EventSubTranslatorConfig
 from ucs.adapters.outbound.event_pub import EventPubTranslatorConfig
-from ucs.constants import SERVICE_NAME
+
+SERVICE_NAME = "ucs"
 
 
 @config_from_yaml(prefix=SERVICE_NAME)
@@ -38,6 +40,7 @@ class Config(
     LoggingConfig,
     EventSubTranslatorConfig,
     EventPubTranslatorConfig,
+    OpenTelemetryConfig,
 ):
     """Config parameters and their defaults."""
 

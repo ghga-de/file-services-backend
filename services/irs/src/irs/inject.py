@@ -63,6 +63,7 @@ async def prepare_core(*, config: Config) -> AsyncGenerator[InterrogatorPort, No
         )
         object_storages = S3ObjectStorages(config=config)
         yield Interrogator(
+            config=config,
             event_publisher=event_publisher,
             fingerprint_dao=fingerprint_dao,
             staging_object_dao=staging_object_dao,

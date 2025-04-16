@@ -18,12 +18,14 @@
 from ghga_service_commons.api import ApiConfigBase
 from hexkit.config import config_from_yaml
 from hexkit.log import LoggingConfig
+from hexkit.opentelemetry_setup import OpenTelemetryConfig
 from hexkit.providers.akafka import KafkaConfig
 from hexkit.providers.mongokafka import MongoKafkaConfig
 
 from pcs.adapters.inbound.fastapi_.config import TokenHashConfig
 from pcs.adapters.outbound.event_pub import EventPubTranslatorConfig
-from pcs.constants import SERVICE_NAME
+
+SERVICE_NAME = "pcs"
 
 
 @config_from_yaml(prefix=SERVICE_NAME)
@@ -34,6 +36,7 @@ class Config(
     TokenHashConfig,
     LoggingConfig,
     EventPubTranslatorConfig,
+    OpenTelemetryConfig,
 ):
     """Config parameters and their defaults."""
 

@@ -18,13 +18,15 @@
 from ghga_service_commons.utils.multinode_storage import S3ObjectStoragesConfig
 from hexkit.config import config_from_yaml
 from hexkit.log import LoggingConfig
+from hexkit.opentelemetry_setup import OpenTelemetryConfig
 from hexkit.providers.mongokafka import MongoKafkaConfig
 from pydantic import Field
 
 from irs.adapters.inbound.event_sub import EventSubTranslatorConfig
 from irs.adapters.outbound.event_pub import EventPubTanslatorConfig
-from irs.constants import SERVICE_NAME
 from irs.core.storage_inspector import StorageInspectorConfig
+
+SERVICE_NAME: str = "irs"
 
 
 @config_from_yaml(prefix=SERVICE_NAME)
@@ -35,6 +37,7 @@ class Config(
     EventPubTanslatorConfig,
     LoggingConfig,
     StorageInspectorConfig,
+    OpenTelemetryConfig,
 ):
     """Config parameters and their defaults."""
 
@@ -44,6 +47,3 @@ class Config(
         examples=["http://ekss:8080"],
         description=("URL pointing to the Encryption Key Store service."),
     )
-
-
-CONFIG = Config()  # type: ignore [call-arg]
