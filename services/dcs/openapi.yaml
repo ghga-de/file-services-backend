@@ -197,6 +197,10 @@ components:
       - type
       title: ValidationError
       type: object
+  securitySchemes:
+    HTTPBearer:
+      scheme: bearer
+      type: http
 info:
   description: "A service managing access to file objects storedon an S3-compatible\
     \ Object Storage. \n\nThis is an implementation of the DRS standard from the Global\
@@ -207,47 +211,31 @@ openapi: 3.1.0
 paths:
   /health:
     get:
-      operationId: traced_function_health_get
-      parameters:
-      - in: query
-        name: args
-        required: true
-        schema:
-          title: Args
-      - in: query
-        name: kwargs
-        required: true
-        schema:
-          title: Kwargs
+      description: Used to test if this service is alive
+      operationId: health_health_get
       responses:
         '200':
           content:
             application/json:
               schema: {}
           description: Successful Response
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
       summary: health
       tags:
       - DownloadControllerService
   /objects/{object_id}:
     get:
+      description: 'Get info about a ``DrsObject``. The object_id parameter refers
+        to the file id
+
+        and **not** the S3 object id.'
       operationId: getDrsObject
       parameters:
-      - in: query
-        name: args
+      - in: path
+        name: object_id
         required: true
         schema:
-          title: Args
-      - in: query
-        name: kwargs
-        required: true
-        schema:
-          title: Kwargs
+          title: Object Id
+          type: string
       responses:
         '200':
           content:
@@ -295,24 +283,29 @@ paths:
                 $ref: '#/components/schemas/HttpInternalServerError'
           description: A configuration or external communication error has occurred
             and details should not be communicated to the client
+      security:
+      - HTTPBearer: []
       summary: Returns object metadata, and a list of access methods that can be used
         to fetch object bytes.
       tags:
       - DownloadControllerService
   /objects/{object_id}/envelopes:
     get:
+      description: 'Retrieve the base64 encoded envelope for a given object based
+        on object id and
+
+        URL safe base64 encoded public key. The object_id parameter refers to the
+        file id
+
+        and **not** the S3 object id.'
       operationId: getEnvelope
       parameters:
-      - in: query
-        name: args
+      - in: path
+        name: object_id
         required: true
         schema:
-          title: Args
-      - in: query
-        name: kwargs
-        required: true
-        schema:
-          title: Kwargs
+          title: Object Id
+          type: string
       responses:
         '200':
           content:
@@ -352,6 +345,8 @@ paths:
                 $ref: '#/components/schemas/HttpInternalServerError'
           description: A configuration or external communication error has occurred
             and details should not be communicated to the client
+      security:
+      - HTTPBearer: []
       summary: Returns base64 encoded, personalized file envelope
       tags:
       - DownloadControllerService
