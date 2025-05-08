@@ -1,5 +1,6 @@
 db_name: dev
 ekss_base_url: http://ekss:8080/
+enable_opentelemetry: false
 file_internally_registered_topic: internal-file-registry
 file_internally_registered_type: file_registered
 file_interrogations_topic: file-interrogations
@@ -35,5 +36,7 @@ object_storages:
       s3_endpoint_url: http://irs:4566
       s3_secret_access_key: '**********'
       s3_session_token: null
+otel_exporter_protocol: http/protobuf
+otel_trace_sampling_rate: 1.0
 service_instance_id: '001'
 service_name: irs

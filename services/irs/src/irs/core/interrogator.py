@@ -25,7 +25,7 @@ from hexkit.utils import calc_part_size
 
 from irs.adapters.outbound.http.api_calls import call_eks_api
 from irs.adapters.outbound.http.exceptions import EnvelopeError, TransientError
-from irs.config import CONFIG
+from irs.config import Config
 from irs.core.models import (
     InterrogationSubject,
     ProcessingResult,
@@ -47,6 +47,7 @@ class Interrogator(InterrogatorPort):
     def __init__(
         self,
         *,
+        config: Config,
         event_publisher: EventPublisherPort,
         fingerprint_dao: FingerprintDaoPort,
         staging_object_dao: StagingObjectDaoPort,
@@ -57,6 +58,7 @@ class Interrogator(InterrogatorPort):
         self._fingerprint_dao = fingerprint_dao
         self._staging_object_dao = staging_object_dao
         self._object_storages = object_storages
+        self._ekss_base_url = config.ekss_base_url
 
     async def _fingerprint_already_seen(
         self, *, fingerprint: UploadReceivedFingerprint
@@ -114,7 +116,7 @@ class Interrogator(InterrogatorPort):
         submitter_secret, new_secret, secret_id, offset = call_eks_api(
             file_part=part,
             public_key=submitter_public_key,
-            api_url=CONFIG.ekss_base_url,
+            api_url=self._ekss_base_url,
         )
 
         # re-encrypt and multipart upload from inbox bucket to staging bucket

@@ -41,6 +41,10 @@ if you update dependencies in the [`./pyproject.toml`](./pyproject.toml) or the
 For more information on development with this monorepo, please see the 
 [Developer Guide](./.readme_generation/dev_guide.md).
 
+## Configuration:
+
+$configuration
+
 ## License
 
 This repository is free to use and modify according to the

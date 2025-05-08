@@ -18,6 +18,7 @@
 from ghga_service_commons.utils.multinode_storage import S3ObjectStoragesConfig
 from hexkit.config import config_from_yaml
 from hexkit.log import LoggingConfig
+from hexkit.opentelemetry_setup import OpenTelemetryConfig
 from hexkit.providers.mongokafka import MongoKafkaConfig
 from pydantic import Field
 
@@ -36,6 +37,7 @@ class Config(
     EventPubTanslatorConfig,
     LoggingConfig,
     StorageInspectorConfig,
+    OpenTelemetryConfig,
 ):
     """Config parameters and their defaults."""
 
@@ -45,6 +47,3 @@ class Config(
         examples=["http://ekss:8080"],
         description=("URL pointing to the Encryption Key Store service."),
     )
-
-
-CONFIG = Config()  # type: ignore [call-arg]
