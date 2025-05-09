@@ -121,6 +121,16 @@
       "title": "Otel Exporter Protocol",
       "type": "string"
     },
+    "otel_exporter_endpoint": {
+      "description": "Base endpoint URL for the collector that receives content from the exporter.",
+      "examples": [
+        "http://localhost:4318"
+      ],
+      "format": "uri",
+      "minLength": 1,
+      "title": "Otel Exporter Endpoint",
+      "type": "string"
+    },
     "object_stale_after_minutes": {
       "description": "Amount of time in minutes after which an object in the staging bucket is considered stale. If an object continues existing after this point in time, this is an indication, that something might have gone wrong downstream.",
       "title": "Object Stale After Minutes",
@@ -404,6 +414,7 @@
     }
   },
   "required": [
+    "otel_exporter_endpoint",
     "object_stale_after_minutes",
     "service_instance_id",
     "file_interrogations_topic",

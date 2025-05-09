@@ -52,6 +52,16 @@ The service requires the following configuration parameters:
 
 - <a id="properties/otel_exporter_protocol"></a>**`otel_exporter_protocol`** *(string)*: Specifies which protocol should be used by exporters. Must be one of: `["grpc", "http/protobuf"]`. Default: `"http/protobuf"`.
 
+- <a id="properties/otel_exporter_endpoint"></a>**`otel_exporter_endpoint`** *(string, format: uri, required)*: Base endpoint URL for the collector that receives content from the exporter. Length must be at least 1.
+
+
+  Examples:
+
+  ```json
+  "http://localhost:4318"
+  ```
+
+
 - <a id="properties/log_level"></a>**`log_level`** *(string)*: The minimum log level to capture. Must be one of: `["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "TRACE"]`. Default: `"INFO"`.
 
 - <a id="properties/service_name"></a>**`service_name`** *(string)*: Default: `"fis"`.

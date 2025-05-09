@@ -16,7 +16,7 @@
 """Top-level object construction and dependency injection"""
 
 from hexkit.log import configure_logging
-from hexkit.opentelemetry_setup import configure_opentelemetry
+from hexkit.opentelemetry import configure_opentelemetry
 
 from irs.config import Config
 from irs.inject import (

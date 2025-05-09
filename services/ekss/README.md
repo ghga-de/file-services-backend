@@ -102,6 +102,16 @@ The service requires the following configuration parameters:
 
 - <a id="properties/otel_exporter_protocol"></a>**`otel_exporter_protocol`** *(string)*: Specifies which protocol should be used by exporters. Must be one of: `["grpc", "http/protobuf"]`. Default: `"http/protobuf"`.
 
+- <a id="properties/otel_exporter_endpoint"></a>**`otel_exporter_endpoint`** *(string, format: uri, required)*: Base endpoint URL for the collector that receives content from the exporter. Length must be at least 1.
+
+
+  Examples:
+
+  ```json
+  "http://localhost:4318"
+  ```
+
+
 - <a id="properties/server_private_key_path"></a>**`server_private_key_path`** *(string, format: path, required)*: Path to the Crypt4GH private key file.
 
 
