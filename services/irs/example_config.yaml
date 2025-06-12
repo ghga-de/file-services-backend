@@ -9,6 +9,7 @@ file_upload_received_type: file_upload_received
 generate_correlation_id: true
 interrogation_failure_type: file_interrogation_failure
 interrogation_success_type: file_interrogation_success
+kafka_compression_type: null
 kafka_dlq_topic: dlq
 kafka_enable_dlq: true
 kafka_max_message_size: 1048576
