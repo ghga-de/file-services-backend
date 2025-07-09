@@ -39,7 +39,7 @@ botocore==1.39.3
     #   boto3
     #   hexkit
     #   s3transfer
-certifi==2025.6.15
+certifi==2025.7.9
     # via
     #   -c lock/requirements-dev.txt
     #   httpcore
@@ -113,7 +113,7 @@ h11==0.16.0
     #   -c lock/requirements-dev.txt
     #   httpcore
     #   uvicorn
-hexkit @ git+https://github.com/ghga-de/hexkit@5051c2348c4947fbf1e908c2af4128a92327a605#fix/add_otel_setup_logging
+hexkit @ git+https://github.com/ghga-de/hexkit@52f5de46780d53aa37b22293292a07176f3932e9
     # via
     #   -c lock/requirements-dev.txt
     #   fsb (pyproject.toml)
