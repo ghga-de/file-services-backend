@@ -17,16 +17,16 @@ attrs==25.3.0
     #   referencing
 bcrypt==4.3.0
     # via crypt4gh
-boto3==1.39.4
+boto3==1.39.3
     # via hexkit
-botocore==1.39.4
+botocore==1.39.3
     # via
     #   boto3
     #   hexkit
     #   s3transfer
 casefy==1.1.0
     # via -r lock/requirements-dev-template.in
-certifi==2025.7.14
+certifi==2025.7.9
     # via
     #   httpcore
     #   httpx
@@ -88,7 +88,7 @@ h11==0.16.0
     # via
     #   httpcore
     #   uvicorn
-hexkit @ git+https://github.com/ghga-de/hexkit@5051c2348c4947fbf1e908c2af4128a92327a605
+hexkit @ git+https://github.com/ghga-de/hexkit@f064683a061e55e115ba340870a7421719ca7d3b
     # via
     #   fsb (pyproject.toml)
     #   ghga-service-commons
@@ -140,7 +140,7 @@ mdurl==0.1.2
     # via markdown-it-py
 motor==3.7.1
     # via hexkit
-mypy==1.17.0
+mypy==1.16.1
     # via -r lock/requirements-dev-template.in
 mypy-extensions==1.1.0
     # via
@@ -148,7 +148,7 @@ mypy-extensions==1.1.0
     #   mypy
 nodeenv==1.9.1
     # via pre-commit
-opentelemetry-api==1.35.0
+opentelemetry-api==1.34.1
     # via
     #   hexkit
     #   opentelemetry-exporter-otlp-proto-grpc
@@ -163,17 +163,17 @@ opentelemetry-api==1.35.0
     #   opentelemetry-propagator-aws-xray
     #   opentelemetry-sdk
     #   opentelemetry-semantic-conventions
-opentelemetry-exporter-otlp==1.35.0
+opentelemetry-exporter-otlp==1.34.1
     # via hexkit
-opentelemetry-exporter-otlp-proto-common==1.35.0
+opentelemetry-exporter-otlp-proto-common==1.34.1
     # via
     #   opentelemetry-exporter-otlp-proto-grpc
     #   opentelemetry-exporter-otlp-proto-http
-opentelemetry-exporter-otlp-proto-grpc==1.35.0
+opentelemetry-exporter-otlp-proto-grpc==1.34.1
     # via opentelemetry-exporter-otlp
-opentelemetry-exporter-otlp-proto-http==1.35.0
+opentelemetry-exporter-otlp-proto-http==1.34.1
     # via opentelemetry-exporter-otlp
-opentelemetry-instrumentation==0.56b0
+opentelemetry-instrumentation==0.55b1
     # via
     #   hexkit
     #   opentelemetry-instrumentation-aiokafka
@@ -182,31 +182,31 @@ opentelemetry-instrumentation==0.56b0
     #   opentelemetry-instrumentation-fastapi
     #   opentelemetry-instrumentation-httpx
     #   opentelemetry-instrumentation-pymongo
-opentelemetry-instrumentation-aiokafka==0.56b0
+opentelemetry-instrumentation-aiokafka==0.55b1
     # via hexkit
-opentelemetry-instrumentation-asgi==0.56b0
+opentelemetry-instrumentation-asgi==0.55b1
     # via opentelemetry-instrumentation-fastapi
-opentelemetry-instrumentation-botocore==0.56b0
+opentelemetry-instrumentation-botocore==0.55b1
     # via hexkit
-opentelemetry-instrumentation-fastapi==0.56b0
+opentelemetry-instrumentation-fastapi==0.55b1
     # via hexkit
-opentelemetry-instrumentation-httpx==0.56b0
+opentelemetry-instrumentation-httpx==0.55b1
     # via hexkit
-opentelemetry-instrumentation-pymongo==0.56b0
+opentelemetry-instrumentation-pymongo==0.55b1
     # via hexkit
 opentelemetry-propagator-aws-xray==1.0.2
     # via opentelemetry-instrumentation-botocore
-opentelemetry-proto==1.35.0
+opentelemetry-proto==1.34.1
     # via
     #   opentelemetry-exporter-otlp-proto-common
     #   opentelemetry-exporter-otlp-proto-grpc
     #   opentelemetry-exporter-otlp-proto-http
-opentelemetry-sdk==1.35.0
+opentelemetry-sdk==1.34.1
     # via
     #   hexkit
     #   opentelemetry-exporter-otlp-proto-grpc
     #   opentelemetry-exporter-otlp-proto-http
-opentelemetry-semantic-conventions==0.56b0
+opentelemetry-semantic-conventions==0.55b1
     # via
     #   opentelemetry-instrumentation
     #   opentelemetry-instrumentation-aiokafka
@@ -216,7 +216,7 @@ opentelemetry-semantic-conventions==0.56b0
     #   opentelemetry-instrumentation-httpx
     #   opentelemetry-instrumentation-pymongo
     #   opentelemetry-sdk
-opentelemetry-util-http==0.56b0
+opentelemetry-util-http==0.55b1
     # via
     #   opentelemetry-instrumentation-asgi
     #   opentelemetry-instrumentation-fastapi
@@ -236,7 +236,7 @@ pluggy==1.6.0
     #   pytest-cov
 pre-commit==4.2.0
     # via -r lock/requirements-dev-template.in
-protobuf==6.31.1
+protobuf==5.29.5
     # via
     #   googleapis-common-protos
     #   opentelemetry-proto
@@ -307,7 +307,7 @@ rpds-py==0.26.0
     # via
     #   jsonschema
     #   referencing
-ruff==0.12.3
+ruff==0.12.2
     # via -r lock/requirements-dev-template.in
 s3transfer==0.13.0
     # via boto3
@@ -363,7 +363,7 @@ urllib3==2.5.0
     #   docker
     #   requests
     #   testcontainers
-uv==0.7.21
+uv==0.7.19
     # via -r lock/requirements-dev-template.in
 uvicorn==0.34.3
     # via ghga-service-commons
