@@ -74,7 +74,7 @@ jobs:
 
       - name: Prepare Dockerfile
         id: prepare-dockerfile
-        run: cp Dockerfile services/${{ matrix.service }}/ && sed -i "s/\(ENTRYPOINT \)\[\]/\1[\"${{ matrix.service }}\"]/" services/${{ matrix.service }}/Dockerfile
+        run: cp Dockerfile services/${{ matrix.service }}/ && sed -i "s/\(ENTRYPOINT \)\[\]/\1[\"opentelemetry-instrument\", \"${{ matrix.service }}\"]/" services/${{ matrix.service }}/Dockerfile
 
       - uses: docker/setup-qemu-action@v3
         name: Set up QEMU
