@@ -90,7 +90,7 @@ h11==0.16.0
     # via
     #   httpcore
     #   uvicorn
-hexkit @ git+https://github.com/ghga-de/hexkit@92762b3ae00faf34ea741be614e24de8ceb205ae
+hexkit @ git+https://github.com/ghga-de/hexkit@367ad28d9afbca4a987d7cb02e66017ed381ae3f
     # via
     #   fsb (pyproject.toml)
     #   ghga-service-commons
