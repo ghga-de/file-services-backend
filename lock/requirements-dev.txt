@@ -15,11 +15,13 @@ attrs==25.3.0
     # via
     #   jsonschema
     #   referencing
+babel==2.17.0
+    # via jsonschema2md
 bcrypt==4.3.0
     # via crypt4gh
-boto3==1.39.4
+boto3==1.39.7
     # via hexkit
-botocore==1.39.4
+botocore==1.39.7
     # via
     #   boto3
     #   hexkit
@@ -88,7 +90,7 @@ h11==0.16.0
     # via
     #   httpcore
     #   uvicorn
-hexkit @ git+https://github.com/ghga-de/hexkit@5051c2348c4947fbf1e908c2af4128a92327a605
+hexkit @ git+https://github.com/ghga-de/hexkit@92762b3ae00faf34ea741be614e24de8ceb205ae
     # via
     #   fsb (pyproject.toml)
     #   ghga-service-commons
@@ -126,13 +128,13 @@ jsonschema==4.24.0
     #   hexkit
 jsonschema-specifications==2025.4.1
     # via jsonschema
-jsonschema2md==1.5.2
+jsonschema2md==1.6.1
     # via -r lock/requirements-dev-template.in
 jwcrypto==1.5.6
     # via ghga-service-commons
 logot==1.4.0
     # via -r lock/requirements-dev-template.in
-markdown==3.7
+markdown==3.8.2
     # via jsonschema2md
 markdown-it-py==3.0.0
     # via rich
@@ -151,6 +153,7 @@ nodeenv==1.9.1
 opentelemetry-api==1.35.0
     # via
     #   hexkit
+    #   opentelemetry-distro
     #   opentelemetry-exporter-otlp-proto-grpc
     #   opentelemetry-exporter-otlp-proto-http
     #   opentelemetry-instrumentation
@@ -163,6 +166,8 @@ opentelemetry-api==1.35.0
     #   opentelemetry-propagator-aws-xray
     #   opentelemetry-sdk
     #   opentelemetry-semantic-conventions
+opentelemetry-distro==0.56b0
+    # via hexkit
 opentelemetry-exporter-otlp==1.35.0
     # via hexkit
 opentelemetry-exporter-otlp-proto-common==1.35.0
@@ -176,6 +181,7 @@ opentelemetry-exporter-otlp-proto-http==1.35.0
 opentelemetry-instrumentation==0.56b0
     # via
     #   hexkit
+    #   opentelemetry-distro
     #   opentelemetry-instrumentation-aiokafka
     #   opentelemetry-instrumentation-asgi
     #   opentelemetry-instrumentation-botocore
@@ -204,6 +210,7 @@ opentelemetry-proto==1.35.0
 opentelemetry-sdk==1.35.0
     # via
     #   hexkit
+    #   opentelemetry-distro
     #   opentelemetry-exporter-otlp-proto-grpc
     #   opentelemetry-exporter-otlp-proto-http
 opentelemetry-semantic-conventions==0.56b0
@@ -271,7 +278,7 @@ pytest==8.4.1
     #   pytest-asyncio
     #   pytest-cov
     #   pytest-httpx
-pytest-asyncio==1.0.0
+pytest-asyncio==1.1.0
     # via -r lock/requirements-dev-template.in
 pytest-cov==6.2.1
     # via -r lock/requirements-dev-template.in

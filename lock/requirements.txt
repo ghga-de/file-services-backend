@@ -29,11 +29,11 @@ bcrypt==4.3.0
     # via
     #   -c lock/requirements-dev.txt
     #   crypt4gh
-boto3==1.39.4
+boto3==1.39.7
     # via
     #   -c lock/requirements-dev.txt
     #   hexkit
-botocore==1.39.4
+botocore==1.39.7
     # via
     #   -c lock/requirements-dev.txt
     #   boto3
@@ -113,7 +113,7 @@ h11==0.16.0
     #   -c lock/requirements-dev.txt
     #   httpcore
     #   uvicorn
-hexkit @ git+https://github.com/ghga-de/hexkit@5051c2348c4947fbf1e908c2af4128a92327a605
+hexkit @ git+https://github.com/ghga-de/hexkit@92762b3ae00faf34ea741be614e24de8ceb205ae
     # via
     #   -c lock/requirements-dev.txt
     #   fsb (pyproject.toml)
@@ -180,6 +180,7 @@ opentelemetry-api==1.35.0
     # via
     #   -c lock/requirements-dev.txt
     #   hexkit
+    #   opentelemetry-distro
     #   opentelemetry-exporter-otlp-proto-grpc
     #   opentelemetry-exporter-otlp-proto-http
     #   opentelemetry-instrumentation
@@ -192,6 +193,10 @@ opentelemetry-api==1.35.0
     #   opentelemetry-propagator-aws-xray
     #   opentelemetry-sdk
     #   opentelemetry-semantic-conventions
+opentelemetry-distro==0.56b0
+    # via
+    #   -c lock/requirements-dev.txt
+    #   hexkit
 opentelemetry-exporter-otlp==1.35.0
     # via
     #   -c lock/requirements-dev.txt
@@ -213,6 +218,7 @@ opentelemetry-instrumentation==0.56b0
     # via
     #   -c lock/requirements-dev.txt
     #   hexkit
+    #   opentelemetry-distro
     #   opentelemetry-instrumentation-aiokafka
     #   opentelemetry-instrumentation-asgi
     #   opentelemetry-instrumentation-botocore
@@ -257,6 +263,7 @@ opentelemetry-sdk==1.35.0
     # via
     #   -c lock/requirements-dev.txt
     #   hexkit
+    #   opentelemetry-distro
     #   opentelemetry-exporter-otlp-proto-grpc
     #   opentelemetry-exporter-otlp-proto-http
 opentelemetry-semantic-conventions==0.56b0
