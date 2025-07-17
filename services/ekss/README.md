@@ -100,18 +100,6 @@ The service requires the following configuration parameters:
 
 - <a id="properties/otel_trace_sampling_rate"></a>**`otel_trace_sampling_rate`** *(number)*: Determines which proportion of spans should be sampled. A value of 1.0 means all and is equivalent to the previous behaviour. Setting this to 0 will result in no spans being sampled, but this does not automatically set `enable_opentelemetry` to False. Minimum: `0`. Maximum: `1`. Default: `1.0`.
 
-- <a id="properties/otel_exporter_protocol"></a>**`otel_exporter_protocol`** *(string)*: Specifies which protocol should be used by exporters. Must be one of: `["grpc", "http/protobuf"]`. Default: `"http/protobuf"`.
-
-- <a id="properties/otel_exporter_endpoint"></a>**`otel_exporter_endpoint`** *(string, format: uri, required)*: Base endpoint URL for the collector that receives content from the exporter. Length must be at least 1.
-
-
-  Examples:
-
-  ```json
-  "http://localhost:4318"
-  ```
-
-
 - <a id="properties/server_private_key_path"></a>**`server_private_key_path`** *(string, format: path, required)*: Path to the Crypt4GH private key file.
 
 
@@ -140,7 +128,7 @@ The service requires the following configuration parameters:
 
     - <a id="properties/private_key_passphrase/anyOf/1"></a>*null*
 
-- <a id="properties/log_level"></a>**`log_level`** *(string)*: The minimum log level to capture. Must be one of: `["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "TRACE"]`. Default: `"INFO"`.
+- <a id="properties/log_level"></a>**`log_level`** *(string)*: The minimum log level to capture. Must be one of: "CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", or "TRACE". Default: `"INFO"`.
 
 - <a id="properties/service_name"></a>**`service_name`** *(string)*: Default: `"ekss"`.
 
