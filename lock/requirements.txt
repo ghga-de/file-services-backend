@@ -113,7 +113,7 @@ h11==0.16.0
     #   -c lock/requirements-dev.txt
     #   httpcore
     #   uvicorn
-hexkit @ git+https://github.com/ghga-de/hexkit@367ad28d9afbca4a987d7cb02e66017ed381ae3f
+hexkit @ git+https://github.com/ghga-de/hexkit@7e8285ccf5f873265ac73050125d41e3b2c17750
     # via
     #   -c lock/requirements-dev.txt
     #   fsb (pyproject.toml)
