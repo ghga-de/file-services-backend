@@ -26,7 +26,7 @@ from opentelemetry import trace
 from pydantic import Field, SecretStr, ValidationError
 from pydantic_settings import BaseSettings
 
-from fis.config import SERVICE_NAME
+from fis.constants import SERVICE_NAME
 from fis.core import models
 from fis.ports.inbound.ingest import (
     DecryptionError,

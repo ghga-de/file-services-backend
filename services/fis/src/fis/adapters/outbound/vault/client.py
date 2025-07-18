@@ -24,7 +24,7 @@ from opentelemetry import trace
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings
 
-from fis.config import SERVICE_NAME
+from fis.constants import SERVICE_NAME
 from fis.ports.outbound.vault.client import VaultAdapterPort
 
 tracer = trace.get_tracer(SERVICE_NAME)
