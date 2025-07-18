@@ -14,6 +14,8 @@
 # limitations under the License.
 """REST API configuration and function for CLI"""
 
+import logging
+
 from ghga_service_commons.api import run_server
 from hexkit.log import configure_logging
 from opentelemetry import trace
@@ -26,6 +28,9 @@ from opentelemetry.sdk.trace.sampling import ParentBasedTraceIdRatio
 from fis.config import Config
 from fis.inject import get_persistent_publisher, prepare_rest_app
 from fis.migrations import run_db_migrations
+from fis.opentelemetry import is_tracer_initialized
+
+logger = logging.getLogger(__name__)
 
 DB_VERSION = 2
 
@@ -35,6 +40,7 @@ async def run_rest():
     config = Config()
     configure_logging(config=config)
     configure_opentelemetry(config=config)
+    logger.info(f"Tracer is enabled: {is_tracer_initialized()}")
 
     await run_db_migrations(config=config, target_version=DB_VERSION)
 
@@ -47,6 +53,7 @@ async def publish_events(*, all: bool = False):
     config = Config()
     configure_logging(config=config)
     configure_opentelemetry(config=config)
+    logger.info(f"Tracer is enabled: {is_tracer_initialized()}")
 
     await run_db_migrations(config=config, target_version=DB_VERSION)
 

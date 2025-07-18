@@ -34,11 +34,17 @@ TRACER: Optional["SpanTracer"] = None
 logger = logging.getLogger(__name__)
 
 
+def is_tracer_initialized() -> bool:
+    """Check if the tracer is initialized."""
+    return TRACER is not None
+
+
 class SpanTracer:
     """Custom tracer class providing a decorator to autpopulate span names."""
 
     def __init__(self, name):
-        self.tracer = trace.get_tracer(name)
+        logger.debug("Initializing SpanTracer for %s", name)
+        self.tracer = trace.get_tracer_provider().get_tracer(name)
 
     def start_span(
         self, *, record_exception: bool = False, set_status_on_exception: bool = False
@@ -115,10 +121,10 @@ def configure_opentelemetry(*, service_name: str, config: OpenTelemetryConfig):
         sampler = ParentBasedTraceIdRatio(rate=config.otel_trace_sampling_rate)
 
         # Initialize service specific TracerProvider
-        trace_provider = TracerProvider(resource=resource, sampler=sampler)
+        tracer_provider = TracerProvider(resource=resource, sampler=sampler)
         processor = BatchSpanProcessor(OTLPSpanExporter())
-        trace_provider.add_span_processor(processor)
-        trace.set_tracer_provider(trace_provider)
+        tracer_provider.add_span_processor(processor)
+        trace.set_tracer_provider(tracer_provider)
         TRACER = SpanTracer(service_name)
     else:
         # Currently OTEL_SDK_DISABLED doesn't seem to be honored by all implementations yet
