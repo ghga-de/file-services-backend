@@ -22,7 +22,7 @@ from hexkit.log import configure_logging
 from fis.config import Config
 from fis.inject import get_persistent_publisher, prepare_rest_app
 from fis.migrations import run_db_migrations
-from fis.opentelemetry import configure_opentelemetry, is_tracer_initialized
+from fis.opentelemetry import configure_opentelemetry
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,6 @@ async def run_rest():
     config = Config()
     configure_logging(config=config)
     configure_opentelemetry(service_name=config.service_name, config=config)
-    logger.info(f"Tracer is enabled: {is_tracer_initialized()}")
 
     await run_db_migrations(config=config, target_version=DB_VERSION)
 
@@ -47,7 +46,6 @@ async def publish_events(*, all: bool = False):
     config = Config()
     configure_logging(config=config)
     configure_opentelemetry(service_name=config.service_name, config=config)
-    logger.info(f"Tracer is enabled: {is_tracer_initialized()}")
 
     await run_db_migrations(config=config, target_version=DB_VERSION)
 
