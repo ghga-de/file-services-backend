@@ -25,6 +25,7 @@ from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings
 
 from fis.constants import SERVICE_NAME
+from fis.opentelemetry import start_span
 from fis.ports.outbound.vault.client import VaultAdapterPort
 
 tracer = trace.get_tracer(SERVICE_NAME)
@@ -135,7 +136,7 @@ class VaultAdapter(VaultAdapterPort):
                 role_id=self._role_id, secret_id=self._secret_id
             )
 
-    @tracer.start_as_current_span(name="VaultAdapter.store_secret")
+    @start_span()
     def store_secret(self, *, secret: SecretStr) -> str:
         """
         Store a secret under a subpath of the given prefix.
