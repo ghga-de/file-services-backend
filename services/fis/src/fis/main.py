@@ -16,7 +16,12 @@
 
 from ghga_service_commons.api import run_server
 from hexkit.log import configure_logging
-from hexkit.opentelemetry import configure_opentelemetry
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.resources import SERVICE_NAME, Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.sdk.trace.sampling import ParentBasedTraceIdRatio
 
 from fis.config import Config
 from fis.inject import get_persistent_publisher, prepare_rest_app
@@ -29,7 +34,7 @@ async def run_rest():
     """Run the HTTP REST API."""
     config = Config()
     configure_logging(config=config)
-    configure_opentelemetry(service_name=config.service_name, config=config)
+    configure_opentelemetry(config=config)
 
     await run_db_migrations(config=config, target_version=DB_VERSION)
 
@@ -41,7 +46,7 @@ async def publish_events(*, all: bool = False):
     """Publish pending events. Set `--all` to (re)publish all events regardless of status."""
     config = Config()
     configure_logging(config=config)
-    configure_opentelemetry(service_name=config.service_name, config=config)
+    configure_opentelemetry(config=config)
 
     await run_db_migrations(config=config, target_version=DB_VERSION)
 
@@ -50,3 +55,15 @@ async def publish_events(*, all: bool = False):
             await persistent_publisher.republish()
         else:
             await persistent_publisher.publish_pending()
+
+
+def configure_opentelemetry(config: Config):
+    """Configure OpenTelemetry for the service."""
+    resource = Resource(attributes={SERVICE_NAME: config.service_name})
+    sampler = ParentBasedTraceIdRatio(rate=config.otel_trace_sampling_rate)
+
+    # Initialize service specific TracerProvider
+    trace_provider = TracerProvider(resource=resource, sampler=sampler)
+    processor = BatchSpanProcessor(OTLPSpanExporter())
+    trace_provider.add_span_processor(processor)
+    trace.set_tracer_provider(trace_provider)
