@@ -17,7 +17,7 @@
 import logging
 import os
 from collections.abc import Callable
-from typing import Annotated, Optional
+from typing import Annotated
 
 from opentelemetry import trace
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
@@ -29,42 +29,19 @@ from opentelemetry.sdk.trace.sampling import ParentBasedTraceIdRatio
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
-TRACER: Optional["SpanTracer"] = None
-
 logger = logging.getLogger(__name__)
 
 
-def is_tracer_initialized() -> bool:
-    """Check if the tracer is initialized."""
-    return TRACER is not None
+def start_span(function: Callable):
+    """Decorator to start a span for the given function."""
 
+    def traced_function(*args, **kwargs):
+        name = function.__qualname__
+        tracer = trace.get_tracer_provider().get_tracer(SERVICE_NAME)
+        with tracer.start_as_current_span(name):
+            return function(*args, **kwargs)
 
-class SpanTracer:
-    """Custom tracer class providing a decorator to autpopulate span names."""
-
-    def __init__(self, name):
-        logger.debug("Initializing SpanTracer for %s", name)
-        self.tracer = trace.get_tracer_provider().get_tracer(name)
-
-    def start_span(
-        self, *, record_exception: bool = False, set_status_on_exception: bool = False
-    ):
-        """Decorator function starting a span populated with the __qualname__ of the wrapped function"""
-
-        def outer_wrapper(function: Callable):
-            def traced_function(*args, **kwargs):
-                name = function.__qualname__
-                logger.debug(" Starting span for function %s", name)
-                with self.tracer.start_as_current_span(
-                    name,
-                    record_exception=record_exception,
-                    set_status_on_exception=set_status_on_exception,
-                ):
-                    return function(*args, **kwargs)
-
-            return traced_function
-
-        return outer_wrapper
+    return traced_function
 
 
 class OpenTelemetryConfig(BaseSettings):
@@ -91,26 +68,11 @@ def configure_opentelemetry(*, service_name: str, config: OpenTelemetryConfig):
     Setup of the TracerProvider is done programmatically and if OpenTelemetry is set to
     be disabled, OTEL_SDK_DISABLED is set to true instead.
     """
-    global TRACER
-
-    for key in os.environ:
-        if key.startswith("OTEL_"):
-            logger.warning(
-                "OTEL Environment variable %s is set to %s. ", key, os.environ[key]
-            )
-
     if config.enable_opentelemetry:
         logger.info(
             "OpenTelemetry is enabled, setting up TracerProvider and SpanTracer for service %s",
             service_name,
         )
-        if TRACER is not None:
-            logger.warning(
-                "OpenTelemetry configuration code should only be run once. "
-                "If it has been run with a different service name than %s before, "
-                "the tracer and resource name will likely be wrong in some cases.",
-                service_name,
-            )
         resource = Resource(attributes={SERVICE_NAME: service_name})
         # Replace the default static sampler with a probabilistic one that honors parent
         # span sampling decisions
@@ -125,7 +87,6 @@ def configure_opentelemetry(*, service_name: str, config: OpenTelemetryConfig):
         processor = BatchSpanProcessor(OTLPSpanExporter())
         tracer_provider.add_span_processor(processor)
         trace.set_tracer_provider(tracer_provider)
-        TRACER = SpanTracer(service_name)
     else:
         # Currently OTEL_SDK_DISABLED doesn't seem to be honored by all implementations yet
         # It seems to be working well enough for the Python implementation
@@ -134,30 +95,3 @@ def configure_opentelemetry(*, service_name: str, config: OpenTelemetryConfig):
         )
         os.environ[OTEL_SDK_DISABLED] = "true"
         logger.debug("Setting OTEL_SDK_DISABLED to true")
-
-
-def start_span(
-    *,
-    record_exception: bool = True,
-    set_status_on_exception: bool = True,
-) -> Callable:
-    """Returns decorated or undecorated function depending on if TRACER is instantiated.
-
-    Should be used as a decorator.
-    """
-
-    def wrapper(function: Callable):
-        # Caller did not have any time to populate from config yet or otel is disabled
-        if TRACER is None:
-            logger.debug(
-                "Could not decorate function %s to start a span.", function.__qualname__
-            )
-            return function
-        # Return decorated function
-        logger.debug("Decorating function %s to start a span.", function.__qualname__)
-        return TRACER.start_span(
-            record_exception=record_exception,
-            set_status_on_exception=set_status_on_exception,
-        )(function)
-
-    return wrapper

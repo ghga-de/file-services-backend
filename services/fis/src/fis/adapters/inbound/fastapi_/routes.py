@@ -18,14 +18,12 @@ from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Response, status
 from fastapi.responses import JSONResponse
-from opentelemetry import trace
 
 from fis.adapters.inbound.fastapi_ import dummies
 from fis.adapters.inbound.fastapi_.http_authorization import (
     IngestTokenAuthContext,
     require_token,
 )
-from fis.constants import SERVICE_NAME
 from fis.core.models import EncryptedPayload, UploadMetadata
 from fis.opentelemetry import start_span
 from fis.ports.inbound.ingest import (
@@ -34,11 +32,10 @@ from fis.ports.inbound.ingest import (
     WrongDecryptedFormatError,
 )
 
-tracer = trace.get_tracer(SERVICE_NAME)
 router = APIRouter()
 
 
-@start_span()
+@start_span
 @router.get(
     "/health",
     summary="health",
@@ -50,7 +47,7 @@ async def health():
     return {"status": "OK"}
 
 
-@start_span()
+@start_span
 @router.post(
     "/legacy/ingest",
     summary="Processes encrypted output data from the S3 upload script and ingests it "
@@ -112,7 +109,7 @@ async def ingest_legacy_metadata(
     return Response(status_code=202)
 
 
-@start_span()
+@start_span
 @router.post(
     "/federated/ingest_metadata",
     summary="Processes encrypted output data from the S3 upload script and ingests it "
@@ -150,7 +147,7 @@ async def ingest_metadata(
     return Response(status_code=202)
 
 
-@start_span()
+@start_span
 @router.post(
     "/federated/ingest_secret",
     summary="Store file encryption/decryption secret and return secret ID.",

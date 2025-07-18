@@ -19,9 +19,9 @@ babel==2.17.0
     # via jsonschema2md
 bcrypt==4.3.0
     # via crypt4gh
-boto3==1.39.7
+boto3==1.39.8
     # via hexkit
-botocore==1.39.7
+botocore==1.39.8
     # via
     #   boto3
     #   hexkit
@@ -58,7 +58,7 @@ cryptography==45.0.5
     # via
     #   crypt4gh
     #   jwcrypto
-distlib==0.3.9
+distlib==0.4.0
     # via virtualenv
 dnspython==2.7.0
     # via
@@ -122,7 +122,7 @@ jmespath==1.0.1
     # via
     #   boto3
     #   botocore
-jsonschema==4.24.0
+jsonschema==4.24.1
     # via
     #   ghga-event-schemas
     #   hexkit
@@ -314,7 +314,7 @@ rpds-py==0.26.0
     # via
     #   jsonschema
     #   referencing
-ruff==0.12.3
+ruff==0.12.4
     # via -r lock/requirements-dev-template.in
 s3transfer==0.13.0
     # via boto3
@@ -370,7 +370,7 @@ urllib3==2.5.0
     #   docker
     #   requests
     #   testcontainers
-uv==0.7.21
+uv==0.8.0
     # via -r lock/requirements-dev-template.in
 uvicorn==0.34.3
     # via ghga-service-commons
