@@ -31,15 +31,21 @@ from pydantic_settings import BaseSettings
 
 logger = logging.getLogger(__name__)
 
+CONFIGURED = False
+
 
 def start_span(function: Callable):
     """Decorator to start a span for the given function."""
 
     def traced_function(*args, **kwargs):
         name = function.__qualname__
+        if not CONFIGURED:
+            configure_opentelemetry(
+                service_name=SERVICE_NAME,
+                config=OpenTelemetryConfig(enable_opentelemetry=True),
+            )
         tracer = trace.get_tracer_provider().get_tracer(SERVICE_NAME)
-        span = tracer.start_span(name)
-        with trace.use_span(span, end_on_exit=False):
+        with tracer.start_as_current_span(name):
             return function(*args, **kwargs)
 
     return traced_function
@@ -69,6 +75,7 @@ def configure_opentelemetry(*, service_name: str, config: OpenTelemetryConfig):
     Setup of the TracerProvider is done programmatically and if OpenTelemetry is set to
     be disabled, OTEL_SDK_DISABLED is set to true instead.
     """
+    global CONFIGURED
     if config.enable_opentelemetry:
         logger.info(
             "OpenTelemetry is enabled, setting up TracerProvider and SpanTracer for service %s",
@@ -96,3 +103,4 @@ def configure_opentelemetry(*, service_name: str, config: OpenTelemetryConfig):
         )
         os.environ[OTEL_SDK_DISABLED] = "true"
         logger.debug("Setting OTEL_SDK_DISABLED to true")
+    CONFIGURED = True
