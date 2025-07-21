@@ -38,7 +38,8 @@ def start_span(function: Callable):
     def traced_function(*args, **kwargs):
         name = function.__qualname__
         tracer = trace.get_tracer_provider().get_tracer(SERVICE_NAME)
-        with tracer.start_as_current_span(name):
+        span = tracer.start_span(name)
+        with trace.use_span(span, end_on_exit=False):
             return function(*args, **kwargs)
 
     return traced_function
