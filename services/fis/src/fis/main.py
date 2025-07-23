@@ -15,10 +15,27 @@
 """REST API configuration and function for CLI"""
 
 import logging
+import os
 
 from ghga_service_commons.api import run_server
 from hexkit.log import configure_logging
-from hexkit.opentelemetry import configure_opentelemetry
+from hexkit.opentelemetry import OpenTelemetryConfig
+from opentelemetry import trace
+from opentelemetry.environment_variables import (
+    OTEL_LOGS_EXPORTER,
+    OTEL_METRICS_EXPORTER,
+    OTEL_TRACES_EXPORTER,
+)
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.environment_variables import (
+    OTEL_EXPORTER_OTLP_ENDPOINT,
+    OTEL_EXPORTER_OTLP_PROTOCOL,
+    OTEL_SDK_DISABLED,
+)
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.sdk.trace.sampling import ParentBasedTraceIdRatio
 
 from fis.config import Config
 from fis.constants import SERVICE_NAME
@@ -28,6 +45,49 @@ from fis.migrations import run_db_migrations
 logger = logging.getLogger(__name__)
 
 DB_VERSION = 2
+
+
+def configure_opentelemetry(*, service_name: str, config: OpenTelemetryConfig):
+    """Configure all needed parts of OpenTelemetry.
+
+    Setup of the TracerProvider is done programmatically, all other configuration exports
+    OpenTelemetry specific environment variables.
+    """
+    # opentelemetry distro sets this to grpc, but in the current context http/protobuf is preferred
+    os.environ[OTEL_EXPORTER_OTLP_PROTOCOL] = config.otel_exporter_protocol
+    os.environ[OTEL_EXPORTER_OTLP_ENDPOINT] = str(config.otel_exporter_endpoint)
+    # Disable OpenTelemetry metrics and logs explicitly as they are not processed in the backend currently
+    # This overwrites the defaults of `otlp` set in opentelemetry distro
+    os.environ[OTEL_METRICS_EXPORTER] = "none"
+    os.environ[OTEL_LOGS_EXPORTER] = "none"
+
+    if config.enable_opentelemetry:
+        logger.info(
+            "OpenTelemetry is enabled, setting up TracerProvider for service %s",
+            service_name,
+        )
+        resource = Resource(attributes={SERVICE_NAME: service_name})
+        # Replace the default static sampler with a probabilistic one that honors parent
+        # span sampling decisions
+        # This should consistently yield full traces within a service but not necessarily
+        # across service boundaries
+        # With the default sampling rate, behaviour does not change, but this allows to
+        # introduce head sampling by adjusting a config option on the service side later on
+        sampler = ParentBasedTraceIdRatio(rate=config.otel_trace_sampling_rate)
+
+        # Initialize service specific TracerProvider
+        trace_provider = TracerProvider(resource=resource, sampler=sampler)
+        processor = BatchSpanProcessor(OTLPSpanExporter())
+        trace_provider.add_span_processor(processor)
+        trace.set_tracer_provider(trace_provider)
+    else:
+        # Currently OTEL_SDK_DISABLED doesn't seem to be honored by all implementations yet
+        # It seems to be working well enough for the Python implementation
+        logger.info(
+            "OpenTelemetry is disabled, setting environment variables to disable tracing."
+        )
+        os.environ[OTEL_TRACES_EXPORTER] = "none"
+        os.environ[OTEL_SDK_DISABLED] = "true"
 
 
 async def run_rest():
