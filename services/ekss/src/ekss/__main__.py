@@ -25,6 +25,7 @@ from ekss.adapters.inbound.fastapi_.main import (
     setup_app,
 )
 from ekss.config import CONFIG, Config
+from ekss.constants import SERVICE_NAME
 
 app = setup_app(CONFIG)
 
@@ -32,7 +33,7 @@ app = setup_app(CONFIG)
 def run(config: Config = CONFIG):
     """Run the service"""
     configure_logging(config=config)
-    configure_opentelemetry(service_name=config.service_name, config=config)
+    configure_opentelemetry(service_name=SERVICE_NAME, config=config)
 
     asyncio.run(run_server(app="ekss.__main__:app", config=config))
 
