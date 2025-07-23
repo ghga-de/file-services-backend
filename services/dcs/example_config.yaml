@@ -18,6 +18,7 @@ cors_allow_credentials: false
 cors_allowed_headers: []
 cors_allowed_methods: []
 cors_allowed_origins: []
+cors_exposed_headers: null
 db_name: dev
 docs_url: /docs
 download_served_topic: file-downloads
@@ -66,6 +67,8 @@ object_storages:
       s3_secret_access_key: '**********'
       s3_session_token: null
 openapi_url: /openapi.json
+otel_exporter_endpoint: http://localhost:4318/
+otel_exporter_protocol: http/protobuf
 otel_trace_sampling_rate: 1.0
 outbox_cache_timeout: 7
 port: 8080
