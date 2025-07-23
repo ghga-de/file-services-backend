@@ -19,9 +19,9 @@ babel==2.17.0
     # via jsonschema2md
 bcrypt==4.3.0
     # via crypt4gh
-boto3==1.39.8
+boto3==1.39.11
     # via hexkit
-botocore==1.39.8
+botocore==1.39.11
     # via
     #   boto3
     #   hexkit
@@ -76,7 +76,7 @@ filelock==3.18.0
     # via virtualenv
 ghga-event-schemas==9.2.0
     # via fsb (pyproject.toml)
-ghga-service-commons==4.1.0
+ghga-service-commons==4.1.2
     # via
     #   fsb (pyproject.toml)
     #   ghga-event-schemas
@@ -90,7 +90,7 @@ h11==0.16.0
     # via
     #   httpcore
     #   uvicorn
-hexkit @ git+https://github.com/ghga-de/hexkit@7e8285ccf5f873265ac73050125d41e3b2c17750
+hexkit @ git+https://github.com/ghga-de/hexkit@10f75348d60651dc3498b4d05a7d2fc35a7d319f
     # via
     #   fsb (pyproject.toml)
     #   ghga-service-commons
@@ -122,7 +122,7 @@ jmespath==1.0.1
     # via
     #   boto3
     #   botocore
-jsonschema==4.24.1
+jsonschema==4.25.0
     # via
     #   ghga-event-schemas
     #   hexkit
@@ -316,7 +316,7 @@ rpds-py==0.26.0
     #   referencing
 ruff==0.12.4
     # via -r lock/requirements-dev-template.in
-s3transfer==0.13.0
+s3transfer==0.13.1
     # via boto3
 setuptools==80.9.0
     # via -r lock/requirements-dev-template.in
@@ -330,7 +330,7 @@ sniffio==1.3.1
     # via anyio
 starlette==0.46.2
     # via fastapi
-testcontainers==4.10.0
+testcontainers==4.12.0
     # via -r lock/requirements-dev.in
 tomli-w==1.2.0
     # via -r lock/requirements-dev-template.in
@@ -370,13 +370,13 @@ urllib3==2.5.0
     #   docker
     #   requests
     #   testcontainers
-uv==0.8.0
+uv==0.8.2
     # via -r lock/requirements-dev-template.in
 uvicorn==0.34.3
     # via ghga-service-commons
 uvloop==0.21.0
     # via uvicorn
-virtualenv==20.31.2
+virtualenv==20.32.0
     # via pre-commit
 watchfiles==1.1.0
     # via uvicorn

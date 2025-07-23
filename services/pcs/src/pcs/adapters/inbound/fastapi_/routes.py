@@ -17,18 +17,20 @@
 from typing import Annotated
 
 from fastapi import APIRouter, status
-from hexkit.opentelemetry import start_span
+from opentelemetry import trace
 
 from pcs.adapters.inbound.fastapi_ import dummies
 from pcs.adapters.inbound.fastapi_.http_authorization import (
     TokenAuthContext,
     require_token,
 )
+from pcs.constants import SERVICE_NAME
 
 router = APIRouter()
+tracer = trace.get_tracer(SERVICE_NAME)
 
 
-@start_span()
+@tracer.start_as_current_span("PurgeControllerService.health")
 @router.get(
     "/health",
     summary="health",
@@ -40,7 +42,7 @@ async def health():
     return {"status": "OK"}
 
 
-@start_span()
+@tracer.start_as_current_span("PurgeControllerService.delete")
 @router.delete(
     "/files/{file_id}",
     summary="Deletes the corresponding file.",

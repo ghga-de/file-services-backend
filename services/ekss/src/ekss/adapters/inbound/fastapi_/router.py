@@ -18,7 +18,7 @@ import base64
 import os
 
 from fastapi import APIRouter, Depends, status
-from hexkit.opentelemetry import start_span
+from opentelemetry import trace
 from requests.exceptions import RequestException
 
 from ekss.adapters.inbound.fastapi_ import exceptions, models
@@ -29,11 +29,12 @@ from ekss.adapters.outbound.vault.exceptions import (
     SecretRetrievalError,
 )
 from ekss.config import Config
+from ekss.constants import SERVICE_NAME
 from ekss.core.envelope_decryption import extract_envelope_content
 from ekss.core.envelope_encryption import get_envelope
 
 router = APIRouter(tags=["EncryptionKeyStoreService"])
-
+tracer = trace.get_tracer(SERVICE_NAME)
 
 ERROR_RESPONSES = {
     "malformedOrMissingEnvelope": {
@@ -69,7 +70,7 @@ ERROR_RESPONSES = {
 }
 
 
-@start_span()
+@tracer.start_as_current_span("health")
 @router.get(
     "/health",
     summary="health",
@@ -80,7 +81,7 @@ async def health():
     return {"status": "OK"}
 
 
-@start_span()
+@tracer.start_as_current_span("post_encryption_secret")
 @router.post(
     "/secrets",
     summary="Extract file encryption/decryption secret and file content offset from enevelope",
@@ -145,7 +146,7 @@ async def post_encryption_secret(
     }
 
 
-@start_span()
+@tracer.start_as_current_span("get_header_envelope")
 @router.get(
     "/secrets/{secret_id}/envelopes/{client_pk}",
     summary="Get personalized envelope containing Crypt4GH file encryption/decryption key",
@@ -183,7 +184,7 @@ async def get_header_envelope(
     }
 
 
-@start_span()
+@tracer.start_as_current_span("delete_secret")
 @router.delete(
     "/secrets/{secret_id}",
     summary="Delete the associated secret",

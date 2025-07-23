@@ -29,11 +29,11 @@ bcrypt==4.3.0
     # via
     #   -c lock/requirements-dev.txt
     #   crypt4gh
-boto3==1.39.8
+boto3==1.39.11
     # via
     #   -c lock/requirements-dev.txt
     #   hexkit
-botocore==1.39.8
+botocore==1.39.11
     # via
     #   -c lock/requirements-dev.txt
     #   boto3
@@ -94,7 +94,7 @@ ghga-event-schemas==9.2.0
     # via
     #   -c lock/requirements-dev.txt
     #   fsb (pyproject.toml)
-ghga-service-commons==4.1.0
+ghga-service-commons==4.1.2
     # via
     #   -c lock/requirements-dev.txt
     #   fsb (pyproject.toml)
@@ -113,7 +113,7 @@ h11==0.16.0
     #   -c lock/requirements-dev.txt
     #   httpcore
     #   uvicorn
-hexkit @ git+https://github.com/ghga-de/hexkit@7e8285ccf5f873265ac73050125d41e3b2c17750
+hexkit @ git+https://github.com/ghga-de/hexkit@10f75348d60651dc3498b4d05a7d2fc35a7d319f
     # via
     #   -c lock/requirements-dev.txt
     #   fsb (pyproject.toml)
@@ -151,7 +151,7 @@ jmespath==1.0.1
     #   -c lock/requirements-dev.txt
     #   boto3
     #   botocore
-jsonschema==4.24.1
+jsonschema==4.25.0
     # via
     #   -c lock/requirements-dev.txt
     #   ghga-event-schemas
@@ -361,7 +361,7 @@ rpds-py==0.26.0
     #   -c lock/requirements-dev.txt
     #   jsonschema
     #   referencing
-s3transfer==0.13.0
+s3transfer==0.13.1
     # via
     #   -c lock/requirements-dev.txt
     #   boto3

@@ -24,9 +24,8 @@ from pydantic import Field
 
 from irs.adapters.inbound.event_sub import EventSubTranslatorConfig
 from irs.adapters.outbound.event_pub import EventPubTanslatorConfig
+from irs.constants import SERVICE_NAME
 from irs.core.storage_inspector import StorageInspectorConfig
-
-SERVICE_NAME: str = "irs"
 
 
 @config_from_yaml(prefix=SERVICE_NAME)

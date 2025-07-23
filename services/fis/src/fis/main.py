@@ -18,11 +18,11 @@ import logging
 
 from ghga_service_commons.api import run_server
 from hexkit.log import configure_logging
+from hexkit.opentelemetry import configure_opentelemetry
 
 from fis.config import Config
 from fis.inject import get_persistent_publisher, prepare_rest_app
 from fis.migrations import run_db_migrations
-from fis.opentelemetry import configure_opentelemetry
 
 logger = logging.getLogger(__name__)
 
