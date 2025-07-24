@@ -30,19 +30,18 @@ router = APIRouter()
 tracer = trace.get_tracer(SERVICE_NAME)
 
 
-@tracer.start_as_current_span("PurgeControllerService.health")
 @router.get(
     "/health",
     summary="health",
     tags=["PurgeControllerService"],
     status_code=status.HTTP_200_OK,
 )
+@tracer.start_as_current_span("health")
 async def health():
     """Used to test if this service is alive"""
     return {"status": "OK"}
 
 
-@tracer.start_as_current_span("PurgeControllerService.delete")
 @router.delete(
     "/files/{file_id}",
     summary="Deletes the corresponding file.",
@@ -51,6 +50,7 @@ async def health():
     status_code=status.HTTP_202_ACCEPTED,
     response_description="Commissioned file deletion",
 )
+@tracer.start_as_current_span("delete")
 async def delete_file(
     file_id: str,
     file_deletion: dummies.FileDeletionDummy,
