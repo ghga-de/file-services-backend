@@ -17,7 +17,6 @@
 from ghga_service_commons.api import ApiConfigBase
 from hexkit.config import config_from_yaml
 from hexkit.log import LoggingConfig
-from hexkit.opentelemetry import OpenTelemetryConfig
 from hexkit.providers.mongodb.migrations import MigrationConfig
 from hexkit.providers.mongokafka import MongoKafkaConfig
 from pydantic import Field
@@ -26,6 +25,7 @@ from fis.adapters.outbound.event_pub import EventPubTranslatorConfig
 from fis.adapters.outbound.vault import VaultConfig
 from fis.constants import SERVICE_NAME
 from fis.core.ingest import ServiceConfig
+from fis.opentelemetry import OpenTelemetryConfig
 
 
 @config_from_yaml(prefix=SERVICE_NAME)
