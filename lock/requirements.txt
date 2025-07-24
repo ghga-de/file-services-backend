@@ -29,11 +29,11 @@ bcrypt==4.3.0
     # via
     #   -c lock/requirements-dev.txt
     #   crypt4gh
-boto3==1.39.11
+boto3==1.39.12
     # via
     #   -c lock/requirements-dev.txt
     #   hexkit
-botocore==1.39.11
+botocore==1.39.12
     # via
     #   -c lock/requirements-dev.txt
     #   boto3
@@ -113,7 +113,7 @@ h11==0.16.0
     #   -c lock/requirements-dev.txt
     #   httpcore
     #   uvicorn
-hexkit @ git+https://github.com/ghga-de/hexkit@10f75348d60651dc3498b4d05a7d2fc35a7d319f
+hexkit @ git+https://github.com/ghga-de/hexkit@e76752c42a6618a8767a3fe2a51f80ddf011d5c1
     # via
     #   -c lock/requirements-dev.txt
     #   fsb (pyproject.toml)

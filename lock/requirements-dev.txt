@@ -19,9 +19,9 @@ babel==2.17.0
     # via jsonschema2md
 bcrypt==4.3.0
     # via crypt4gh
-boto3==1.39.11
+boto3==1.39.12
     # via hexkit
-botocore==1.39.11
+botocore==1.39.12
     # via
     #   boto3
     #   hexkit
@@ -90,7 +90,7 @@ h11==0.16.0
     # via
     #   httpcore
     #   uvicorn
-hexkit @ git+https://github.com/ghga-de/hexkit@10f75348d60651dc3498b4d05a7d2fc35a7d319f
+hexkit @ git+https://github.com/ghga-de/hexkit@e76752c42a6618a8767a3fe2a51f80ddf011d5c1
     # via
     #   fsb (pyproject.toml)
     #   ghga-service-commons
