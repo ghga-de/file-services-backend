@@ -249,12 +249,12 @@ async def test_bucket_cleanup(cleanup_fixture: CleanupFixture, caplog):
 
     with caplog.at_level(logging.ERROR):
         await data_repository.cleanup_outbox(
-            storage_alias=cleanup_fixture.joint.endpoint_aliases.fake
+            storage_alias=cleanup_fixture.joint.endpoint_aliases.fake_node
         )
 
     expected_message = str(
         data_repository.StorageAliasNotConfiguredError(
-            alias=cleanup_fixture.joint.endpoint_aliases.fake
+            alias=cleanup_fixture.joint.endpoint_aliases.fake_node
         )
     )
 

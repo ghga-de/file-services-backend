@@ -85,7 +85,7 @@ EXAMPLE_FILE = models.AccessTimeDrsObject(
 @dataclass
 class EndpointAliases:
     valid_node: str = STORAGE_ALIAS
-    fake: str = f"{STORAGE_ALIAS}_fake"
+    fake_node: str = f"{STORAGE_ALIAS}_fake"
 
 
 class EKSSBaseInjector(BaseSettings):
