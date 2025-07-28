@@ -47,13 +47,12 @@ class V2Migration(MigrationDefinition, Reversible):
 
     version = 2
 
-    _object_id: str = "object_id"
     _drs_dates: list[str] = ["creation_date", "last_accessed"]
 
     async def apply(self):
         """Perform the migration."""
         convert_drs_objects = convert_uuids_and_datetimes_v6(
-            uuid_fields=[self._object_id], date_fields=self._drs_dates
+            uuid_fields=["object_id"], date_fields=self._drs_dates
         )
 
         convert_file_registered = convert_uuids_and_datetimes_v6(
@@ -65,12 +64,12 @@ class V2Migration(MigrationDefinition, Reversible):
             doc = await convert_persistent_event_v6(doc)
 
             # convert the remaining fields inside the payload, treat payload as subdoc
-            if payload := doc["payload"]:  # the field should always exist, raise if not
-                if object_id := payload.get(self._object_id):
-                    payload[self._object_id] = UUID(object_id)
-                if "upload_date" in payload:
-                    payload = await convert_file_registered(payload)
-                doc["payload"] = payload
+            payload = doc["payload"]  # the field should always exist, raise if not
+            if object_id := payload.get("object_id"):
+                payload["object_id"] = UUID(object_id)
+            if "upload_date" in payload:
+                payload = await convert_file_registered(payload)
+            doc["payload"] = payload
             return doc
 
         async with self.auto_finalize(
@@ -96,7 +95,7 @@ class V2Migration(MigrationDefinition, Reversible):
         # define the change function
         async def revert_drs_objects(doc: Document) -> Document:
             """Convert the fields back into strings"""
-            doc[self._object_id] = str(doc[self._object_id])
+            doc["object_id"] = str(doc["object_id"])
             for field in self._drs_dates:
                 doc[field] = doc[field].isoformat()
             return doc
@@ -107,12 +106,12 @@ class V2Migration(MigrationDefinition, Reversible):
             doc["correlation_id"] = str(doc["correlation_id"])
             doc["created"] = doc["created"].isoformat()
 
-            if payload := doc["payload"]:
-                if object_id := payload.get(self._object_id):
-                    payload[self._object_id] = str(object_id)
-                if upload_date := payload.get("upload_date"):
-                    payload["upload_date"] = upload_date.isoformat()
-                doc["payload"] = payload
+            payload = doc["payload"]
+            if object_id := payload.get("object_id"):
+                payload["object_id"] = str(object_id)
+            if upload_date := payload.get("upload_date"):
+                payload["upload_date"] = upload_date.isoformat()
+            doc["payload"] = payload
             return doc
 
         async with self.auto_finalize(
