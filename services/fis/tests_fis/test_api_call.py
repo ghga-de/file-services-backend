@@ -113,7 +113,7 @@ async def test_api_calls(monkeypatch, joint_fixture: JointFixture):
     # can't get exact event time for equality comparison, don't check but get directly
     # from the recorded event instead
     expected_upload_date = datetime.fromisoformat(
-        event_recorder.recorded_events[0].payload["upload_date"]
+        event_recorder.recorded_events[0].payload["upload_date"]  # type: ignore
     )
 
     expected_payload = FileUploadValidationSuccess(
@@ -218,7 +218,7 @@ async def test_legacy_api_calls(monkeypatch, joint_fixture: JointFixture):
     # can't get exact event time for equality comparison, don't check but get directly
     # from the recorded event instead
     expected_upload_date = datetime.fromisoformat(
-        event_recorder.recorded_events[0].payload["upload_date"]
+        event_recorder.recorded_events[0].payload["upload_date"]  # type: ignore
     )
 
     expected_payload = FileUploadValidationSuccess(
