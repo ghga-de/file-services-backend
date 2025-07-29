@@ -93,7 +93,7 @@ async def test_api_calls(monkeypatch, joint_fixture: JointFixture):
         **TEST_PAYLOAD.model_dump(),
         secret_id=secret_id,
     )
-    json_payload = json.loads(payload.model_dump_json())
+    json_payload = payload.model_dump(mode="json")
 
     event_recorder = EventRecorder(
         kafka_servers=joint_fixture.kafka.config.kafka_servers,
@@ -167,10 +167,9 @@ async def test_api_calls(monkeypatch, joint_fixture: JointFixture):
     assert response.status_code == 403
 
     # test malformed payload
-    nonsense_payload = json.loads(expected_payload.model_dump_json())
     response = await joint_fixture.rest_client.post(
         "/federated/ingest_metadata",
-        json=nonsense_payload,
+        json=expected_payload.model_dump(mode="json"),
         headers=headers,
     )
     assert response.status_code == 422
@@ -256,7 +255,7 @@ async def test_legacy_api_calls(monkeypatch, joint_fixture: JointFixture):
     async with event_recorder:
         response = await joint_fixture.rest_client.post(
             "/legacy/ingest",
-            json=json.loads(encrypted_payload.model_dump_json()),
+            json=encrypted_payload.model_dump(mode="json"),
             headers=headers,
         )
     assert response.status_code == 409
