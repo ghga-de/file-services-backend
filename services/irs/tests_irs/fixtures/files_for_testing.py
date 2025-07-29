@@ -16,17 +16,17 @@
 """Test utilities to create temporary files."""
 
 import hashlib
-import os
 import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+from uuid import uuid4
 
 import crypt4gh.header
 import crypt4gh.lib
 from ghga_service_commons.utils.temp_files import big_temp_file
-from ghga_service_commons.utils.utc_dates import now_as_utc
 from hexkit.providers.s3.testutils import FileObject
+from hexkit.utils import now_utc_ms_prec
 
 from tests_irs.fixtures.joint import FILE_SIZE, S3Fixture
 
@@ -53,7 +53,6 @@ async def create_test_file(
         # rewind data pointer
         data.seek(0)
         with tempfile.NamedTemporaryFile() as encrypted_file:
-            upload_date = now_as_utc().isoformat()
             enc_keys = [(0, private_key, public_key)]
 
             crypt4gh.lib.encrypt(keys=enc_keys, infile=data, outfile=encrypted_file)
@@ -72,7 +71,7 @@ async def create_test_file(
             offset = encrypted_file.tell()
             # Rewind file
             encrypted_file.seek(0)
-            object_id = os.urandom(16).hex()
+            object_id = str(uuid4())
             file_id = f"F{object_id}"
             file_object = FileObject(
                 file_path=Path(encrypted_file.name),
@@ -88,5 +87,5 @@ async def create_test_file(
                 file_secret=file_secret,
                 file_size=len(file_object.content),
                 offset=offset,
-                upload_date=upload_date,
+                upload_date=now_utc_ms_prec().isoformat(),
             )
