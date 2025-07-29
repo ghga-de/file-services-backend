@@ -14,10 +14,12 @@
 # limitations under the License.
 """Test the republish functionality of the persistent publisher."""
 
+from uuid import uuid4
+
 import pytest
 from ghga_event_schemas.pydantic_ import FileUploadValidationSuccess
-from ghga_service_commons.utils.utc_dates import now_as_utc
 from hexkit.correlation import set_new_correlation_id
+from hexkit.utils import now_utc_ms_prec
 
 from irs.inject import get_persistent_publisher
 from tests_irs.fixtures.joint import JointFixture
@@ -28,9 +30,9 @@ pytestmark = pytest.mark.asyncio()
 def make_test_event(file_id: str) -> FileUploadValidationSuccess:
     """Return a FileUploadValidationSuccess event with the given file ID."""
     event = FileUploadValidationSuccess(
-        upload_date=now_as_utc().isoformat(),
+        upload_date=now_utc_ms_prec(),
         file_id=file_id,
-        object_id="",
+        object_id=uuid4(),
         bucket_id="",
         s3_endpoint_alias="",
         decrypted_size=0,
@@ -87,7 +89,10 @@ async def test_republish(joint_fixture: JointFixture):
     assert len(recorder.recorded_events) == 1
     event = recorder.recorded_events[0]
 
-    assert event.payload == unpublished_event.model_dump()
+    assert (
+        FileUploadValidationSuccess(**event.payload).model_dump()
+        == unpublished_event.model_dump()
+    )
     assert event.key == unpublished_event.file_id
 
     # Publish all events again

@@ -14,7 +14,7 @@
 # limitations under the License.
 """KafkaEventPublisher for file upload validation success/failure event details"""
 
-import json
+from uuid import UUID
 
 from ghga_event_schemas import pydantic_ as event_schemas
 from ghga_event_schemas.configs import (
@@ -55,13 +55,13 @@ class EventPublisher(EventPublisherPort):
         event_payload = event_schemas.FileUploadValidationFailure(
             s3_endpoint_alias=subject.storage_alias,
             file_id=subject.file_id,
-            object_id=staging_handler.staging.object_id,
+            object_id=UUID(staging_handler.staging.object_id),
             bucket_id=staging_handler.staging.bucket_id,
             upload_date=subject.upload_date,
             reason=cause,
         )
         await self._provider.publish(
-            payload=json.loads(event_payload.model_dump_json()),
+            payload=event_payload.model_dump(),
             type_=self._config.interrogation_failure_type,
             topic=self._config.file_interrogations_topic,
             key=subject.file_id,
@@ -78,7 +78,7 @@ class EventPublisher(EventPublisherPort):
         event_payload = event_schemas.FileUploadValidationSuccess(
             s3_endpoint_alias=subject.storage_alias,
             file_id=subject.file_id,
-            object_id=staging_handler.staging.object_id,
+            object_id=UUID(staging_handler.staging.object_id),
             bucket_id=staging_handler.staging.bucket_id,
             upload_date=subject.upload_date,
             decrypted_size=subject.decrypted_size,
@@ -90,7 +90,7 @@ class EventPublisher(EventPublisherPort):
             decrypted_sha256=processing_result.checksums.content_checksum_sha256,
         )
         await self._provider.publish(
-            payload=json.loads(event_payload.model_dump_json()),
+            payload=event_payload.model_dump(),
             type_=self._config.interrogation_success_type,
             topic=self._config.file_interrogations_topic,
             key=subject.file_id,

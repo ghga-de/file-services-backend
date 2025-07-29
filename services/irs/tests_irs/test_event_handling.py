@@ -22,10 +22,9 @@ from functools import partial
 from typing import Any
 
 import pytest
-from ghga_service_commons.utils.utc_dates import now_as_utc
 from hexkit.protocols.dao import ResourceNotFoundError
 from hexkit.providers.akafka.testutils import ExpectedEvent
-from hexkit.utils import calc_part_size
+from hexkit.utils import calc_part_size, now_utc_ms_prec
 
 from irs.adapters.outbound.dao import get_fingerprint_dao, get_staging_object_dao
 from irs.core.models import InterrogationSubject, UploadReceivedFingerprint
@@ -277,7 +276,7 @@ async def test_success_event(monkeypatch, joint_fixture: JointFixture):
         "encrypted_parts_md5": encrypted_parts_md5,
         "encrypted_parts_sha256": encrypted_parts_sha256,
         "decrypted_sha256": data.checksum,
-        "upload_date": now_as_utc().isoformat(),
+        "upload_date": now_utc_ms_prec().isoformat(),
     }
 
     remove_event = _incoming_event_file_registered(

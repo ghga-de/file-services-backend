@@ -18,7 +18,8 @@
 
 import hashlib
 
-from ghga_service_commons.utils.utc_dates import UTCDatetime, now_as_utc
+from ghga_service_commons.utils.utc_dates import UTCDatetime
+from hexkit.utils import now_utc_ms_prec
 from pydantic import BaseModel, Field
 
 
@@ -37,7 +38,7 @@ class StagingObject(BaseModel):
     file_id: str
     object_id: str
     storage_alias: str
-    creation_date: UTCDatetime = Field(default_factory=now_as_utc)
+    creation_date: UTCDatetime = Field(default_factory=now_utc_ms_prec)
 
 
 class InterrogationSubject(BaseModel):
@@ -49,7 +50,7 @@ class InterrogationSubject(BaseModel):
     storage_alias: str
     decrypted_size: int
     expected_decrypted_sha256: str
-    upload_date: str
+    upload_date: UTCDatetime
     submitter_public_key: str
 
 
@@ -61,7 +62,7 @@ class UploadReceivedFingerprint(BaseModel):
     """
 
     checksum: str
-    creation_date: UTCDatetime = Field(default_factory=now_as_utc)
+    creation_date: UTCDatetime = Field(default_factory=now_utc_ms_prec)
 
     @staticmethod
     def generate(
