@@ -114,7 +114,11 @@ class FileRegistry(FileRegistryPort):
             alias_not_configured = ValueError(
                 f"Storage alias '{storage_alias}' not configured."
             )
-            log.critical(alias_not_configured, extra={"storage_alias": storage_alias})
+            log.critical(
+                alias_not_configured,
+                extra={"storage_alias": storage_alias},
+                exc_info=True,
+            )
             raise alias_not_configured from error
 
         try:
@@ -131,7 +135,7 @@ class FileRegistry(FileRegistryPort):
             # trying to re-register with different metadata should not crash the consumer
             # this is not a service internal inconsistency and would cause unnecessary
             # crashes on additional consumption attempts
-            log.error(error)
+            log.warning(error)
             return
 
         # Generate & assign object ID to metadata
@@ -165,6 +169,7 @@ class FileRegistry(FileRegistryPort):
             log.error(
                 content_not_in_staging,
                 extra={"file_id": file_without_object_id.file_id},
+                exc_info=True,
             )
             raise content_not_in_staging from exc
         except Exception as exc:
@@ -174,7 +179,7 @@ class FileRegistry(FileRegistryPort):
                 dest_bucket_id=permanent_bucket_id,
                 exc_text=str(exc),
             )
-            log.critical(obj_error)
+            log.critical(obj_error, exc_info=True)
             raise obj_error from exc
 
         object_size = await object_storage.get_object_size(
@@ -229,7 +234,9 @@ class FileRegistry(FileRegistryPort):
             file = await self._file_metadata_dao.get_by_id(file_id)
         except ResourceNotFoundError:
             file_not_in_registry_error = self.FileNotInRegistryError(file_id=file_id)
-            log.error(file_not_in_registry_error, extra={"file_id": file_id})
+            log.error(
+                file_not_in_registry_error, extra={"file_id": file_id}, exc_info=True
+            )
             return
 
         if decrypted_sha256 != file.decrypted_sha256:
@@ -245,6 +252,7 @@ class FileRegistry(FileRegistryPort):
                     "provided_checksum": decrypted_sha256,
                     "expected_checksum": file.decrypted_sha256,
                 },
+                exc_info=True,
             )
             raise checksum_error
 
@@ -273,14 +281,16 @@ class FileRegistry(FileRegistryPort):
             not_in_storage_error = self.FileInRegistryButNotInStorageError(
                 file_id=file_id
             )
-            log.critical(msg=not_in_storage_error, extra={"file_id": file_id})
+            log.critical(
+                msg=not_in_storage_error, extra={"file_id": file_id}, exc_info=True
+            )
             raise not_in_storage_error from exc
         except Exception as exc:
             # Irreconcilable object error -- event needs investigation
             obj_error = self.CopyOperationError(
                 file_id=file_id, dest_bucket_id=outbox_bucket_id, exc_text=str(exc)
             )
-            log.critical(obj_error)
+            log.critical(obj_error, exc_info=True)
             raise obj_error from exc
 
         log.info(
