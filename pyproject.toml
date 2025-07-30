@@ -1,6 +1,6 @@
 [project]
 name = "fsb"
-version = "5.1.1"
+version = "6.0.0"
 description = "File Services Backend - monorepo housing file services"
 dependencies = [
     "typer >= 0.15",
