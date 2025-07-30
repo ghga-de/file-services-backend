@@ -28,8 +28,8 @@ from tests_pcs.fixtures.config import get_config
 pytestmark = pytest.mark.asyncio()
 
 
-async def test_v3_migration(mongodb: MongoDbFixture):
-    """Test the v3 migration, which should update the persistent event collection
+async def test_v2_migration(mongodb: MongoDbFixture):
+    """Test the v2 migration, which should update the persistent event collection
     so the fields use actual UUID and datetime field types.
     """
     config = get_config(sources=[mongodb.config])
