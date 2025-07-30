@@ -26,7 +26,7 @@ EXAMPLE_METADATA_BASE = models.FileMetadataBase(
     upload_date=now_utc_ms_prec(),
     decryption_secret_id="some-secret-id",
     decrypted_size=64 * 1024**2,
-    encrypted_part_size=64 * 1024**2,
+    encrypted_part_size=16 * 1024**2,
     content_offset=16 * 1024**2,
     # The checksums are only examples, they don't correspond to a particular file:
     decrypted_sha256="0677de3685577a06862f226bb1bfa8f889e96e59439d915543929fb4f011d096",
