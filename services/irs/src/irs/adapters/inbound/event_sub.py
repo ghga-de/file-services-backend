@@ -24,6 +24,7 @@ from ghga_event_schemas.configs import (
 from ghga_event_schemas.validation import get_validated_payload
 from hexkit.custom_types import Ascii, JsonObject
 from hexkit.protocols.eventsub import EventSubscriberProtocol
+from pydantic import UUID4
 
 from irs.core.models import InterrogationSubject
 from irs.ports.inbound.interrogator import InterrogatorPort
@@ -61,7 +62,13 @@ class EventSubTranslator(EventSubscriberProtocol):
         ]
 
     async def _consume_validated(
-        self, *, payload: JsonObject, type_: Ascii, topic: Ascii, key: str
+        self,
+        *,
+        payload: JsonObject,
+        type_: Ascii,
+        topic: Ascii,
+        key: str,
+        event_id: UUID4,
     ) -> None:
         """
         Receive and process an event with already validated topic and type.
@@ -71,6 +78,7 @@ class EventSubTranslator(EventSubscriberProtocol):
             type_ (str): The type of the event.
             topic (str): Name of the topic the event was published to.
             key (str): The key associated with the event.
+            event_id (UUID4): The unique identifier for the event.
         """
         if type_ == self._config.file_internally_registered_type:
             await self._consume_file_internally_registered(payload=payload)
@@ -104,7 +112,7 @@ class EventSubTranslator(EventSubscriberProtocol):
         subject = InterrogationSubject(
             file_id=validated_payload.file_id,
             inbox_bucket_id=validated_payload.bucket_id,
-            inbox_object_id=validated_payload.object_id,
+            inbox_object_id=str(validated_payload.object_id),
             storage_alias=validated_payload.s3_endpoint_alias,
             decrypted_size=validated_payload.decrypted_size,
             expected_decrypted_sha256=validated_payload.expected_decrypted_sha256,

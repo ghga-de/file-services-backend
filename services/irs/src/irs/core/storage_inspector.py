@@ -19,8 +19,8 @@ import logging
 from datetime import timedelta
 
 from ghga_service_commons.utils.multinode_storage import S3ObjectStorages
-from ghga_service_commons.utils.utc_dates import now_as_utc
 from hexkit.protocols.dao import MultipleHitsFoundError, NoHitsFoundError
+from hexkit.utils import now_utc_ms_prec
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
@@ -85,10 +85,11 @@ class StagingInspector(StorageInspectorPort):
             log.critical(
                 error,
                 extra=extra,
+                exc_info=True,
             )
             return
 
-        stale_as_of = now_as_utc() - timedelta(
+        stale_as_of = now_utc_ms_prec() - timedelta(
             minutes=self._config.object_stale_after_minutes
         )
         if staging_object.creation_date <= stale_as_of:

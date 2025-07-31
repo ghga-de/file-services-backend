@@ -165,7 +165,7 @@ class Interrogator(InterrogatorPort):
         except (CryptoError, EnvelopeError, ValueError) as error:
             # These should be systemic issues with the file submitted, i.e. there's no
             # way to recover without resubmitting in the upstream service
-            log.error(error)
+            log.error(error, exc_info=True)
             await staging_handler.abort_staging()
             await self._event_publisher.publish_validation_failure(
                 staging_handler=staging_handler, subject=subject, cause=str(error)
@@ -241,7 +241,7 @@ class Interrogator(InterrogatorPort):
                 f"Object '{staging_object.object_id}' unexpectedly not in staging bucket"
                 + f" '{staging_bucket_id}' of storage '{storage_alias}'."
             )
-            log.critical(out_of_sync_error)
+            log.critical(out_of_sync_error, exc_info=True)
             raise out_of_sync_error
 
         # these have been checked before, i.e. should not raise

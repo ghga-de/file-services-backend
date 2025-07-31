@@ -18,7 +18,7 @@
 from datetime import timedelta
 
 import pytest
-from ghga_service_commons.utils.utc_dates import now_as_utc
+from hexkit.utils import now_utc_ms_prec
 
 from irs.adapters.outbound.dao import get_staging_object_dao
 from irs.core.models import StagingObject
@@ -64,7 +64,7 @@ async def test_staging_inspector(caplog, joint_fixture: JointFixture):
     )
 
     # modify second object to be recognized as stale
-    staging_object_2.creation_date = now_as_utc() - timedelta(
+    staging_object_2.creation_date = now_utc_ms_prec() - timedelta(
         minutes=joint_fixture.config.object_stale_after_minutes
     )
 
