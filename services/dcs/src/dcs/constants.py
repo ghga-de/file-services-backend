@@ -14,4 +14,7 @@
 # limitations under the License.
 """Service specific constants."""
 
+from opentelemetry import trace
+
 SERVICE_NAME = "dcs"
+TRACER = trace.get_tracer_provider().get_tracer(SERVICE_NAME)

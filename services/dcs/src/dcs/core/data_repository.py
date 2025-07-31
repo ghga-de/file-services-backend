@@ -28,7 +28,6 @@ from ghga_service_commons.utils.multinode_storage import (
 )
 from hexkit.protocols.objstorage import ObjectStorageProtocol
 from hexkit.utils import now_utc_ms_prec
-from opentelemetry import trace
 from pydantic import Field, PositiveInt, field_validator
 from pydantic_settings import BaseSettings
 
@@ -37,14 +36,13 @@ from dcs.adapters.outbound.http.api_calls import (
     delete_secret_from_ekss,
     get_envelope_from_ekss,
 )
-from dcs.constants import SERVICE_NAME
+from dcs.constants import TRACER
 from dcs.core import models
 from dcs.ports.inbound.data_repository import DataRepositoryPort
 from dcs.ports.outbound.dao import DrsObjectDaoPort, ResourceNotFoundError
 from dcs.ports.outbound.event_pub import EventPublisherPort
 
 log = logging.getLogger(__name__)
-tracer = trace.get_tracer(SERVICE_NAME)
 
 
 class DataRepositoryConfig(BaseSettings):
@@ -148,7 +146,7 @@ class DataRepository(DataRepositoryPort):
             self_uri=self._get_drs_uri(drs_id=drs_object.file_id),
         )
 
-    @tracer.start_as_current_span("DataRepository._get_access_model")
+    @TRACER.start_as_current_span("DataRepository._get_access_model")
     async def _get_access_model(
         self,
         *,

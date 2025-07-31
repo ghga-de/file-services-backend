@@ -18,7 +18,6 @@ import base64
 import os
 
 from fastapi import APIRouter, Depends, status
-from hexkit.opentelemetry import trace
 from requests.exceptions import RequestException
 
 from ekss.adapters.inbound.fastapi_ import exceptions, models
@@ -29,12 +28,11 @@ from ekss.adapters.outbound.vault.exceptions import (
     SecretRetrievalError,
 )
 from ekss.config import Config
-from ekss.constants import SERVICE_NAME
+from ekss.constants import TRACER
 from ekss.core.envelope_decryption import extract_envelope_content
 from ekss.core.envelope_encryption import get_envelope
 
 router = APIRouter(tags=["EncryptionKeyStoreService"])
-tracer = trace.get_tracer(SERVICE_NAME)
 
 ERROR_RESPONSES = {
     "malformedOrMissingEnvelope": {
@@ -75,7 +73,7 @@ ERROR_RESPONSES = {
     summary="health",
     status_code=status.HTTP_200_OK,
 )
-@tracer.start_as_current_span("router.health")
+@TRACER.start_as_current_span("router.health")
 async def health():
     """Used to test if this service is alive"""
     return {"status": "OK"}
@@ -96,7 +94,7 @@ async def health():
         status.HTTP_504_GATEWAY_TIMEOUT: ERROR_RESPONSES["vaultConnectionError"],
     },
 )
-@tracer.start_as_current_span("router.post_encryption_secret")
+@TRACER.start_as_current_span("router.post_encryption_secret")
 async def post_encryption_secret(
     *,
     envelope_query: models.InboundEnvelopeQuery,
@@ -158,7 +156,7 @@ async def post_encryption_secret(
         status.HTTP_422_UNPROCESSABLE_ENTITY: ERROR_RESPONSES["decodingError"],
     },
 )
-@tracer.start_as_current_span("router.get_header_envelope")
+@TRACER.start_as_current_span("router.get_header_envelope")
 async def get_header_envelope(
     *, secret_id: str, client_pk: str, config: Config = Depends(config_injector)
 ):
@@ -194,7 +192,7 @@ async def get_header_envelope(
         status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["secretNotFoundError"],
     },
 )
-@tracer.start_as_current_span("router.delete_secret")
+@TRACER.start_as_current_span("router.delete_secret")
 async def delete_secret(*, secret_id: str, config: Config = Depends(config_injector)):
     """Create header envelope for the file secret with given ID encrypted with a given public key"""
     vault = VaultAdapter(config)
