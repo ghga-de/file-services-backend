@@ -96,7 +96,7 @@ class EventPubTranslator(EventPublisherPort):
             key=drs_object.file_id,
         )
 
-    @TRACER.start_as_current_span("EventPubTranslator.download_served")
+    @TRACER.start_as_current_span("EventPubTranslator.file_registered")
     async def file_registered(self, *, drs_object: models.DrsObjectWithUri) -> None:
         """Communicates the event that a file has been registered."""
         payload = event_schemas.FileRegisteredForDownload(
