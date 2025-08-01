@@ -25,4 +25,3 @@ object_stale_after_minutes: 1440
 
 mongo_dsn: "mongodb://mongodb:27017"
 db_name: "dev"
-otel_exporter_endpoint: http://localhost:4318
