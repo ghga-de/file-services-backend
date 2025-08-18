@@ -15,13 +15,13 @@ We recommend using the provided Docker container.
 
 A pre-built version is available at [docker hub](https://hub.docker.com/repository/docker/ghga/upload-controller-service):
 ```bash
-docker pull ghga/upload-controller-service:7.0.0
+docker pull ghga/upload-controller-service:8.0.0
 ```
 
 Or you can build the container yourself from the [`./Dockerfile`](./Dockerfile):
 ```bash
 # Execute in the repo's root dir:
-docker build -t ghga/upload-controller-service:7.0.0 .
+docker build -t ghga/upload-controller-service:8.0.0 .
 ```
 
 For production-ready deployment, we recommend using Kubernetes, however,
@@ -29,7 +29,7 @@ for simple use cases, you could execute the service using docker
 on a single server:
 ```bash
 # The entrypoint is preconfigured:
-docker run -p 8080:8080 ghga/upload-controller-service:7.0.0 --help
+docker run -p 8080:8080 ghga/upload-controller-service:8.0.0 --help
 ```
 
 If you prefer not to use containers, you may install the service from source:
@@ -49,131 +49,6 @@ The service requires the following configuration parameters:
 - <a id="properties/enable_opentelemetry"></a>**`enable_opentelemetry`** *(boolean)*: If set to true, this will run necessary setup code.If set to false, environment variables are set that should also effectively disable autoinstrumentation. Default: `false`.
 
 - <a id="properties/otel_trace_sampling_rate"></a>**`otel_trace_sampling_rate`** *(number)*: Determines which proportion of spans should be sampled. A value of 1.0 means all and is equivalent to the previous behaviour. Setting this to 0 will result in no spans being sampled, but this does not automatically set `enable_opentelemetry` to False. Minimum: `0`. Maximum: `1`. Default: `1.0`.
-
-- <a id="properties/file_upload_received_topic"></a>**`file_upload_received_topic`** *(string, required)*: The name of the topic used for FileUploadReceived events.
-
-
-  Examples:
-
-  ```json
-  "received-file-uploads"
-  ```
-
-
-- <a id="properties/file_upload_received_type"></a>**`file_upload_received_type`** *(string, required)*: The name of the type used for FileUploadReceived events.
-
-
-  Examples:
-
-  ```json
-  "file_upload_received"
-  ```
-
-
-- <a id="properties/file_deleted_topic"></a>**`file_deleted_topic`** *(string, required)*: Name of the topic used for events indicating that a file has been deleted.
-
-
-  Examples:
-
-  ```json
-  "file-deletions"
-  ```
-
-
-- <a id="properties/file_deleted_type"></a>**`file_deleted_type`** *(string, required)*: The type used for events indicating that a file has been deleted.
-
-
-  Examples:
-
-  ```json
-  "file_deleted"
-  ```
-
-
-- <a id="properties/file_deletion_request_topic"></a>**`file_deletion_request_topic`** *(string, required)*: The name of the topic to receive events informing about files to delete.
-
-
-  Examples:
-
-  ```json
-  "file-deletion-requests"
-  ```
-
-
-- <a id="properties/file_deletion_request_type"></a>**`file_deletion_request_type`** *(string, required)*: The type used for events indicating that a request to delete a file has been received.
-
-
-  Examples:
-
-  ```json
-  "file_deletion_requested"
-  ```
-
-
-- <a id="properties/file_internally_registered_topic"></a>**`file_internally_registered_topic`** *(string, required)*: Name of the topic used for events indicating that a file has been registered for download.
-
-
-  Examples:
-
-  ```json
-  "file-registrations"
-  ```
-
-
-  ```json
-  "file-registrations-internal"
-  ```
-
-
-- <a id="properties/file_internally_registered_type"></a>**`file_internally_registered_type`** *(string, required)*: The type used for event indicating that that a file has been registered for download.
-
-
-  Examples:
-
-  ```json
-  "file_internally_registered"
-  ```
-
-
-- <a id="properties/file_interrogations_topic"></a>**`file_interrogations_topic`** *(string, required)*: The name of the topic use to publish file interrogation outcome events.
-
-
-  Examples:
-
-  ```json
-  "file-interrogations"
-  ```
-
-
-- <a id="properties/interrogation_failure_type"></a>**`interrogation_failure_type`** *(string, required)*: The type used for events informing about failed file validations.
-
-
-  Examples:
-
-  ```json
-  "file_interrogation_failed"
-  ```
-
-
-- <a id="properties/file_metadata_topic"></a>**`file_metadata_topic`** *(string, required)*: Name of the topic to receive new or changed metadata on files that shall be registered for uploaded.
-
-
-  Examples:
-
-  ```json
-  "metadata"
-  ```
-
-
-- <a id="properties/file_metadata_type"></a>**`file_metadata_type`** *(string, required)*: The type used for events to receive new or changed metadata on files that are expected to be uploaded.
-
-
-  Examples:
-
-  ```json
-  "file_metadata_upserted"
-  ```
-
 
 - <a id="properties/log_level"></a>**`log_level`** *(string)*: The minimum log level to capture. Must be one of: "CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", or "TRACE". Default: `"INFO"`.
 
@@ -495,6 +370,36 @@ The service requires the following configuration parameters:
 
   ```json
   3600
+  ```
+
+
+- <a id="properties/file_upload_box_topic"></a>**`file_upload_box_topic`** *(string, required)*: Topic containing published FileUploadBox outbox events.
+
+
+  Examples:
+
+  ```json
+  "file-upload-boxes"
+  ```
+
+
+  ```json
+  "file-upload-box-topic"
+  ```
+
+
+- <a id="properties/file_upload_topic"></a>**`file_upload_topic`** *(string, required)*: Topic containing published FileUpload outbox events.
+
+
+  Examples:
+
+  ```json
+  "file-uploads"
+  ```
+
+
+  ```json
+  "file-upload-topic"
   ```
 
 

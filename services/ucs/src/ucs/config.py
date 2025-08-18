@@ -24,21 +24,19 @@ from hexkit.providers.akafka import KafkaConfig
 from hexkit.providers.mongodb.migrations import MigrationConfig
 from hexkit.providers.mongokafka import MongoKafkaConfig
 
-from ucs.adapters.inbound.event_sub import EventSubTranslatorConfig
-from ucs.adapters.outbound.event_pub import EventPubTranslatorConfig
+from ucs.adapters.outbound.dao import UploadDaoConfig
 from ucs.constants import SERVICE_NAME
 
 
 @config_from_yaml(prefix=SERVICE_NAME)
 class Config(
     ApiConfigBase,
+    UploadDaoConfig,
     MongoKafkaConfig,
     MigrationConfig,
     S3ObjectStoragesConfig,
     KafkaConfig,
     LoggingConfig,
-    EventSubTranslatorConfig,
-    EventPubTranslatorConfig,
     OpenTelemetryConfig,
 ):
     """Config parameters and their defaults."""

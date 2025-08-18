@@ -27,11 +27,9 @@ from hexkit.utils import calc_part_size, now_utc_ms_prec
 from ucs.core import models
 from ucs.ports.inbound.upload_service import UploadServicePort
 from ucs.ports.outbound.dao import (
-    DaoCollectionPort,
     ResourceAlreadyExistsError,
     ResourceNotFoundError,
 )
-from ucs.ports.outbound.event_pub import EventPublisherPort
 
 log = logging.getLogger(__name__)
 
@@ -42,18 +40,14 @@ class UploadService(UploadServicePort):
     def __init__(
         self,
         *,
-        daos: DaoCollectionPort,
         object_storages: ObjectStorages,
-        event_publisher: EventPublisherPort,
         # domain internal dependencies are immediately injected:
         part_size_calculator: Callable[[int], int] = lambda file_size: calc_part_size(
             file_size=file_size
         ),
     ):
         """Initialize class instance with configs and outbound adapter objects."""
-        self._daos = daos
         self._object_storages = object_storages
-        self._event_publisher = event_publisher
         self._part_size_calculator = part_size_calculator
 
     async def _get_upload_if_status(

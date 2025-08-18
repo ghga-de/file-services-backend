@@ -1,33 +1,69 @@
 components:
   schemas:
-    FileMetadata:
-      description: A model containing the full metadata on a file.
+    BoxCreationRequest:
+      description: Request body for creating a new FileUploadBox.
       properties:
-        decrypted_sha256:
-          title: Decrypted Sha256
+        research_data_upload_box_id:
+          description: The ID of the corresponding ResearchDataUploadBox
+          format: uuid4
+          title: Research Data Upload Box Id
           type: string
-        decrypted_size:
-          title: Decrypted Size
-          type: integer
-        file_id:
-          title: File Id
+        storage_alias:
+          description: The storage alias to use for this upload box
+          title: Storage Alias
           type: string
-        file_name:
-          title: File Name
-          type: string
-        latest_upload_id:
-          anyOf:
-          - type: string
-          - type: 'null'
-          description: ID of the latest upload (attempt). `Null/None` if no update
-            has been initiated, yet.
-          title: Latest Upload Id
       required:
-      - file_id
-      - file_name
-      - decrypted_sha256
-      - decrypted_size
-      title: File Metadata
+      - research_data_upload_box_id
+      - storage_alias
+      title: Box Creation Request
+      type: object
+    BoxUpdateRequest:
+      description: Request body for updating a FileUploadBox.
+      properties:
+        locked:
+          description: Whether the box should be locked (true) or unlocked (false)
+          title: Locked
+          type: boolean
+      required:
+      - locked
+      title: Box Update Request
+      type: object
+    BoxUploadsResponse:
+      description: Response body for listing file IDs in a FileUploadBox.
+      properties:
+        file_ids:
+          description: List of file IDs for completed uploads in the box
+          items:
+            format: uuid4
+            type: string
+          title: File Ids
+          type: array
+      required:
+      - file_ids
+      title: Box Uploads Response
+      type: object
+    FileUploadCreationRequest:
+      description: Request body for creating a new FileUpload.
+      properties:
+        alias:
+          description: The alias for the file within the box (must be unique within
+            the box)
+          title: Alias
+          type: string
+        checksum:
+          description: The checksum of the file
+          title: Checksum
+          type: string
+        size:
+          description: The size of the file in bytes
+          minimum: 1.0
+          title: Size
+          type: integer
+      required:
+      - alias
+      - checksum
+      - size
+      title: File Upload Creation Request
       type: object
     HTTPValidationError:
       properties:
@@ -38,124 +74,173 @@ components:
           type: array
       title: HTTPValidationError
       type: object
-    HttpExistingActiveUploadError:
+    HttpBoxAlreadyExistsError:
       additionalProperties: false
       properties:
         data:
-          $ref: '#/components/schemas/HttpExistingActiveUploadErrorData'
+          $ref: '#/components/schemas/HttpBoxAlreadyExistsErrorData'
         description:
           description: A human readable message to the client explaining the cause
             of the exception.
           title: Description
           type: string
         exception_id:
-          const: existingActiveUpload
+          const: boxAlreadyExists
           title: Exception Id
           type: string
       required:
       - data
       - description
       - exception_id
-      title: HttpExistingActiveUploadError
+      title: HttpBoxAlreadyExistsError
       type: object
-    HttpExistingActiveUploadErrorData:
+    HttpBoxAlreadyExistsErrorData:
       properties:
-        active_upload:
-          $ref: '#/components/schemas/UploadAttempt'
-        file_id:
-          title: File Id
+        box_id:
+          format: uuid4
+          title: Box Id
           type: string
       required:
-      - file_id
-      - active_upload
-      title: HttpExistingActiveUploadErrorData
+      - box_id
+      title: HttpBoxAlreadyExistsErrorData
       type: object
-    HttpFileNotFoundError:
+    HttpBoxNotFoundError:
       additionalProperties: false
       properties:
         data:
-          $ref: '#/components/schemas/HttpFileNotFoundErrorData'
+          $ref: '#/components/schemas/HttpBoxNotFoundErrorData'
         description:
           description: A human readable message to the client explaining the cause
             of the exception.
           title: Description
           type: string
         exception_id:
-          const: fileNotRegistered
+          const: boxNotFound
           title: Exception Id
           type: string
       required:
       - data
       - description
       - exception_id
-      title: HttpFileNotFoundError
+      title: HttpBoxNotFoundError
       type: object
-    HttpFileNotFoundErrorData:
+    HttpBoxNotFoundErrorData:
       properties:
-        file_id:
-          title: File Id
+        box_id:
+          format: uuid4
+          title: Box Id
           type: string
       required:
-      - file_id
-      title: HttpFileNotFoundErrorData
+      - box_id
+      title: HttpBoxNotFoundErrorData
       type: object
-    HttpFileNotFoundUploadError:
+    HttpLockedBoxError:
       additionalProperties: false
       properties:
         data:
-          $ref: '#/components/schemas/HttpFileNotFoundUploadErrorData'
+          $ref: '#/components/schemas/HttpLockedBoxErrorData'
         description:
           description: A human readable message to the client explaining the cause
             of the exception.
           title: Description
           type: string
         exception_id:
-          const: fileNotRegistered
+          const: lockedBox
           title: Exception Id
           type: string
       required:
       - data
       - description
       - exception_id
-      title: HttpFileNotFoundUploadError
+      title: HttpLockedBoxError
       type: object
-    HttpFileNotFoundUploadErrorData:
+    HttpLockedBoxErrorData:
       properties:
-        file_id:
-          title: File Id
+        box_id:
+          format: uuid4
+          title: Box Id
           type: string
       required:
-      - file_id
-      title: HttpFileNotFoundUploadErrorData
+      - box_id
+      title: HttpLockedBoxErrorData
       type: object
-    HttpNoFileAccessError:
+    HttpMultipartUploadDupeError:
       additionalProperties: false
       properties:
         data:
-          $ref: '#/components/schemas/HttpNoFileAccessErrorData'
+          $ref: '#/components/schemas/HttpMultipartUploadDupeErrorData'
         description:
           description: A human readable message to the client explaining the cause
             of the exception.
           title: Description
           type: string
         exception_id:
-          const: noFileAccess
+          const: multipartUploadDupe
           title: Exception Id
           type: string
       required:
       - data
       - description
       - exception_id
-      title: HttpNoFileAccessError
+      title: HttpMultipartUploadDupeError
       type: object
-    HttpNoFileAccessErrorData:
+    HttpMultipartUploadDupeErrorData:
       properties:
-        file_id:
-          title: File Id
+        file_alias:
+          title: File Alias
           type: string
       required:
-      - file_id
-      title: HttpNoFileAccessErrorData
+      - file_alias
+      title: HttpMultipartUploadDupeErrorData
+      type: object
+    HttpS3UploadDetailsNotFoundError:
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/HttpS3UploadDetailsNotFoundErrorData'
+        description:
+          description: A human readable message to the client explaining the cause
+            of the exception.
+          title: Description
+          type: string
+        exception_id:
+          const: s3UploadDetailsNotFound
+          title: Exception Id
+          type: string
+      required:
+      - data
+      - description
+      - exception_id
+      title: HttpS3UploadDetailsNotFoundError
+      type: object
+    HttpS3UploadDetailsNotFoundErrorData:
+      properties: {}
+      title: HttpS3UploadDetailsNotFoundErrorData
+      type: object
+    HttpS3UploadNotFoundError:
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/HttpS3UploadNotFoundErrorData'
+        description:
+          description: A human readable message to the client explaining the cause
+            of the exception.
+          title: Description
+          type: string
+        exception_id:
+          const: s3UploadNotFound
+          title: Exception Id
+          type: string
+      required:
+      - data
+      - description
+      - exception_id
+      title: HttpS3UploadNotFoundError
+      type: object
+    HttpS3UploadNotFoundErrorData:
+      additionalProperties: true
+      properties: {}
+      title: HttpS3UploadNotFoundErrorData
       type: object
     HttpUnknownStorageAliasError:
       additionalProperties: false
@@ -182,216 +267,6 @@ components:
       properties: {}
       title: HttpUnknownStorageAliasErrorData
       type: object
-    HttpUploadNotFoundError:
-      additionalProperties: false
-      properties:
-        data:
-          $ref: '#/components/schemas/HttpUploadNotFoundErrorData'
-        description:
-          description: A human readable message to the client explaining the cause
-            of the exception.
-          title: Description
-          type: string
-        exception_id:
-          const: noSuchUpload
-          title: Exception Id
-          type: string
-      required:
-      - data
-      - description
-      - exception_id
-      title: HttpUploadNotFoundError
-      type: object
-    HttpUploadNotFoundErrorData:
-      properties:
-        upload_id:
-          title: Upload Id
-          type: string
-      required:
-      - upload_id
-      title: HttpUploadNotFoundErrorData
-      type: object
-    HttpUploadNotPendingError:
-      additionalProperties: false
-      properties:
-        data:
-          $ref: '#/components/schemas/HttpUploadNotPendingErrorData'
-        description:
-          description: A human readable message to the client explaining the cause
-            of the exception.
-          title: Description
-          type: string
-        exception_id:
-          const: uploadNotPending
-          title: Exception Id
-          type: string
-      required:
-      - data
-      - description
-      - exception_id
-      title: HttpUploadNotPendingError
-      type: object
-    HttpUploadNotPendingErrorData:
-      properties:
-        current_upload_status:
-          $ref: '#/components/schemas/UploadStatus'
-        upload_id:
-          title: Upload Id
-          type: string
-      required:
-      - upload_id
-      - current_upload_status
-      title: HttpUploadNotPendingErrorData
-      type: object
-    HttpUploadStatusChangeError:
-      additionalProperties: false
-      properties:
-        data:
-          $ref: '#/components/schemas/HttpUploadStatusChangeErrorData'
-        description:
-          description: A human readable message to the client explaining the cause
-            of the exception.
-          title: Description
-          type: string
-        exception_id:
-          const: uploadStatusChange
-          title: Exception Id
-          type: string
-      required:
-      - data
-      - description
-      - exception_id
-      title: HttpUploadStatusChangeError
-      type: object
-    HttpUploadStatusChangeErrorData:
-      properties:
-        target_status:
-          $ref: '#/components/schemas/UploadStatus'
-        upload_id:
-          title: Upload Id
-          type: string
-      required:
-      - upload_id
-      - target_status
-      title: HttpUploadStatusChangeErrorData
-      type: object
-    PartUploadDetails:
-      description: Contains details for uploading the bytes of one file part.
-      properties:
-        url:
-          description: A fully resolvable URL that can be used to upload the actual
-            object bytes for one upload part.
-          title: Url
-          type: string
-      required:
-      - url
-      title: PartUploadDetails
-      type: object
-    UploadAttempt:
-      description: A model containing details on an upload attempt for a specific
-        File.
-      properties:
-        completion_date:
-          anyOf:
-          - format: date-time
-            type: string
-          - type: 'null'
-          description: Datetime when the upload attempt was declared as completed
-            by the client. `None` if the upload is ongoing.
-          title: Completion Date
-        creation_date:
-          description: Datetime when the upload attempt was created.
-          format: date-time
-          title: Creation Date
-          type: string
-        file_id:
-          description: The ID of the file corresponding to this upload.
-          title: File Id
-          type: string
-        object_id:
-          description: The bucket-specific ID used within the S3 object storage.
-          title: Object Id
-          type: string
-        part_size:
-          description: Part size to be used for upload. Specified in bytes.
-          title: Part Size
-          type: integer
-        status:
-          $ref: '#/components/schemas/UploadStatus'
-        storage_alias:
-          description: Alias for the object storage location where the given object
-            is stored.
-          title: Storage Alias
-          type: string
-        submitter_public_key:
-          description: The public key used by the submittter to encrypt the file.
-          title: Submitter Public Key
-          type: string
-        upload_id:
-          title: Upload Id
-          type: string
-      required:
-      - upload_id
-      - file_id
-      - object_id
-      - status
-      - part_size
-      - creation_date
-      - submitter_public_key
-      - storage_alias
-      title: Multi-Part Upload Details
-      type: object
-    UploadAttemptCreation:
-      description: Properties required to create a new upload.
-      properties:
-        file_id:
-          description: The ID of the file corresponding to this upload.
-          title: File Id
-          type: string
-        storage_alias:
-          description: Alias identifying the object storage location to use for this
-            upload
-          title: Storage Alias
-          type: string
-        submitter_public_key:
-          description: The public key used by the submittter to encrypt the file.
-          title: Submitter Public Key
-          type: string
-      required:
-      - file_id
-      - submitter_public_key
-      - storage_alias
-      title: Properties required to create a new upload
-      type: object
-    UploadAttemptUpdate:
-      description: Request body to update an existing mutli-part upload.
-      properties:
-        status:
-          enum:
-          - uploaded
-          - cancelled
-          title: Status
-          type: string
-      required:
-      - status
-      title: Multi-Part Upload Update
-      type: object
-    UploadStatus:
-      description: "The current upload state. Can be one of:\n    - PENDING (the user\
-        \ has requested an upload url)\n    - CANCELLED (the user has canceled the\
-        \ upload)\n    - UPLOADED (the user has confirmed the upload)\n    - FAILED\
-        \ (the upload has failed for a technical reason)\n    - ACCEPTED (the upload\
-        \ was accepted by a downstream service)\n    - REJECTED (the upload was rejected\
-        \ by a downstream service)"
-      enum:
-      - pending
-      - cancelled
-      - uploaded
-      - failed
-      - accepted
-      - rejected
-      title: UploadStatus
-      type: string
     ValidationError:
       properties:
         loc:
@@ -417,14 +292,219 @@ info:
   description: A service managing uploads of file objects to an S3-compatible Object
     Storage.
   title: Upload Controller Service
-  version: 7.0.0
+  version: 8.0.0
 openapi: 3.1.0
 paths:
-  /files/{file_id}:
-    get:
-      description: Get file metadata including the current upload attempt.
-      operationId: getFileMetadata
+  /boxes:
+    post:
+      description: 'Create a new FileUploadBox.
+
+
+        Requires CreateUploadWorkOrder token and only allowed for Data Stewards via
+        the UOS.
+
+        Request body should contain the ID of the corresponding ResearchDataUploadBox.
+
+        Returns the box_id of the newly created FileUploadBox.'
+      operationId: createBox
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BoxCreationRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                title: Response Createbox
+                type: string
+          description: The box_id of the newly created FileUploadBox
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpUnknownStorageAliasError'
+          description: 'Exceptions by ID:
+
+            - noSuchStorage: The storage node for the given alias does not exist.'
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpBoxAlreadyExistsError'
+          description: 'Exceptions by ID:
+
+            - boxAlreadyExists: A FileUploadBox with the given ID already exists.'
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Create a new FileUploadBox
+      tags:
+      - UploadControllerService
+  /boxes/{box_id}:
+    patch:
+      description: 'Update a FileUploadBox to lock or unlock it.
+
+
+        Request body must indicate whether the box is meant to be locked or unlocked.'
+      operationId: updateBox
       parameters:
+      - in: path
+        name: box_id
+        required: true
+        schema:
+          format: uuid4
+          title: Box Id
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BoxUpdateRequest'
+        required: true
+      responses:
+        '204':
+          description: FileUploadBox successfully updated
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpBoxNotFoundError'
+          description: 'Exceptions by ID:
+
+            - boxNotFound: The FileUploadBox with the given ID does not exist.'
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Update a FileUploadBox (lock/unlock)
+      tags:
+      - UploadControllerService
+  /boxes/{box_id}/uploads:
+    get:
+      description: 'Retrieve list of file IDs for a FileUploadBox.
+
+
+        Returns the list of file IDs for completed uploads in the specified box.'
+      operationId: getBoxUploads
+      parameters:
+      - in: path
+        name: box_id
+        required: true
+        schema:
+          format: uuid4
+          title: Box Id
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BoxUploadsResponse'
+          description: List of file IDs for completed uploads in the box
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpBoxNotFoundError'
+          description: 'Exceptions by ID:
+
+            - boxNotFound: The FileUploadBox with the given ID does not exist.'
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Retrieve list of file IDs for box
+      tags:
+      - UploadControllerService
+    post:
+      description: 'Add a new FileUpload to an existing FileUploadBox.
+
+
+        Creates a new file upload within the specified box with the provided alias,
+        checksum, and size.
+
+        Initiates a multipart upload and returns the file ID for the newly created
+        upload.'
+      operationId: createFileUpload
+      parameters:
+      - in: path
+        name: box_id
+        required: true
+        schema:
+          format: uuid4
+          title: Box Id
+          type: string
+      - in: query
+        name: alias
+        required: true
+        schema:
+          title: Alias
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FileUploadCreationRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                format: uuid4
+                title: Response Createfileupload
+                type: string
+          description: The file_id of the newly created FileUpload
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpUnknownStorageAliasError'
+          description: 'Exceptions by ID:
+
+            - noSuchStorage: The storage node for the given alias does not exist.'
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpMultipartUploadDupeError'
+          description: 'Exceptions by ID:
+
+            - multipartUploadDupe: A multipart upload is already in progress for this
+            file.'
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Add a new FileUpload to an existing FileUploadBox
+      tags:
+      - UploadControllerService
+  /boxes/{box_id}/uploads/{file_id}:
+    delete:
+      description: 'Remove a FileUpload from the FileUploadBox.
+
+
+        Deletes the FileUpload and tells S3 to cancel the multipart upload if applicable.'
+      operationId: removeFileUpload
+      parameters:
+      - in: path
+        name: box_id
+        required: true
+        schema:
+          title: Box Id
+          type: string
       - in: path
         name: file_id
         required: true
@@ -432,95 +512,120 @@ paths:
           title: File Id
           type: string
       responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FileMetadata'
-          description: File metadata including the current upload attempt
-        '403':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpNoFileAccessError'
-          description: 'Exceptions by ID:
-
-            - noFileAccess: The user is not registered as a Data Submitter for the
-            corresponding file.'
+        '204':
+          description: FileUpload removed successfully
         '404':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HttpFileNotFoundError'
+                $ref: '#/components/schemas/HttpS3UploadDetailsNotFoundError'
           description: 'Exceptions by ID:
 
-            - fileNotRegistered: The file with the given ID has not (yet) been registered
-            for upload.'
+            - s3UploadDetailsNotFound: S3 upload details for the file could not be
+            found.'
         '422':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
-      summary: Get file metadata including the current upload attempt.
-      tags:
-      - UploadControllerService
-  /health:
-    get:
-      description: Used to test if this service is alive
-      operationId: health_health_get
-      responses:
-        '200':
+        '423':
           content:
             application/json:
-              schema: {}
-          description: Successful Response
-      summary: health
+              schema:
+                $ref: '#/components/schemas/HttpLockedBoxError'
+          description: 'Exceptions by ID:
+
+            - lockedBox: The FileUploadBox is locked and cannot be modified.'
+      summary: Remove a FileUpload from the FileUploadBox
       tags:
       - UploadControllerService
-  /uploads:
-    post:
-      description: Initiate a new multi-part upload for the given file.
-      operationId: createUpload
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UploadAttemptCreation'
+    patch:
+      description: 'Complete file upload by instructing S3 to finalize the multipart
+        upload.
+
+
+        Concludes the file upload process in UCS by instructing S3 to complete the
+
+        multipart upload for the specified file.'
+      operationId: completeFileUpload
+      parameters:
+      - in: path
+        name: box_id
         required: true
+        schema:
+          title: Box Id
+          type: string
+      - in: path
+        name: file_id
+        required: true
+        schema:
+          title: File Id
+          type: string
+      responses:
+        '204':
+          description: File upload completed successfully
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpS3UploadNotFoundError'
+          description: 'Exceptions by ID:
+
+            - fileUploadNotFound: The FileUpload could not be found.'
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '423':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpLockedBoxError'
+          description: 'Exceptions by ID:
+
+            - lockedBox: The FileUploadBox is locked and cannot be modified.'
+      summary: Complete file upload
+      tags:
+      - UploadControllerService
+  /boxes/{box_id}/uploads/{file_id}/parts/{part_no}:
+    get:
+      description: 'Get pre-signed S3 upload URL for a specific file part.
+
+
+        Returns a pre-signed URL that can be used to upload the bytes for the specified
+
+        part number of the specified file upload.'
+      operationId: getPartUploadUrl
+      parameters:
+      - in: path
+        name: box_id
+        required: true
+        schema:
+          title: Box Id
+          type: string
+      - in: path
+        name: file_id
+        required: true
+        schema:
+          title: File Id
+          type: string
+      - in: path
+        name: part_no
+        required: true
+        schema:
+          title: Part No
+          type: integer
       responses:
         '200':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UploadAttempt'
-          description: Details on the newly created upload.
-        '400':
-          content:
-            application/json:
-              schema:
-                anyOf:
-                - $ref: '#/components/schemas/HttpExistingActiveUploadError'
-                - $ref: '#/components/schemas/HttpFileNotFoundUploadError'
-                title: Response 400 Createupload
-          description: 'Exceptions by ID:
-
-            - existingActiveUpload: Imposible to create a new upload for the file
-            with the specific ID. There is already another active or accepted upload
-            for that file. Details on the existing upload are provided as part of
-            the exception data.
-
-            - fileNotRegistered: The file with the given ID has not (yet) been registered
-            for upload.'
-        '403':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpNoFileAccessError'
-          description: 'Exceptions by ID:
-
-            - noFileAccess: The user is not registered as a Data Submitter for the
-            corresponding file.'
+                title: Response Getpartuploadurl
+                type: string
+          description: The pre-signed URL for uploading the file part
         '404':
           content:
             application/json:
@@ -535,170 +640,20 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
-      summary: Initiate a new multi-part upload.
+      summary: Get pre-signed S3 upload URL for file part
       tags:
       - UploadControllerService
-  /uploads/{upload_id}:
+  /health:
     get:
-      description: Get details on a specific upload.
-      operationId: getUploadDetails
-      parameters:
-      - in: path
-        name: upload_id
-        required: true
-        schema:
-          title: Upload Id
-          type: string
+      description: Used to test if this service is alive
+      operationId: health_health_get
       responses:
         '200':
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/UploadAttempt'
-          description: Details on a specific upload.
-        '403':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpNoFileAccessError'
-          description: 'Exceptions by ID:
-
-            - noFileAccess: The user is not registered as a Data Submitter for the
-            corresponding file.'
-        '404':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpUploadNotFoundError'
-          description: 'Exceptions by ID:
-
-            - noSuchUpload: The multi-part upload with the given ID does not exist.'
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-      summary: Get details on a specific upload.
-      tags:
-      - UploadControllerService
-    patch:
-      description: 'Declare a multi-part upload as complete by setting its status
-        to "uploaded".
-
-        Or cancel a multi-part upload by setting its status to "cancelled".'
-      operationId: updateUploadStatus
-      parameters:
-      - in: path
-        name: upload_id
-        required: true
-        schema:
-          title: Upload Id
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UploadAttemptUpdate'
-        required: true
-      responses:
-        '204':
-          description: Multi-part upload successfully updated.
-        '400':
-          content:
-            application/json:
-              schema:
-                anyOf:
-                - $ref: '#/components/schemas/HttpUploadNotPendingError'
-                - $ref: '#/components/schemas/HttpUploadStatusChangeError'
-                title: Response 400 Updateuploadstatus
-          description: 'Exceptions by ID:
-
-            - uploadNotPending: The corresponding upload is not in ''pending'' state.
-            Thus no updates can be performed. Details on the current upload status
-            can be found in the exception data.
-
-            - uploadStatusChange: Failed to change the status of upload. A reason
-            is provided in the description.'
-        '403':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpNoFileAccessError'
-          description: 'Exceptions by ID:
-
-            - noFileAccess: The user is not registered as a Data Submitter for the
-            corresponding file.'
-        '404':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpUploadNotFoundError'
-          description: 'Exceptions by ID:
-
-            - noSuchUpload: The multi-part upload with the given ID does not exist.'
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-      summary: Update the status of an existing multi-part upload.
-      tags:
-      - UploadControllerService
-  /uploads/{upload_id}/parts/{part_no}/signed_urls:
-    post:
-      description: 'Create a pre-signed URL for the specified part number of the specified
-        multi-part
-
-        upload.'
-      operationId: createPreSignedURL
-      parameters:
-      - in: path
-        name: upload_id
-        required: true
-        schema:
-          title: Upload Id
-          type: string
-      - in: path
-        name: part_no
-        required: true
-        schema:
-          maximum: 10000
-          minimum: 1
-          title: Part No
-          type: integer
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PartUploadDetails'
-          description: The newly created pre-signed URL.
-        '403':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpNoFileAccessError'
-          description: 'Exceptions by ID:
-
-            - noFileAccess: The user is not registered as a Data Submitter for the
-            corresponding file.'
-        '404':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpUploadNotFoundError'
-          description: 'Exceptions by ID:
-
-            - noSuchUpload: The multi-part upload with the given ID does not exist.'
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-      summary: Create new pre-signed URL for a specific part.
+              schema: {}
+          description: Successful Response
+      summary: health
       tags:
       - UploadControllerService
 tags:
