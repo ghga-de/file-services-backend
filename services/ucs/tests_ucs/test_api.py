@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests that check the authentication controls for the REST API"""
+"""Tests that check the REST API's behavior and auth handling"""
 
 from unittest.mock import AsyncMock
 from uuid import UUID
@@ -22,8 +22,10 @@ import pytest
 from ghga_service_commons.api.testing import AsyncTestClient
 
 from tests_ucs.fixtures import utils
+from ucs.adapters.inbound.fastapi_ import http_exceptions, rest_models
 from ucs.config import Config
 from ucs.inject import prepare_rest_app
+from ucs.ports.inbound.controller import UploadControllerPort
 
 pytestmark = pytest.mark.asyncio()
 
@@ -40,7 +42,7 @@ def make_api_config(**kwargs) -> Config:
     return config
 
 
-async def test_create_box_endpoint():
+async def test_create_box_endpoint_auth():
     """Test that the endpoint returns a 401 if auth is not supplied or is invalid,
     a 403 if the work type is incorrect,
     and a 200 if the token is correct (and request succeeds).
@@ -73,7 +75,7 @@ async def test_create_box_endpoint():
         assert response.status_code == 201
 
 
-async def test_update_box_endpoint():
+async def test_update_box_endpoint_auth():
     """Test that the endpoint returns a 401 if auth is not supplied or is invalid,
     a 403 if auth is supplied but for another resource/work type,
     and a 204 if the token is correct (and request succeeds).
@@ -115,7 +117,7 @@ async def test_update_box_endpoint():
         assert response.status_code == 204
 
 
-async def test_view_box_endpoint():
+async def test_view_box_endpoint_auth():
     """Test that the endpoint returns a 401 if auth is not supplied or is invalid,
     a 403 if a structurally valid auth token is supplied but doesn't match the
     requested resource, and a 200 if the token is correct (and request succeeds).
@@ -156,7 +158,7 @@ async def test_view_box_endpoint():
         assert response.status_code == 200
 
 
-async def test_create_file_upload_endpoint():
+async def test_create_file_upload_endpoint_auth():
     """Test that the POST file upload endpoint returns a 401 if auth is not
     supplied or is invalid, a 403 if a structurally valid auth token is supplied
     but doesn't match the requested resource, and a 201 if the request succeeds.
@@ -181,7 +183,10 @@ async def test_create_file_upload_endpoint():
 
         # generate a token with the wrong work type for this action
         bad_token = utils.generate_create_file_token(
-            box_id=TEST_BOX_ID, alias="test_file", work_type="close", jwk=jwk
+            box_id=TEST_BOX_ID,
+            alias="test_file",
+            work_type=rest_models.WorkType.CLOSE,
+            jwk=jwk,
         )
         response = await rest_client.post(
             url, json=body, headers={"Authorization": f"Bearer {bad_token}"}
@@ -213,7 +218,7 @@ async def test_create_file_upload_endpoint():
         assert response.status_code == 201
 
 
-async def test_get_file_part_upload_url_endpoint():
+async def test_get_file_part_upload_url_endpoint_auth():
     """Test that the GET file part upload URL endpoint returns a 401 if auth is not
     supplied or is invalid, a 403 if a structurally valid auth token is supplied
     but doesn't match the requested resource, and a 200 if the request succeeds.
@@ -267,7 +272,7 @@ async def test_get_file_part_upload_url_endpoint():
         assert response.status_code == 200
 
 
-async def test_complete_file_upload_endpoint():
+async def test_complete_file_upload_endpoint_auth():
     """Test that the PATCH complete_file_upload endpoint returns a 401 if bearer token
     is absent or invalid, a 403 if the token is structurally valid but contains
     incorrect data, and a 204 if the request succeeds.
@@ -320,7 +325,7 @@ async def test_complete_file_upload_endpoint():
         assert response.status_code == 204
 
 
-async def test_delete_file_endpoint():
+async def test_delete_file_endpoint_auth():
     """Test that the delete file endpoint returns a 401 if auth is not supplied or is invalid,
     and a 403 if a structurally valid auth token is supplied but doesn't match the
     requested resource.
@@ -370,3 +375,339 @@ async def test_delete_file_endpoint():
             url, headers={"Authorization": f"Bearer {good_token}"}
         )
         assert response.status_code == 204
+
+
+@pytest.mark.parametrize(
+    "core_error, http_error",
+    [
+        (
+            UploadControllerPort.BoxAlreadyExistsError(box_id=TEST_BOX_ID),
+            http_exceptions.HttpBoxAlreadyExistsError(box_id=TEST_BOX_ID),
+        ),
+        (
+            UploadControllerPort.UnknownStorageAliasError(storage_alias="HD01"),
+            http_exceptions.HttpUnknownStorageAliasError(),
+        ),
+        (RuntimeError("Random error"), http_exceptions.HttpInternalError()),
+    ],
+    ids=["BoxAlreadyExists", "UnknownStorageAlias", "InternalError"],
+)
+async def test_create_box_endpoint_error_handling(
+    core_error: Exception, http_error: Exception
+):
+    """Test that the endpoint correctly translates errors from the core."""
+    jwk = utils.generate_token_signing_keys()
+    auth_key = jwk.export(private_key=False)
+    config = make_api_config(auth_key=auth_key, auth_check_claims={})
+    body = {"research_data_upload_box_id": str(TEST_BOX_ID), "storage_alias": "HD01"}
+    core_override = AsyncMock()
+    core_override.create_file_upload_box.side_effect = core_error
+    async with (
+        prepare_rest_app(config=config, core_override=core_override) as app,
+        AsyncTestClient(app=app) as rest_client,
+    ):
+        token = utils.generate_create_file_box_token(jwk=jwk)
+        response = await rest_client.post(
+            "/boxes", json=body, headers={"Authorization": f"Bearer {token}"}
+        )
+        assert response.json()["description"] == str(http_error)
+
+
+@pytest.mark.parametrize(
+    "core_error, http_error",
+    [
+        (
+            UploadControllerPort.BoxNotFoundError(box_id=TEST_BOX_ID),
+            http_exceptions.HttpBoxNotFoundError(box_id=TEST_BOX_ID),
+        ),
+        (RuntimeError("Random error"), http_exceptions.HttpInternalError()),
+    ],
+    ids=["BoxNotFound", "InternalError"],
+)
+async def test_update_box_endpoint_error_handling(
+    core_error: Exception, http_error: Exception
+):
+    """Test that the endpoint correctly translates errors from the core."""
+    jwk = utils.generate_token_signing_keys()
+    auth_key = jwk.export(private_key=False)
+    config = make_api_config(auth_key=auth_key, auth_check_claims={})
+    body = {"locked": True}
+    core_override = AsyncMock()
+    core_override.lock_file_upload_box.side_effect = core_error
+    async with (
+        prepare_rest_app(config=config, core_override=core_override) as app,
+        AsyncTestClient(app=app) as rest_client,
+    ):
+        token = utils.generate_change_file_box_token(box_id=TEST_BOX_ID, jwk=jwk)
+        response = await rest_client.patch(
+            f"/boxes/{TEST_BOX_ID}",
+            json=body,
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.json()["description"] == str(http_error)
+
+
+@pytest.mark.parametrize(
+    "core_error, http_error",
+    [
+        (
+            UploadControllerPort.BoxNotFoundError(box_id=TEST_BOX_ID),
+            http_exceptions.HttpBoxNotFoundError(box_id=TEST_BOX_ID),
+        ),
+        (RuntimeError("Random error"), http_exceptions.HttpInternalError()),
+    ],
+    ids=["BoxNotFound", "InternalError"],
+)
+async def test_view_box_endpoint_error_handling(
+    core_error: Exception, http_error: Exception
+):
+    """Test that the endpoint correctly translates errors from the core."""
+    jwk = utils.generate_token_signing_keys()
+    auth_key = jwk.export(private_key=False)
+    config = make_api_config(auth_key=auth_key, auth_check_claims={})
+    core_override = AsyncMock()
+    core_override.get_file_ids_for_box.side_effect = core_error
+    async with (
+        prepare_rest_app(config=config, core_override=core_override) as app,
+        AsyncTestClient(app=app) as rest_client,
+    ):
+        token = utils.generate_view_file_box_token(jwk=jwk, box_id=TEST_BOX_ID)
+        response = await rest_client.get(
+            f"/boxes/{TEST_BOX_ID}/uploads",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.json()["description"] == str(http_error)
+
+
+@pytest.mark.parametrize(
+    "core_error, http_error",
+    [
+        (
+            UploadControllerPort.BoxNotFoundError(box_id=TEST_BOX_ID),
+            http_exceptions.HttpBoxNotFoundError(box_id=TEST_BOX_ID),
+        ),
+        (
+            UploadControllerPort.LockedBoxError(box_id=TEST_BOX_ID),
+            http_exceptions.HttpLockedBoxError(box_id=TEST_BOX_ID),
+        ),
+        (
+            UploadControllerPort.FileUploadAlreadyExists(alias="test_file"),
+            http_exceptions.HttpFileUploadAlreadyExistsError(alias="test_file"),
+        ),
+        (
+            UploadControllerPort.UnknownStorageAliasError(storage_alias="HD01"),
+            http_exceptions.HttpUnknownStorageAliasError(),
+        ),
+        (
+            UploadControllerPort.MultipartUploadDupeError(
+                file_id=TEST_FILE_ID, bucket_id="test-bucket"
+            ),
+            http_exceptions.HttpMultipartUploadDupeError(file_alias="test_file"),
+        ),
+        (RuntimeError("Random error"), http_exceptions.HttpInternalError()),
+    ],
+    ids=[
+        "BoxNotFound",
+        "LockedBox",
+        "FileUploadAlreadyExists",
+        "UnknownStorageAlias",
+        "MultipartUploadDupe",
+        "InternalError",
+    ],
+)
+async def test_create_file_upload_endpoint_error_handling(
+    core_error: Exception, http_error: Exception
+):
+    """Test that the endpoint correctly translates errors from the core."""
+    jwk = utils.generate_token_signing_keys()
+    auth_key = jwk.export(private_key=False)
+    config = make_api_config(auth_key=auth_key, auth_check_claims={})
+    body = {"alias": "test_file", "checksum": "sha256:abc123", "size": 1024}
+    core_override = AsyncMock()
+    core_override.initiate_file_upload.side_effect = core_error
+    async with (
+        prepare_rest_app(config=config, core_override=core_override) as app,
+        AsyncTestClient(app=app) as rest_client,
+    ):
+        token = utils.generate_create_file_token(
+            box_id=TEST_BOX_ID, alias="test_file", jwk=jwk
+        )
+        response = await rest_client.post(
+            f"/boxes/{TEST_BOX_ID}/uploads",
+            json=body,
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.json()["description"] == str(http_error)
+
+
+@pytest.mark.parametrize(
+    "core_error, http_error",
+    [
+        (
+            UploadControllerPort.S3UploadDetailsNotFoundError(file_id=TEST_FILE_ID),
+            http_exceptions.HttpS3UploadDetailsNotFoundError(file_id=TEST_FILE_ID),
+        ),
+        (
+            UploadControllerPort.UnknownStorageAliasError(storage_alias="HD01"),
+            http_exceptions.HttpUnknownStorageAliasError(),
+        ),
+        (
+            UploadControllerPort.S3UploadNotFoundError(
+                bucket_id="test-bucket", s3_upload_id="test-upload-id"
+            ),
+            http_exceptions.HttpS3UploadNotFoundError(),
+        ),
+        (RuntimeError("Random error"), http_exceptions.HttpInternalError()),
+    ],
+    ids=[
+        "S3UploadDetailsNotFound",
+        "UnknownStorageAlias",
+        "S3UploadNotFound",
+        "InternalError",
+    ],
+)
+async def test_get_file_part_upload_url_endpoint_error_handling(
+    core_error: Exception, http_error: Exception
+):
+    """Test that the endpoint correctly translates errors from the core."""
+    jwk = utils.generate_token_signing_keys()
+    auth_key = jwk.export(private_key=False)
+    config = make_api_config(auth_key=auth_key, auth_check_claims={})
+    core_override = AsyncMock()
+    core_override.get_part_upload_url.side_effect = core_error
+    async with (
+        prepare_rest_app(config=config, core_override=core_override) as app,
+        AsyncTestClient(app=app) as rest_client,
+    ):
+        token = utils.generate_upload_file_token(
+            box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=jwk
+        )
+        response = await rest_client.get(
+            f"/boxes/{TEST_BOX_ID}/uploads/{TEST_FILE_ID}/parts/1",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.json()["description"] == str(http_error)
+
+
+@pytest.mark.parametrize(
+    "core_error, http_error",
+    [
+        (
+            UploadControllerPort.BoxNotFoundError(box_id=TEST_BOX_ID),
+            http_exceptions.HttpBoxNotFoundError(box_id=TEST_BOX_ID),
+        ),
+        (
+            UploadControllerPort.LockedBoxError(box_id=TEST_BOX_ID),
+            http_exceptions.HttpLockedBoxError(box_id=TEST_BOX_ID),
+        ),
+        (
+            UploadControllerPort.FileUploadNotFound(file_id=TEST_FILE_ID),
+            http_exceptions.HttpFileUploadNotFoundError(file_id=TEST_FILE_ID),
+        ),
+        (
+            UploadControllerPort.S3UploadDetailsNotFoundError(file_id=TEST_FILE_ID),
+            http_exceptions.HttpS3UploadDetailsNotFoundError(file_id=TEST_FILE_ID),
+        ),
+        (
+            UploadControllerPort.UploadCompletionError(
+                file_id=TEST_FILE_ID,
+                s3_upload_id="test-upload",
+                bucket_id="test-bucket",
+            ),
+            http_exceptions.HttpUploadCompletionError(),
+        ),
+        (RuntimeError("Random error"), http_exceptions.HttpInternalError()),
+    ],
+    ids=[
+        "BoxNotFound",
+        "LockedBox",
+        "FileUploadNotFound",
+        "S3UploadDetailsNotFound",
+        "UploadCompletionError",
+        "InternalError",
+    ],
+)
+async def test_complete_file_upload_endpoint_error_handling(
+    core_error: Exception, http_error: Exception
+):
+    """Test that the endpoint correctly translates errors from the core."""
+    jwk = utils.generate_token_signing_keys()
+    auth_key = jwk.export(private_key=False)
+    config = make_api_config(auth_key=auth_key, auth_check_claims={})
+    body: dict[str, str] = {}
+    core_override = AsyncMock()
+    core_override.complete_file_upload.side_effect = core_error
+    async with (
+        prepare_rest_app(config=config, core_override=core_override) as app,
+        AsyncTestClient(app=app) as rest_client,
+    ):
+        token = utils.generate_close_file_token(
+            box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=jwk
+        )
+        response = await rest_client.patch(
+            f"/boxes/{TEST_BOX_ID}/uploads/{TEST_FILE_ID}",
+            json=body,
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.json()["description"] == str(http_error)
+
+
+@pytest.mark.parametrize(
+    "core_error, http_error",
+    [
+        (
+            UploadControllerPort.BoxNotFoundError(box_id=TEST_BOX_ID),
+            http_exceptions.HttpBoxNotFoundError(box_id=TEST_BOX_ID),
+        ),
+        (
+            UploadControllerPort.LockedBoxError(box_id=TEST_BOX_ID),
+            http_exceptions.HttpLockedBoxError(box_id=TEST_BOX_ID),
+        ),
+        (
+            UploadControllerPort.S3UploadDetailsNotFoundError(file_id=TEST_FILE_ID),
+            http_exceptions.HttpS3UploadDetailsNotFoundError(file_id=TEST_FILE_ID),
+        ),
+        (
+            UploadControllerPort.UnknownStorageAliasError(storage_alias="HD01"),
+            http_exceptions.HttpUnknownStorageAliasError(),
+        ),
+        (
+            UploadControllerPort.UploadAbortError(
+                file_id=TEST_FILE_ID,
+                s3_upload_id="test-upload",
+                bucket_id="test-bucket",
+            ),
+            http_exceptions.HttpUploadAbortError(),
+        ),
+        (RuntimeError("Random error"), http_exceptions.HttpInternalError()),
+    ],
+    ids=[
+        "BoxNotFound",
+        "LockedBox",
+        "S3UploadDetailsNotFound",
+        "UnknownStorageAlias",
+        "UploadAbortError",
+        "InternalError",
+    ],
+)
+async def test_delete_file_endpoint_error_handling(
+    core_error: Exception, http_error: Exception
+):
+    """Test that the endpoint correctly translates errors from the core."""
+    jwk = utils.generate_token_signing_keys()
+    auth_key = jwk.export(private_key=False)
+    config = make_api_config(auth_key=auth_key, auth_check_claims={})
+    core_override = AsyncMock()
+    core_override.remove_file_upload.side_effect = core_error
+    async with (
+        prepare_rest_app(config=config, core_override=core_override) as app,
+        AsyncTestClient(app=app) as rest_client,
+    ):
+        token = utils.generate_delete_file_token(
+            box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=jwk
+        )
+        response = await rest_client.delete(
+            f"/boxes/{TEST_BOX_ID}/uploads/{TEST_FILE_ID}",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.json()["description"] == str(http_error)
