@@ -21,9 +21,8 @@ from uuid import UUID
 import pytest
 from ghga_service_commons.api.testing import AsyncTestClient
 
-from tests_ucs.fixtures import utils
+from tests_ucs.fixtures import ConfigFixture, utils
 from ucs.adapters.inbound.fastapi_ import http_exceptions, rest_models
-from ucs.config import Config
 from ucs.inject import prepare_rest_app
 from ucs.ports.inbound.controller import UploadControllerPort
 
@@ -34,25 +33,15 @@ TEST_FILE_ID = UUID("6e384b9f-f1c0-4c49-ae51-cee097b2862a")
 INVALID_HEADER: dict[str, str] = {"Authorization": "Bearer ab12"}
 
 
-def make_api_config(**kwargs) -> Config:
-    """Merge configs from different sources with the default one"""
-    config = Config()
-    if kwargs:
-        return config.model_copy(update=kwargs)
-    return config
-
-
-async def test_create_box_endpoint_auth():
+async def test_create_box_endpoint_auth(config: ConfigFixture):
     """Test that the endpoint returns a 401 if auth is not supplied or is invalid,
     a 403 if the work type is incorrect,
     and a 200 if the token is correct (and request succeeds).
     """
-    jwk = utils.generate_token_signing_keys()
-    auth_key = jwk.export(private_key=False)
-    config = make_api_config(auth_key=auth_key, auth_check_claims={})
+    jwk = config.jwk
     body = {"research_data_upload_box_id": str(TEST_BOX_ID), "storage_alias": "HD01"}
     async with (
-        prepare_rest_app(config=config, core_override=AsyncMock()) as app,
+        prepare_rest_app(config=config.config, core_override=AsyncMock()) as app,
         AsyncTestClient(app=app) as rest_client,
     ):
         response = await rest_client.post("/boxes", json=body)
@@ -75,17 +64,15 @@ async def test_create_box_endpoint_auth():
         assert response.status_code == 201
 
 
-async def test_update_box_endpoint_auth():
+async def test_update_box_endpoint_auth(config: ConfigFixture):
     """Test that the endpoint returns a 401 if auth is not supplied or is invalid,
     a 403 if auth is supplied but for another resource/work type,
     and a 204 if the token is correct (and request succeeds).
     """
-    jwk = utils.generate_token_signing_keys()
-    auth_key = jwk.export(private_key=False)
-    config = make_api_config(auth_key=auth_key, auth_check_claims={})
+    jwk = config.jwk
     body = {"locked": True}
     async with (
-        prepare_rest_app(config=config, core_override=AsyncMock()) as app,
+        prepare_rest_app(config=config.config, core_override=AsyncMock()) as app,
         AsyncTestClient(app=app) as rest_client,
     ):
         url = f"/boxes/{TEST_BOX_ID}"
@@ -117,16 +104,14 @@ async def test_update_box_endpoint_auth():
         assert response.status_code == 204
 
 
-async def test_view_box_endpoint_auth():
+async def test_view_box_endpoint_auth(config: ConfigFixture):
     """Test that the endpoint returns a 401 if auth is not supplied or is invalid,
     a 403 if a structurally valid auth token is supplied but doesn't match the
     requested resource, and a 200 if the token is correct (and request succeeds).
     """
-    jwk = utils.generate_token_signing_keys()
-    auth_key = jwk.export(private_key=False)
-    config = make_api_config(auth_key=auth_key, auth_check_claims={})
+    jwk = config.jwk
     async with (
-        prepare_rest_app(config=config, core_override=AsyncMock()) as app,
+        prepare_rest_app(config=config.config, core_override=AsyncMock()) as app,
         AsyncTestClient(app=app) as rest_client,
     ):
         url = f"/boxes/{TEST_BOX_ID}/uploads"
@@ -158,19 +143,17 @@ async def test_view_box_endpoint_auth():
         assert response.status_code == 200
 
 
-async def test_create_file_upload_endpoint_auth():
+async def test_create_file_upload_endpoint_auth(config: ConfigFixture):
     """Test that the POST file upload endpoint returns a 401 if auth is not
     supplied or is invalid, a 403 if a structurally valid auth token is supplied
     but doesn't match the requested resource, and a 201 if the request succeeds.
     """
-    jwk = utils.generate_token_signing_keys()
-    auth_key = jwk.export(private_key=False)
-    config = make_api_config(auth_key=auth_key, auth_check_claims={})
+    jwk = config.jwk
     body = {"alias": "test_file", "checksum": "sha256:abc123", "size": 1024}
     core_override = AsyncMock()
     core_override.initiate_file_upload.return_value = TEST_FILE_ID
     async with (
-        prepare_rest_app(config=config, core_override=core_override) as app,
+        prepare_rest_app(config=config.config, core_override=core_override) as app,
         AsyncTestClient(app=app) as rest_client,
     ):
         url = f"/boxes/{TEST_BOX_ID}/uploads"
@@ -218,18 +201,16 @@ async def test_create_file_upload_endpoint_auth():
         assert response.status_code == 201
 
 
-async def test_get_file_part_upload_url_endpoint_auth():
+async def test_get_file_part_upload_url_endpoint_auth(config: ConfigFixture):
     """Test that the GET file part upload URL endpoint returns a 401 if auth is not
     supplied or is invalid, a 403 if a structurally valid auth token is supplied
     but doesn't match the requested resource, and a 200 if the request succeeds.
     """
-    jwk = utils.generate_token_signing_keys()
-    auth_key = jwk.export(private_key=False)
-    config = make_api_config(auth_key=auth_key, auth_check_claims={})
+    jwk = config.jwk
     core_override = AsyncMock()
     core_override.get_part_upload_url.return_value = "some-url-here"
     async with (
-        prepare_rest_app(config=config, core_override=core_override) as app,
+        prepare_rest_app(config=config.config, core_override=core_override) as app,
         AsyncTestClient(app=app) as rest_client,
     ):
         url = f"/boxes/{TEST_BOX_ID}/uploads/{TEST_FILE_ID}/parts/1"
@@ -272,17 +253,15 @@ async def test_get_file_part_upload_url_endpoint_auth():
         assert response.status_code == 200
 
 
-async def test_complete_file_upload_endpoint_auth():
+async def test_complete_file_upload_endpoint_auth(config: ConfigFixture):
     """Test that the PATCH complete_file_upload endpoint returns a 401 if bearer token
     is absent or invalid, a 403 if the token is structurally valid but contains
     incorrect data, and a 204 if the request succeeds.
     """
-    jwk = utils.generate_token_signing_keys()
-    auth_key = jwk.export(private_key=False)
-    config = make_api_config(auth_key=auth_key, auth_check_claims={})
+    jwk = config.jwk
     body: dict[str, str] = {}  # This endpoint doesn't require a body
     async with (
-        prepare_rest_app(config=config, core_override=AsyncMock()) as app,
+        prepare_rest_app(config=config.config, core_override=AsyncMock()) as app,
         AsyncTestClient(app=app) as rest_client,
     ):
         url = f"/boxes/{TEST_BOX_ID}/uploads/{TEST_FILE_ID}"
@@ -325,16 +304,14 @@ async def test_complete_file_upload_endpoint_auth():
         assert response.status_code == 204
 
 
-async def test_delete_file_endpoint_auth():
+async def test_delete_file_endpoint_auth(config: ConfigFixture):
     """Test that the delete file endpoint returns a 401 if auth is not supplied or is invalid,
     and a 403 if a structurally valid auth token is supplied but doesn't match the
     requested resource.
     """
-    jwk = utils.generate_token_signing_keys()
-    auth_key = jwk.export(private_key=False)
-    config = make_api_config(auth_key=auth_key, auth_check_claims={})
+    jwk = config.jwk
     async with (
-        prepare_rest_app(config=config, core_override=AsyncMock()) as app,
+        prepare_rest_app(config=config.config, core_override=AsyncMock()) as app,
         AsyncTestClient(app=app) as rest_client,
     ):
         url = f"/boxes/{TEST_BOX_ID}/uploads/{TEST_FILE_ID}"
@@ -393,17 +370,15 @@ async def test_delete_file_endpoint_auth():
     ids=["BoxAlreadyExists", "UnknownStorageAlias", "InternalError"],
 )
 async def test_create_box_endpoint_error_handling(
-    core_error: Exception, http_error: Exception
+    config: ConfigFixture, core_error: Exception, http_error: Exception
 ):
     """Test that the endpoint correctly translates errors from the core."""
-    jwk = utils.generate_token_signing_keys()
-    auth_key = jwk.export(private_key=False)
-    config = make_api_config(auth_key=auth_key, auth_check_claims={})
+    jwk = config.jwk
     body = {"research_data_upload_box_id": str(TEST_BOX_ID), "storage_alias": "HD01"}
     core_override = AsyncMock()
     core_override.create_file_upload_box.side_effect = core_error
     async with (
-        prepare_rest_app(config=config, core_override=core_override) as app,
+        prepare_rest_app(config=config.config, core_override=core_override) as app,
         AsyncTestClient(app=app) as rest_client,
     ):
         token = utils.generate_create_file_box_token(jwk=jwk)
@@ -425,17 +400,15 @@ async def test_create_box_endpoint_error_handling(
     ids=["BoxNotFound", "InternalError"],
 )
 async def test_update_box_endpoint_error_handling(
-    core_error: Exception, http_error: Exception
+    config: ConfigFixture, core_error: Exception, http_error: Exception
 ):
     """Test that the endpoint correctly translates errors from the core."""
-    jwk = utils.generate_token_signing_keys()
-    auth_key = jwk.export(private_key=False)
-    config = make_api_config(auth_key=auth_key, auth_check_claims={})
+    jwk = config.jwk
     body = {"locked": True}
     core_override = AsyncMock()
     core_override.lock_file_upload_box.side_effect = core_error
     async with (
-        prepare_rest_app(config=config, core_override=core_override) as app,
+        prepare_rest_app(config=config.config, core_override=core_override) as app,
         AsyncTestClient(app=app) as rest_client,
     ):
         token = utils.generate_change_file_box_token(box_id=TEST_BOX_ID, jwk=jwk)
@@ -459,16 +432,14 @@ async def test_update_box_endpoint_error_handling(
     ids=["BoxNotFound", "InternalError"],
 )
 async def test_view_box_endpoint_error_handling(
-    core_error: Exception, http_error: Exception
+    config: ConfigFixture, core_error: Exception, http_error: Exception
 ):
     """Test that the endpoint correctly translates errors from the core."""
-    jwk = utils.generate_token_signing_keys()
-    auth_key = jwk.export(private_key=False)
-    config = make_api_config(auth_key=auth_key, auth_check_claims={})
+    jwk = config.jwk
     core_override = AsyncMock()
     core_override.get_file_ids_for_box.side_effect = core_error
     async with (
-        prepare_rest_app(config=config, core_override=core_override) as app,
+        prepare_rest_app(config=config.config, core_override=core_override) as app,
         AsyncTestClient(app=app) as rest_client,
     ):
         token = utils.generate_view_file_box_token(jwk=jwk, box_id=TEST_BOX_ID)
@@ -516,17 +487,15 @@ async def test_view_box_endpoint_error_handling(
     ],
 )
 async def test_create_file_upload_endpoint_error_handling(
-    core_error: Exception, http_error: Exception
+    config: ConfigFixture, core_error: Exception, http_error: Exception
 ):
     """Test that the endpoint correctly translates errors from the core."""
-    jwk = utils.generate_token_signing_keys()
-    auth_key = jwk.export(private_key=False)
-    config = make_api_config(auth_key=auth_key, auth_check_claims={})
+    jwk = config.jwk
     body = {"alias": "test_file", "checksum": "sha256:abc123", "size": 1024}
     core_override = AsyncMock()
     core_override.initiate_file_upload.side_effect = core_error
     async with (
-        prepare_rest_app(config=config, core_override=core_override) as app,
+        prepare_rest_app(config=config.config, core_override=core_override) as app,
         AsyncTestClient(app=app) as rest_client,
     ):
         token = utils.generate_create_file_token(
@@ -567,16 +536,14 @@ async def test_create_file_upload_endpoint_error_handling(
     ],
 )
 async def test_get_file_part_upload_url_endpoint_error_handling(
-    core_error: Exception, http_error: Exception
+    config: ConfigFixture, core_error: Exception, http_error: Exception
 ):
     """Test that the endpoint correctly translates errors from the core."""
-    jwk = utils.generate_token_signing_keys()
-    auth_key = jwk.export(private_key=False)
-    config = make_api_config(auth_key=auth_key, auth_check_claims={})
+    jwk = config.jwk
     core_override = AsyncMock()
     core_override.get_part_upload_url.side_effect = core_error
     async with (
-        prepare_rest_app(config=config, core_override=core_override) as app,
+        prepare_rest_app(config=config.config, core_override=core_override) as app,
         AsyncTestClient(app=app) as rest_client,
     ):
         token = utils.generate_upload_file_token(
@@ -628,17 +595,15 @@ async def test_get_file_part_upload_url_endpoint_error_handling(
     ],
 )
 async def test_complete_file_upload_endpoint_error_handling(
-    core_error: Exception, http_error: Exception
+    config: ConfigFixture, core_error: Exception, http_error: Exception
 ):
     """Test that the endpoint correctly translates errors from the core."""
-    jwk = utils.generate_token_signing_keys()
-    auth_key = jwk.export(private_key=False)
-    config = make_api_config(auth_key=auth_key, auth_check_claims={})
+    jwk = config.jwk
     body: dict[str, str] = {}
     core_override = AsyncMock()
     core_override.complete_file_upload.side_effect = core_error
     async with (
-        prepare_rest_app(config=config, core_override=core_override) as app,
+        prepare_rest_app(config=config.config, core_override=core_override) as app,
         AsyncTestClient(app=app) as rest_client,
     ):
         token = utils.generate_close_file_token(
@@ -691,16 +656,14 @@ async def test_complete_file_upload_endpoint_error_handling(
     ],
 )
 async def test_delete_file_endpoint_error_handling(
-    core_error: Exception, http_error: Exception
+    config: ConfigFixture, core_error: Exception, http_error: Exception
 ):
     """Test that the endpoint correctly translates errors from the core."""
-    jwk = utils.generate_token_signing_keys()
-    auth_key = jwk.export(private_key=False)
-    config = make_api_config(auth_key=auth_key, auth_check_claims={})
+    jwk = config.jwk
     core_override = AsyncMock()
     core_override.remove_file_upload.side_effect = core_error
     async with (
-        prepare_rest_app(config=config, core_override=core_override) as app,
+        prepare_rest_app(config=config.config, core_override=core_override) as app,
         AsyncTestClient(app=app) as rest_client,
     ):
         token = utils.generate_delete_file_token(
