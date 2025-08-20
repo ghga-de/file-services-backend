@@ -15,6 +15,7 @@
 
 """Module containing the main FastAPI router and all route functions."""
 
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, status
@@ -30,6 +31,7 @@ from ucs.ports.inbound.controller import UploadControllerPort
 
 router = APIRouter(tags=["UploadControllerService"])
 
+log = logging.getLogger(__name__)
 
 ERROR_RESPONSES = {
     "noFileAccess": {
@@ -172,6 +174,9 @@ async def create_box(
         raise http_exceptions.HttpBoxAlreadyExistsError(box_id=box_id) from error
     except UploadControllerPort.UnknownStorageAliasError as error:
         raise http_exceptions.HttpUnknownStorageAliasError() from error
+    except Exception as error:
+        log.error(error, exc_info=True)
+        raise http_exceptions.HttpInternalError() from error
 
     return box_id
 
@@ -215,6 +220,9 @@ async def update_box(
             await upload_controller.unlock_file_upload_box(box_id=box_id)
     except UploadControllerPort.BoxNotFoundError as error:
         raise http_exceptions.HttpBoxNotFoundError(box_id=box_id) from error
+    except Exception as error:
+        log.error(error, exc_info=True)
+        raise http_exceptions.HttpInternalError() from error
 
 
 @router.get(
@@ -250,6 +258,9 @@ async def get_box_uploads(
         file_ids = await upload_controller.get_file_ids_for_box(box_id=box_id)
     except UploadControllerPort.BoxNotFoundError as error:
         raise http_exceptions.HttpBoxNotFoundError(box_id=box_id) from error
+    except Exception as error:
+        log.error(error, exc_info=True)
+        raise http_exceptions.HttpInternalError() from error
 
     return rest_models.BoxUploadsResponse(file_ids=file_ids)
 
@@ -314,6 +325,9 @@ async def create_file_upload(
         raise http_exceptions.HttpMultipartUploadDupeError(
             file_alias=file_alias
         ) from error
+    except Exception as error:
+        log.error(error, exc_info=True)
+        raise http_exceptions.HttpInternalError() from error
 
     return file_id
 
@@ -367,7 +381,9 @@ async def get_part_upload_url(
         raise http_exceptions.HttpUnknownStorageAliasError() from error
     except UploadControllerPort.S3UploadNotFoundError as error:
         raise http_exceptions.HttpS3UploadNotFoundError() from error
-    # TODO: add 500 response + log to every endpoint
+    except Exception as error:
+        log.error(error, exc_info=True)
+        raise http_exceptions.HttpInternalError() from error
 
     return presigned_url
 
@@ -420,6 +436,9 @@ async def complete_file_upload(
         ) from error
     except UploadControllerPort.UploadCompletionError as error:
         raise http_exceptions.HttpUploadCompletionError() from error
+    except Exception as error:
+        log.error(error, exc_info=True)
+        raise http_exceptions.HttpInternalError() from error
 
 
 @router.delete(
@@ -468,3 +487,6 @@ async def remove_file_upload(
         raise http_exceptions.HttpUnknownStorageAliasError() from error
     except UploadControllerPort.UploadAbortError as error:
         raise http_exceptions.HttpUploadAbortError() from error
+    except Exception as error:
+        log.error(error, exc_info=True)
+        raise http_exceptions.HttpInternalError() from error

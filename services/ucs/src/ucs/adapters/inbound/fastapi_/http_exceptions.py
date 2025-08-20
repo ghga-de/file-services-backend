@@ -18,8 +18,6 @@
 from ghga_service_commons.httpyexpect.server import HttpCustomExceptionBase
 from pydantic import UUID4, BaseModel
 
-from ucs.core import models
-
 
 class HttpNoFileAccessError(HttpCustomExceptionBase):
     """Thrown when the client has not sufficient privileges to access the specified
@@ -114,7 +112,7 @@ class HttpBoxAlreadyExistsError(HttpCustomExceptionBase):
         super().__init__(
             status_code=status_code,
             description=(f"A FileUploadBox with ID {box_id} already exists."),
-            data={"box_id": box_id},
+            data={"box_id": str(box_id)},
         )
 
 
@@ -133,7 +131,7 @@ class HttpBoxNotFoundError(HttpCustomExceptionBase):
         super().__init__(
             status_code=status_code,
             description=(f"FileUploadBox with ID {box_id} not found."),
-            data={"box_id": box_id},
+            data={"box_id": str(box_id)},
         )
 
 
@@ -154,7 +152,7 @@ class HttpLockedBoxError(HttpCustomExceptionBase):
             description=(
                 f"Can't perform this action because the box with ID {box_id} is locked."
             ),
-            data={"box_id": box_id},
+            data={"box_id": str(box_id)},
         )
 
 
@@ -212,7 +210,7 @@ class HttpS3UploadDetailsNotFoundError(HttpCustomExceptionBase):
         super().__init__(
             status_code=status_code,
             description=(f"S3 upload details for file ID {file_id} were not found."),
-            data={},
+            data={"file_id": str(file_id)},
         )
 
 
@@ -249,7 +247,7 @@ class HttpFileUploadNotFoundError(HttpCustomExceptionBase):
         super().__init__(
             status_code=status_code,
             description=(f"FileUpload with ID {file_id} not found."),
-            data={"file_id": file_id},
+            data={"file_id": str(file_id)},
         )
 
 
@@ -290,6 +288,20 @@ class HttpNotAuthorizedError(HttpCustomExceptionBase):
         """Construct message and init the exception."""
         super().__init__(
             status_code=status_code,
-            description="Not authorized to perform this action.",
+            description="Not authorized",
+            data={},
+        )
+
+
+class HttpInternalError(HttpCustomExceptionBase):
+    """Thrown for otherwise unhandled exceptions"""
+
+    exception_id = "internalError"
+
+    def __init__(self, *, status_code: int = 500):
+        """Construct message and init the exception."""
+        super().__init__(
+            status_code=status_code,
+            description="An internal server error has occurred.",
             data={},
         )
