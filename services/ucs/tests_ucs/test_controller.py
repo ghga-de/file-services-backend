@@ -96,7 +96,7 @@ async def test_create_new_box(config: ConfigFixture):
         config=config.config,
         file_upload_box_dao=file_upload_box_dao,
         file_upload_dao=AsyncMock(),
-        s3_upload_dao=AsyncMock(),
+        s3_upload_details_dao=AsyncMock(),
         object_storages=object_storages,
     )
 
@@ -118,7 +118,7 @@ async def test_create_new_file_upload(config: ConfigFixture, patch_s3_calls):
         config=config.config,
         file_upload_box_dao=file_upload_box_dao,
         file_upload_dao=file_upload_dao,
-        s3_upload_dao=s3_upload_dao,
+        s3_upload_details_dao=s3_upload_dao,
         object_storages=object_storages,
     )
 
@@ -157,7 +157,7 @@ async def test_get_part_url(config: ConfigFixture, patch_s3_calls):
         config=config.config,
         file_upload_box_dao=file_upload_box_dao,
         file_upload_dao=file_upload_dao,
-        s3_upload_dao=s3_upload_dao,
+        s3_upload_details_dao=s3_upload_dao,
         object_storages=object_storages,
     )
 
@@ -194,7 +194,7 @@ async def test_complete_file_upload(config: ConfigFixture, patch_s3_calls):
         config=config.config,
         file_upload_box_dao=file_upload_box_dao,
         file_upload_dao=file_upload_dao,
-        s3_upload_dao=s3_upload_dao,
+        s3_upload_details_dao=s3_upload_dao,
         object_storages=object_storages,
     )
 
@@ -231,7 +231,7 @@ async def test_delete_file_upload(config: ConfigFixture, patch_s3_calls):
         config=config.config,
         file_upload_box_dao=file_upload_box_dao,
         file_upload_dao=file_upload_dao,
-        s3_upload_dao=s3_upload_dao,
+        s3_upload_details_dao=s3_upload_dao,
         object_storages=object_storages,
     )
 
@@ -268,7 +268,7 @@ async def test_lock_file_upload_box(config: ConfigFixture):
         config=config.config,
         file_upload_box_dao=file_upload_box_dao,
         file_upload_dao=AsyncMock(),
-        s3_upload_dao=AsyncMock(),
+        s3_upload_details_dao=AsyncMock(),
         object_storages=object_storages,
     )
 
@@ -295,7 +295,7 @@ async def test_unlock_file_upload_box(config: ConfigFixture):
         config=config.config,
         file_upload_box_dao=file_upload_box_dao,
         file_upload_dao=AsyncMock(),
-        s3_upload_dao=AsyncMock(),
+        s3_upload_details_dao=AsyncMock(),
         object_storages=object_storages,
     )
 

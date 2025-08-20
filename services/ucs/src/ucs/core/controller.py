@@ -48,13 +48,13 @@ class UploadController(UploadControllerPort):
         config: Config,
         file_upload_box_dao: FileUploadBoxDao,
         file_upload_dao: FileUploadDao,
-        s3_upload_dao: S3UploadDetailsDao,
+        s3_upload_details_dao: S3UploadDetailsDao,
         object_storages: ObjectStorages,
     ):
         self._config = config
         self._file_upload_box_dao = file_upload_box_dao
         self._file_upload_dao = file_upload_dao
-        self._s3_upload_dao = s3_upload_dao
+        self._s3_upload_details_dao = s3_upload_details_dao
         self._object_storages = object_storages
 
     def _get_bucket_and_storage(
@@ -257,7 +257,7 @@ class UploadController(UploadControllerPort):
             s3_upload_id=s3_upload_id,
             initiated=now_utc_ms_prec(),
         )
-        await self._s3_upload_dao.insert(s3_upload)
+        await self._s3_upload_details_dao.insert(s3_upload)
 
         return file_id
 
@@ -273,7 +273,7 @@ class UploadController(UploadControllerPort):
         """
         # Retrieve the S3Upload record for this file ID
         try:
-            s3_upload_details = await self._s3_upload_dao.get_by_id(file_id)
+            s3_upload_details = await self._s3_upload_details_dao.get_by_id(file_id)
         except ResourceNotFoundError as err:
             error = self.S3UploadDetailsNotFoundError(file_id=file_id)
             log.error(
@@ -342,7 +342,7 @@ class UploadController(UploadControllerPort):
 
         # Get s3 upload details
         try:
-            s3_upload_details = await self._s3_upload_dao.get_by_id(file_id)
+            s3_upload_details = await self._s3_upload_details_dao.get_by_id(file_id)
         except ResourceNotFoundError as err:
             error = self.S3UploadDetailsNotFoundError(file_id=file_id)
             log.error(error, extra={"box_id": box_id, "file_id": file_id})
@@ -385,7 +385,7 @@ class UploadController(UploadControllerPort):
         await self._file_upload_box_dao.update(box)
         await self._file_upload_dao.update(file_upload)
         s3_upload_details.completed = now_utc_ms_prec()
-        await self._s3_upload_dao.update(s3_upload_details)
+        await self._s3_upload_details_dao.update(s3_upload_details)
 
     async def remove_file_upload(self, *, box_id: UUID4, file_id: UUID4) -> None:
         """Remove a file upload and cancel the ongoing upload if applicable.
@@ -407,7 +407,7 @@ class UploadController(UploadControllerPort):
             return  # File already deleted, we're done here
 
         try:
-            s3_upload_details = await self._s3_upload_dao.get_by_id(file_id)
+            s3_upload_details = await self._s3_upload_details_dao.get_by_id(file_id)
         except ResourceNotFoundError as err:
             error = self.S3UploadDetailsNotFoundError(file_id=file_id)
             log.error(error, extra={"box_id": box_id, "file_id": file_id})
@@ -422,7 +422,7 @@ class UploadController(UploadControllerPort):
                 s3_upload_details=s3_upload_details
             )
 
-        await self._s3_upload_dao.delete(file_id)
+        await self._s3_upload_details_dao.delete(file_id)
         await self._file_upload_dao.delete(file_id)
 
     async def create_file_upload_box(

@@ -22,6 +22,7 @@ from pydantic import UUID4
 from ucs.core.models import FileUploadBox
 
 
+# TODO: revisit this whole 'get /boxes' thing -- are we just returning file IDs or the whole shebang?
 # TODO: Verify that all errors are used somewhere
 class UploadControllerPort(ABC):
     """A class for managing file uploads"""
