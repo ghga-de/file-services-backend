@@ -403,6 +403,26 @@ The service requires the following configuration parameters:
   ```
 
 
+- <a id="properties/auth_key"></a>**`auth_key`** *(string, required)*: The GHGA internal public key for validating the token signature.
+
+
+  Examples:
+
+  ```json
+  "{\"crv\": \"P-256\", \"kty\": \"EC\", \"x\": \"...\", \"y\": \"...\"}"
+  ```
+
+
+- <a id="properties/auth_algs"></a>**`auth_algs`** *(array)*: A list of all algorithms used for signing GHGA internal tokens. Default: `["ES256"]`.
+
+  - <a id="properties/auth_algs/items"></a>**Items** *(string)*
+
+- <a id="properties/auth_check_claims"></a>**`auth_check_claims`** *(object)*: A dict of all GHGA internal claims that shall be verified. Can contain additional properties. Default: `{"id": null, "name": null, "email": null, "iat": null, "exp": null}`.
+
+- <a id="properties/auth_map_claims"></a>**`auth_map_claims`** *(object)*: A mapping of claims to attributes in the GHGA auth context. Can contain additional properties. Default: `{}`.
+
+  - <a id="properties/auth_map_claims/additionalProperties"></a>**Additional properties** *(string)*
+
 - <a id="properties/host"></a>**`host`** *(string)*: IP of the host. Default: `"127.0.0.1"`.
 
 - <a id="properties/port"></a>**`port`** *(integer)*: Port to expose the server on the specified host. Default: `8080`.

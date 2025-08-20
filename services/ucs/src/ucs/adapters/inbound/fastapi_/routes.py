@@ -16,7 +16,6 @@
 """Module containing the main FastAPI router and all route functions."""
 
 from typing import Annotated
-from uuid import UUID
 
 from fastapi import APIRouter, status
 from pydantic import UUID4
@@ -139,7 +138,7 @@ async def health():
     summary="Create a new FileUploadBox",
     operation_id="createBox",
     status_code=status.HTTP_201_CREATED,
-    response_model=str,
+    response_model=UUID4,
     response_description="The box_id of the newly created FileUploadBox",
     responses={
         status.HTTP_409_CONFLICT: ERROR_RESPONSES["boxAlreadyExists"],
@@ -162,7 +161,7 @@ async def create_box(
     """
     # Use the ResearchDataUploadBox ID as the FileUploadBox ID
     box_id = box_creation.research_data_upload_box_id
-    if work_order_context != rest_models.WorkType.CREATE:
+    if work_order_context.work_type != rest_models.WorkType.CREATE:
         raise http_exceptions.HttpNotAuthorizedError()
 
     try:
@@ -203,7 +202,10 @@ async def update_box(
     required_work_type = (
         rest_models.WorkType.LOCK if box_update.locked else rest_models.WorkType.UNLOCK
     )
-    if work_order_context.box_id != box_id or work_order_context != required_work_type:
+    if (
+        work_order_context.box_id != box_id
+        or work_order_context.work_type != required_work_type
+    ):
         raise http_exceptions.HttpNotAuthorizedError()
 
     try:
@@ -240,7 +242,7 @@ async def get_box_uploads(
     """
     if (
         work_order_context.box_id != box_id
-        or work_order_context != rest_models.WorkType.VIEW
+        or work_order_context.work_type != rest_models.WorkType.VIEW
     ):
         raise http_exceptions.HttpNotAuthorizedError()
 
@@ -285,7 +287,7 @@ async def create_file_upload(
     if (
         work_order_context.box_id != box_id
         or work_order_context.alias != file_alias
-        or work_order_context != rest_models.WorkType.CREATE
+        or work_order_context.work_type != rest_models.WorkType.CREATE
     ):
         raise http_exceptions.HttpNotAuthorizedError()
 
@@ -349,7 +351,7 @@ async def get_part_upload_url(
     if (
         work_order_context.box_id != box_id
         or work_order_context.file_id != file_id
-        or work_order_context != rest_models.WorkType.UPLOAD
+        or work_order_context.work_type != rest_models.WorkType.UPLOAD
     ):
         raise http_exceptions.HttpNotAuthorizedError()
 
@@ -400,7 +402,7 @@ async def complete_file_upload(
     if (
         work_order_context.box_id != box_id
         or work_order_context.file_id != file_id
-        or work_order_context != rest_models.WorkType.CLOSE
+        or work_order_context.work_type != rest_models.WorkType.CLOSE
     ):
         raise http_exceptions.HttpNotAuthorizedError()
 
@@ -448,7 +450,7 @@ async def remove_file_upload(
     if (
         work_order_context.box_id != box_id
         or work_order_context.file_id != file_id
-        or work_order_context != rest_models.WorkType.DELETE
+        or work_order_context.work_type != rest_models.WorkType.DELETE
     ):
         raise http_exceptions.HttpNotAuthorizedError()
 

@@ -19,13 +19,15 @@ from typing import Annotated
 
 from fastapi import Depends, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from ghga_service_commons.auth.context import AuthContextProtocol
+from ghga_service_commons.auth.jwt_auth import JWTAuthContextProvider
 from ghga_service_commons.auth.policies import require_auth_context_using_credentials
 
 from ucs.adapters.inbound.fastapi_ import dummies
 from ucs.adapters.inbound.fastapi_ import rest_models as models
+from ucs.config import Config
 
 __all__ = [
+    "JWTAuthContextProviderBundle",
     "require_change_file_box_work_order",
     "require_create_file_box_work_order",
     "require_create_file_work_order",
@@ -33,71 +35,109 @@ __all__ = [
     "require_view_file_box_work_order",
 ]
 
+CreateFileBoxProvider = JWTAuthContextProvider[models.CreateFileBoxWorkOrder]
+ChangeFileBoxProvider = JWTAuthContextProvider[models.ChangeFileBoxWorkOrder]
+ViewFileBoxProvider = JWTAuthContextProvider[models.ViewFileBoxWorkOrder]
+CreateFileProvider = JWTAuthContextProvider[models.CreateFileWorkOrder]
+UploadFileProvider = JWTAuthContextProvider[models.UploadFileWorkOrder]
+
+
+class JWTAuthContextProviderBundle:
+    """Bundle class that contains the different auth context providers"""
+
+    def __init__(self, *, config: Config):
+        """Bundled auth providers configurable at runtime"""
+        self.create_file_box_provider = JWTAuthContextProvider(
+            config=config,
+            context_class=models.CreateFileBoxWorkOrder,
+        )
+        self.change_file_box_provider = JWTAuthContextProvider(
+            config=config,
+            context_class=models.ChangeFileBoxWorkOrder,
+        )
+        self.view_file_box_provider = JWTAuthContextProvider(
+            config=config,
+            context_class=models.ViewFileBoxWorkOrder,
+        )
+        self.create_file_provider = JWTAuthContextProvider(
+            config=config,
+            context_class=models.CreateFileWorkOrder,
+        )
+        self.upload_file_provider = JWTAuthContextProvider(
+            config=config,
+            context_class=models.UploadFileWorkOrder,
+        )
+
 
 async def _require_create_file_box_work_order(
     auth_provider: Annotated[
-        AuthContextProtocol[models.CreateFileBoxWorkOrder],
+        JWTAuthContextProviderBundle,
         Depends(dummies.auth_provider),
     ],
-    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=True)),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False)),
 ) -> models.CreateFileBoxWorkOrder:
     """Require a work order context using FastAPI."""
+    provider = auth_provider.create_file_box_provider
     return await require_auth_context_using_credentials(
-        credentials=credentials, auth_provider=auth_provider
+        credentials=credentials, auth_provider=provider
     )
 
 
 async def _require_change_file_box_work_order(
     auth_provider: Annotated[
-        AuthContextProtocol[models.ChangeFileBoxWorkOrder],
+        JWTAuthContextProviderBundle,
         Depends(dummies.auth_provider),
     ],
-    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=True)),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False)),
 ) -> models.ChangeFileBoxWorkOrder:
     """Require a work order context using FastAPI."""
+    provider = auth_provider.change_file_box_provider
     return await require_auth_context_using_credentials(
-        credentials=credentials, auth_provider=auth_provider
+        credentials=credentials, auth_provider=provider
     )
 
 
 async def _require_view_file_box_work_order(
     auth_provider: Annotated[
-        AuthContextProtocol[models.ViewFileBoxWorkOrder], Depends(dummies.auth_provider)
+        JWTAuthContextProviderBundle, Depends(dummies.auth_provider)
     ],
-    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=True)),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False)),
 ) -> models.ViewFileBoxWorkOrder:
     """Require a work order context using FastAPI."""
+    provider = auth_provider.view_file_box_provider
     return await require_auth_context_using_credentials(
-        credentials=credentials, auth_provider=auth_provider
+        credentials=credentials, auth_provider=provider
     )
 
 
 async def _require_create_file_work_order(
     auth_provider: Annotated[
-        AuthContextProtocol[models.CreateFileWorkOrder], Depends(dummies.auth_provider)
+        JWTAuthContextProviderBundle, Depends(dummies.auth_provider)
     ],
-    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=True)),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False)),
 ) -> models.CreateFileWorkOrder:
     """Require a work order context using FastAPI."""
+    provider = auth_provider.create_file_provider
     return await require_auth_context_using_credentials(
-        credentials=credentials, auth_provider=auth_provider
+        credentials=credentials, auth_provider=provider
     )
 
 
 async def _require_upload_file_work_order(
     auth_provider: Annotated[
-        AuthContextProtocol[models.UploadFileWorkOrder], Depends(dummies.auth_provider)
+        JWTAuthContextProviderBundle, Depends(dummies.auth_provider)
     ],
-    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=True)),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False)),
 ) -> models.UploadFileWorkOrder:
     """Require a work order context using FastAPI."""
+    provider = auth_provider.upload_file_provider
     return await require_auth_context_using_credentials(
-        credentials=credentials, auth_provider=auth_provider
+        credentials=credentials, auth_provider=provider
     )
 
 
-require_create_file_box_work_order = Security(models.CreateFileBoxWorkOrder)
-require_change_file_box_work_order = Security(models.ChangeFileBoxWorkOrder)
-require_view_file_box_work_order = Security(models.ViewFileBoxWorkOrder)
-require_create_file_work_order = Security(models.CreateFileWorkOrder)
-require_upload_file_work_order = Security(models.UploadFileWorkOrder)
+require_create_file_box_work_order = Security(_require_create_file_box_work_order)
+require_change_file_box_work_order = Security(_require_change_file_box_work_order)
+require_view_file_box_work_order = Security(_require_view_file_box_work_order)
+require_create_file_work_order = Security(_require_create_file_work_order)
+require_upload_file_work_order = Security(_require_upload_file_work_order)

@@ -30,11 +30,15 @@ from ghga_service_commons.utils.multinode_storage import (
 from hexkit.providers.akafka.testutils import KafkaFixture
 from hexkit.providers.mongodb.testutils import MongoDbFixture
 from hexkit.providers.s3.testutils import S3Fixture
+from jwcrypto.jwk import JWK
 
 from tests_ucs.fixtures.config import get_config
+from tests_ucs.fixtures.utils import generate_token_signing_keys
 from ucs.config import Config
 from ucs.inject import prepare_core, prepare_rest_app
 from ucs.ports.inbound.controller import UploadControllerPort
+
+STORAGE_ALIASES = ("test", "test2")
 
 
 @dataclass
@@ -48,6 +52,7 @@ class JointFixture:
     kafka: KafkaFixture
     s3: S3Fixture
     bucket_id: str
+    jwk: JWK
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -57,6 +62,7 @@ async def joint_fixture(
     s3: S3Fixture,
 ) -> AsyncGenerator[JointFixture, None]:
     """A fixture that embeds all other fixtures for API-level integration testing."""
+    jwk = generate_token_signing_keys()
     bucket_id = "test-inbox"
 
     node_config = S3ObjectStorageNodeConfig(bucket=bucket_id, credentials=s3.config)
@@ -88,4 +94,5 @@ async def joint_fixture(
             kafka=kafka,
             s3=s3,
             bucket_id=bucket_id,
+            jwk=jwk,
         )

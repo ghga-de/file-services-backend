@@ -86,12 +86,6 @@ class UploadAttemptUpdate(BaseModel):
     model_config = ConfigDict(title="Multi-Part Upload Update")
 
 
-class BaseWorkOrderToken(BaseModel):
-    """Base model pre-configured for use as Dto."""
-
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-
 class WorkType(StrEnum):
     """The type of work that a work package describes."""
 
@@ -102,6 +96,14 @@ class WorkType(StrEnum):
     UPLOAD = "upload"
     CLOSE = "close"
     DELETE = "delete"
+
+
+class BaseWorkOrderToken(BaseModel):
+    """Base model pre-configured for use as Dto."""
+
+    work_type: WorkType
+
+    model_config = ConfigDict(frozen=True)
 
 
 class CreateFileBoxWorkOrder(BaseWorkOrderToken):
@@ -162,8 +164,8 @@ class CreateFileWorkOrder(BaseWorkOrderToken):
 class UploadFileWorkOrder(BaseWorkOrderToken):
     """WOT schema authorizing a user to work with existing FileUploads"""
 
-    file_id: str
-    box_id: str
+    file_id: UUID4
+    box_id: UUID4
 
     @classmethod
     @field_validator("work_type")

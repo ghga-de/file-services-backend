@@ -25,6 +25,9 @@ from hexkit.providers.mongokafka.provider import MongoKafkaDaoPublisherFactory
 
 from ucs.adapters.inbound.fastapi_ import dummies
 from ucs.adapters.inbound.fastapi_.configure import get_configured_app
+from ucs.adapters.inbound.fastapi_.http_authorization import (
+    JWTAuthContextProviderBundle,
+)
 from ucs.adapters.outbound.dao import (
     UploadDaoPublisherFactory,
     get_s3_upload_details_dao,
@@ -97,9 +100,13 @@ async def prepare_rest_app(
     """
     app = get_configured_app(config=config)
 
-    async with prepare_core_with_override(
-        config=config, core_override=core_override
-    ) as upload_controller:
+    async with (
+        prepare_core_with_override(
+            config=config, core_override=core_override
+        ) as upload_controller,
+    ):
+        auth_provider_bundle = JWTAuthContextProviderBundle(config=config)
+        app.dependency_overrides[dummies.auth_provider] = lambda: auth_provider_bundle
         app.dependency_overrides[dummies.upload_controller_port] = (
             lambda: upload_controller
         )

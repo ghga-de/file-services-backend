@@ -16,6 +16,7 @@
 """Config Parameter Modeling and Parsing"""
 
 from ghga_service_commons.api import ApiConfigBase
+from ghga_service_commons.auth.ghga import AuthConfig
 from ghga_service_commons.utils.multinode_storage import S3ObjectStoragesConfig
 from hexkit.config import config_from_yaml
 from hexkit.log import LoggingConfig
@@ -31,6 +32,7 @@ from ucs.constants import SERVICE_NAME
 @config_from_yaml(prefix=SERVICE_NAME)
 class Config(
     ApiConfigBase,
+    AuthConfig,
     UploadDaoConfig,
     MongoKafkaConfig,
     MigrationConfig,
