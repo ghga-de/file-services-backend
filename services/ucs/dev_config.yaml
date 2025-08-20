@@ -16,3 +16,4 @@ kafka_enable_dlq: True
 migration_wait_sec: 10
 db_version_collection: ucsDbVersions
 auth_key: "{}"
+auth_check_claims: {}

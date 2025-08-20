@@ -30,8 +30,8 @@ from hexkit.providers.s3.testutils import (  # noqa: F401
 )
 
 from tests_ucs.fixtures import ConfigFixture
+from tests_ucs.fixtures.config import get_config
 from tests_ucs.fixtures.joint import joint_fixture  # noqa: F401
-from ucs.config import Config
 
 
 @pytest.fixture(name="config")
@@ -39,5 +39,5 @@ def config_fixture() -> ConfigFixture:
     """Merge configs from different sources with the default one"""
     jwk = jwt_helpers.generate_jwk()
     auth_key = jwk.export(private_key=False)
-    config = Config(auth_key=auth_key, auth_check_claims={})
+    config = get_config(auth_key=auth_key)
     return ConfigFixture(config=config, jwk=jwk)
