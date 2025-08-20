@@ -21,6 +21,7 @@ from uuid import uuid4
 
 from ghga_service_commons.utils.multinode_storage import ObjectStorages
 from hexkit.protocols.objstorage import ObjectStorageProtocol
+from hexkit.utils import now_utc_ms_prec
 from pydantic import UUID4
 
 from ucs.config import Config
@@ -251,7 +252,10 @@ class UploadController(UploadControllerPort):
         # Insert S3UploadDetails. Don't check for duplicate because insert only
         #  occurs in this method and only if the FileUpload alias is new
         s3_upload = S3UploadDetails(
-            file_id=file_id, storage_alias=box.storage_alias, s3_upload_id=s3_upload_id
+            file_id=file_id,
+            storage_alias=box.storage_alias,
+            s3_upload_id=s3_upload_id,
+            initiated=now_utc_ms_prec(),
         )
         await self._s3_upload_dao.insert(s3_upload)
 
@@ -331,10 +335,10 @@ class UploadController(UploadControllerPort):
             raise error from err
 
         # Mark the FileUpload as complete
-        file_upload.completed = True
         if file_upload.completed:
             log.info("FileUpload with ID %s already marked complete.", file_id)
             return
+        file_upload.completed = True
 
         # Get s3 upload details
         try:
@@ -380,8 +384,8 @@ class UploadController(UploadControllerPort):
         # Update local collections now that S3 upload is successfully completed
         await self._file_upload_box_dao.update(box)
         await self._file_upload_dao.update(file_upload)
-        # TODO: change this to set the completion date on the details
-        await self._s3_upload_dao.delete(file_id)
+        s3_upload_details.completed = now_utc_ms_prec()
+        await self._s3_upload_dao.update(s3_upload_details)
 
     async def remove_file_upload(self, *, box_id: UUID4, file_id: UUID4) -> None:
         """Remove a file upload and cancel the ongoing upload if applicable.

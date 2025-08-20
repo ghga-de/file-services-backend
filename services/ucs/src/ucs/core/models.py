@@ -15,6 +15,7 @@
 
 """Defines dataclasses for holding business-logic data"""
 
+from ghga_service_commons.utils.utc_dates import UTCDatetime
 from pydantic import UUID4, BaseModel
 
 
@@ -47,4 +48,6 @@ class S3UploadDetails(BaseModel):
     file_id: UUID4
     storage_alias: str
     s3_upload_id: str
-    # TODO: add started, finished
+    initiated: UTCDatetime
+    completed: UTCDatetime | None = None
+    deleted: UTCDatetime | None = None
