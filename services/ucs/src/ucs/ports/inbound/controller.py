@@ -19,16 +19,21 @@ from abc import ABC, abstractmethod
 
 from pydantic import UUID4
 
-from ucs.core.models import FileUploadBox
 
-
-# TODO: revisit this whole 'get /boxes' thing -- are we just returning file IDs or the whole shebang?
-# TODO: Verify that all errors are used somewhere
 class UploadControllerPort(ABC):
     """A class for managing file uploads"""
 
+    class IncompleteUploadsError(RuntimeError):
+        """Raised when trying to lock a FileUploadBox for which at least one incomplete
+        FileUpload exists.
+        """
+
+        def __init__(self, *, box_id: UUID4, file_ids: list[UUID4]):
+            msg = f"Cannot lock box {box_id} because these files are incomplete: {file_ids}"
+            super().__init__(msg)
+
     class S3UploadDetailsNotFoundError(RuntimeError):
-        """Raise when the expected S3 upload details aren't found in the local DB.
+        """Raised when the expected S3 upload details aren't found in the local DB.
 
         This happens when there is a FileUpload object but no matching S3UploadDetails.
         """
@@ -51,8 +56,10 @@ class UploadControllerPort(ABC):
         """Raised when aborting an S3 multipart upload results in an error."""
 
         def __init__(self, *, file_id: UUID4, s3_upload_id: str, bucket_id: str):
-            msg = f"Failed to abort S3 multipart upload with ID {s3_upload_id} for"
-            f" file ID {file_id} in bucket ID {bucket_id}."
+            msg = (
+                f"Failed to abort S3 multipart upload with ID {s3_upload_id} for"
+                + f" file ID {file_id} in bucket ID {bucket_id}."
+            )
             super().__init__(msg)
 
     class UploadCompletionError(RuntimeError):
@@ -190,15 +197,7 @@ class UploadControllerPort(ABC):
 
         Raises:
         - `BoxAlreadyExistsError` if there's already a FileUploadBox with the same ID.
-        """
-        ...
-
-    @abstractmethod
-    async def get_file_upload_box(self, *, box_id: UUID4) -> FileUploadBox:
-        """Return an instance of a FileUploadBox.
-
-        Raises:
-        - `BoxNotFoundError` if the FileUploadBox isn't found in the DB.
+        - `UnknownStorageAliasError` if the storage alias is not known.
         """
         ...
 

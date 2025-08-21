@@ -68,7 +68,6 @@ class UploadController(UploadControllerPort):
             bucket_id, object_storage = self._object_storages.for_alias(storage_alias)
         except KeyError as error:
             unknown_alias = self.UnknownStorageAliasError(storage_alias=(storage_alias))
-            # TODO: apply logging convention here too when you figure that out
             log.error(unknown_alias, extra={"storage_alias": storage_alias})
             raise unknown_alias from error
         return bucket_id, object_storage
@@ -94,8 +93,17 @@ class UploadController(UploadControllerPort):
             )
         ]
         if hits:
-            # TODO: apply logging convention here too when you figure that out
-            raise self.FileUploadAlreadyExists(alias=alias)
+            error = self.FileUploadAlreadyExists(alias=alias)
+            log.error(
+                error,
+                extra={
+                    "box_id": box.id,
+                    "file_alias": alias,
+                    "checksum": checksum,
+                    "size": size,
+                },
+            )
+            raise error
 
         # Insert the FileUpload object
         file_id = uuid4()
@@ -123,8 +131,9 @@ class UploadController(UploadControllerPort):
 
         # Verify that the box is not locked
         if box.locked:
-            # TODO: Decide on convention for where to log errors, and if that should be here
-            raise self.LockedBoxError(box_id=box_id)
+            error = self.LockedBoxError(box_id=box_id)
+            log.error(error)
+            raise error
 
         return box
 
@@ -233,7 +242,6 @@ class UploadController(UploadControllerPort):
                 bucket_id=bucket_id, object_id=str(file_id)
             )
         except object_storage.MultiPartUploadAlreadyExistsError as err:
-            # TODO: apply logging convention here too when you figure that out
             error = self.MultipartUploadDupeError(
                 file_id=file_id, bucket_id=storage_alias
             )
@@ -432,28 +440,19 @@ class UploadController(UploadControllerPort):
 
         Raises:
         - `BoxAlreadyExistsError` if there's already a FileUploadBox with the same ID.
+        - `UnknownStorageAliasError` if the storage alias is not known.
         """
         # TODO: Decide if we're using the same IDs in UCS/UOS or using random IDs!
+        if storage_alias not in self._config.object_storages:
+            raise self.UnknownStorageAliasError(storage_alias=storage_alias)
+
         box = FileUploadBox(id=box_id, storage_alias=storage_alias)
 
         try:
             await self._file_upload_box_dao.insert(box)
         except ResourceAlreadyExistsError as err:
             error = self.BoxAlreadyExistsError(box_id=box_id)
-            log.error(error)
-            raise error from err
-
-    async def get_file_upload_box(self, *, box_id: UUID4) -> FileUploadBox:
-        """Return an instance of a FileUploadBox.
-
-        Raises:
-        - `BoxNotFoundError` if the FileUploadBox isn't found in the DB.
-        """
-        try:
-            return await self._file_upload_box_dao.get_by_id(box_id)
-        except ResourceNotFoundError as err:
-            error = self.BoxNotFoundError(box_id=box_id)
-            log.error(error)
+            log.error(error, extra={"box_id": box_id, "storage_alias": storage_alias})
             raise error from err
 
     async def lock_file_upload_box(self, *, box_id: UUID4) -> None:
@@ -461,6 +460,7 @@ class UploadController(UploadControllerPort):
 
         Raises:
         - `BoxNotFoundError` if the FileUploadBox isn't found in the DB.
+        - `IncompleteUploadsError` if the FileUploadBox has incomplete FileUploads.
         """
         try:
             box = await self._file_upload_box_dao.get_by_id(box_id)
@@ -469,8 +469,18 @@ class UploadController(UploadControllerPort):
             log.error(error)
             raise error from err
 
-        box.locked = True
-        await self._file_upload_box_dao.update(box)
+        incomplete_files_cursor = self._file_upload_dao.find_all(
+            mapping={"box_id": box_id, "completed": False}
+        )
+        file_ids = sorted([x.id async for x in incomplete_files_cursor])
+        if file_ids:
+            error = self.IncompleteUploadsError(box_id=box_id, file_ids=file_ids)
+            log.error(error, extra={"box_id": box_id, "file_ids": str(file_ids)})
+            raise error
+
+        if not box.locked:
+            box.locked = True
+            await self._file_upload_box_dao.update(box)
 
     async def unlock_file_upload_box(self, *, box_id: UUID4) -> None:
         """Unlock an existing FileUploadBox.
