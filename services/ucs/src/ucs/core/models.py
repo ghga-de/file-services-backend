@@ -33,7 +33,6 @@ class FileUpload(BaseModel):
     """A File Upload"""
 
     id: UUID4
-    # TODO: change completed to optional datetime
     completed: bool = False  # whether or not the file upload has finished
     alias: str  # the submitted alias from the metadata (unique within the box)
     box_id: UUID4
@@ -41,7 +40,6 @@ class FileUpload(BaseModel):
     size: int
 
 
-# TODO: Is this enough for the details? Others might request to keep a trail of upload attempts like in the last UCS version
 class S3UploadDetails(BaseModel):
     """Class for linking a multipart upload to its FileUpload object"""
 

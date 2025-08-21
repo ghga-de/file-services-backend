@@ -361,7 +361,6 @@ async def get_part_upload_url(
     Returns a pre-signed URL that can be used to upload the bytes for the specified
     part number of the specified file upload.
     """
-    # TODO: think about the box ID here -- we don't use it, so maybe scrap it
     if (
         work_order_context.box_id != box_id
         or work_order_context.file_id != file_id

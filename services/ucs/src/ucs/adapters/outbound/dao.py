@@ -69,8 +69,6 @@ class UploadDaoPublisherFactory(UploadDaoPublisherFactoryPort):
         self._file_upload_topic = config.file_upload_topic
         self._dao_publisher_factory = dao_publisher_factory
 
-    # TODO: See if lambdas are sufficient for dto_to_event
-
     async def get_file_upload_box_dao(self) -> DaoPublisher[models.FileUploadBox]:
         """Construct an outbox DAO for FileUploadBox objects"""
         return await self._dao_publisher_factory.get_dao(
