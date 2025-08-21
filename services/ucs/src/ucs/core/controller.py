@@ -38,7 +38,6 @@ from ucs.ports.outbound.dao import (
 log = logging.getLogger(__name__)
 
 
-# TODO: Add more log statements
 class UploadController(UploadControllerPort):
     """A class for managing file uploads"""
 
@@ -70,6 +69,11 @@ class UploadController(UploadControllerPort):
             unknown_alias = self.UnknownStorageAliasError(storage_alias=(storage_alias))
             log.error(unknown_alias, extra={"storage_alias": storage_alias})
             raise unknown_alias from error
+        log.debug(
+            "Found bucket '%s' and object storage for alias '%s'",
+            bucket_id,
+            storage_alias,
+        )
         return bucket_id, object_storage
 
     async def _insert_validated_file_upload(
@@ -229,6 +233,12 @@ class UploadController(UploadControllerPort):
         file_id = await self._insert_validated_file_upload(
             box=box, alias=alias, checksum=checksum, size=size
         )
+        log.info(
+            "FileUpload %s added for alias %s.",
+            file_id,
+            alias,
+            extra={"box_id": box_id},
+        )
 
         # Get the S3 storage details
         storage_alias = box.storage_alias
@@ -240,6 +250,13 @@ class UploadController(UploadControllerPort):
         try:
             s3_upload_id = await object_storage.init_multipart_upload(
                 bucket_id=bucket_id, object_id=str(file_id)
+            )
+            log.info(
+                "S3 multipart upload %s created for file ID %s (file alias %s)",
+                s3_upload_id,
+                file_id,
+                alias,
+                extra={"storage_alias": storage_alias, "bucket_id": bucket_id},
             )
         except object_storage.MultiPartUploadAlreadyExistsError as err:
             error = self.MultipartUploadDupeError(
@@ -266,6 +283,11 @@ class UploadController(UploadControllerPort):
             initiated=now_utc_ms_prec(),
         )
         await self._s3_upload_details_dao.insert(s3_upload)
+        log.debug(
+            "S3UploadDetails created for file ID %s",
+            file_id,
+            extra={"storage_alias": storage_alias, "bucket_id": bucket_id},
+        )
 
         return file_id
 
@@ -371,6 +393,16 @@ class UploadController(UploadControllerPort):
                 bucket_id=bucket_id,
                 object_id=str(file_id),
             )
+            log.info(
+                "S3 multipart upload %s completed for file %s",
+                s3_upload_id,
+                file_id,
+                extra={
+                    "bucket_id": bucket_id,
+                    "storage_alias": storage_alias,
+                    "box_id": box_id,
+                },
+            )
         except object_storage.MultiPartUploadConfirmError as err:
             # This usually can't be repaired, so abort the upload attempt
             error = self.UploadCompletionError(
@@ -394,6 +426,7 @@ class UploadController(UploadControllerPort):
         await self._file_upload_dao.update(file_upload)
         s3_upload_details.completed = now_utc_ms_prec()
         await self._s3_upload_details_dao.update(s3_upload_details)
+        log.debug("DB data updated for upload completion of file %s", file_id)
 
     async def remove_file_upload(self, *, box_id: UUID4, file_id: UUID4) -> None:
         """Remove a file upload and cancel the ongoing upload if applicable.
@@ -406,13 +439,14 @@ class UploadController(UploadControllerPort):
         - `UploadAbortError` if there's an error instructing S3 to abort the upload.
         """
         # Make sure box exists and is unlocked (unless overridden)
-        _ = await self._get_unlocked_box(box_id=box_id)
+        box = await self._get_unlocked_box(box_id=box_id)
 
         # Retrieve the FileUpload data
         try:
             file_upload = await self._file_upload_dao.get_by_id(file_id)
         except ResourceNotFoundError:
-            return  # File already deleted, we're done here
+            log.info("File %s not found - presumed already deleted.", file_id)
+            return
 
         try:
             s3_upload_details = await self._s3_upload_details_dao.get_by_id(file_id)
@@ -425,6 +459,9 @@ class UploadController(UploadControllerPort):
             await self._remove_completed_file_upload(
                 s3_upload_details=s3_upload_details
             )
+            box.file_count -= 1
+            box.size -= file_upload.size
+            await self._file_upload_box_dao.update(box)
         else:
             await self._remove_incomplete_file_upload(
                 s3_upload_details=s3_upload_details
@@ -432,6 +469,7 @@ class UploadController(UploadControllerPort):
 
         await self._s3_upload_details_dao.delete(file_id)
         await self._file_upload_dao.delete(file_id)
+        log.info("File %s deleted from box %s", file_id, box_id)
 
     async def create_file_upload_box(
         self, *, box_id: UUID4, storage_alias: str
@@ -481,6 +519,7 @@ class UploadController(UploadControllerPort):
         if not box.locked:
             box.locked = True
             await self._file_upload_box_dao.update(box)
+        log.info("Locked box with ID %s", box_id)
 
     async def unlock_file_upload_box(self, *, box_id: UUID4) -> None:
         """Unlock an existing FileUploadBox.
@@ -497,6 +536,7 @@ class UploadController(UploadControllerPort):
 
         box.locked = False
         await self._file_upload_box_dao.update(box)
+        log.info("Unlocked box with ID %s", box_id)
 
     async def get_file_ids_for_box(self, *, box_id: UUID4) -> list[UUID4]:
         """Return the list of file IDs for a FileUploadBox.
