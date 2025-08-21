@@ -16,87 +16,86 @@
 """Tests for the UploadController class"""
 
 from asyncio import sleep
+from dataclasses import dataclass
 from datetime import timedelta
-from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
+from ghga_service_commons.utils.multinode_storage import ObjectStorages
 from hexkit.utils import now_utc_ms_prec
-from services.ucs.tests_ucs.fixtures.in_mem_dao import (
+
+from tests_ucs.fixtures import ConfigFixture
+from tests_ucs.fixtures.in_mem_dao import (
+    BaseInMemDao,
     DummyFileUploadBoxDao,
     DummyFileUploadDao,
     DummyS3UploadDetailsDao,
 )
-from services.ucs.tests_ucs.fixtures.in_mem_obj_storage import (
+from tests_ucs.fixtures.in_mem_obj_storage import (
     InMemObjectStorage,
     InMemS3ObjectStorages,
     raise_object_storage_error,
 )
-
-from tests_ucs.fixtures import ConfigFixture
+from ucs.config import Config
+from ucs.core import models
 from ucs.core.controller import UploadController
 from ucs.ports.inbound.controller import UploadControllerPort
 
 pytestmark = pytest.mark.asyncio()
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture()
 def patch_s3_calls(monkeypatch):
-    """Patch the calls to S3
-
-    What this will do:
-    - init_multipart_upload: ignore input and return a uuid4 string
-    - get_part_upload_url: return a static url string
-    - complete_multipart_upload: ignores input, returns None
-    - abort_multipart_upload: ignores input, returns None
-    """
+    """Mocks the object storage provider with an InMemObjectStorage object"""
     monkeypatch.setattr(
         f"{InMemObjectStorage.__module__}.S3ObjectStorage", InMemObjectStorage
     )
 
-    # monkeypatch.setattr(
-    #     object_storage_dummy,
-    #     "S3ObjectStorages",
-    #     object_storage_dummy.InMemS3ObjectStorages,
-    # )
+
+@dataclass
+class JointRig:
+    """Test fixture containing all components needed for controller testing."""
+
+    config: Config
+    file_upload_box_dao: BaseInMemDao[models.FileUploadBox]
+    file_upload_dao: BaseInMemDao[models.FileUpload]
+    s3_upload_details_dao: BaseInMemDao[models.S3UploadDetails]
+    object_storages: ObjectStorages
+    controller: UploadController
 
 
-async def test_create_new_box(config: ConfigFixture):
-    """Test creating a new FileUploadBox"""
-    file_upload_box_dao = DummyFileUploadBoxDao()
-    object_storages = InMemS3ObjectStorages(config=config.config)
-
+@pytest.fixture()
+def rig(config: ConfigFixture, patch_s3_calls) -> JointRig:
+    """Return a joint fixture with in-memory dependency mocks"""
     controller = UploadController(
-        config=config.config,
-        file_upload_box_dao=file_upload_box_dao,
-        file_upload_dao=AsyncMock(),
-        s3_upload_details_dao=AsyncMock(),
-        object_storages=object_storages,
+        config=(_config := config.config),
+        file_upload_box_dao=(file_upload_box_dao := DummyFileUploadBoxDao()),
+        file_upload_dao=(file_upload_dao := DummyFileUploadDao()),
+        s3_upload_details_dao=(s3_upload_details_dao := DummyS3UploadDetailsDao()),
+        object_storages=(object_storages := InMemS3ObjectStorages(config=_config)),
     )
-
-    box_id = uuid4()
-    await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
-
-    assert file_upload_box_dao.latest.id == box_id
-
-
-async def test_create_new_file_upload(config: ConfigFixture):
-    """Test creating a new FileUpload"""
-    file_upload_box_dao = DummyFileUploadBoxDao()
-
-    file_upload_dao = DummyFileUploadDao()
-    s3_upload_dao = DummyS3UploadDetailsDao()
-    object_storages = InMemS3ObjectStorages(config=config.config)
-
-    controller = UploadController(
-        config=config.config,
+    return JointRig(
+        config=_config,
         file_upload_box_dao=file_upload_box_dao,
         file_upload_dao=file_upload_dao,
-        s3_upload_details_dao=s3_upload_dao,
+        s3_upload_details_dao=s3_upload_details_dao,
         object_storages=object_storages,
+        controller=controller,
     )
 
+
+async def test_create_new_box(rig: JointRig):
+    """Test creating a new FileUploadBox"""
+    box_id = uuid4()
+    await rig.controller.create_file_upload_box(box_id=box_id, storage_alias="test")
+    assert rig.file_upload_box_dao.latest.id == box_id
+
+
+async def test_create_new_file_upload(rig: JointRig):
+    """Test creating a new FileUpload"""
     # First create a FileUploadBox
+    file_upload_dao = rig.file_upload_dao
+    controller = rig.controller
     box_id = uuid4()
     await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
 
@@ -112,7 +111,7 @@ async def test_create_new_file_upload(config: ConfigFixture):
     assert file_upload_dao.latest.size == 1024
 
     # Verify S3UploadDetails were created
-    upload_details = s3_upload_dao.latest
+    upload_details = rig.s3_upload_details_dao.latest
     assert upload_details.file_id == file_id
     assert upload_details.storage_alias == "test"
     assert now_utc_ms_prec() - upload_details.initiated < timedelta(seconds=5)
@@ -120,22 +119,10 @@ async def test_create_new_file_upload(config: ConfigFixture):
     assert not upload_details.deleted
 
 
-async def test_get_part_url(config: ConfigFixture):
+async def test_get_part_url(rig: JointRig):
     """Test getting a file part upload URL"""
-    file_upload_box_dao = DummyFileUploadBoxDao()
-    file_upload_dao = DummyFileUploadDao()
-    s3_upload_dao = DummyS3UploadDetailsDao()
-    object_storages = InMemS3ObjectStorages(config=config.config)
-
-    controller = UploadController(
-        config=config.config,
-        file_upload_box_dao=file_upload_box_dao,
-        file_upload_dao=file_upload_dao,
-        s3_upload_details_dao=s3_upload_dao,
-        object_storages=object_storages,
-    )
-
     # First create a FileUploadBox
+    controller = rig.controller
     box_id = uuid4()
     await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
 
@@ -152,23 +139,10 @@ async def test_get_part_url(config: ConfigFixture):
     assert result_url.startswith("https://s3.example.com/")
 
 
-async def test_complete_file_upload(config: ConfigFixture):
+async def test_complete_file_upload(rig: JointRig):
     """Test completing a multipart file upload"""
-    file_upload_box_dao = DummyFileUploadBoxDao()
-    file_upload_dao = DummyFileUploadDao()
-    s3_upload_dao = DummyS3UploadDetailsDao()
-    object_storages = InMemS3ObjectStorages(config=config.config)
-    bucket_id, object_storage = object_storages.for_alias("test")
-
-    controller = UploadController(
-        config=config.config,
-        file_upload_box_dao=file_upload_box_dao,
-        file_upload_dao=file_upload_dao,
-        s3_upload_details_dao=s3_upload_dao,
-        object_storages=object_storages,
-    )
-
     # First create a FileUploadBox
+    controller = rig.controller
     box_id = uuid4()
     await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
 
@@ -179,16 +153,19 @@ async def test_complete_file_upload(config: ConfigFixture):
 
     # Now complete the file upload
     await controller.complete_file_upload(box_id=box_id, file_id=file_id)
+    bucket_id, object_storage = rig.object_storages.for_alias("test")
     assert await object_storage.does_object_exist(
         bucket_id=bucket_id, object_id=str(file_id)
     )
 
     # Verify that the S3UploadDetails still exist (they should remain for tracking)
     completed = now_utc_ms_prec()
-    assert s3_upload_dao.latest.file_id == file_id
-    assert s3_upload_dao.latest.completed is not None
-    assert completed - s3_upload_dao.latest.completed < timedelta(seconds=5)
-    assert file_upload_dao.latest.completed
+    s3_upload_details_dao = rig.s3_upload_details_dao
+    assert s3_upload_details_dao.latest.file_id == file_id
+    assert s3_upload_details_dao.latest.completed is not None
+    assert completed - s3_upload_details_dao.latest.completed < timedelta(seconds=5)
+    assert rig.file_upload_dao.latest.completed
+    file_upload_box_dao = rig.file_upload_box_dao
     assert file_upload_box_dao.latest.size == 1024
     assert file_upload_box_dao.latest.file_count == 1
 
@@ -198,7 +175,7 @@ async def test_complete_file_upload(config: ConfigFixture):
         box_id=box_id, alias="test_file2", checksum="sha256:abc123", size=1000
     )
     await controller.complete_file_upload(box_id=box_id, file_id=file_id2)
-    latest_s3_details = s3_upload_dao.latest
+    latest_s3_details = s3_upload_details_dao.latest
     assert latest_s3_details.file_id == file_id2
     assert latest_s3_details.completed
     assert latest_s3_details.completed > completed
@@ -207,21 +184,13 @@ async def test_complete_file_upload(config: ConfigFixture):
 
 
 @pytest.mark.parametrize("complete_before_delete", [True, False])
-async def test_delete_file_upload(config: ConfigFixture, complete_before_delete: bool):
+async def test_delete_file_upload(rig: JointRig, complete_before_delete: bool):
     """Test deleting a FileUpload from a FileUploadBox"""
-    file_upload_box_dao = DummyFileUploadBoxDao()
-    file_upload_dao = DummyFileUploadDao()
-    s3_upload_dao = DummyS3UploadDetailsDao()
-    object_storages = InMemS3ObjectStorages(config=config.config)
-    bucket_id, object_storage = object_storages.for_alias("test")
-
-    controller = UploadController(
-        config=config.config,
-        file_upload_box_dao=file_upload_box_dao,
-        file_upload_dao=file_upload_dao,
-        s3_upload_details_dao=s3_upload_dao,
-        object_storages=object_storages,
-    )
+    controller = rig.controller
+    file_upload_box_dao = rig.file_upload_box_dao
+    file_upload_dao = rig.file_upload_dao
+    s3_upload_details_dao = rig.s3_upload_details_dao
+    bucket_id, object_storage = rig.object_storages.for_alias("test")
 
     # First create a FileUploadBox
     box_id = uuid4()
@@ -248,26 +217,16 @@ async def test_delete_file_upload(config: ConfigFixture, complete_before_delete:
 
     # Verify that the FileUpload and S3UploadDetails were removed
     assert not file_upload_dao.resources
-    assert not s3_upload_dao.resources
+    assert not s3_upload_details_dao.resources
     assert file_upload_box_dao.latest.file_count == 0
     assert file_upload_box_dao.latest.size == 0
 
 
-async def test_lock_file_upload_box(config: ConfigFixture):
+async def test_lock_file_upload_box(rig: JointRig):
     """Test locking an unlocked FileUploadBox"""
-    file_upload_box_dao = DummyFileUploadBoxDao()
-    file_upload_dao = DummyFileUploadDao()
-    object_storages = InMemS3ObjectStorages(config=config.config)
-
-    controller = UploadController(
-        config=config.config,
-        file_upload_box_dao=file_upload_box_dao,
-        file_upload_dao=file_upload_dao,
-        s3_upload_details_dao=AsyncMock(),
-        object_storages=object_storages,
-    )
-
     # First create a FileUploadBox (starts unlocked by default)
+    file_upload_box_dao = rig.file_upload_box_dao
+    controller = rig.controller
     box_id = uuid4()
     await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
 
@@ -281,19 +240,10 @@ async def test_lock_file_upload_box(config: ConfigFixture):
     assert file_upload_box_dao.latest.locked
 
 
-async def test_unlock_file_upload_box(config: ConfigFixture):
+async def test_unlock_file_upload_box(rig: JointRig):
     """Test unlocking a locked FileUploadBox"""
-    file_upload_box_dao = DummyFileUploadBoxDao()
-    file_upload_dao = DummyFileUploadDao()
-    object_storages = InMemS3ObjectStorages(config=config.config)
-
-    controller = UploadController(
-        config=config.config,
-        file_upload_box_dao=file_upload_box_dao,
-        file_upload_dao=file_upload_dao,
-        s3_upload_details_dao=AsyncMock(),
-        object_storages=object_storages,
-    )
+    file_upload_box_dao = rig.file_upload_box_dao
+    controller = rig.controller
 
     # First create a FileUploadBox
     box_id = uuid4()
@@ -310,20 +260,9 @@ async def test_unlock_file_upload_box(config: ConfigFixture):
     assert not file_upload_box_dao.latest.locked
 
 
-async def test_get_box_uploads(config: ConfigFixture):
+async def test_get_box_uploads(rig: JointRig):
     """Test getting file IDs for a given box ID"""
-    file_upload_box_dao = DummyFileUploadBoxDao()
-    file_upload_dao = DummyFileUploadDao()
-    s3_upload_dao = DummyS3UploadDetailsDao()
-    object_storages = InMemS3ObjectStorages(config=config.config)
-
-    controller = UploadController(
-        config=config.config,
-        file_upload_box_dao=file_upload_box_dao,
-        file_upload_dao=file_upload_dao,
-        s3_upload_details_dao=s3_upload_dao,
-        object_storages=object_storages,
-    )
+    controller = rig.controller
 
     # First create a FileUploadBox
     box_id = uuid4()
@@ -381,20 +320,12 @@ async def test_get_box_uploads(config: ConfigFixture):
     assert no_ids == []
 
 
-async def test_create_box_duplicate(config: ConfigFixture):
+async def test_create_box_duplicate(rig: JointRig):
     """Test for error handling when the user tries to create new FileUploadBox
     with an ID that already is used.
     """
-    file_upload_box_dao = DummyFileUploadBoxDao()
-    object_storages = InMemS3ObjectStorages(config=config.config)
-
-    controller = UploadController(
-        config=config.config,
-        file_upload_box_dao=file_upload_box_dao,
-        file_upload_dao=AsyncMock(),
-        s3_upload_details_dao=AsyncMock(),
-        object_storages=object_storages,
-    )
+    file_upload_box_dao = rig.file_upload_box_dao
+    controller = rig.controller
 
     # Create a FileUploadBox first
     box_id = uuid4()
@@ -411,22 +342,12 @@ async def test_create_box_duplicate(config: ConfigFixture):
     assert exc_info.value.box_id == box_id
 
 
-async def test_create_box_with_unknown_storage_alias(config: ConfigFixture):
+async def test_create_box_with_unknown_storage_alias(rig: JointRig):
     """Test for error handling when the user tries to create new FileUploadBox
     with a storage alias that isn't configured.
     """
-    file_upload_box_dao = DummyFileUploadBoxDao()
-    object_storages = InMemS3ObjectStorages(config=config.config)
-
-    controller = UploadController(
-        config=config.config,
-        file_upload_box_dao=file_upload_box_dao,
-        file_upload_dao=AsyncMock(),
-        s3_upload_details_dao=AsyncMock(),
-        object_storages=object_storages,
-    )
-
     # Try to create a FileUploadBox with an unknown storage alias
+    controller = rig.controller
     box_id = uuid4()
     unknown_storage_alias = "unknown_storage_alias_that_does_not_exist"
 
@@ -440,25 +361,15 @@ async def test_create_box_with_unknown_storage_alias(config: ConfigFixture):
     assert unknown_storage_alias in str(exc_info.value)
 
     # Verify no box was created in the DAO
-    assert not file_upload_box_dao.resources
+    assert not rig.file_upload_box_dao.resources
 
 
-async def test_create_file_upload_alias_duplicate(config: ConfigFixture):
+async def test_create_file_upload_alias_duplicate(rig: JointRig):
     """Test for error handling when a user tries to create a FileUpload
     for a file alias that already exists.
     """
-    file_upload_box_dao = DummyFileUploadBoxDao()
-    file_upload_dao = DummyFileUploadDao()
-    s3_upload_dao = DummyS3UploadDetailsDao()
-    object_storages = InMemS3ObjectStorages(config=config.config)
-
-    controller = UploadController(
-        config=config.config,
-        file_upload_box_dao=file_upload_box_dao,
-        file_upload_dao=file_upload_dao,
-        s3_upload_details_dao=s3_upload_dao,
-        object_storages=object_storages,
-    )
+    controller = rig.controller
+    file_upload_dao = rig.file_upload_dao
 
     # First create a FileUploadBox
     box_id = uuid4()
@@ -483,22 +394,11 @@ async def test_create_file_upload_alias_duplicate(config: ConfigFixture):
     assert len(file_upload_dao.resources) == 1
 
 
-async def test_create_file_upload_when_box_missing(config: ConfigFixture):
+async def test_create_file_upload_when_box_missing(rig: JointRig):
     """Test error handling in the case where the user tries to create a FileUpload
     for a box ID that doesn't exist.
     """
-    file_upload_box_dao = DummyFileUploadBoxDao()
-    file_upload_dao = DummyFileUploadDao()
-    s3_upload_dao = DummyS3UploadDetailsDao()
-    object_storages = InMemS3ObjectStorages(config=config.config)
-
-    controller = UploadController(
-        config=config.config,
-        file_upload_box_dao=file_upload_box_dao,
-        file_upload_dao=file_upload_dao,
-        s3_upload_details_dao=s3_upload_dao,
-        object_storages=object_storages,
-    )
+    controller = rig.controller
 
     # Try to create a FileUpload for a non-existent box
     non_existent_box_id = uuid4()
@@ -516,26 +416,16 @@ async def test_create_file_upload_when_box_missing(config: ConfigFixture):
     assert str(non_existent_box_id) in str(exc_info.value)
 
     # Verify no FileUpload was created
-    assert not file_upload_dao.resources
-    assert not s3_upload_dao.resources
+    assert not rig.file_upload_dao.resources
+    assert not rig.s3_upload_details_dao.resources
 
 
-async def test_create_file_upload_when_box_locked(config: ConfigFixture):
+async def test_create_file_upload_when_box_locked(rig: JointRig):
     """Test error handling in the case where the user tries to create a FileUpload
     in a locked FileUploadBox.
     """
-    file_upload_box_dao = DummyFileUploadBoxDao()
-    file_upload_dao = DummyFileUploadDao()
-    s3_upload_dao = DummyS3UploadDetailsDao()
-    object_storages = InMemS3ObjectStorages(config=config.config)
-
-    controller = UploadController(
-        config=config.config,
-        file_upload_box_dao=file_upload_box_dao,
-        file_upload_dao=file_upload_dao,
-        s3_upload_details_dao=s3_upload_dao,
-        object_storages=object_storages,
-    )
+    controller = rig.controller
+    file_upload_box_dao = rig.file_upload_box_dao
 
     # First create a FileUploadBox and lock it
     box_id = uuid4()
@@ -553,26 +443,15 @@ async def test_create_file_upload_when_box_locked(config: ConfigFixture):
     assert str(box_id) in str(exc_info.value)
 
     # Verify no FileUpload was created
-    assert not file_upload_dao.resources
-    assert not s3_upload_dao.resources
+    assert not rig.file_upload_dao.resources
+    assert not rig.s3_upload_details_dao.resources
 
 
-async def test_delete_file_upload_when_box_missing(config: ConfigFixture):
+async def test_delete_file_upload_when_box_missing(rig: JointRig):
     """Test error handling in the case where the user tries to delete a FileUpload
     for a box ID that doesn't exist.
     """
-    file_upload_box_dao = DummyFileUploadBoxDao()
-    file_upload_dao = DummyFileUploadDao()
-    s3_upload_dao = DummyS3UploadDetailsDao()
-    object_storages = InMemS3ObjectStorages(config=config.config)
-
-    controller = UploadController(
-        config=config.config,
-        file_upload_box_dao=file_upload_box_dao,
-        file_upload_dao=file_upload_dao,
-        s3_upload_details_dao=s3_upload_dao,
-        object_storages=object_storages,
-    )
+    controller = rig.controller
 
     # Try to delete a FileUpload from a non-existent box
     non_existent_box_id = uuid4()
@@ -588,27 +467,19 @@ async def test_delete_file_upload_when_box_missing(config: ConfigFixture):
     assert str(non_existent_box_id) in str(exc_info.value)
 
     # Verify no changes were made to DAOs
-    assert not file_upload_box_dao.resources
-    assert not file_upload_dao.resources
-    assert not s3_upload_dao.resources
+    assert not rig.file_upload_box_dao.resources
+    assert not rig.file_upload_dao.resources
+    assert not rig.s3_upload_details_dao.resources
 
 
-async def test_delete_file_upload_when_box_locked(config: ConfigFixture):
+async def test_delete_file_upload_when_box_locked(rig: JointRig):
     """Test error handling in the case where the user tries to delete a FileUpload
     in a locked FileUploadBox.
     """
-    file_upload_box_dao = DummyFileUploadBoxDao()
-    file_upload_dao = DummyFileUploadDao()
-    s3_upload_dao = DummyS3UploadDetailsDao()
-    object_storages = InMemS3ObjectStorages(config=config.config)
-
-    controller = UploadController(
-        config=config.config,
-        file_upload_box_dao=file_upload_box_dao,
-        file_upload_dao=file_upload_dao,
-        s3_upload_details_dao=s3_upload_dao,
-        object_storages=object_storages,
-    )
+    controller = rig.controller
+    file_upload_box_dao = rig.file_upload_box_dao
+    file_upload_dao = rig.file_upload_dao
+    s3_upload_details_dao = rig.s3_upload_details_dao
 
     # First create a FileUploadBox and FileUpload
     box_id = uuid4()
@@ -632,25 +503,14 @@ async def test_delete_file_upload_when_box_locked(config: ConfigFixture):
 
     # Verify the FileUpload and S3UploadDetails still exist (weren't deleted)
     assert len(file_upload_dao.resources) == 1
-    assert len(s3_upload_dao.resources) == 1
+    assert len(s3_upload_details_dao.resources) == 1
 
 
-async def test_delete_file_upload_when_upload_missing(config: ConfigFixture):
+async def test_delete_file_upload_when_upload_missing(rig: JointRig):
     """Test error handling in the case where the user tries to delete a FileUpload
     that doesn't exist.
     """
-    file_upload_box_dao = DummyFileUploadBoxDao()
-    file_upload_dao = DummyFileUploadDao()
-    s3_upload_dao = DummyS3UploadDetailsDao()
-    object_storages = InMemS3ObjectStorages(config=config.config)
-
-    controller = UploadController(
-        config=config.config,
-        file_upload_box_dao=file_upload_box_dao,
-        file_upload_dao=file_upload_dao,
-        s3_upload_details_dao=s3_upload_dao,
-        object_storages=object_storages,
-    )
+    controller = rig.controller
 
     # Create a FileUploadBox
     box_id = uuid4()
@@ -660,23 +520,14 @@ async def test_delete_file_upload_when_upload_missing(config: ConfigFixture):
     await controller.remove_file_upload(box_id=box_id, file_id=uuid4())
 
 
-async def test_delete_file_upload_with_missing_s3_details(config: ConfigFixture):
+async def test_delete_file_upload_with_missing_s3_details(rig: JointRig):
     """Test error handling in the case where the user tries to delete a FileUpload
     where the s3 upload details are missing. This would be an unusual case,
     but we're still testing it.
     """
-    file_upload_box_dao = DummyFileUploadBoxDao()
-    file_upload_dao = DummyFileUploadDao()
-    s3_upload_dao = DummyS3UploadDetailsDao()
-    object_storages = InMemS3ObjectStorages(config=config.config)
-
-    controller = UploadController(
-        config=config.config,
-        file_upload_box_dao=file_upload_box_dao,
-        file_upload_dao=file_upload_dao,
-        s3_upload_details_dao=s3_upload_dao,
-        object_storages=object_storages,
-    )
+    controller = rig.controller
+    file_upload_dao = rig.file_upload_dao
+    s3_upload_details_dao = rig.s3_upload_details_dao
 
     # Create a FileUploadBox and a FileUpload
     box_id = uuid4()
@@ -687,15 +538,15 @@ async def test_delete_file_upload_with_missing_s3_details(config: ConfigFixture)
 
     # Verify both FileUpload and S3UploadDetails were created
     assert len(file_upload_dao.resources) == 1
-    assert len(s3_upload_dao.resources) == 1
+    assert len(s3_upload_details_dao.resources) == 1
 
     # Manually delete the S3UploadDetails but leave the FileUpload
     # This simulates a data inconsistency where S3 details are missing
-    await s3_upload_dao.delete(file_id)
+    await s3_upload_details_dao.delete(file_id)
 
     # Verify the FileUpload exists but S3UploadDetails are gone
     assert len(file_upload_dao.resources) == 1
-    assert len(s3_upload_dao.resources) == 0
+    assert len(s3_upload_details_dao.resources) == 0
 
     # Try to delete the file upload - should raise S3UploadDetailsNotFoundError
     with pytest.raises(UploadControllerPort.S3UploadDetailsNotFoundError) as exc_info:
@@ -708,22 +559,12 @@ async def test_delete_file_upload_with_missing_s3_details(config: ConfigFixture)
     assert len(file_upload_dao.resources) == 1
 
 
-async def test_delete_file_upload_with_s3_error(config: ConfigFixture):
+async def test_delete_file_upload_with_s3_error(rig: JointRig):
     """Test for error handling when the user tries to delete a FileUpload
     but gets an S3 error in the process of aborting an ongoing upload.
     """
-    file_upload_box_dao = DummyFileUploadBoxDao()
-    file_upload_dao = DummyFileUploadDao()
-    s3_upload_dao = DummyS3UploadDetailsDao()
-    object_storages = InMemS3ObjectStorages(config=config.config)
-
-    controller = UploadController(
-        config=config.config,
-        file_upload_box_dao=file_upload_box_dao,
-        file_upload_dao=file_upload_dao,
-        s3_upload_details_dao=s3_upload_dao,
-        object_storages=object_storages,
-    )
+    controller = rig.controller
+    s3_upload_details_dao = rig.s3_upload_details_dao
 
     # Create a FileUploadBox and a FileUpload
     box_id = uuid4()
@@ -742,26 +583,17 @@ async def test_delete_file_upload_with_s3_error(config: ConfigFixture):
         await controller.remove_file_upload(box_id=box_id, file_id=file_id)
 
     # Verify the exception contains the S3 upload ID
-    s3_upload_id = s3_upload_dao.latest.s3_upload_id
+    s3_upload_id = s3_upload_details_dao.latest.s3_upload_id
     assert s3_upload_id in str(exc_info.value)
 
     # Verify the FileUpload and S3UploadDetails still exist (deletion failed)
-    assert len(file_upload_dao.resources) == 1
-    assert len(s3_upload_dao.resources) == 1
+    assert len(rig.file_upload_dao.resources) == 1
+    assert len(s3_upload_details_dao.resources) == 1
 
 
-async def test_unlock_missing_box(config: ConfigFixture):
+async def test_unlock_missing_box(rig: JointRig):
     """Test error handling for case where the user tries to unlock a missing box."""
-    file_upload_box_dao = DummyFileUploadBoxDao()
-    object_storages = InMemS3ObjectStorages(config=config.config)
-
-    controller = UploadController(
-        config=config.config,
-        file_upload_box_dao=file_upload_box_dao,
-        file_upload_dao=AsyncMock(),
-        s3_upload_details_dao=AsyncMock(),
-        object_storages=object_storages,
-    )
+    controller = rig.controller
 
     # Try to unlock a non-existent box
     non_existent_box_id = uuid4()
@@ -772,18 +604,9 @@ async def test_unlock_missing_box(config: ConfigFixture):
     assert str(non_existent_box_id) in str(exc_info.value)
 
 
-async def test_lock_missing_box(config: ConfigFixture):
+async def test_lock_missing_box(rig: JointRig):
     """Test error handling for case where the user tries to lock a missing box."""
-    file_upload_box_dao = DummyFileUploadBoxDao()
-    object_storages = InMemS3ObjectStorages(config=config.config)
-
-    controller = UploadController(
-        config=config.config,
-        file_upload_box_dao=file_upload_box_dao,
-        file_upload_dao=AsyncMock(),
-        s3_upload_details_dao=AsyncMock(),
-        object_storages=object_storages,
-    )
+    controller = rig.controller
 
     # Try to lock a non-existent box
     non_existent_box_id = uuid4()
@@ -796,22 +619,12 @@ async def test_lock_missing_box(config: ConfigFixture):
     assert str(non_existent_box_id) in str(exc_info.value)
 
 
-async def test_lock_box_with_incomplete_upload(config: ConfigFixture):
+async def test_lock_box_with_incomplete_upload(rig: JointRig):
     """Test error handling for the scenario where the user tries to lock a box
     for which incomplete FileUpload(s) exist.
     """
-    file_upload_box_dao = DummyFileUploadBoxDao()
-    file_upload_dao = DummyFileUploadDao()
-    s3_upload_dao = DummyS3UploadDetailsDao()
-    object_storages = InMemS3ObjectStorages(config=config.config)
-
-    controller = UploadController(
-        config=config.config,
-        file_upload_box_dao=file_upload_box_dao,
-        file_upload_dao=file_upload_dao,
-        s3_upload_details_dao=s3_upload_dao,
-        object_storages=object_storages,
-    )
+    controller = rig.controller
+    file_upload_box_dao = rig.file_upload_box_dao
 
     # Create a FileUploadBox and a FileUpload
     box_id = uuid4()
@@ -839,22 +652,14 @@ async def test_lock_box_with_incomplete_upload(config: ConfigFixture):
     assert not file_upload_box_dao.latest.locked
 
 
-async def test_complete_file_upload_when_box_missing(config: ConfigFixture):
+async def test_complete_file_upload_when_box_missing(rig: JointRig):
     """Test error handling in the case where the user tries to complete a FileUpload
     for a box ID that doesn't exist.
     """
-    file_upload_box_dao = DummyFileUploadBoxDao()
-    file_upload_dao = DummyFileUploadDao()
-    s3_upload_dao = DummyS3UploadDetailsDao()
-    object_storages = InMemS3ObjectStorages(config=config.config)
-
-    controller = UploadController(
-        config=config.config,
-        file_upload_box_dao=file_upload_box_dao,
-        file_upload_dao=file_upload_dao,
-        s3_upload_details_dao=s3_upload_dao,
-        object_storages=object_storages,
-    )
+    controller = rig.controller
+    file_upload_box_dao = rig.file_upload_box_dao
+    file_upload_dao = rig.file_upload_dao
+    s3_upload_details_dao = rig.s3_upload_details_dao
 
     # Create a FileUploadBox and a FileUpload
     box_id = uuid4()
@@ -870,7 +675,7 @@ async def test_complete_file_upload_when_box_missing(config: ConfigFixture):
     # Verify the box is gone but file upload and S3 details remain
     assert not file_upload_box_dao.resources
     assert len(file_upload_dao.resources) == 1
-    assert len(s3_upload_dao.resources) == 1
+    assert len(s3_upload_details_dao.resources) == 1
 
     # Try to complete the file upload for the now missing box
     with pytest.raises(UploadControllerPort.BoxNotFoundError) as exc_info:
@@ -879,27 +684,15 @@ async def test_complete_file_upload_when_box_missing(config: ConfigFixture):
     # Verify the exception contains the correct box_id
     assert str(box_id) in str(exc_info.value)
     assert not file_upload_dao.latest.completed
-    assert not s3_upload_dao.latest.completed
+    assert not s3_upload_details_dao.latest.completed
 
 
-async def test_complete_missing_file_upload(config: ConfigFixture):
+async def test_complete_missing_file_upload(rig: JointRig):
     """Test error handling in the case where the user tries to complete a FileUpload
     that doesn't exist.
     """
-    file_upload_box_dao = DummyFileUploadBoxDao()
-    file_upload_dao = DummyFileUploadDao()
-    s3_upload_dao = DummyS3UploadDetailsDao()
-    object_storages = InMemS3ObjectStorages(config=config.config)
-
-    controller = UploadController(
-        config=config.config,
-        file_upload_box_dao=file_upload_box_dao,
-        file_upload_dao=file_upload_dao,
-        s3_upload_details_dao=s3_upload_dao,
-        object_storages=object_storages,
-    )
-
     # Create a box first
+    controller = rig.controller
     box_id = uuid4()
     await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
 
@@ -910,30 +703,19 @@ async def test_complete_missing_file_upload(config: ConfigFixture):
         await controller.complete_file_upload(
             box_id=box_id, file_id=non_existent_file_id
         )
-    assert not file_upload_dao.resources
-    assert not s3_upload_dao.resources
+    assert not rig.file_upload_dao.resources
+    assert not rig.s3_upload_details_dao.resources
 
     # Verify the exception contains the correct file_id
     assert str(non_existent_file_id) in str(exc_info.value)
 
 
-async def test_complete_file_upload_with_missing_s3_details(config: ConfigFixture):
+async def test_complete_file_upload_with_missing_s3_details(rig: JointRig):
     """Test error handling in the case where the user tries to complete a FileUpload
     where the s3 upload details are missing. This would be an unusual case,
     but we're still testing it.
     """
-    file_upload_box_dao = DummyFileUploadBoxDao()
-    file_upload_dao = DummyFileUploadDao()
-    s3_upload_dao = DummyS3UploadDetailsDao()
-    object_storages = InMemS3ObjectStorages(config=config.config)
-
-    controller = UploadController(
-        config=config.config,
-        file_upload_box_dao=file_upload_box_dao,
-        file_upload_dao=file_upload_dao,
-        s3_upload_details_dao=s3_upload_dao,
-        object_storages=object_storages,
-    )
+    controller = rig.controller
 
     # Create a FileUploadBox and a FileUpload
     box_id = uuid4()
@@ -944,7 +726,7 @@ async def test_complete_file_upload_with_missing_s3_details(config: ConfigFixtur
 
     # Manually delete the S3UploadDetails but leave the FileUpload
     # This simulates a data inconsistency where S3 details are missing
-    await s3_upload_dao.delete(file_id)
+    await rig.s3_upload_details_dao.delete(file_id)
 
     # Try to complete the file upload - should raise S3UploadDetailsNotFoundError
     with pytest.raises(UploadControllerPort.S3UploadDetailsNotFoundError) as exc_info:
@@ -954,27 +736,18 @@ async def test_complete_file_upload_with_missing_s3_details(config: ConfigFixtur
     assert str(file_id) in str(exc_info.value)
 
     # Verify the FileUpload is still marked as incomplete
-    assert not file_upload_dao.latest.completed
-    assert file_upload_box_dao.latest.size == 0
-    assert file_upload_box_dao.latest.file_count == 0
+    assert not rig.file_upload_dao.latest.completed
+    assert rig.file_upload_box_dao.latest.size == 0
+    assert rig.file_upload_box_dao.latest.file_count == 0
 
 
-async def test_complete_file_upload_with_unknown_storage_alias(config: ConfigFixture):
+async def test_complete_file_upload_with_unknown_storage_alias(rig: JointRig):
     """Test for error handling when the user tries to complete a FileUpload
     with a storage alias that isn't configured.
     """
-    file_upload_box_dao = DummyFileUploadBoxDao()
-    file_upload_dao = DummyFileUploadDao()
-    s3_upload_dao = DummyS3UploadDetailsDao()
-    object_storages = InMemS3ObjectStorages(config=config.config)
-
-    controller = UploadController(
-        config=config.config,
-        file_upload_box_dao=file_upload_box_dao,
-        file_upload_dao=file_upload_dao,
-        s3_upload_details_dao=s3_upload_dao,
-        object_storages=object_storages,
-    )
+    file_upload_dao = rig.file_upload_dao
+    s3_upload_details_dao = rig.s3_upload_details_dao
+    controller = rig.controller
 
     # Create a FileUploadBox and a FileUpload with a valid storage alias
     box_id = uuid4()
@@ -985,13 +758,13 @@ async def test_complete_file_upload_with_unknown_storage_alias(config: ConfigFix
 
     # Verify both FileUpload and S3UploadDetails were created
     assert len(file_upload_dao.resources) == 1
-    assert len(s3_upload_dao.resources) == 1
+    assert len(s3_upload_details_dao.resources) == 1
 
     # Manually modify the S3UploadDetails to have an unknown storage alias
     # This simulates a scenario where configuration changed or data was corrupted
-    s3_details = s3_upload_dao.latest
+    s3_details = s3_upload_details_dao.latest
     s3_details.storage_alias = "does_not_exist"
-    await s3_upload_dao.update(s3_details)
+    await s3_upload_details_dao.update(s3_details)
 
     # Try to complete the file upload - should raise UnknownStorageAliasError
     with pytest.raises(UploadControllerPort.UnknownStorageAliasError) as exc_info:
@@ -1000,26 +773,17 @@ async def test_complete_file_upload_with_unknown_storage_alias(config: ConfigFix
     # Verify the exception message contains the unknown storage alias
     assert "does_not_exist" in str(exc_info.value)
     assert not file_upload_dao.latest.completed
-    assert file_upload_box_dao.latest.size == 0
-    assert file_upload_box_dao.latest.file_count == 0
+    assert rig.file_upload_box_dao.latest.size == 0
+    assert rig.file_upload_box_dao.latest.file_count == 0
 
 
-async def test_complete_file_upload_with_s3_error(config: ConfigFixture):
+async def test_complete_file_upload_with_s3_error(rig: JointRig):
     """Test for error handling when the user tries to complete a FileUpload
     but gets an S3 error in the process.
     """
-    file_upload_box_dao = DummyFileUploadBoxDao()
-    file_upload_dao = DummyFileUploadDao()
-    s3_upload_dao = DummyS3UploadDetailsDao()
-    object_storages = InMemS3ObjectStorages(config=config.config)
-
-    controller = UploadController(
-        config=config.config,
-        file_upload_box_dao=file_upload_box_dao,
-        file_upload_dao=file_upload_dao,
-        s3_upload_details_dao=s3_upload_dao,
-        object_storages=object_storages,
-    )
+    file_upload_box_dao = rig.file_upload_box_dao
+    s3_upload_details_dao = rig.s3_upload_details_dao
+    controller = rig.controller
 
     # Create a FileUploadBox and a FileUpload
     box_id = uuid4()
@@ -1038,32 +802,20 @@ async def test_complete_file_upload_with_s3_error(config: ConfigFixture):
         await controller.complete_file_upload(box_id=box_id, file_id=file_id)
 
     # Verify the exception contains the S3 upload ID
-    s3_upload_id = s3_upload_dao.latest.s3_upload_id
+    s3_upload_id = s3_upload_details_dao.latest.s3_upload_id
     assert s3_upload_id in str(exc_info.value)
-    assert not file_upload_dao.latest.completed
-    assert not s3_upload_dao.latest.completed
+    assert not rig.file_upload_dao.latest.completed
+    assert not s3_upload_details_dao.latest.completed
     assert file_upload_box_dao.latest.size == 0
     assert file_upload_box_dao.latest.file_count == 0
 
 
-async def test_get_part_upload_url_with_missing_file_id(config: ConfigFixture):
+async def test_get_part_upload_url_with_missing_file_id(rig: JointRig):
     """Test for error handling when getting a part URL but there's no S3UploadDetails
     document with a matching file_id.
     """
-    file_upload_box_dao = DummyFileUploadBoxDao()
-    file_upload_dao = DummyFileUploadDao()
-    s3_upload_dao = DummyS3UploadDetailsDao()
-    object_storages = InMemS3ObjectStorages(config=config.config)
-
-    controller = UploadController(
-        config=config.config,
-        file_upload_box_dao=file_upload_box_dao,
-        file_upload_dao=file_upload_dao,
-        s3_upload_details_dao=s3_upload_dao,
-        object_storages=object_storages,
-    )
-
     # Create a FileUploadBox and a FileUpload
+    controller = rig.controller
     box_id = uuid4()
     await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
     file_id = await controller.initiate_file_upload(
@@ -1071,7 +823,7 @@ async def test_get_part_upload_url_with_missing_file_id(config: ConfigFixture):
     )
 
     # Manually delete the S3UploadDetails but leave the FileUpload
-    await s3_upload_dao.delete(file_id)
+    await rig.s3_upload_details_dao.delete(file_id)
 
     # Try to get a part upload URL - should raise S3UploadDetailsNotFoundError
     with pytest.raises(UploadControllerPort.S3UploadDetailsNotFoundError) as exc_info:
@@ -1081,25 +833,14 @@ async def test_get_part_upload_url_with_missing_file_id(config: ConfigFixture):
     assert str(file_id) in str(exc_info.value)
 
 
-async def test_get_part_upload_url_with_unknown_storage_alias(config: ConfigFixture):
+async def test_get_part_upload_url_with_unknown_storage_alias(rig: JointRig):
     """Test for error handling when getting a part URL but the storage alias found in
     the relevant S3UploadDetails document is unknown (maybe configuration changed or
     data was migrated improperly).
     """
-    file_upload_box_dao = DummyFileUploadBoxDao()
-    file_upload_dao = DummyFileUploadDao()
-    s3_upload_dao = DummyS3UploadDetailsDao()
-    object_storages = InMemS3ObjectStorages(config=config.config)
-
-    controller = UploadController(
-        config=config.config,
-        file_upload_box_dao=file_upload_box_dao,
-        file_upload_dao=file_upload_dao,
-        s3_upload_details_dao=s3_upload_dao,
-        object_storages=object_storages,
-    )
-
     # Create a FileUploadBox and a FileUpload with a valid storage alias
+    controller = rig.controller
+    s3_upload_details_dao = rig.s3_upload_details_dao
     box_id = uuid4()
     await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
     file_id = await controller.initiate_file_upload(
@@ -1108,9 +849,9 @@ async def test_get_part_upload_url_with_unknown_storage_alias(config: ConfigFixt
 
     # Manually modify the S3UploadDetails to have an unknown storage alias
     # This simulates a scenario where configuration changed or data was corrupted
-    s3_details = s3_upload_dao.latest
+    s3_details = s3_upload_details_dao.latest
     s3_details.storage_alias = "unknown_storage_alias"
-    await s3_upload_dao.update(s3_details)
+    await s3_upload_details_dao.update(s3_details)
 
     # Try to get a part upload URL - should raise UnknownStorageAliasError
     with pytest.raises(UploadControllerPort.UnknownStorageAliasError) as exc_info:
@@ -1120,24 +861,12 @@ async def test_get_part_upload_url_with_unknown_storage_alias(config: ConfigFixt
     assert "unknown_storage_alias" in str(exc_info.value)
 
 
-async def test_get_part_upload_url_when_s3_upload_not_found(config: ConfigFixture):
+async def test_get_part_upload_url_when_s3_upload_not_found(rig: JointRig):
     """Test for error handling when getting a part URL but S3 raises an error saying
     that it can't find the corresponding multipart upload on its end.
     """
-    file_upload_box_dao = DummyFileUploadBoxDao()
-    file_upload_dao = DummyFileUploadDao()
-    s3_upload_dao = DummyS3UploadDetailsDao()
-    object_storages = InMemS3ObjectStorages(config=config.config)
-
-    controller = UploadController(
-        config=config.config,
-        file_upload_box_dao=file_upload_box_dao,
-        file_upload_dao=file_upload_dao,
-        s3_upload_details_dao=s3_upload_dao,
-        object_storages=object_storages,
-    )
-
     # Create a FileUploadBox and a FileUpload
+    controller = rig.controller
     box_id = uuid4()
     await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
     file_id = await controller.initiate_file_upload(
@@ -1154,5 +883,5 @@ async def test_get_part_upload_url_when_s3_upload_not_found(config: ConfigFixtur
         await controller.get_part_upload_url(file_id=file_id, part_no=1)
 
     # Verify the exception contains the S3 upload ID
-    s3_upload_id = s3_upload_dao.latest.s3_upload_id
+    s3_upload_id = rig.s3_upload_details_dao.latest.s3_upload_id
     assert s3_upload_id in str(exc_info.value)
