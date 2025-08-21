@@ -34,8 +34,8 @@ from ucs.core.models import FileUpload, FileUploadBox, S3UploadDetails
 DTO = TypeVar("DTO", bound=BaseModel)
 
 
-class BaseDummyDao[DTO: BaseModel]:
-    """Base class for dummy DAOs with proper typing"""
+class BaseInMemDao[DTO: BaseModel]:
+    """Base class for dummy DAOs with proper typing and in-memory storage"""
 
     _id_field: str
     publish_pending = AsyncMock()
@@ -117,10 +117,10 @@ class BaseDummyDao[DTO: BaseModel]:
 
 def get_dao[DTO: BaseModel](
     *, dto_model: type[DTO], id_field: str
-) -> type[BaseDummyDao[DTO]]:
+) -> type[BaseInMemDao[DTO]]:
     """Produce a dummy DAO for the given DTO model and id field"""
 
-    class DummyDao(BaseDummyDao[DTO]):
+    class DummyDao(BaseInMemDao[DTO]):
         """Dummy dao that stores data in memory"""
 
         _id_field: str = id_field
