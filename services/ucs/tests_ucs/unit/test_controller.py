@@ -27,9 +27,9 @@ from hexkit.utils import now_utc_ms_prec
 from tests_ucs.fixtures import ConfigFixture
 from tests_ucs.fixtures.in_mem_dao import (
     BaseInMemDao,
-    DummyFileUploadBoxDao,
-    DummyFileUploadDao,
-    DummyS3UploadDetailsDao,
+    InMemFileUploadBoxDao,
+    InMemFileUploadDao,
+    InMemS3UploadDetailsDao,
 )
 from tests_ucs.fixtures.in_mem_obj_storage import (
     InMemObjectStorage,
@@ -69,9 +69,9 @@ def rig(config: ConfigFixture, patch_s3_calls) -> JointRig:
     """Return a joint fixture with in-memory dependency mocks"""
     controller = UploadController(
         config=(_config := config.config),
-        file_upload_box_dao=(file_upload_box_dao := DummyFileUploadBoxDao()),
-        file_upload_dao=(file_upload_dao := DummyFileUploadDao()),
-        s3_upload_details_dao=(s3_upload_details_dao := DummyS3UploadDetailsDao()),
+        file_upload_box_dao=(file_upload_box_dao := InMemFileUploadBoxDao()),
+        file_upload_dao=(file_upload_dao := InMemFileUploadDao()),
+        s3_upload_details_dao=(s3_upload_details_dao := InMemS3UploadDetailsDao()),
         object_storages=(object_storages := InMemS3ObjectStorages(config=_config)),
     )
     return JointRig(
@@ -885,3 +885,12 @@ async def test_get_part_upload_url_when_s3_upload_not_found(rig: JointRig):
     # Verify the exception contains the S3 upload ID
     s3_upload_id = rig.s3_upload_details_dao.latest.s3_upload_id
     assert s3_upload_id in str(exc_info.value)
+
+
+async def test_get_file_ids_for_non_existent_box(rig: JointRig):
+    """Test get_file_ids_for_box with a non-existent box ID."""
+    controller = rig.controller
+    non_existent_box_id = uuid4()
+
+    with pytest.raises(UploadControllerPort.BoxNotFoundError):
+        await controller.get_file_ids_for_box(box_id=non_existent_box_id)
