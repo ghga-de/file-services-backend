@@ -87,6 +87,10 @@ The service requires the following configuration parameters:
 
 - <a id="properties/log_traceback"></a>**`log_traceback`** *(boolean)*: Whether to include exception tracebacks in log messages. Default: `true`.
 
+- <a id="properties/object_storages"></a>**`object_storages`** *(object, required)*: Can contain additional properties.
+
+  - <a id="properties/object_storages/additionalProperties"></a>**Additional properties**: Refer to *[#/$defs/S3ObjectStorageNodeConfig](#%24defs/S3ObjectStorageNodeConfig)*.
+
 - <a id="properties/kafka_servers"></a>**`kafka_servers`** *(array, required)*: A list of connection strings to connect to Kafka bootstrap servers.
 
   - <a id="properties/kafka_servers/items"></a>**Items** *(string)*
@@ -261,10 +265,6 @@ The service requires the following configuration parameters:
   5
   ```
 
-
-- <a id="properties/object_storages"></a>**`object_storages`** *(object, required)*: Can contain additional properties.
-
-  - <a id="properties/object_storages/additionalProperties"></a>**Additional properties**: Refer to *[#/$defs/S3ObjectStorageNodeConfig](#%24defs/S3ObjectStorageNodeConfig)*.
 
 - <a id="properties/mongo_dsn"></a>**`mongo_dsn`** *(string, format: multi-host-uri, required)*: MongoDB connection string. Might include credentials. For more information see: https://naiveskill.com/mongodb-connection-string/. Length must be at least 1.
 

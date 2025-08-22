@@ -128,6 +128,6 @@ def get_dao[DTO: BaseModel](
     return DummyDao
 
 
-DummyFileUploadBoxDao = get_dao(dto_model=FileUploadBox, id_field="id")
-DummyFileUploadDao = get_dao(dto_model=FileUpload, id_field="id")
-DummyS3UploadDetailsDao = get_dao(dto_model=S3UploadDetails, id_field="file_id")
+InMemFileUploadBoxDao = get_dao(dto_model=FileUploadBox, id_field="id")
+InMemFileUploadDao = get_dao(dto_model=FileUpload, id_field="id")
+InMemS3UploadDetailsDao = get_dao(dto_model=S3UploadDetails, id_field="file_id")

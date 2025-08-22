@@ -19,70 +19,6 @@ from ghga_service_commons.httpyexpect.server import HttpCustomExceptionBase
 from pydantic import UUID4, BaseModel
 
 
-class HttpNoFileAccessError(HttpCustomExceptionBase):
-    """Thrown when the client has not sufficient privileges to access the specified
-    file.
-    """
-
-    exception_id = "noFileAccess"
-
-    class DataModel(BaseModel):
-        """Model for exception data"""
-
-        file_id: str
-
-    def __init__(self, *, file_id: str, status_code: int = 403):
-        """Construct message and init the exception."""
-        super().__init__(
-            status_code=status_code,
-            description=(
-                "The user is not registered as a Data Submitter for the file with"
-                + f" id {file_id}."
-            ),
-            data={"file_id": file_id},
-        )
-
-
-class HttpFileNotFoundError(HttpCustomExceptionBase):
-    """Thrown when a file with given ID could not be found."""
-
-    exception_id = "fileNotRegistered"
-
-    class DataModel(BaseModel):
-        """Model for exception data"""
-
-        file_id: str
-
-    def __init__(self, *, file_id: str, status_code: int = 404):
-        """Construct message and init the exception."""
-        super().__init__(
-            status_code=status_code,
-            description=(
-                f"The file with ID {file_id} has not (yet) been registered for upload."
-            ),
-            data={"file_id": file_id},
-        )
-
-
-class HttpUploadNotFoundError(HttpCustomExceptionBase):
-    """Thrown when an upload with given ID could not be found."""
-
-    exception_id = "noSuchUpload"
-
-    class DataModel(BaseModel):
-        """Model for exception data"""
-
-        upload_id: str
-
-    def __init__(self, *, upload_id: str, status_code: int = 404):
-        """Construct message and init the exception."""
-        super().__init__(
-            status_code=status_code,
-            description=(f"The upload with ID {upload_id} does not exist."),
-            data={"upload_id": upload_id},
-        )
-
-
 class HttpUnknownStorageAliasError(HttpCustomExceptionBase):
     """Thrown when an upload to a storage node that does not exist was requested."""
 
@@ -226,10 +162,6 @@ class HttpS3UploadNotFoundError(HttpCustomExceptionBase):
             description="S3 multipart upload not found.",
             data={},
         )
-
-
-class HttpFileNotFoundUploadError(HttpFileNotFoundError):
-    """Needed to avoid key error in FastAPIs openapi generation."""
 
 
 class HttpFileUploadNotFoundError(HttpCustomExceptionBase):

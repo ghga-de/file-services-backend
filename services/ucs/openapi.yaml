@@ -134,6 +134,36 @@ components:
       - box_id
       title: HttpBoxNotFoundErrorData
       type: object
+    HttpFileUploadNotFoundError:
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/HttpFileUploadNotFoundErrorData'
+        description:
+          description: A human readable message to the client explaining the cause
+            of the exception.
+          title: Description
+          type: string
+        exception_id:
+          const: fileUploadNotFound
+          title: Exception Id
+          type: string
+      required:
+      - data
+      - description
+      - exception_id
+      title: HttpFileUploadNotFoundError
+      type: object
+    HttpFileUploadNotFoundErrorData:
+      properties:
+        file_id:
+          format: uuid4
+          title: File Id
+          type: string
+      required:
+      - file_id
+      title: HttpFileUploadNotFoundErrorData
+      type: object
     HttpLockedBoxError:
       additionalProperties: false
       properties:
@@ -266,6 +296,56 @@ components:
       additionalProperties: true
       properties: {}
       title: HttpUnknownStorageAliasErrorData
+      type: object
+    HttpUploadAbortError:
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/HttpUploadAbortErrorData'
+        description:
+          description: A human readable message to the client explaining the cause
+            of the exception.
+          title: Description
+          type: string
+        exception_id:
+          const: uploadAbortError
+          title: Exception Id
+          type: string
+      required:
+      - data
+      - description
+      - exception_id
+      title: HttpUploadAbortError
+      type: object
+    HttpUploadAbortErrorData:
+      additionalProperties: true
+      properties: {}
+      title: HttpUploadAbortErrorData
+      type: object
+    HttpUploadCompletionError:
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/HttpUploadCompletionErrorData'
+        description:
+          description: A human readable message to the client explaining the cause
+            of the exception.
+          title: Description
+          type: string
+        exception_id:
+          const: uploadCompletionError
+          title: Exception Id
+          type: string
+      required:
+      - data
+      - description
+      - exception_id
+      title: HttpUploadCompletionError
+      type: object
+    HttpUploadCompletionErrorData:
+      additionalProperties: true
+      properties: {}
+      title: HttpUploadCompletionErrorData
       type: object
     ValidationError:
       properties:
@@ -470,7 +550,7 @@ paths:
                 title: Response Createfileupload
                 type: string
           description: The file_id of the newly created FileUpload
-        '404':
+        '400':
           content:
             application/json:
               schema:
@@ -478,6 +558,14 @@ paths:
           description: 'Exceptions by ID:
 
             - noSuchStorage: The storage node for the given alias does not exist.'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpBoxNotFoundError'
+          description: 'Exceptions by ID:
+
+            - boxNotFound: The FileUploadBox with the given ID does not exist.'
         '409':
           content:
             application/json:
@@ -523,6 +611,14 @@ paths:
       responses:
         '204':
           description: FileUpload removed successfully
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpUnknownStorageAliasError'
+          description: 'Exceptions by ID:
+
+            - noSuchStorage: The storage node for the given alias does not exist.'
         '404':
           content:
             application/json:
@@ -532,13 +628,7 @@ paths:
 
             - s3UploadDetailsNotFound: S3 upload details for the file could not be
             found.'
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-        '423':
+        '409':
           content:
             application/json:
               schema:
@@ -546,6 +636,20 @@ paths:
           description: 'Exceptions by ID:
 
             - lockedBox: The FileUploadBox is locked and cannot be modified.'
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpUploadAbortError'
+          description: 'Exceptions by ID:
+
+            - uploadAbortError: There was an error aborting the s3 multipart upload.'
       security:
       - HTTPBearer: []
       summary: Remove a FileUpload from the FileUploadBox
@@ -582,17 +686,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HttpS3UploadNotFoundError'
+                $ref: '#/components/schemas/HttpFileUploadNotFoundError'
           description: 'Exceptions by ID:
 
             - fileUploadNotFound: The FileUpload could not be found.'
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-        '423':
+        '409':
           content:
             application/json:
               schema:
@@ -600,6 +698,21 @@ paths:
           description: 'Exceptions by ID:
 
             - lockedBox: The FileUploadBox is locked and cannot be modified.'
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpUploadCompletionError'
+          description: 'Exceptions by ID:
+
+            - s3UploadCompletionFailure: There was an error completing the s3 multipart
+            upload.'
       security:
       - HTTPBearer: []
       summary: Complete file upload
@@ -643,7 +756,7 @@ paths:
                 title: Response Getpartuploadurl
                 type: string
           description: The pre-signed URL for uploading the file part
-        '404':
+        '400':
           content:
             application/json:
               schema:
@@ -651,6 +764,14 @@ paths:
           description: 'Exceptions by ID:
 
             - noSuchStorage: The storage node for the given alias does not exist.'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpS3UploadNotFoundError'
+          description: 'Exceptions by ID:
+
+            - s3UploadNotFound: The S3 multipart upload could not be found.'
         '422':
           content:
             application/json:

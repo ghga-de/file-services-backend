@@ -21,7 +21,6 @@ from ghga_service_commons.utils.multinode_storage import S3ObjectStoragesConfig
 from hexkit.config import config_from_yaml
 from hexkit.log import LoggingConfig
 from hexkit.opentelemetry import OpenTelemetryConfig
-from hexkit.providers.akafka import KafkaConfig
 from hexkit.providers.mongodb.migrations import MigrationConfig
 from hexkit.providers.mongokafka import MongoKafkaConfig
 
@@ -37,7 +36,6 @@ class Config(
     MongoKafkaConfig,
     MigrationConfig,
     S3ObjectStoragesConfig,
-    KafkaConfig,
     LoggingConfig,
     OpenTelemetryConfig,
 ):

@@ -545,15 +545,18 @@ class UploadController(UploadControllerPort):
         - `BoxNotFoundError` if the FileUploadBox isn't found in the DB.
         """
         try:
-            file_ids = [
-                x.id
-                async for x in self._file_upload_dao.find_all(
-                    mapping={"box_id": box_id, "completed": True}
-                )
-            ]
+            # assert the box exists
+            _ = await self._file_upload_box_dao.get_by_id(box_id)
         except ResourceNotFoundError as err:
             error = self.BoxNotFoundError(box_id=box_id)
             log.error(error)
             raise error from err
 
+        # Box exists, now get all file uploads
+        file_ids = [
+            x.id
+            async for x in self._file_upload_dao.find_all(
+                mapping={"box_id": box_id, "completed": True}
+            )
+        ]
         return file_ids

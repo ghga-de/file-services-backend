@@ -16,7 +16,6 @@
 """REST API-specific data models (not used by core package)"""
 
 from enum import StrEnum
-from typing import Literal
 
 from pydantic import UUID4, BaseModel, ConfigDict, Field, field_validator
 
@@ -61,29 +60,6 @@ class FileUploadCreationRequest(BaseModel):
     checksum: str = Field(..., description="The checksum of the file")
     size: int = Field(..., description="The size of the file in bytes", ge=1)
     model_config = ConfigDict(title="File Upload Creation Request")
-
-
-class UploadAttemptCreation(BaseModel):
-    """Properties required to create a new upload."""
-
-    file_id: str = Field(
-        ..., description="The ID of the file corresponding to this upload."
-    )
-    submitter_public_key: str = Field(
-        ..., description="The public key used by the submittter to encrypt the file."
-    )
-    storage_alias: str = Field(
-        ...,
-        description="Alias identifying the object storage location to use for this upload",
-    )
-    model_config = ConfigDict(title="Properties required to create a new upload")
-
-
-class UploadAttemptUpdate(BaseModel):
-    """Request body to update an existing mutli-part upload."""
-
-    status: Literal["uploaded", "cancelled"]
-    model_config = ConfigDict(title="Multi-Part Upload Update")
 
 
 class WorkType(StrEnum):

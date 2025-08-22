@@ -34,37 +34,12 @@ router = APIRouter(tags=["UploadControllerService"])
 log = logging.getLogger(__name__)
 
 ERROR_RESPONSES = {
-    "noFileAccess": {
-        "description": (
-            "Exceptions by ID:"
-            + "\n- noFileAccess: The user is not registered as a Data Submitter for the"
-            + " corresponding file."
-            ""
-        ),
-        "model": http_exceptions.HttpNoFileAccessError.get_body_model(),
-    },
-    "noSuchUpload": {
-        "description": (
-            "Exceptions by ID:"
-            + "\n- noSuchUpload: The multi-part upload with the given ID does not"
-            + " exist."
-        ),
-        "model": http_exceptions.HttpUploadNotFoundError.get_body_model(),
-    },
     "noSuchStorage": {
         "description": (
             "Exceptions by ID:"
             + "\n- noSuchStorage: The storage node for the given alias does not exist."
         ),
         "model": http_exceptions.HttpUnknownStorageAliasError.get_body_model(),
-    },
-    "fileNotRegistered": {
-        "description": (
-            "Exceptions by ID:"
-            + "\n- fileNotRegistered: The file with the given ID has not (yet) been"
-            + " registered for upload."
-        ),
-        "model": http_exceptions.HttpFileNotFoundError.get_body_model(),
     },
     "boxAlreadyExists": {
         "description": (
@@ -120,7 +95,23 @@ ERROR_RESPONSES = {
             "Exceptions by ID:"
             + "\n- fileUploadNotFound: The FileUpload could not be found."
         ),
-        "model": http_exceptions.HttpS3UploadNotFoundError.get_body_model(),
+        "model": http_exceptions.HttpFileUploadNotFoundError.get_body_model(),
+    },
+    "s3UploadCompletionFailure": {
+        "description": (
+            "Exceptions by ID:"
+            + "\n- s3UploadCompletionFailure: There was an error completing the s3"
+            + " multipart upload."
+        ),
+        "model": http_exceptions.HttpUploadCompletionError.get_body_model(),
+    },
+    "uploadAbortError": {
+        "description": (
+            "Exceptions by ID:"
+            + "\n- uploadAbortError: There was an error aborting the s3"
+            + " multipart upload."
+        ),
+        "model": http_exceptions.HttpUploadAbortError.get_body_model(),
     },
 }
 
@@ -273,8 +264,8 @@ async def get_box_uploads(
     response_model=UUID4,
     response_description="The file_id of the newly created FileUpload",
     responses={
-        status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["boxNotFound"]
-        | ERROR_RESPONSES["noSuchStorage"],
+        status.HTTP_400_BAD_REQUEST: ERROR_RESPONSES["noSuchStorage"],
+        status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["boxNotFound"],
         status.HTTP_409_CONFLICT: ERROR_RESPONSES["lockedBox"]
         | ERROR_RESPONSES["fileUploadAlreadyExists"]
         | ERROR_RESPONSES["multipartUploadDupe"],
@@ -340,10 +331,9 @@ async def create_file_upload(
     response_model=str,
     response_description="The pre-signed URL for uploading the file part",
     responses={
-        status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["boxNotFound"]
-        | ERROR_RESPONSES["s3UploadDetailsNotFound"]
-        | ERROR_RESPONSES["s3UploadNotFound"]
-        | ERROR_RESPONSES["noSuchStorage"],
+        status.HTTP_400_BAD_REQUEST: ERROR_RESPONSES["noSuchStorage"],
+        status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["s3UploadDetailsNotFound"]
+        | ERROR_RESPONSES["s3UploadNotFound"],
     },
 )
 async def get_part_upload_url(
@@ -397,7 +387,10 @@ async def get_part_upload_url(
         status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["boxNotFound"]
         | ERROR_RESPONSES["s3UploadDetailsNotFound"]
         | ERROR_RESPONSES["fileUploadNotFound"],
-        status.HTTP_423_LOCKED: ERROR_RESPONSES["lockedBox"],
+        status.HTTP_409_CONFLICT: ERROR_RESPONSES["lockedBox"],
+        status.HTTP_500_INTERNAL_SERVER_ERROR: ERROR_RESPONSES[
+            "s3UploadCompletionFailure"
+        ],
     },
 )
 async def complete_file_upload(
@@ -447,9 +440,11 @@ async def complete_file_upload(
     status_code=status.HTTP_204_NO_CONTENT,
     response_description="FileUpload removed successfully",
     responses={
+        status.HTTP_400_BAD_REQUEST: ERROR_RESPONSES["noSuchStorage"],
         status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["boxNotFound"]
         | ERROR_RESPONSES["s3UploadDetailsNotFound"],
-        status.HTTP_423_LOCKED: ERROR_RESPONSES["lockedBox"],
+        status.HTTP_409_CONFLICT: ERROR_RESPONSES["lockedBox"],
+        status.HTTP_500_INTERNAL_SERVER_ERROR: ERROR_RESPONSES["uploadAbortError"],
     },
 )
 async def remove_file_upload(

@@ -161,6 +161,13 @@
       "title": "Log Traceback",
       "type": "boolean"
     },
+    "object_storages": {
+      "additionalProperties": {
+        "$ref": "#/$defs/S3ObjectStorageNodeConfig"
+      },
+      "title": "Object Storages",
+      "type": "object"
+    },
     "kafka_servers": {
       "description": "A list of connection strings to connect to Kafka bootstrap servers.",
       "examples": [
@@ -303,13 +310,6 @@
       "minimum": 0,
       "title": "Kafka Retry Backoff",
       "type": "integer"
-    },
-    "object_storages": {
-      "additionalProperties": {
-        "$ref": "#/$defs/S3ObjectStorageNodeConfig"
-      },
-      "title": "Object Storages",
-      "type": "object"
     },
     "mongo_dsn": {
       "description": "MongoDB connection string. Might include credentials. For more information see: https://naiveskill.com/mongodb-connection-string/",
@@ -589,8 +589,8 @@
   },
   "required": [
     "service_instance_id",
-    "kafka_servers",
     "object_storages",
+    "kafka_servers",
     "mongo_dsn",
     "db_name",
     "db_version_collection",

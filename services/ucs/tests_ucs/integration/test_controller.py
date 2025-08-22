@@ -154,10 +154,10 @@ async def test_integrated_aspects(joint_fixture: JointFixture):
         async with kafka.record_events(
             in_topic=config.file_upload_box_topic
         ) as box_recorder:
-            change_box_token = utils.generate_change_file_box_token(
+            lock_box_token = utils.generate_change_file_box_token(
                 box_id=box_id, jwk=jwk
             )
-            headers = auth_header(change_box_token)
+            headers = auth_header(lock_box_token)
             box_update_body = {"locked": True}
             response = await rest_client.patch(
                 f"/boxes/{box_id}", json=box_update_body, headers=headers
@@ -178,16 +178,19 @@ async def test_integrated_aspects(joint_fixture: JointFixture):
             response = await rest_client.delete(
                 f"/boxes/{box_id}/uploads/{file_id}", headers=headers
             )
-            assert response.status_code == 423
+            assert response.status_code == 409
         assert not file_recorder.recorded_events
 
         # Great, we verified that the locked box prevents changes. Now unlock the box
         #  but don't check for events -- satisfied at this point that outbox is working
         box_update_body = {"locked": False}
+        unlock_box_token = utils.generate_change_file_box_token(
+            box_id=box_id, work_type="unlock", jwk=jwk
+        )
         response = await rest_client.patch(
             f"/boxes/{box_id}",
             json=box_update_body,
-            headers=auth_header(change_box_token),
+            headers=auth_header(unlock_box_token),
         )
         assert response.status_code == 204
 
