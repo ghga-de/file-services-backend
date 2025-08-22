@@ -1,0 +1,676 @@
+# Copyright 2021 - 2025 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
+# for the German Human Genome-Phenome Archive (GHGA)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Tests that check the REST API's behavior and auth handling"""
+
+from unittest.mock import AsyncMock
+from uuid import UUID
+
+import pytest
+from ghga_service_commons.api.testing import AsyncTestClient
+
+from tests_ucs.fixtures import ConfigFixture, utils
+from ucs.adapters.inbound.fastapi_ import http_exceptions, rest_models
+from ucs.inject import prepare_rest_app
+from ucs.ports.inbound.controller import UploadControllerPort
+
+pytestmark = pytest.mark.asyncio()
+
+TEST_BOX_ID = UUID("bf344cd4-0c1b-434a-93d1-36a11b6b02d9")
+TEST_FILE_ID = UUID("6e384b9f-f1c0-4c49-ae51-cee097b2862a")
+INVALID_HEADER: dict[str, str] = {"Authorization": "Bearer ab12"}
+
+
+async def test_create_box_endpoint_auth(config: ConfigFixture):
+    """Test that the endpoint returns a 401 if auth is not supplied or is invalid,
+    a 403 if the work type is incorrect,
+    and a 200 if the token is correct (and request succeeds).
+    """
+    jwk = config.jwk
+    body = {"box_id": str(TEST_BOX_ID), "storage_alias": "HD01"}
+    async with (
+        prepare_rest_app(config=config.config, core_override=AsyncMock()) as app,
+        AsyncTestClient(app=app) as rest_client,
+    ):
+        response = await rest_client.post("/boxes", json=body)
+        assert response.status_code == 401
+
+        response = await rest_client.post("/boxes", json=body, headers=INVALID_HEADER)
+        assert response.status_code == 401
+
+        # generate a token with the wrong work type for this action
+        bad_token = utils.generate_close_file_token(jwk=jwk)
+        response = await rest_client.post(
+            "/boxes", json=body, headers={"Authorization": f"Bearer {bad_token}"}
+        )
+        assert response.status_code == 403
+
+        good_token = utils.generate_create_file_box_token(jwk=jwk)
+        response = await rest_client.post(
+            "/boxes", json=body, headers={"Authorization": f"Bearer {good_token}"}
+        )
+        assert response.status_code == 201
+
+
+async def test_update_box_endpoint_auth(config: ConfigFixture):
+    """Test that the endpoint returns a 401 if auth is not supplied or is invalid,
+    a 403 if auth is supplied but for another resource/work type,
+    and a 204 if the token is correct (and request succeeds).
+    """
+    jwk = config.jwk
+    body = {"locked": True}
+    async with (
+        prepare_rest_app(config=config.config, core_override=AsyncMock()) as app,
+        AsyncTestClient(app=app) as rest_client,
+    ):
+        url = f"/boxes/{TEST_BOX_ID}"
+        response = await rest_client.patch(url, json=body)
+        assert response.status_code == 401
+
+        response = await rest_client.patch(url, json=body, headers=INVALID_HEADER)
+        assert response.status_code == 401
+
+        wrong_id_token = utils.generate_change_file_box_token(jwk=jwk)
+        response = await rest_client.patch(
+            url, json=body, headers={"Authorization": f"Bearer {wrong_id_token}"}
+        )
+        assert response.status_code == 403
+
+        # generate a different kind of token with otherwise correct params
+        wrong_work_token = utils.generate_change_file_box_token(
+            box_id=TEST_BOX_ID, work_type="unlock", jwk=jwk
+        )
+        response = await rest_client.patch(
+            url, json=body, headers={"Authorization": f"Bearer {wrong_work_token}"}
+        )
+        assert response.status_code == 403
+
+        good_token = utils.generate_change_file_box_token(box_id=TEST_BOX_ID, jwk=jwk)
+        response = await rest_client.patch(
+            url, json=body, headers={"Authorization": f"Bearer {good_token}"}
+        )
+        assert response.status_code == 204
+
+
+async def test_view_box_endpoint_auth(config: ConfigFixture):
+    """Test that the endpoint returns a 401 if auth is not supplied or is invalid,
+    a 403 if a structurally valid auth token is supplied but doesn't match the
+    requested resource, and a 200 if the token is correct (and request succeeds).
+    """
+    jwk = config.jwk
+    async with (
+        prepare_rest_app(config=config.config, core_override=AsyncMock()) as app,
+        AsyncTestClient(app=app) as rest_client,
+    ):
+        url = f"/boxes/{TEST_BOX_ID}/uploads"
+        response = await rest_client.get(url)
+        assert response.status_code == 401
+
+        response = await rest_client.get(url, headers=INVALID_HEADER)
+        assert response.status_code == 401
+
+        wrong_box_id = utils.generate_view_file_box_token(jwk=jwk)
+        response = await rest_client.get(
+            url, headers={"Authorization": f"Bearer {wrong_box_id}"}
+        )
+        assert response.status_code == 403
+
+        # generate a different kind of token with otherwise correct params
+        wrong_work_type = utils.generate_change_file_box_token(
+            jwk=jwk, box_id=TEST_BOX_ID
+        )
+        response = await rest_client.get(
+            url, headers={"Authorization": f"Bearer {wrong_work_type}"}
+        )
+        assert response.status_code == 403
+
+        good_token = utils.generate_view_file_box_token(jwk=jwk, box_id=TEST_BOX_ID)
+        response = await rest_client.get(
+            url, headers={"Authorization": f"Bearer {good_token}"}
+        )
+        assert response.status_code == 200
+
+
+async def test_create_file_upload_endpoint_auth(config: ConfigFixture):
+    """Test that the POST file upload endpoint returns a 401 if auth is not
+    supplied or is invalid, a 403 if a structurally valid auth token is supplied
+    but doesn't match the requested resource, and a 201 if the request succeeds.
+    """
+    jwk = config.jwk
+    body = {"alias": "test_file", "checksum": "sha256:abc123", "size": 1024}
+    core_override = AsyncMock()
+    core_override.initiate_file_upload.return_value = TEST_FILE_ID
+    async with (
+        prepare_rest_app(config=config.config, core_override=core_override) as app,
+        AsyncTestClient(app=app) as rest_client,
+    ):
+        url = f"/boxes/{TEST_BOX_ID}/uploads"
+
+        response = await rest_client.post(url, json=body)
+        assert response.status_code == 401
+
+        response = await rest_client.post(url, json=body, headers=INVALID_HEADER)
+        assert response.status_code == 401
+
+        # generate a token with the wrong work type for this action
+        bad_token = utils.generate_create_file_token(
+            box_id=TEST_BOX_ID,
+            alias="test_file",
+            work_type=rest_models.WorkType.CLOSE,
+            jwk=jwk,
+        )
+        response = await rest_client.post(
+            url, json=body, headers={"Authorization": f"Bearer {bad_token}"}
+        )
+        assert response.status_code == 403
+
+        # generate a token with wrong box ID
+        wrong_box_token = utils.generate_create_file_token(alias="test_file", jwk=jwk)
+        response = await rest_client.post(
+            url, json=body, headers={"Authorization": f"Bearer {wrong_box_token}"}
+        )
+        assert response.status_code == 403
+
+        # generate a token with wrong alias
+        wrong_alias_token = utils.generate_create_file_token(
+            box_id=TEST_BOX_ID, alias="different_file", jwk=jwk
+        )
+        response = await rest_client.post(
+            url, json=body, headers={"Authorization": f"Bearer {wrong_alias_token}"}
+        )
+        assert response.status_code == 403
+
+        good_token = utils.generate_create_file_token(
+            box_id=TEST_BOX_ID, alias="test_file", jwk=jwk
+        )
+        response = await rest_client.post(
+            url, json=body, headers={"Authorization": f"Bearer {good_token}"}
+        )
+        assert response.status_code == 201
+
+
+async def test_get_file_part_upload_url_endpoint_auth(config: ConfigFixture):
+    """Test that the GET file part upload URL endpoint returns a 401 if auth is not
+    supplied or is invalid, a 403 if a structurally valid auth token is supplied
+    but doesn't match the requested resource, and a 200 if the request succeeds.
+    """
+    jwk = config.jwk
+    core_override = AsyncMock()
+    core_override.get_part_upload_url.return_value = "some-url-here"
+    async with (
+        prepare_rest_app(config=config.config, core_override=core_override) as app,
+        AsyncTestClient(app=app) as rest_client,
+    ):
+        url = f"/boxes/{TEST_BOX_ID}/uploads/{TEST_FILE_ID}/parts/1"
+
+        response = await rest_client.get(url, headers=INVALID_HEADER)
+        assert response.status_code == 401
+
+        response = await rest_client.get(url)
+        assert response.status_code == 401
+
+        wrong_box_token = utils.generate_upload_file_token(
+            file_id=TEST_FILE_ID, jwk=jwk
+        )
+        response = await rest_client.get(
+            url, headers={"Authorization": f"Bearer {wrong_box_token}"}
+        )
+        assert response.status_code == 403
+
+        wrong_file_token = utils.generate_upload_file_token(box_id=TEST_BOX_ID, jwk=jwk)
+        response = await rest_client.get(
+            url, headers={"Authorization": f"Bearer {wrong_file_token}"}
+        )
+        assert response.status_code == 403
+
+        # generate a different kind of token with otherwise correct params
+        wrong_work_type_token = utils.generate_close_file_token(
+            box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=jwk
+        )
+        response = await rest_client.get(
+            url, headers={"Authorization": f"Bearer {wrong_work_type_token}"}
+        )
+        assert response.status_code == 403
+
+        good_token = utils.generate_upload_file_token(
+            box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=jwk
+        )
+        response = await rest_client.get(
+            url, headers={"Authorization": f"Bearer {good_token}"}
+        )
+        assert response.status_code == 200
+
+
+async def test_complete_file_upload_endpoint_auth(config: ConfigFixture):
+    """Test that the PATCH complete_file_upload endpoint returns a 401 if bearer token
+    is absent or invalid, a 403 if the token is structurally valid but contains
+    incorrect data, and a 204 if the request succeeds.
+    """
+    jwk = config.jwk
+    body: dict[str, str] = {}  # This endpoint doesn't require a body
+    async with (
+        prepare_rest_app(config=config.config, core_override=AsyncMock()) as app,
+        AsyncTestClient(app=app) as rest_client,
+    ):
+        url = f"/boxes/{TEST_BOX_ID}/uploads/{TEST_FILE_ID}"
+
+        response = await rest_client.patch(url, json=body)
+        assert response.status_code == 401
+
+        response = await rest_client.patch(url, json=body, headers=INVALID_HEADER)
+        assert response.status_code == 401
+
+        # generate a token with wrong box ID
+        wrong_box_token = utils.generate_close_file_token(file_id=TEST_FILE_ID, jwk=jwk)
+        response = await rest_client.patch(
+            url, json=body, headers={"Authorization": f"Bearer {wrong_box_token}"}
+        )
+        assert response.status_code == 403
+
+        # generate a token with wrong file ID
+        wrong_file_token = utils.generate_close_file_token(box_id=TEST_BOX_ID, jwk=jwk)
+        response = await rest_client.patch(
+            url, json=body, headers={"Authorization": f"Bearer {wrong_file_token}"}
+        )
+        assert response.status_code == 403
+
+        # generate a token with wrong work type
+        wrong_work_token = utils.generate_upload_file_token(
+            box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=jwk
+        )
+        response = await rest_client.patch(
+            url, json=body, headers={"Authorization": f"Bearer {wrong_work_token}"}
+        )
+        assert response.status_code == 403
+
+        good_token = utils.generate_close_file_token(
+            box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=jwk
+        )
+        response = await rest_client.patch(
+            url, json=body, headers={"Authorization": f"Bearer {good_token}"}
+        )
+        assert response.status_code == 204
+
+
+async def test_delete_file_endpoint_auth(config: ConfigFixture):
+    """Test that the delete file endpoint returns a 401 if auth is not supplied or is invalid,
+    and a 403 if a structurally valid auth token is supplied but doesn't match the
+    requested resource.
+    """
+    jwk = config.jwk
+    async with (
+        prepare_rest_app(config=config.config, core_override=AsyncMock()) as app,
+        AsyncTestClient(app=app) as rest_client,
+    ):
+        url = f"/boxes/{TEST_BOX_ID}/uploads/{TEST_FILE_ID}"
+
+        response = await rest_client.delete(url, headers=INVALID_HEADER)
+        assert response.status_code == 401
+
+        response = await rest_client.delete(url)
+        assert response.status_code == 401
+
+        wrong_box_token = utils.generate_delete_file_token(
+            file_id=TEST_FILE_ID, jwk=jwk
+        )
+        response = await rest_client.delete(
+            url, headers={"Authorization": f"Bearer {wrong_box_token}"}
+        )
+        assert response.status_code == 403
+
+        wrong_file_token = utils.generate_delete_file_token(box_id=TEST_BOX_ID, jwk=jwk)
+        response = await rest_client.delete(
+            url, headers={"Authorization": f"Bearer {wrong_file_token}"}
+        )
+        assert response.status_code == 403
+
+        # generate a different kind of token with otherwise correct params
+        wrong_work_type_token = utils.generate_close_file_token(
+            box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=jwk
+        )
+        response = await rest_client.delete(
+            url, headers={"Authorization": f"Bearer {wrong_work_type_token}"}
+        )
+        assert response.status_code == 403
+
+        good_token = utils.generate_delete_file_token(
+            box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=jwk
+        )
+        response = await rest_client.delete(
+            url, headers={"Authorization": f"Bearer {good_token}"}
+        )
+        assert response.status_code == 204
+
+
+@pytest.mark.parametrize(
+    "core_error, http_error",
+    [
+        (
+            UploadControllerPort.BoxAlreadyExistsError(box_id=TEST_BOX_ID),
+            http_exceptions.HttpBoxAlreadyExistsError(box_id=TEST_BOX_ID),
+        ),
+        (
+            UploadControllerPort.UnknownStorageAliasError(storage_alias="HD01"),
+            http_exceptions.HttpUnknownStorageAliasError(),
+        ),
+        (RuntimeError("Random error"), http_exceptions.HttpInternalError()),
+    ],
+    ids=["BoxAlreadyExists", "UnknownStorageAlias", "InternalError"],
+)
+async def test_create_box_endpoint_error_handling(
+    config: ConfigFixture, core_error: Exception, http_error: Exception
+):
+    """Test that the endpoint correctly translates errors from the core."""
+    jwk = config.jwk
+    body = {"box_id": str(TEST_BOX_ID), "storage_alias": "HD01"}
+    core_override = AsyncMock()
+    core_override.create_file_upload_box.side_effect = core_error
+    async with (
+        prepare_rest_app(config=config.config, core_override=core_override) as app,
+        AsyncTestClient(app=app) as rest_client,
+    ):
+        token = utils.generate_create_file_box_token(jwk=jwk)
+        response = await rest_client.post(
+            "/boxes", json=body, headers={"Authorization": f"Bearer {token}"}
+        )
+        assert response.json()["description"] == str(http_error)
+
+
+@pytest.mark.parametrize(
+    "core_error, http_error",
+    [
+        (
+            UploadControllerPort.BoxNotFoundError(box_id=TEST_BOX_ID),
+            http_exceptions.HttpBoxNotFoundError(box_id=TEST_BOX_ID),
+        ),
+        (RuntimeError("Random error"), http_exceptions.HttpInternalError()),
+    ],
+    ids=["BoxNotFound", "InternalError"],
+)
+async def test_update_box_endpoint_error_handling(
+    config: ConfigFixture, core_error: Exception, http_error: Exception
+):
+    """Test that the endpoint correctly translates errors from the core."""
+    jwk = config.jwk
+    body = {"locked": True}
+    core_override = AsyncMock()
+    core_override.lock_file_upload_box.side_effect = core_error
+    async with (
+        prepare_rest_app(config=config.config, core_override=core_override) as app,
+        AsyncTestClient(app=app) as rest_client,
+    ):
+        token = utils.generate_change_file_box_token(box_id=TEST_BOX_ID, jwk=jwk)
+        response = await rest_client.patch(
+            f"/boxes/{TEST_BOX_ID}",
+            json=body,
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.json()["description"] == str(http_error)
+
+
+@pytest.mark.parametrize(
+    "core_error, http_error",
+    [
+        (
+            UploadControllerPort.BoxNotFoundError(box_id=TEST_BOX_ID),
+            http_exceptions.HttpBoxNotFoundError(box_id=TEST_BOX_ID),
+        ),
+        (RuntimeError("Random error"), http_exceptions.HttpInternalError()),
+    ],
+    ids=["BoxNotFound", "InternalError"],
+)
+async def test_view_box_endpoint_error_handling(
+    config: ConfigFixture, core_error: Exception, http_error: Exception
+):
+    """Test that the endpoint correctly translates errors from the core."""
+    jwk = config.jwk
+    core_override = AsyncMock()
+    core_override.get_file_ids_for_box.side_effect = core_error
+    async with (
+        prepare_rest_app(config=config.config, core_override=core_override) as app,
+        AsyncTestClient(app=app) as rest_client,
+    ):
+        token = utils.generate_view_file_box_token(jwk=jwk, box_id=TEST_BOX_ID)
+        response = await rest_client.get(
+            f"/boxes/{TEST_BOX_ID}/uploads",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.json()["description"] == str(http_error)
+
+
+@pytest.mark.parametrize(
+    "core_error, http_error",
+    [
+        (
+            UploadControllerPort.BoxNotFoundError(box_id=TEST_BOX_ID),
+            http_exceptions.HttpBoxNotFoundError(box_id=TEST_BOX_ID),
+        ),
+        (
+            UploadControllerPort.LockedBoxError(box_id=TEST_BOX_ID),
+            http_exceptions.HttpLockedBoxError(box_id=TEST_BOX_ID),
+        ),
+        (
+            UploadControllerPort.FileUploadAlreadyExists(alias="test_file"),
+            http_exceptions.HttpFileUploadAlreadyExistsError(alias="test_file"),
+        ),
+        (
+            UploadControllerPort.UnknownStorageAliasError(storage_alias="HD01"),
+            http_exceptions.HttpUnknownStorageAliasError(),
+        ),
+        (
+            UploadControllerPort.MultipartUploadDupeError(
+                file_id=TEST_FILE_ID, bucket_id="test-bucket"
+            ),
+            http_exceptions.HttpMultipartUploadDupeError(file_alias="test_file"),
+        ),
+        (RuntimeError("Random error"), http_exceptions.HttpInternalError()),
+    ],
+    ids=[
+        "BoxNotFound",
+        "LockedBox",
+        "FileUploadAlreadyExists",
+        "UnknownStorageAlias",
+        "MultipartUploadDupe",
+        "InternalError",
+    ],
+)
+async def test_create_file_upload_endpoint_error_handling(
+    config: ConfigFixture, core_error: Exception, http_error: Exception
+):
+    """Test that the endpoint correctly translates errors from the core."""
+    jwk = config.jwk
+    body = {"alias": "test_file", "checksum": "sha256:abc123", "size": 1024}
+    core_override = AsyncMock()
+    core_override.initiate_file_upload.side_effect = core_error
+    async with (
+        prepare_rest_app(config=config.config, core_override=core_override) as app,
+        AsyncTestClient(app=app) as rest_client,
+    ):
+        token = utils.generate_create_file_token(
+            box_id=TEST_BOX_ID, alias="test_file", jwk=jwk
+        )
+        response = await rest_client.post(
+            f"/boxes/{TEST_BOX_ID}/uploads",
+            json=body,
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.json()["description"] == str(http_error)
+
+
+@pytest.mark.parametrize(
+    "core_error, http_error",
+    [
+        (
+            UploadControllerPort.S3UploadDetailsNotFoundError(file_id=TEST_FILE_ID),
+            http_exceptions.HttpS3UploadDetailsNotFoundError(file_id=TEST_FILE_ID),
+        ),
+        (
+            UploadControllerPort.UnknownStorageAliasError(storage_alias="HD01"),
+            http_exceptions.HttpUnknownStorageAliasError(),
+        ),
+        (
+            UploadControllerPort.S3UploadNotFoundError(
+                bucket_id="test-bucket", s3_upload_id="test-upload-id"
+            ),
+            http_exceptions.HttpS3UploadNotFoundError(),
+        ),
+        (RuntimeError("Random error"), http_exceptions.HttpInternalError()),
+    ],
+    ids=[
+        "S3UploadDetailsNotFound",
+        "UnknownStorageAlias",
+        "S3UploadNotFound",
+        "InternalError",
+    ],
+)
+async def test_get_file_part_upload_url_endpoint_error_handling(
+    config: ConfigFixture, core_error: Exception, http_error: Exception
+):
+    """Test that the endpoint correctly translates errors from the core."""
+    jwk = config.jwk
+    core_override = AsyncMock()
+    core_override.get_part_upload_url.side_effect = core_error
+    async with (
+        prepare_rest_app(config=config.config, core_override=core_override) as app,
+        AsyncTestClient(app=app) as rest_client,
+    ):
+        token = utils.generate_upload_file_token(
+            box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=jwk
+        )
+        response = await rest_client.get(
+            f"/boxes/{TEST_BOX_ID}/uploads/{TEST_FILE_ID}/parts/1",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.json()["description"] == str(http_error)
+
+
+@pytest.mark.parametrize(
+    "core_error, http_error",
+    [
+        (
+            UploadControllerPort.BoxNotFoundError(box_id=TEST_BOX_ID),
+            http_exceptions.HttpBoxNotFoundError(box_id=TEST_BOX_ID),
+        ),
+        (
+            UploadControllerPort.LockedBoxError(box_id=TEST_BOX_ID),
+            http_exceptions.HttpLockedBoxError(box_id=TEST_BOX_ID),
+        ),
+        (
+            UploadControllerPort.FileUploadNotFound(file_id=TEST_FILE_ID),
+            http_exceptions.HttpFileUploadNotFoundError(file_id=TEST_FILE_ID),
+        ),
+        (
+            UploadControllerPort.S3UploadDetailsNotFoundError(file_id=TEST_FILE_ID),
+            http_exceptions.HttpS3UploadDetailsNotFoundError(file_id=TEST_FILE_ID),
+        ),
+        (
+            UploadControllerPort.UploadCompletionError(
+                file_id=TEST_FILE_ID,
+                s3_upload_id="test-upload",
+                bucket_id="test-bucket",
+            ),
+            http_exceptions.HttpUploadCompletionError(),
+        ),
+        (RuntimeError("Random error"), http_exceptions.HttpInternalError()),
+    ],
+    ids=[
+        "BoxNotFound",
+        "LockedBox",
+        "FileUploadNotFound",
+        "S3UploadDetailsNotFound",
+        "UploadCompletionError",
+        "InternalError",
+    ],
+)
+async def test_complete_file_upload_endpoint_error_handling(
+    config: ConfigFixture, core_error: Exception, http_error: Exception
+):
+    """Test that the endpoint correctly translates errors from the core."""
+    jwk = config.jwk
+    body: dict[str, str] = {}
+    core_override = AsyncMock()
+    core_override.complete_file_upload.side_effect = core_error
+    async with (
+        prepare_rest_app(config=config.config, core_override=core_override) as app,
+        AsyncTestClient(app=app) as rest_client,
+    ):
+        token = utils.generate_close_file_token(
+            box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=jwk
+        )
+        response = await rest_client.patch(
+            f"/boxes/{TEST_BOX_ID}/uploads/{TEST_FILE_ID}",
+            json=body,
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.json()["description"] == str(http_error)
+
+
+@pytest.mark.parametrize(
+    "core_error, http_error",
+    [
+        (
+            UploadControllerPort.BoxNotFoundError(box_id=TEST_BOX_ID),
+            http_exceptions.HttpBoxNotFoundError(box_id=TEST_BOX_ID),
+        ),
+        (
+            UploadControllerPort.LockedBoxError(box_id=TEST_BOX_ID),
+            http_exceptions.HttpLockedBoxError(box_id=TEST_BOX_ID),
+        ),
+        (
+            UploadControllerPort.S3UploadDetailsNotFoundError(file_id=TEST_FILE_ID),
+            http_exceptions.HttpS3UploadDetailsNotFoundError(file_id=TEST_FILE_ID),
+        ),
+        (
+            UploadControllerPort.UnknownStorageAliasError(storage_alias="HD01"),
+            http_exceptions.HttpUnknownStorageAliasError(),
+        ),
+        (
+            UploadControllerPort.UploadAbortError(
+                file_id=TEST_FILE_ID,
+                s3_upload_id="test-upload",
+                bucket_id="test-bucket",
+            ),
+            http_exceptions.HttpUploadAbortError(),
+        ),
+        (RuntimeError("Random error"), http_exceptions.HttpInternalError()),
+    ],
+    ids=[
+        "BoxNotFound",
+        "LockedBox",
+        "S3UploadDetailsNotFound",
+        "UnknownStorageAlias",
+        "UploadAbortError",
+        "InternalError",
+    ],
+)
+async def test_delete_file_endpoint_error_handling(
+    config: ConfigFixture, core_error: Exception, http_error: Exception
+):
+    """Test that the endpoint correctly translates errors from the core."""
+    jwk = config.jwk
+    core_override = AsyncMock()
+    core_override.remove_file_upload.side_effect = core_error
+    async with (
+        prepare_rest_app(config=config.config, core_override=core_override) as app,
+        AsyncTestClient(app=app) as rest_client,
+    ):
+        token = utils.generate_delete_file_token(
+            box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=jwk
+        )
+        response = await rest_client.delete(
+            f"/boxes/{TEST_BOX_ID}/uploads/{TEST_FILE_ID}",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.json()["description"] == str(http_error)

@@ -27,25 +27,16 @@ from ghga_service_commons.utils.multinode_storage import (
     S3ObjectStorageNodeConfig,
     S3ObjectStoragesConfig,
 )
-from hexkit.providers.akafka import KafkaEventSubscriber
 from hexkit.providers.akafka.testutils import KafkaFixture
 from hexkit.providers.mongodb.testutils import MongoDbFixture
 from hexkit.providers.s3.testutils import S3Fixture
+from jwcrypto.jwk import JWK
 
 from tests_ucs.fixtures.config import get_config
-from tests_ucs.fixtures.example_data import STORAGE_ALIASES
-from ucs.adapters.outbound.dao import DaoCollectionTranslator
+from tests_ucs.fixtures.utils import generate_token_signing_keys
 from ucs.config import Config
-from ucs.inject import (
-    prepare_core,
-    prepare_event_subscriber,
-    prepare_rest_app,
-    prepare_storage_inspector,
-)
-from ucs.ports.inbound.file_service import FileMetadataServicePort
-from ucs.ports.inbound.storage_inspector import StorageInspectorPort
-from ucs.ports.inbound.upload_service import UploadServicePort
-from ucs.ports.outbound.dao import DaoCollectionPort
+from ucs.inject import prepare_core, prepare_rest_app
+from ucs.ports.inbound.controller import UploadControllerPort
 
 
 @dataclass
@@ -53,16 +44,13 @@ class JointFixture:
     """Returned by the `joint_fixture`."""
 
     config: Config
-    daos: DaoCollectionPort
-    upload_service: UploadServicePort
-    file_metadata_service: FileMetadataServicePort
+    upload_controller: UploadControllerPort
     rest_client: httpx.AsyncClient
-    event_subscriber: KafkaEventSubscriber
     mongodb: MongoDbFixture
     kafka: KafkaFixture
     s3: S3Fixture
     bucket_id: str
-    inbox_inspector: StorageInspectorPort
+    jwk: JWK
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -72,49 +60,36 @@ async def joint_fixture(
     s3: S3Fixture,
 ) -> AsyncGenerator[JointFixture, None]:
     """A fixture that embeds all other fixtures for API-level integration testing."""
-    bucket_id = "test-inbox"
+    jwk = generate_token_signing_keys()
+    auth_key = jwk.export(private_key=False)
 
+    bucket_id = "test-inbox"
     node_config = S3ObjectStorageNodeConfig(bucket=bucket_id, credentials=s3.config)
     object_storages_config = S3ObjectStoragesConfig(
-        object_storages={
-            STORAGE_ALIASES[0]: node_config,
-        }
+        object_storages={"test": node_config}
     )
 
     # merge configs from different sources with the default one:
     config = get_config(
         sources=[mongodb.config, kafka.config, object_storages_config],
-        kafka_enable_dlq=True,
+        auth_key=auth_key,
     )
 
-    daos = await DaoCollectionTranslator.construct(provider=mongodb.dao_factory)
     await s3.populate_buckets([bucket_id])
 
     # Assemble joint fixture with config injection
     async with (
-        prepare_core(config=config) as (
-            upload_service,
-            file_metadata_service,
-        ),
-        prepare_storage_inspector(config=config) as inbox_inspector,
-        prepare_rest_app(
-            config=config, core_override=(upload_service, file_metadata_service)
-        ) as app,
-        prepare_event_subscriber(
-            config=config, core_override=(upload_service, file_metadata_service)
-        ) as event_subscriber,
+        prepare_core(config=config) as upload_controller,
+        prepare_rest_app(config=config, core_override=upload_controller) as app,
         AsyncTestClient(app=app) as rest_client,
     ):
         yield JointFixture(
             config=config,
-            daos=daos,
-            upload_service=upload_service,
-            file_metadata_service=file_metadata_service,
+            upload_controller=upload_controller,
             rest_client=rest_client,
-            event_subscriber=event_subscriber,
             mongodb=mongodb,
             kafka=kafka,
             s3=s3,
             bucket_id=bucket_id,
-            inbox_inspector=inbox_inspector,
+            jwk=jwk,
         )
