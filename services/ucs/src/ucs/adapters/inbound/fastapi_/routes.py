@@ -162,7 +162,7 @@ async def create_box(
     Returns the box_id of the newly created FileUploadBox.
     """
     # Use the ResearchDataUploadBox ID as the FileUploadBox ID
-    box_id = box_creation.research_data_upload_box_id
+    box_id = box_creation.box_id
     if work_order_context.work_type != rest_models.WorkType.CREATE:
         raise http_exceptions.HttpNotAuthorizedError()
 

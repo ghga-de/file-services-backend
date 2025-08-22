@@ -24,7 +24,7 @@ from pydantic import UUID4, BaseModel, ConfigDict, Field, field_validator
 class BoxCreationRequest(BaseModel):
     """Request body for creating a new FileUploadBox."""
 
-    research_data_upload_box_id: UUID4 = Field(
+    box_id: UUID4 = Field(
         ..., description="The ID of the corresponding ResearchDataUploadBox"
     )
     storage_alias: str = Field(

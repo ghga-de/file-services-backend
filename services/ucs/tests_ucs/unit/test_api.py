@@ -39,7 +39,7 @@ async def test_create_box_endpoint_auth(config: ConfigFixture):
     and a 200 if the token is correct (and request succeeds).
     """
     jwk = config.jwk
-    body = {"research_data_upload_box_id": str(TEST_BOX_ID), "storage_alias": "HD01"}
+    body = {"box_id": str(TEST_BOX_ID), "storage_alias": "HD01"}
     async with (
         prepare_rest_app(config=config.config, core_override=AsyncMock()) as app,
         AsyncTestClient(app=app) as rest_client,
@@ -374,7 +374,7 @@ async def test_create_box_endpoint_error_handling(
 ):
     """Test that the endpoint correctly translates errors from the core."""
     jwk = config.jwk
-    body = {"research_data_upload_box_id": str(TEST_BOX_ID), "storage_alias": "HD01"}
+    body = {"box_id": str(TEST_BOX_ID), "storage_alias": "HD01"}
     core_override = AsyncMock()
     core_override.create_file_upload_box.side_effect = core_error
     async with (

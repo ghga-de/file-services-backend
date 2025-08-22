@@ -3,17 +3,17 @@ components:
     BoxCreationRequest:
       description: Request body for creating a new FileUploadBox.
       properties:
-        research_data_upload_box_id:
+        box_id:
           description: The ID of the corresponding ResearchDataUploadBox
           format: uuid4
-          title: Research Data Upload Box Id
+          title: Box Id
           type: string
         storage_alias:
           description: The storage alias to use for this upload box
           title: Storage Alias
           type: string
       required:
-      - research_data_upload_box_id
+      - box_id
       - storage_alias
       title: Box Creation Request
       type: object

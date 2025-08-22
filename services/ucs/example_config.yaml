@@ -1,12 +1,7 @@
 api_root_path: ''
 auth_algs:
 - ES256
-auth_check_claims:
-  email: null
-  exp: null
-  iat: null
-  id: null
-  name: null
+auth_check_claims: {}
 auth_key: '{}'
 auth_map_claims: {}
 auto_reload: false
