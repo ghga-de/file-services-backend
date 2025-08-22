@@ -63,8 +63,9 @@ async def joint_fixture(
 ) -> AsyncGenerator[JointFixture, None]:
     """A fixture that embeds all other fixtures for API-level integration testing."""
     jwk = generate_token_signing_keys()
-    bucket_id = "test-inbox"
+    auth_key = jwk.export(private_key=False)
 
+    bucket_id = "test-inbox"
     node_config = S3ObjectStorageNodeConfig(bucket=bucket_id, credentials=s3.config)
     object_storages_config = S3ObjectStoragesConfig(
         object_storages={
@@ -75,7 +76,7 @@ async def joint_fixture(
     # merge configs from different sources with the default one:
     config = get_config(
         sources=[mongodb.config, kafka.config, object_storages_config],
-        kafka_enable_dlq=True,
+        auth_key=auth_key,
     )
 
     await s3.populate_buckets([bucket_id])
