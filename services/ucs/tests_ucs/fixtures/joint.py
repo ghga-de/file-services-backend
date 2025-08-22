@@ -38,8 +38,6 @@ from ucs.config import Config
 from ucs.inject import prepare_core, prepare_rest_app
 from ucs.ports.inbound.controller import UploadControllerPort
 
-STORAGE_ALIASES = ("test", "test2")
-
 
 @dataclass
 class JointFixture:
@@ -68,9 +66,7 @@ async def joint_fixture(
     bucket_id = "test-inbox"
     node_config = S3ObjectStorageNodeConfig(bucket=bucket_id, credentials=s3.config)
     object_storages_config = S3ObjectStoragesConfig(
-        object_storages={
-            STORAGE_ALIASES[0]: node_config,
-        }
+        object_storages={"test": node_config}
     )
 
     # merge configs from different sources with the default one:
