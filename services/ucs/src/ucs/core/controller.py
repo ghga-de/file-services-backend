@@ -275,7 +275,8 @@ class UploadController(UploadControllerPort):
             raise error from err
 
         # Insert S3UploadDetails. Don't check for duplicate because insert only
-        #  occurs in this method and only if the FileUpload alias is new
+        #  occurs in this method and only if the FileUpload alias is new. The check for
+        #  duplicates is performed in `_insert_validated_file_upload`.
         s3_upload = S3UploadDetails(
             file_id=file_id,
             storage_alias=box.storage_alias,
