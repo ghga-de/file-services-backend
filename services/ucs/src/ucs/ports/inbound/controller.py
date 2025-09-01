@@ -43,7 +43,7 @@ class UploadControllerPort(ABC):
             super().__init__(msg)
 
     class S3UploadNotFoundError(RuntimeError):
-        """Raised when local DB has record of an S3 multipart upload but S3 itself doesn't."""
+        """Raised when the local DB has a record of an S3 multipart upload but S3 itself doesn't."""
 
         def __init__(self, *, bucket_id: str, s3_upload_id: str):
             msg = (
