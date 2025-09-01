@@ -81,9 +81,9 @@ class UploadController(UploadControllerPort):
     ) -> UUID4:
         """Create a new FileUpload for the provided file alias and return the file_id.
 
-        This method checks that the FileUploadBox exists and is unlocked, and that
-        a FileUpload doesn't already exist for the provided alias. If these conditions
-        are met, then it inserts a new FileUpload with a random UUID4 for file_id.
+        This method checks that a FileUpload doesn't already exist for the provided alias.
+        If these conditions are met, then it inserts a new FileUpload with a random
+        UUID4 for file_id.
 
         Raises `FileUploadAlreadyExists` if there's already a FileUpload for this alias.
         """
