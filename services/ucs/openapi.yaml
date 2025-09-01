@@ -194,11 +194,11 @@ components:
       - box_id
       title: HttpLockedBoxErrorData
       type: object
-    HttpMultipartUploadDupeError:
+    HttpMultipartUploadInProgressError:
       additionalProperties: false
       properties:
         data:
-          $ref: '#/components/schemas/HttpMultipartUploadDupeErrorData'
+          $ref: '#/components/schemas/HttpMultipartUploadInProgressErrorData'
         description:
           description: A human readable message to the client explaining the cause
             of the exception.
@@ -212,16 +212,16 @@ components:
       - data
       - description
       - exception_id
-      title: HttpMultipartUploadDupeError
+      title: HttpMultipartUploadInProgressError
       type: object
-    HttpMultipartUploadDupeErrorData:
+    HttpMultipartUploadInProgressErrorData:
       properties:
         file_alias:
           title: File Alias
           type: string
       required:
       - file_alias
-      title: HttpMultipartUploadDupeErrorData
+      title: HttpMultipartUploadInProgressErrorData
       type: object
     HttpS3UploadDetailsNotFoundError:
       additionalProperties: false
@@ -570,11 +570,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HttpMultipartUploadDupeError'
+                $ref: '#/components/schemas/HttpMultipartUploadInProgressError'
           description: 'Exceptions by ID:
 
-            - multipartUploadDupe: A multipart upload is already in progress for this
-            file.'
+            - multipartUploadInProgress: A multipart upload is already in progress
+            for this file.'
         '422':
           content:
             application/json:

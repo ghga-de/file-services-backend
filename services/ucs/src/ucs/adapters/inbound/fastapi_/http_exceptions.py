@@ -114,7 +114,7 @@ class HttpFileUploadAlreadyExistsError(HttpCustomExceptionBase):
         )
 
 
-class HttpMultipartUploadDupeError(HttpCustomExceptionBase):
+class HttpMultipartUploadInProgressError(HttpCustomExceptionBase):
     """Thrown when a multipart upload is already in progress for a file."""
 
     exception_id = "multipartUploadDupe"

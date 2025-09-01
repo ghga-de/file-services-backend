@@ -259,7 +259,7 @@ class UploadController(UploadControllerPort):
                 extra={"storage_alias": storage_alias, "bucket_id": bucket_id},
             )
         except object_storage.MultiPartUploadAlreadyExistsError as err:
-            error = self.MultipartUploadDupeError(
+            error = self.MultipartUploadInProgressError(
                 file_id=file_id, bucket_id=storage_alias
             )
             log.error(

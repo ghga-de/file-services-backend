@@ -69,12 +69,12 @@ ERROR_RESPONSES = {
         ),
         "model": http_exceptions.HttpFileUploadAlreadyExistsError.get_body_model(),
     },
-    "multipartUploadDupe": {
+    "multipartUploadInProgress": {
         "description": (
             "Exceptions by ID:"
-            + "\n- multipartUploadDupe: A multipart upload is already in progress for this file."
+            + "\n- multipartUploadInProgress: A multipart upload is already in progress for this file."
         ),
-        "model": http_exceptions.HttpMultipartUploadDupeError.get_body_model(),
+        "model": http_exceptions.HttpMultipartUploadInProgressError.get_body_model(),
     },
     "s3UploadDetailsNotFound": {
         "description": (
@@ -268,7 +268,7 @@ async def get_box_uploads(
         status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["boxNotFound"],
         status.HTTP_409_CONFLICT: ERROR_RESPONSES["lockedBox"]
         | ERROR_RESPONSES["fileUploadAlreadyExists"]
-        | ERROR_RESPONSES["multipartUploadDupe"],
+        | ERROR_RESPONSES["multipartUploadInProgress"],
     },
 )
 async def create_file_upload(
@@ -312,8 +312,8 @@ async def create_file_upload(
         # This should not happen in normal operation since the box was already created
         # with a valid storage alias, but handle it just in case
         raise http_exceptions.HttpUnknownStorageAliasError() from error
-    except UploadControllerPort.MultipartUploadDupeError as error:
-        raise http_exceptions.HttpMultipartUploadDupeError(
+    except UploadControllerPort.MultipartUploadInProgressError as error:
+        raise http_exceptions.HttpMultipartUploadInProgressError(
             file_alias=file_alias
         ) from error
     except Exception as error:

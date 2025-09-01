@@ -70,7 +70,7 @@ class UploadControllerPort(ABC):
             f" file ID {file_id} in bucket ID {bucket_id}."
             super().__init__(msg)
 
-    class MultipartUploadDupeError(RuntimeError):
+    class MultipartUploadInProgressError(RuntimeError):
         """Raised when a pre-existing multipart upload is unexpectedly found"""
 
         def __init__(self, *, file_id: UUID4, bucket_id: str):
