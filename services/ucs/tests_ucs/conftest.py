@@ -36,7 +36,7 @@ from tests_ucs.fixtures.joint import joint_fixture  # noqa: F401
 
 @pytest.fixture(name="config")
 def config_fixture() -> ConfigFixture:
-    """Merge configs from different sources with the default one"""
+    """Generate config from test yaml along with an auth key and JWK"""
     jwk = jwt_helpers.generate_jwk()
     auth_key = jwk.export(private_key=False)
     config = get_config(auth_key=auth_key)
