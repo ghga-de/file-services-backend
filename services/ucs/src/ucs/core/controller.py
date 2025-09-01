@@ -16,7 +16,6 @@
 """Implements the UploadController class to manage file uploads"""
 
 import logging
-from contextlib import suppress
 from uuid import uuid4
 
 from ghga_service_commons.utils.multinode_storage import ObjectStorages
@@ -162,14 +161,20 @@ class UploadController(UploadControllerPort):
             bucket_id=bucket_id, object_id=object_id
         ):
             await object_storage.delete_object(bucket_id=bucket_id, object_id=object_id)
-
-        # no way to check, just run and ignore exception
-        with suppress(object_storage.MultiPartUploadNotFoundError):
-            await object_storage.abort_multipart_upload(
-                bucket_id=bucket_id,
-                object_id=object_id,
-                upload_id=s3_upload_details.s3_upload_id,
-            )
+        else:
+            # Suppress the error in case this is a retry after, e.g. a network hiccup
+            #  (wherein the upload was actually cancelled but user still saw an error)
+            try:
+                await object_storage.abort_multipart_upload(
+                    bucket_id=bucket_id,
+                    object_id=object_id,
+                    upload_id=s3_upload_details.s3_upload_id,
+                )
+            except object_storage.MultiPartUploadNotFoundError:
+                log.info(
+                    "No multipart upload found for ID %s. Presumed already aborted.",
+                    s3_upload_details.s3_upload_id,
+                )
 
     async def _remove_incomplete_file_upload(
         self, *, s3_upload_details: S3UploadDetails
