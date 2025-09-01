@@ -20,12 +20,12 @@ components:
     BoxUpdateRequest:
       description: Request body for updating a FileUploadBox.
       properties:
-        locked:
+        lock:
           description: Whether the box should be locked (true) or unlocked (false)
-          title: Locked
+          title: Lock
           type: boolean
       required:
-      - locked
+      - lock
       title: Box Update Request
       type: object
     BoxUploadsResponse:

@@ -158,7 +158,7 @@ async def test_integrated_aspects(joint_fixture: JointFixture):
                 box_id=box_id, jwk=jwk
             )
             headers = auth_header(lock_box_token)
-            box_update_body = {"locked": True}
+            box_update_body = {"lock": True}
             response = await rest_client.patch(
                 f"/boxes/{box_id}", json=box_update_body, headers=headers
             )
@@ -183,7 +183,7 @@ async def test_integrated_aspects(joint_fixture: JointFixture):
 
         # Great, we verified that the locked box prevents changes. Now unlock the box
         #  but don't check for events -- satisfied at this point that outbox is working
-        box_update_body = {"locked": False}
+        box_update_body = {"lock": False}
         unlock_box_token = utils.generate_change_file_box_token(
             box_id=box_id, work_type="unlock", jwk=jwk
         )

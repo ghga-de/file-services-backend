@@ -35,7 +35,7 @@ class BoxCreationRequest(BaseModel):
 class BoxUpdateRequest(BaseModel):
     """Request body for updating a FileUploadBox."""
 
-    locked: bool = Field(
+    lock: bool = Field(
         ..., description="Whether the box should be locked (true) or unlocked (false)"
     )
     model_config = ConfigDict(title="Box Update Request")

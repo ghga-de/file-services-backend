@@ -196,7 +196,7 @@ async def update_box(
     Request body must indicate whether the box is meant to be locked or unlocked.
     """
     required_work_type = (
-        rest_models.WorkType.LOCK if box_update.locked else rest_models.WorkType.UNLOCK
+        rest_models.WorkType.LOCK if box_update.lock else rest_models.WorkType.UNLOCK
     )
     if (
         work_order_context.box_id != box_id
@@ -205,7 +205,7 @@ async def update_box(
         raise http_exceptions.HttpNotAuthorizedError()
 
     try:
-        if box_update.locked:
+        if box_update.lock:
             await upload_controller.lock_file_upload_box(box_id=box_id)
         else:
             await upload_controller.unlock_file_upload_box(box_id=box_id)

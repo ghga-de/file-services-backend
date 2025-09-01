@@ -70,7 +70,7 @@ async def test_update_box_endpoint_auth(config: ConfigFixture):
     and a 204 if the token is correct (and request succeeds).
     """
     jwk = config.jwk
-    body = {"locked": True}
+    body = {"lock": True}
     async with (
         prepare_rest_app(config=config.config, core_override=AsyncMock()) as app,
         AsyncTestClient(app=app) as rest_client,
@@ -404,7 +404,7 @@ async def test_update_box_endpoint_error_handling(
 ):
     """Test that the endpoint correctly translates errors from the core."""
     jwk = config.jwk
-    body = {"locked": True}
+    body = {"lock": True}
     core_override = AsyncMock()
     core_override.lock_file_upload_box.side_effect = core_error
     async with (
