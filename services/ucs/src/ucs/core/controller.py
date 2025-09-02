@@ -362,6 +362,9 @@ class UploadController(UploadControllerPort):
         - `UnknownStorageAliasError` if the storage alias is not known.
         - `UploadCompletionError` if there's an error while telling S3 to complete the upload.
         """
+        # Get the FileUploadBox instance and verify that it is unlocked
+        box = await self._get_unlocked_box(box_id=box_id)
+
         # Get the FileUpload from the DB
         try:
             file_upload = await self._file_upload_dao.get_by_id(file_id)
@@ -373,6 +376,9 @@ class UploadController(UploadControllerPort):
         # Mark the FileUpload as complete
         if file_upload.completed:
             log.info("FileUpload with ID %s already marked complete.", file_id)
+            # If this method is called but the file is already marked complete, triple
+            #  check that the box is up to date
+            await self._update_box_stats(box=box)
             return
         file_upload.completed = True
 
@@ -385,11 +391,6 @@ class UploadController(UploadControllerPort):
             raise error from err
         storage_alias = s3_upload_details.storage_alias
         s3_upload_id = s3_upload_details.s3_upload_id
-
-        # Update the FileUploadBox with new size and file count
-        box = await self._get_unlocked_box(box_id=box_id)
-        box.size += file_upload.size
-        box.file_count += 1
 
         # Complete the s3 multipart upload
         bucket_id, object_storage = self._get_bucket_and_storage(storage_alias)
@@ -428,10 +429,12 @@ class UploadController(UploadControllerPort):
             raise error from err
 
         # Update local collections now that S3 upload is successfully completed
-        await self._file_upload_box_dao.update(box)
         await self._file_upload_dao.update(file_upload)
         s3_upload_details.completed = now_utc_ms_prec()
         await self._s3_upload_details_dao.update(s3_upload_details)
+
+        # Update the FileUploadBox with new size and file count
+        await self._update_box_stats(box=box)
         log.debug("DB data updated for upload completion of file %s", file_id)
 
     async def remove_file_upload(self, *, box_id: UUID4, file_id: UUID4) -> None:
@@ -465,17 +468,34 @@ class UploadController(UploadControllerPort):
             await self._remove_completed_file_upload(
                 s3_upload_details=s3_upload_details
             )
-            box.file_count -= 1
-            box.size -= file_upload.size
-            await self._file_upload_box_dao.update(box)
         else:
             await self._remove_incomplete_file_upload(
                 s3_upload_details=s3_upload_details
             )
-
         await self._s3_upload_details_dao.delete(file_id)
         await self._file_upload_dao.delete(file_id)
+        await self._update_box_stats(box=box)
         log.info("File %s deleted from box %s", file_id, box_id)
+
+    async def _update_box_stats(self, *, box: FileUploadBox) -> None:
+        """Update FileUploadBox stats (file count & size) in an idempotent manner.
+
+        This helps mitigate potential state inconsistency arising from a hard crash.
+        """
+        completed_files = [
+            x
+            async for x in self._file_upload_dao.find_all(
+                mapping={"box_id": box.id, "completed": True}
+            )
+        ]
+        file_count = len(completed_files)
+        total_size = sum([file.size for file in completed_files])
+
+        # Since every update triggers an event, only update if data differs
+        if file_count != box.file_count or total_size != box.size:
+            box.file_count = file_count
+            box.size = total_size
+            await self._file_upload_box_dao.update(box)
 
     async def create_file_upload_box(
         self, *, box_id: UUID4, storage_alias: str
