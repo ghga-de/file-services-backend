@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Fixtures that can be used in both unit and integration tests"""
+"""Fixture definitions to aid in testing"""
 
 from jwcrypto.jwk import JWK
 
