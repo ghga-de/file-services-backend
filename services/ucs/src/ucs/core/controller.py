@@ -16,6 +16,7 @@
 """Implements the UploadController class to manage file uploads"""
 
 import logging
+from typing import Any
 from uuid import uuid4
 
 from ghga_service_commons.utils.multinode_storage import ObjectStorages
@@ -364,13 +365,14 @@ class UploadController(UploadControllerPort):
         """
         # Get the FileUploadBox instance and verify that it is unlocked
         box = await self._get_unlocked_box(box_id=box_id)
+        extra: dict[str, Any] = {"box_id": box_id, "file_id": file_id}  # just 4 logging
 
         # Get the FileUpload from the DB
         try:
             file_upload = await self._file_upload_dao.get_by_id(file_id)
         except ResourceNotFoundError as err:
             error = self.FileUploadNotFound(file_id=file_id)
-            log.error(error, extra={"box_id": box_id, "file_id": file_id})
+            log.error(error, extra=extra)
             raise error from err
 
         # Mark the FileUpload as complete
@@ -387,13 +389,16 @@ class UploadController(UploadControllerPort):
             s3_upload_details = await self._s3_upload_details_dao.get_by_id(file_id)
         except ResourceNotFoundError as err:
             error = self.S3UploadDetailsNotFoundError(file_id=file_id)
-            log.error(error, extra={"box_id": box_id, "file_id": file_id})
+            log.error(error, extra=extra)
             raise error from err
         storage_alias = s3_upload_details.storage_alias
         s3_upload_id = s3_upload_details.s3_upload_id
 
         # Complete the s3 multipart upload
         bucket_id, object_storage = self._get_bucket_and_storage(storage_alias)
+        extra["storage_alias"] = storage_alias
+        extra["s3_upload_id"] = s3_upload_id
+        extra["bucket_id"] = bucket_id
         try:
             await object_storage.complete_multipart_upload(
                 upload_id=s3_upload_id,
@@ -404,29 +409,35 @@ class UploadController(UploadControllerPort):
                 "S3 multipart upload %s completed for file %s",
                 s3_upload_id,
                 file_id,
-                extra={
-                    "bucket_id": bucket_id,
-                    "storage_alias": storage_alias,
-                    "box_id": box_id,
-                },
+                extra=extra,
             )
-        except object_storage.MultiPartUploadConfirmError as err:
-            # This usually can't be repaired, so abort the upload attempt
-            error = self.UploadCompletionError(
-                file_id=file_id, s3_upload_id=s3_upload_id, bucket_id=bucket_id
-            )
-            log.error(
-                error,
-                exc_info=True,
-                extra={
-                    "file_id": file_id,
-                    "bucket_id": bucket_id,
-                    "storage_alias": storage_alias,
-                    "s3_upload_id": s3_upload_id,
-                    "box_id": box_id,
-                },
-            )
-            raise error from err
+        except (
+            object_storage.MultiPartUploadNotFoundError,
+            object_storage.MultiPartUploadConfirmError,
+        ) as err:
+            # If the upload is not found, it's possible that it was already completed
+            # and the UCS crashed before it was able to update its DB, so check that.
+            if isinstance(
+                err, object_storage.MultiPartUploadNotFoundError
+            ) and await object_storage.does_object_exist(
+                bucket_id=bucket_id, object_id=str(file_id)
+            ):
+                log.info(
+                    "S3 multipart upload ID %s seems to have already been completed,"
+                    + " since the expected object with ID %s exists. Proceeding to"
+                    + " update DB.",
+                    s3_upload_id,
+                    file_id,
+                    extra=extra,
+                )
+            else:
+                # Object was not found or completion failed, so no recovery can be done.
+                # User should request to delete the file and start over.
+                error = self.UploadCompletionError(
+                    file_id=file_id, s3_upload_id=s3_upload_id, bucket_id=bucket_id
+                )
+                log.error(error, exc_info=True, extra=extra)
+                raise error from err
 
         # Update local collections now that S3 upload is successfully completed
         await self._file_upload_dao.update(file_upload)

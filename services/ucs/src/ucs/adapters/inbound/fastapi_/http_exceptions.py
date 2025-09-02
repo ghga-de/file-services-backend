@@ -141,6 +141,8 @@ class HttpS3UploadDetailsNotFoundError(HttpCustomExceptionBase):
     class DataModel(BaseModel):
         """Model for exception data"""
 
+        file_id: UUID4
+
     def __init__(self, *, file_id: UUID4, status_code: int = 404):
         """Construct message and init the exception."""
         super().__init__(
@@ -188,12 +190,19 @@ class HttpUploadCompletionError(HttpCustomExceptionBase):
 
     exception_id = "uploadCompletionError"
 
-    def __init__(self, *, status_code: int = 500):
+    class DataModel(BaseModel):
+        """Model for exception data"""
+
+        box_id: UUID4
+        file_id: UUID4
+
+    def __init__(self, *, box_id: UUID4, file_id: UUID4, status_code: int = 500):
         """Construct message and init the exception."""
         super().__init__(
             status_code=status_code,
-            description="An error occurred while completing the file upload.",
-            data={},
+            description="An error occurred while completing the file upload. Delete the"
+            + " file from the file upload box and retry.",
+            data={"box_id": str(box_id), "file_id": str(file_id)},
         )
 
 

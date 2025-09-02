@@ -101,7 +101,7 @@ ERROR_RESPONSES = {
         "description": (
             "Exceptions by ID:"
             + "\n- s3UploadCompletionFailure: There was an error completing the s3"
-            + " multipart upload."
+            + " multipart upload. Delete the file from the file upload box and retry."
         ),
         "model": http_exceptions.HttpUploadCompletionError.get_body_model(),
     },
@@ -427,7 +427,9 @@ async def complete_file_upload(
             file_id=file_id
         ) from error
     except UploadControllerPort.UploadCompletionError as error:
-        raise http_exceptions.HttpUploadCompletionError() from error
+        raise http_exceptions.HttpUploadCompletionError(
+            box_id=box_id, file_id=file_id
+        ) from error
     except Exception as error:
         log.error(error, exc_info=True)
         raise http_exceptions.HttpInternalError() from error

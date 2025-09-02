@@ -244,7 +244,13 @@ components:
       title: HttpS3UploadDetailsNotFoundError
       type: object
     HttpS3UploadDetailsNotFoundErrorData:
-      properties: {}
+      properties:
+        file_id:
+          format: uuid4
+          title: File Id
+          type: string
+      required:
+      - file_id
       title: HttpS3UploadDetailsNotFoundErrorData
       type: object
     HttpS3UploadNotFoundError:
@@ -343,8 +349,18 @@ components:
       title: HttpUploadCompletionError
       type: object
     HttpUploadCompletionErrorData:
-      additionalProperties: true
-      properties: {}
+      properties:
+        box_id:
+          format: uuid4
+          title: Box Id
+          type: string
+        file_id:
+          format: uuid4
+          title: File Id
+          type: string
+      required:
+      - box_id
+      - file_id
       title: HttpUploadCompletionErrorData
       type: object
     ValidationError:
@@ -712,7 +728,7 @@ paths:
           description: 'Exceptions by ID:
 
             - s3UploadCompletionFailure: There was an error completing the s3 multipart
-            upload.'
+            upload. Delete the file from the file upload box and retry.'
       security:
       - HTTPBearer: []
       summary: Complete file upload

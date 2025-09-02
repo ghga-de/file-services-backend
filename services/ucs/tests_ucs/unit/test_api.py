@@ -581,7 +581,9 @@ async def test_get_file_part_upload_url_endpoint_error_handling(
                 s3_upload_id="test-upload",
                 bucket_id="test-bucket",
             ),
-            http_exceptions.HttpUploadCompletionError(),
+            http_exceptions.HttpUploadCompletionError(
+                box_id=TEST_BOX_ID, file_id=TEST_FILE_ID
+            ),
         ),
         (RuntimeError("Random error"), http_exceptions.HttpInternalError()),
     ],
