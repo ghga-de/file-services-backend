@@ -533,6 +533,10 @@ class UploadController(UploadControllerPort):
             log.error(error)
             raise error from err
 
+        if box.locked:
+            log.info("Box with ID %s already locked.", box_id)
+            return
+
         incomplete_files_cursor = self._file_upload_dao.find_all(
             mapping={"box_id": box_id, "completed": False}
         )
@@ -542,10 +546,9 @@ class UploadController(UploadControllerPort):
             log.error(error, extra={"box_id": box_id, "file_ids": str(file_ids)})
             raise error
 
-        if not box.locked:
-            box.locked = True
-            await self._file_upload_box_dao.update(box)
-        log.info("Locked box with ID %s", box_id)
+        box.locked = True
+        await self._file_upload_box_dao.update(box)
+        log.info("Locked box with ID %s.", box_id)
 
     async def unlock_file_upload_box(self, *, box_id: UUID4) -> None:
         """Unlock an existing FileUploadBox.
