@@ -116,7 +116,6 @@ async def test_create_new_file_upload(rig: JointRig):
     assert upload_details.storage_alias == "test"
     assert now_utc_ms_prec() - upload_details.initiated < timedelta(seconds=5)
     assert not upload_details.completed
-    assert not upload_details.deleted
 
 
 async def test_get_part_url(rig: JointRig):

@@ -48,4 +48,3 @@ class S3UploadDetails(BaseModel):
     s3_upload_id: str
     initiated: UTCDatetime
     completed: UTCDatetime | None = None
-    deleted: UTCDatetime | None = None
