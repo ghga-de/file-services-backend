@@ -27,6 +27,7 @@ from ucs.adapters.inbound.fastapi_ import (
     http_exceptions,
     rest_models,
 )
+from ucs.constants import TRACER
 from ucs.ports.inbound.controller import UploadControllerPort
 
 router = APIRouter(tags=["UploadControllerService"])
@@ -123,6 +124,7 @@ ERROR_RESPONSES = {
     summary="health",
     status_code=status.HTTP_200_OK,
 )
+@TRACER.start_as_current_span("routes.health")
 async def health():
     """Used to test if this service is alive"""
     return {"status": "OK"}
@@ -140,6 +142,7 @@ async def health():
         status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["noSuchStorage"],
     },
 )
+@TRACER.start_as_current_span("routes.create_box")
 async def create_box(
     box_creation: rest_models.BoxCreationRequest,
     work_order_context: Annotated[
@@ -184,6 +187,7 @@ async def create_box(
         status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["boxNotFound"],
     },
 )
+@TRACER.start_as_current_span("routes.update_box")
 async def update_box(
     box_id: UUID4,
     box_update: rest_models.BoxUpdateRequest,
@@ -229,6 +233,7 @@ async def update_box(
         status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["boxNotFound"],
     },
 )
+@TRACER.start_as_current_span("routes.get_box_uploads")
 async def get_box_uploads(
     box_id: UUID4,
     work_order_context: Annotated[
@@ -273,6 +278,7 @@ async def get_box_uploads(
         | ERROR_RESPONSES["orphanedMultipartUpload"],
     },
 )
+@TRACER.start_as_current_span("routes.create_file_upload")
 async def create_file_upload(
     box_id: UUID4,
     file_upload_creation: rest_models.FileUploadCreationRequest,
@@ -338,6 +344,7 @@ async def create_file_upload(
         | ERROR_RESPONSES["s3UploadNotFound"],
     },
 )
+@TRACER.start_as_current_span("routes.get_part_upload_url")
 async def get_part_upload_url(
     box_id: UUID4,
     file_id: UUID4,
@@ -395,6 +402,7 @@ async def get_part_upload_url(
         ],
     },
 )
+@TRACER.start_as_current_span("routes.complete_file_upload")
 async def complete_file_upload(
     box_id: UUID4,
     file_id: UUID4,
@@ -451,6 +459,7 @@ async def complete_file_upload(
         status.HTTP_500_INTERNAL_SERVER_ERROR: ERROR_RESPONSES["uploadAbortError"],
     },
 )
+@TRACER.start_as_current_span("routes.remove_file_upload")
 async def remove_file_upload(
     box_id: UUID4,
     file_id: UUID4,
