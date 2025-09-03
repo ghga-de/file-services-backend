@@ -56,17 +56,17 @@ async def test_integrated_aspects(joint_fixture: JointFixture):
         nullcontext(NamedTemporaryFile("w+b")) as temp_file,
     ):
         # Create a box
-        box_id = uuid4()
         async with kafka.record_events(
             in_topic=config.file_upload_box_topic
         ) as box_recorder:
             create_box_token = utils.generate_create_file_box_token(jwk=jwk)
             headers = auth_header(create_box_token)
-            box_creation_body = {"box_id": str(box_id), "storage_alias": "test"}
+            box_creation_body = {"storage_alias": "test"}
             response = await rest_client.post(
                 "/boxes", json=box_creation_body, headers=headers
             )
             assert response.status_code == 201
+            box_id = UUID(response.json())
         events = box_recorder.recorded_events
         assert events
         assert len(events) == 1
@@ -215,9 +215,8 @@ async def test_s3_upload_completed_but_db_not_updated(joint_fixture: JointFixtur
     completed and would then update the DB documents accordingly.
     """
     controller = joint_fixture.upload_controller
-    box_id = uuid4()
     async with set_correlation_id(uuid4()):
-        await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
+        box_id = await controller.create_file_upload_box(storage_alias="test")
         file_id = await controller.initiate_file_upload(
             box_id=box_id, alias="test-file", checksum="abc123", size=1024
         )
@@ -274,9 +273,8 @@ async def test_s3_upload_complete_fails(joint_fixture: JointFixture):
     jwk = joint_fixture.jwk
     rest_client = joint_fixture.rest_client
     controller = joint_fixture.upload_controller
-    box_id = uuid4()
     async with set_correlation_id(uuid4()):
-        await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
+        box_id = await controller.create_file_upload_box(storage_alias="test")
         file_id = await controller.initiate_file_upload(
             box_id=box_id, alias="test-file", checksum="abc123", size=1024
         )
@@ -378,12 +376,11 @@ async def test_orphaned_s3_upload_in_file_create(joint_fixture: JointFixture, ca
     controller = joint_fixture.upload_controller
     s3_storage = joint_fixture.s3.storage
     bucket_id = joint_fixture.bucket_id
-    box_id = uuid4()
 
     # Create a box first
     correlation_id = uuid4()
     async with set_correlation_id(correlation_id):
-        await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
+        box_id = await controller.create_file_upload_box(storage_alias="test")
 
     # Simulate the scenario by manually creating an S3 upload first
     # This simulates the orphaned state where S3 has an upload but no DB record exists

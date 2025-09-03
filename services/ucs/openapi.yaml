@@ -3,17 +3,11 @@ components:
     BoxCreationRequest:
       description: Request body for creating a new FileUploadBox.
       properties:
-        box_id:
-          description: The ID of the corresponding ResearchDataUploadBox
-          format: uuid4
-          title: Box Id
-          type: string
         storage_alias:
           description: The storage alias to use for this upload box
           title: Storage Alias
           type: string
       required:
-      - box_id
       - storage_alias
       title: Box Creation Request
       type: object
@@ -73,36 +67,6 @@ components:
           title: Detail
           type: array
       title: HTTPValidationError
-      type: object
-    HttpBoxAlreadyExistsError:
-      additionalProperties: false
-      properties:
-        data:
-          $ref: '#/components/schemas/HttpBoxAlreadyExistsErrorData'
-        description:
-          description: A human readable message to the client explaining the cause
-            of the exception.
-          title: Description
-          type: string
-        exception_id:
-          const: boxAlreadyExists
-          title: Exception Id
-          type: string
-      required:
-      - data
-      - description
-      - exception_id
-      title: HttpBoxAlreadyExistsError
-      type: object
-    HttpBoxAlreadyExistsErrorData:
-      properties:
-        box_id:
-          format: uuid4
-          title: Box Id
-          type: string
-      required:
-      - box_id
-      title: HttpBoxAlreadyExistsErrorData
       type: object
     HttpBoxNotFoundError:
       additionalProperties: false
@@ -403,7 +367,8 @@ paths:
         Requires CreateUploadWorkOrder token and only allowed for Data Stewards via
         the UOS.
 
-        Request body should contain the ID of the corresponding ResearchDataUploadBox.
+        Request body should contain the storage alias to use for uploads within the
+        box.
 
         Returns the box_id of the newly created FileUploadBox.'
       operationId: createBox
@@ -430,14 +395,6 @@ paths:
           description: 'Exceptions by ID:
 
             - noSuchStorage: The storage node for the given alias does not exist.'
-        '409':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpBoxAlreadyExistsError'
-          description: 'Exceptions by ID:
-
-            - boxAlreadyExists: A FileUploadBox with the given ID already exists.'
         '422':
           content:
             application/json:

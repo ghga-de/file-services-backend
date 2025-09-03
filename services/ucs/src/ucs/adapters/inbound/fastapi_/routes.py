@@ -42,13 +42,6 @@ ERROR_RESPONSES = {
         ),
         "model": http_exceptions.HttpUnknownStorageAliasError.get_body_model(),
     },
-    "boxAlreadyExists": {
-        "description": (
-            "Exceptions by ID:"
-            + "\n- boxAlreadyExists: A FileUploadBox with the given ID already exists."
-        ),
-        "model": http_exceptions.HttpBoxAlreadyExistsError.get_body_model(),
-    },
     "boxNotFound": {
         "description": (
             "Exceptions by ID:"
@@ -137,10 +130,7 @@ async def health():
     status_code=status.HTTP_201_CREATED,
     response_model=UUID4,
     response_description="The box_id of the newly created FileUploadBox",
-    responses={
-        status.HTTP_409_CONFLICT: ERROR_RESPONSES["boxAlreadyExists"],
-        status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["noSuchStorage"],
-    },
+    responses={status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["noSuchStorage"]},
 )
 @TRACER.start_as_current_span("routes.create_box")
 async def create_box(
@@ -154,27 +144,20 @@ async def create_box(
     """Create a new FileUploadBox.
 
     Requires CreateUploadWorkOrder token and only allowed for Data Stewards via the UOS.
-    Request body should contain the ID of the corresponding ResearchDataUploadBox.
+    Request body should contain the storage alias to use for uploads within the box.
     Returns the box_id of the newly created FileUploadBox.
     """
-    # Use the ResearchDataUploadBox ID as the FileUploadBox ID
-    box_id = box_creation.box_id
     if work_order_context.work_type != rest_models.WorkType.CREATE:
         raise http_exceptions.HttpNotAuthorizedError()
 
     try:
-        await upload_controller.create_file_upload_box(
-            box_id=box_id, storage_alias=box_creation.storage_alias
-        )
-    except UploadControllerPort.BoxAlreadyExistsError as error:
-        raise http_exceptions.HttpBoxAlreadyExistsError(box_id=box_id) from error
+        alias = box_creation.storage_alias
+        return await upload_controller.create_file_upload_box(storage_alias=alias)
     except UploadControllerPort.UnknownStorageAliasError as error:
         raise http_exceptions.HttpUnknownStorageAliasError() from error
     except Exception as error:
         log.error(error, exc_info=True)
         raise http_exceptions.HttpInternalError() from error
-
-    return box_id
 
 
 @router.patch(

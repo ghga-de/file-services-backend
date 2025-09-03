@@ -86,8 +86,7 @@ def rig(config: ConfigFixture, patch_s3_calls) -> JointRig:
 
 async def test_create_new_box(rig: JointRig):
     """Test creating a new FileUploadBox"""
-    box_id = uuid4()
-    await rig.controller.create_file_upload_box(box_id=box_id, storage_alias="test")
+    box_id = await rig.controller.create_file_upload_box(storage_alias="test")
     assert rig.file_upload_box_dao.latest.id == box_id
 
 
@@ -96,8 +95,7 @@ async def test_create_new_file_upload(rig: JointRig):
     # First create a FileUploadBox
     file_upload_dao = rig.file_upload_dao
     controller = rig.controller
-    box_id = uuid4()
-    await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
+    box_id = await controller.create_file_upload_box(storage_alias="test")
 
     # Then create a FileUpload within the box
     file_id = await controller.initiate_file_upload(
@@ -122,8 +120,7 @@ async def test_get_part_url(rig: JointRig):
     """Test getting a file part upload URL"""
     # First create a FileUploadBox
     controller = rig.controller
-    box_id = uuid4()
-    await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
+    box_id = await controller.create_file_upload_box(storage_alias="test")
 
     # Then create a FileUpload within the box
     file_id = await controller.initiate_file_upload(
@@ -142,8 +139,7 @@ async def test_complete_file_upload(rig: JointRig):
     """Test completing a multipart file upload"""
     # First create a FileUploadBox
     controller = rig.controller
-    box_id = uuid4()
-    await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
+    box_id = await controller.create_file_upload_box(storage_alias="test")
 
     # Then create a FileUpload within the box
     file_id = await controller.initiate_file_upload(
@@ -192,8 +188,7 @@ async def test_delete_file_upload(rig: JointRig, complete_before_delete: bool):
     bucket_id, object_storage = rig.object_storages.for_alias("test")
 
     # First create a FileUploadBox
-    box_id = uuid4()
-    await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
+    box_id = await controller.create_file_upload_box(storage_alias="test")
 
     # Then create a FileUpload within the box
     file_id = await controller.initiate_file_upload(
@@ -226,8 +221,7 @@ async def test_lock_file_upload_box(rig: JointRig):
     # First create a FileUploadBox (starts unlocked by default)
     file_upload_box_dao = rig.file_upload_box_dao
     controller = rig.controller
-    box_id = uuid4()
-    await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
+    box_id = await controller.create_file_upload_box(storage_alias="test")
 
     # Verify the box starts unlocked
     assert not file_upload_box_dao.latest.locked
@@ -245,8 +239,7 @@ async def test_unlock_file_upload_box(rig: JointRig):
     controller = rig.controller
 
     # First create a FileUploadBox
-    box_id = uuid4()
-    await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
+    box_id = await controller.create_file_upload_box(storage_alias="test")
 
     # Lock the box first
     await controller.lock_file_upload_box(box_id=box_id)
@@ -264,8 +257,7 @@ async def test_get_box_uploads(rig: JointRig):
     controller = rig.controller
 
     # First create a FileUploadBox
-    box_id = uuid4()
-    await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
+    box_id = await controller.create_file_upload_box(storage_alias="test")
 
     # Create multiple FileUploads within the box
     file_id_1 = await controller.initiate_file_upload(
@@ -279,8 +271,7 @@ async def test_get_box_uploads(rig: JointRig):
     )
 
     # Create a second box with different files to test isolation
-    other_box_id = uuid4()
-    await controller.create_file_upload_box(box_id=other_box_id, storage_alias="test")
+    other_box_id = await controller.create_file_upload_box(storage_alias="test")
 
     other_file_id_1 = await controller.initiate_file_upload(
         box_id=other_box_id, alias="other_file_1", checksum="sha256:xyz789", size=1536
@@ -299,8 +290,7 @@ async def test_get_box_uploads(rig: JointRig):
     await controller.complete_file_upload(box_id=other_box_id, file_id=other_file_id_2)
 
     # Create a third, empty box
-    empty_box_id = uuid4()
-    await controller.create_file_upload_box(box_id=empty_box_id, storage_alias="test")
+    empty_box_id = await controller.create_file_upload_box(storage_alias="test")
 
     # Get the file IDs for the first box
     file_ids = await controller.get_file_ids_for_box(box_id=box_id)
@@ -319,42 +309,17 @@ async def test_get_box_uploads(rig: JointRig):
     assert no_ids == []
 
 
-async def test_create_box_duplicate(rig: JointRig):
-    """Test for error handling when the user tries to create new FileUploadBox
-    with an ID that already is used.
-    """
-    file_upload_box_dao = rig.file_upload_box_dao
-    controller = rig.controller
-
-    # Create a FileUploadBox first
-    box_id = uuid4()
-    await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
-
-    # Verify the box was created
-    assert file_upload_box_dao.latest.id == box_id
-
-    # Try to create another box with the same ID - should raise BoxAlreadyExistsError
-    with pytest.raises(UploadControllerPort.BoxAlreadyExistsError) as exc_info:
-        await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
-
-    # Verify the exception contains the correct box_id
-    assert exc_info.value.box_id == box_id
-
-
 async def test_create_box_with_unknown_storage_alias(rig: JointRig):
     """Test for error handling when the user tries to create new FileUploadBox
     with a storage alias that isn't configured.
     """
     # Try to create a FileUploadBox with an unknown storage alias
     controller = rig.controller
-    box_id = uuid4()
     unknown_storage_alias = "unknown_storage_alias_that_does_not_exist"
 
     # Should raise UnknownStorageAliasError
     with pytest.raises(UploadControllerPort.UnknownStorageAliasError) as exc_info:
-        await controller.create_file_upload_box(
-            box_id=box_id, storage_alias=unknown_storage_alias
-        )
+        await controller.create_file_upload_box(storage_alias=unknown_storage_alias)
 
     # Verify the exception message contains the storage alias
     assert unknown_storage_alias in str(exc_info.value)
@@ -371,8 +336,7 @@ async def test_create_file_upload_alias_duplicate(rig: JointRig):
     file_upload_dao = rig.file_upload_dao
 
     # First create a FileUploadBox
-    box_id = uuid4()
-    await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
+    box_id = await controller.create_file_upload_box(storage_alias="test")
 
     # Create a FileUpload with a specific alias
     file_alias = "duplicate_alias"
@@ -427,8 +391,7 @@ async def test_create_file_upload_when_box_locked(rig: JointRig):
     file_upload_box_dao = rig.file_upload_box_dao
 
     # First create a FileUploadBox and lock it
-    box_id = uuid4()
-    await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
+    box_id = await controller.create_file_upload_box(storage_alias="test")
     await controller.lock_file_upload_box(box_id=box_id)
     assert file_upload_box_dao.latest.locked
 
@@ -481,8 +444,7 @@ async def test_delete_file_upload_when_box_locked(rig: JointRig):
     s3_upload_details_dao = rig.s3_upload_details_dao
 
     # First create a FileUploadBox and FileUpload
-    box_id = uuid4()
-    await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
+    box_id = await controller.create_file_upload_box(storage_alias="test")
     file_id = await controller.initiate_file_upload(
         box_id=box_id, alias="test_file", checksum="sha256:abc123", size=1024
     )
@@ -512,8 +474,7 @@ async def test_delete_file_upload_when_upload_missing(rig: JointRig):
     controller = rig.controller
 
     # Create a FileUploadBox
-    box_id = uuid4()
-    await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
+    box_id = await controller.create_file_upload_box(storage_alias="test")
 
     # Try to delete a FileUpload that doesn't exist - this should NOT raise an error
     await controller.remove_file_upload(box_id=box_id, file_id=uuid4())
@@ -529,8 +490,7 @@ async def test_delete_file_upload_with_missing_s3_details(rig: JointRig):
     s3_upload_details_dao = rig.s3_upload_details_dao
 
     # Create a FileUploadBox and a FileUpload
-    box_id = uuid4()
-    await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
+    box_id = await controller.create_file_upload_box(storage_alias="test")
     file_id = await controller.initiate_file_upload(
         box_id=box_id, alias="test_file", checksum="sha256:abc123", size=1024
     )
@@ -566,8 +526,7 @@ async def test_delete_file_upload_with_s3_error(rig: JointRig):
     s3_upload_details_dao = rig.s3_upload_details_dao
 
     # Create a FileUploadBox and a FileUpload
-    box_id = uuid4()
-    await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
+    box_id = await controller.create_file_upload_box(storage_alias="test")
     file_id = await controller.initiate_file_upload(
         box_id=box_id, alias="test_file", checksum="sha256:abc123", size=1024
     )
@@ -626,8 +585,7 @@ async def test_lock_box_with_incomplete_upload(rig: JointRig):
     file_upload_box_dao = rig.file_upload_box_dao
 
     # Create a FileUploadBox and a FileUpload
-    box_id = uuid4()
-    await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
+    box_id = await controller.create_file_upload_box(storage_alias="test")
 
     file_id1 = await controller.initiate_file_upload(
         box_id=box_id, alias="test_file", checksum="sha256:abc123", size=1024
@@ -661,8 +619,7 @@ async def test_complete_file_upload_when_box_missing(rig: JointRig):
     s3_upload_details_dao = rig.s3_upload_details_dao
 
     # Create a FileUploadBox and a FileUpload
-    box_id = uuid4()
-    await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
+    box_id = await controller.create_file_upload_box(storage_alias="test")
     file_id = await controller.initiate_file_upload(
         box_id=box_id, alias="test_file", checksum="sha256:abc123", size=1024
     )
@@ -692,8 +649,7 @@ async def test_complete_missing_file_upload(rig: JointRig):
     """
     # Create a box first
     controller = rig.controller
-    box_id = uuid4()
-    await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
+    box_id = await controller.create_file_upload_box(storage_alias="test")
 
     # Try to complete a file upload that doesn't exist
     non_existent_file_id = uuid4()
@@ -717,8 +673,7 @@ async def test_complete_file_upload_with_missing_s3_details(rig: JointRig):
     controller = rig.controller
 
     # Create a FileUploadBox and a FileUpload
-    box_id = uuid4()
-    await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
+    box_id = await controller.create_file_upload_box(storage_alias="test")
     file_id = await controller.initiate_file_upload(
         box_id=box_id, alias="test_file", checksum="sha256:abc123", size=1024
     )
@@ -749,8 +704,7 @@ async def test_complete_file_upload_with_unknown_storage_alias(rig: JointRig):
     controller = rig.controller
 
     # Create a FileUploadBox and a FileUpload with a valid storage alias
-    box_id = uuid4()
-    await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
+    box_id = await controller.create_file_upload_box(storage_alias="test")
     file_id = await controller.initiate_file_upload(
         box_id=box_id, alias="test_file", checksum="sha256:abc123", size=1024
     )
@@ -785,8 +739,7 @@ async def test_complete_file_upload_with_s3_error(rig: JointRig):
     controller = rig.controller
 
     # Create a FileUploadBox and a FileUpload
-    box_id = uuid4()
-    await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
+    box_id = await controller.create_file_upload_box(storage_alias="test")
     file_id = await controller.initiate_file_upload(
         box_id=box_id, alias="test_file", checksum="sha256:abc123", size=1024
     )
@@ -815,8 +768,7 @@ async def test_get_part_upload_url_with_missing_file_id(rig: JointRig):
     """
     # Create a FileUploadBox and a FileUpload
     controller = rig.controller
-    box_id = uuid4()
-    await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
+    box_id = await controller.create_file_upload_box(storage_alias="test")
     file_id = await controller.initiate_file_upload(
         box_id=box_id, alias="test_file", checksum="sha256:abc123", size=1024
     )
@@ -840,8 +792,7 @@ async def test_get_part_upload_url_with_unknown_storage_alias(rig: JointRig):
     # Create a FileUploadBox and a FileUpload with a valid storage alias
     controller = rig.controller
     s3_upload_details_dao = rig.s3_upload_details_dao
-    box_id = uuid4()
-    await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
+    box_id = await controller.create_file_upload_box(storage_alias="test")
     file_id = await controller.initiate_file_upload(
         box_id=box_id, alias="test_file", checksum="sha256:abc123", size=1024
     )
@@ -866,8 +817,7 @@ async def test_get_part_upload_url_when_s3_upload_not_found(rig: JointRig):
     """
     # Create a FileUploadBox and a FileUpload
     controller = rig.controller
-    box_id = uuid4()
-    await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
+    box_id = await controller.create_file_upload_box(storage_alias="test")
     file_id = await controller.initiate_file_upload(
         box_id=box_id, alias="test_file", checksum="sha256:abc123", size=1024
     )
@@ -888,8 +838,5 @@ async def test_get_part_upload_url_when_s3_upload_not_found(rig: JointRig):
 
 async def test_get_file_ids_for_non_existent_box(rig: JointRig):
     """Test get_file_ids_for_box with a non-existent box ID."""
-    controller = rig.controller
-    non_existent_box_id = uuid4()
-
     with pytest.raises(UploadControllerPort.BoxNotFoundError):
-        await controller.get_file_ids_for_box(box_id=non_existent_box_id)
+        await rig.controller.get_file_ids_for_box(box_id=uuid4())

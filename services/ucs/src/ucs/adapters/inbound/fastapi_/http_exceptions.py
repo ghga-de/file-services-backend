@@ -33,25 +33,6 @@ class HttpUnknownStorageAliasError(HttpCustomExceptionBase):
         )
 
 
-class HttpBoxAlreadyExistsError(HttpCustomExceptionBase):
-    """Thrown when trying to create a FileUploadBox that already exists."""
-
-    exception_id = "boxAlreadyExists"
-
-    class DataModel(BaseModel):
-        """Model for exception data"""
-
-        box_id: UUID4
-
-    def __init__(self, *, box_id: UUID4, status_code: int = 409):
-        """Construct message and init the exception."""
-        super().__init__(
-            status_code=status_code,
-            description=(f"A FileUploadBox with ID {box_id} already exists."),
-            data={"box_id": str(box_id)},
-        )
-
-
 class HttpBoxNotFoundError(HttpCustomExceptionBase):
     """Thrown when a FileUploadBox with given ID could not be found."""
 

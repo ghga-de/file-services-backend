@@ -39,9 +39,11 @@ async def test_create_box_endpoint_auth(config: ConfigFixture):
     and a 200 if the token is correct (and request succeeds).
     """
     jwk = config.jwk
-    body = {"box_id": str(TEST_BOX_ID), "storage_alias": "HD01"}
+    body = {"storage_alias": "HD01"}
+    core_mock = AsyncMock()
+    core_mock.create_file_upload_box.return_value = TEST_BOX_ID
     async with (
-        prepare_rest_app(config=config.config, core_override=AsyncMock()) as app,
+        prepare_rest_app(config=config.config, core_override=core_mock) as app,
         AsyncTestClient(app=app) as rest_client,
     ):
         response = await rest_client.post("/boxes", json=body)
@@ -358,23 +360,19 @@ async def test_delete_file_endpoint_auth(config: ConfigFixture):
     "core_error, http_error",
     [
         (
-            UploadControllerPort.BoxAlreadyExistsError(box_id=TEST_BOX_ID),
-            http_exceptions.HttpBoxAlreadyExistsError(box_id=TEST_BOX_ID),
-        ),
-        (
             UploadControllerPort.UnknownStorageAliasError(storage_alias="HD01"),
             http_exceptions.HttpUnknownStorageAliasError(),
         ),
         (RuntimeError("Random error"), http_exceptions.HttpInternalError()),
     ],
-    ids=["BoxAlreadyExists", "UnknownStorageAlias", "InternalError"],
+    ids=["UnknownStorageAlias", "InternalError"],
 )
 async def test_create_box_endpoint_error_handling(
     config: ConfigFixture, core_error: Exception, http_error: Exception
 ):
     """Test that the endpoint correctly translates errors from the core."""
     jwk = config.jwk
-    body = {"box_id": str(TEST_BOX_ID), "storage_alias": "HD01"}
+    body = {"storage_alias": "HD01"}
     core_override = AsyncMock()
     core_override.create_file_upload_box.side_effect = core_error
     async with (

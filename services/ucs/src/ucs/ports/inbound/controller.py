@@ -100,18 +100,6 @@ class UploadControllerPort(ABC):
             msg = f"Can't perform this action because FileUploadBox with ID {box_id} is locked"
             super().__init__(msg)
 
-    class BoxAlreadyExistsError(RuntimeError):
-        """Raised when a FileUploadBox can't be created because the ID is already used."""
-
-        # TODO: Delete this if we decide not to link IDs
-        def __init__(self, *, box_id: UUID4):
-            self.box_id = box_id
-            msg = (
-                f"Failed to create a FileUploadBox with ID {box_id} because"
-                + " another FileUploadBox with the same ID already exists."
-            )
-            super().__init__(msg)
-
     class FileUploadAlreadyExists(RuntimeError):
         """Raised when a FileUpload can't be created for a given box ID and file alias
         because one already exists.
@@ -194,13 +182,11 @@ class UploadControllerPort(ABC):
         ...
 
     @abstractmethod
-    async def create_file_upload_box(
-        self, *, box_id: UUID4, storage_alias: str
-    ) -> None:
-        """Create a new FileUploadBox with the given ID and S3 storage alias.
+    async def create_file_upload_box(self, *, storage_alias: str) -> UUID4:
+        """Create a new FileUploadBox with the given S3 storage alias.
+        Returns the UUID4 id of the created FileUploadBox.
 
         Raises:
-        - `BoxAlreadyExistsError` if there's already a FileUploadBox with the same ID.
         - `UnknownStorageAliasError` if the storage alias is not known.
         """
         ...

@@ -30,7 +30,6 @@ from ucs.ports.inbound.controller import UploadControllerPort
 from ucs.ports.outbound.dao import (
     FileUploadBoxDao,
     FileUploadDao,
-    ResourceAlreadyExistsError,
     ResourceNotFoundError,
     S3UploadDetailsDao,
 )
@@ -512,27 +511,22 @@ class UploadController(UploadControllerPort):
             box.size = total_size
             await self._file_upload_box_dao.update(box)
 
-    async def create_file_upload_box(
-        self, *, box_id: UUID4, storage_alias: str
-    ) -> None:
-        """Create a new FileUploadBox with the given ID and S3 storage alias.
+    async def create_file_upload_box(self, *, storage_alias: str) -> UUID4:
+        """Create a new FileUploadBox with the given S3 storage alias.
+        Returns the UUID4 id of the created FileUploadBox.
 
         Raises:
-        - `BoxAlreadyExistsError` if there's already a FileUploadBox with the same ID.
         - `UnknownStorageAliasError` if the storage alias is not known.
         """
-        # TODO: Decide if we're using the same IDs in UCS/UOS or using random IDs!
         if storage_alias not in self._config.object_storages:
             raise self.UnknownStorageAliasError(storage_alias=storage_alias)
 
-        box = FileUploadBox(id=box_id, storage_alias=storage_alias)
-
-        try:
-            await self._file_upload_box_dao.insert(box)
-        except ResourceAlreadyExistsError as err:
-            error = self.BoxAlreadyExistsError(box_id=box_id)
-            log.error(error, extra={"box_id": box_id, "storage_alias": storage_alias})
-            raise error from err
+        box = FileUploadBox(id=uuid4(), storage_alias=storage_alias)
+        await self._file_upload_box_dao.insert(box)
+        log.debug(
+            "Inserted FileUploadBox %s", box.id, extra={"storage_alias": storage_alias}
+        )
+        return box.id
 
     async def lock_file_upload_box(self, *, box_id: UUID4) -> None:
         """Lock an existing FileUploadBox.
