@@ -378,14 +378,13 @@ class UploadController(UploadControllerPort):
             log.error(error, extra=extra)
             raise error from err
 
-        # Mark the FileUpload as complete
+        # Exit early if the FileUpload is already marked complete
         if file_upload.completed:
             log.info("FileUpload with ID %s already marked complete.", file_id)
             # If this method is called but the file is already marked complete, triple
             #  check that the box is up to date
             await self._update_box_stats(box=box)
             return
-        file_upload.completed = True
 
         # Get s3 upload details
         try:
@@ -443,8 +442,9 @@ class UploadController(UploadControllerPort):
                 raise error from err
 
         # Update local collections now that S3 upload is successfully completed
-        await self._file_upload_dao.update(file_upload)
+        file_upload.completed = True
         s3_upload_details.completed = now_utc_ms_prec()
+        await self._file_upload_dao.update(file_upload)
         await self._s3_upload_details_dao.update(s3_upload_details)
 
         # Update the FileUploadBox with new size and file count
