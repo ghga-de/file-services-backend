@@ -470,10 +470,10 @@ async def test_view_box_endpoint_error_handling(
             http_exceptions.HttpUnknownStorageAliasError(),
         ),
         (
-            UploadControllerPort.MultipartUploadInProgressError(
+            UploadControllerPort.OrphanedMultipartUploadError(
                 file_id=TEST_FILE_ID, bucket_id="test-bucket"
             ),
-            http_exceptions.HttpMultipartUploadInProgressError(file_alias="test_file"),
+            http_exceptions.HttpOrphanedMultipartUploadError(file_alias="test_file"),
         ),
         (RuntimeError("Random error"), http_exceptions.HttpInternalError()),
     ],
@@ -482,7 +482,7 @@ async def test_view_box_endpoint_error_handling(
         "LockedBox",
         "FileUploadAlreadyExists",
         "UnknownStorageAlias",
-        "MultipartUploadDupe",
+        "OrphanedMultipartUploadError",
         "InternalError",
     ],
 )

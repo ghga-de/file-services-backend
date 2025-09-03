@@ -194,34 +194,34 @@ components:
       - box_id
       title: HttpLockedBoxErrorData
       type: object
-    HttpMultipartUploadInProgressError:
+    HttpOrphanedMultipartUploadError:
       additionalProperties: false
       properties:
         data:
-          $ref: '#/components/schemas/HttpMultipartUploadInProgressErrorData'
+          $ref: '#/components/schemas/HttpOrphanedMultipartUploadErrorData'
         description:
           description: A human readable message to the client explaining the cause
             of the exception.
           title: Description
           type: string
         exception_id:
-          const: multipartUploadDupe
+          const: orphanedMultipartUpload
           title: Exception Id
           type: string
       required:
       - data
       - description
       - exception_id
-      title: HttpMultipartUploadInProgressError
+      title: HttpOrphanedMultipartUploadError
       type: object
-    HttpMultipartUploadInProgressErrorData:
+    HttpOrphanedMultipartUploadErrorData:
       properties:
         file_alias:
           title: File Alias
           type: string
       required:
       - file_alias
-      title: HttpMultipartUploadInProgressErrorData
+      title: HttpOrphanedMultipartUploadErrorData
       type: object
     HttpS3UploadDetailsNotFoundError:
       additionalProperties: false
@@ -586,11 +586,12 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HttpMultipartUploadInProgressError'
+                $ref: '#/components/schemas/HttpOrphanedMultipartUploadError'
           description: 'Exceptions by ID:
 
-            - multipartUploadInProgress: A multipart upload is already in progress
-            for this file.'
+            - orphanedMultipartUpload: A multipart upload is already in progress for
+            this file but cannot be aborted. Request file deletion and then attempt
+            the upload again.'
         '422':
           content:
             application/json:

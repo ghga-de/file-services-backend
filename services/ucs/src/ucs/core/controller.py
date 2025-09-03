@@ -232,52 +232,54 @@ class UploadController(UploadControllerPort):
         - `LockedBoxError` if the box exists but is locked.
         - `FileUploadAlreadyExists` if there's already a FileUpload for this alias.
         - `UnknownStorageAliasError` if the storage alias is not known.
-        - `MultipartUploadDupeError` if an S3 upload is already in progress.
+        - `OrphanedMultipartUploadError` if an S3 upload is already in progress.
         """
+        extra: dict[str, Any] = {"box_id": box_id, "alias": alias}
         # Get the box and create the FileUpload
         box = await self._get_unlocked_box(box_id=box_id)
+        initiated = now_utc_ms_prec()  # Generate timestamp early to minimize error risk
         file_id = await self._insert_validated_file_upload(
             box=box, alias=alias, checksum=checksum, size=size
         )
-        log.info(
-            "FileUpload %s added for alias %s.",
-            file_id,
-            alias,
-            extra={"box_id": box_id},
-        )
+        log.info("FileUpload %s added for alias %s.", file_id, alias, extra=extra)
 
         # Get the S3 storage details
         storage_alias = box.storage_alias
         bucket_id, object_storage = self._get_bucket_and_storage(
             storage_alias=storage_alias
         )
+        extra["storage_alias"] = storage_alias
+        extra["bucked_id"] = bucket_id
 
         # Initiate a new multipart file upload on the S3 instance
         try:
             s3_upload_id = await object_storage.init_multipart_upload(
                 bucket_id=bucket_id, object_id=str(file_id)
             )
-            log.info(
+            log.debug(
                 "S3 multipart upload %s created for file ID %s (file alias %s)",
                 s3_upload_id,
                 file_id,
                 alias,
-                extra={"storage_alias": storage_alias, "bucket_id": bucket_id},
+                extra=extra,
             )
         except object_storage.MultiPartUploadAlreadyExistsError as err:
-            error = self.MultipartUploadInProgressError(
-                file_id=file_id, bucket_id=storage_alias
+            #  _insert_validated_file_upload precludes the existence of a FileUpload
+            #  with the same `file_id`. If there's no FileUpload with the same file_id,
+            #  then there cannot be an upload for said file_id (in S3, file_id is object_id).
+            #  The most likely cause for this situation is that a crash occurred between
+            #  creating the S3 upload and inserting the S3UploadDetails. We can't assign
+            #  S3 upload IDs, so if that data isn't saved to the DB, it is only preserved
+            #  in the logs. There is no straightforward way to get the upload ID
+            #  programmatically, so we can't auto-abort it, either. In this case a
+            #  developer will have to manually intervene to cancel the upload. We will
+            #  delete the FileUpload, however, so the user can immediately retry.
+            error = self.OrphanedMultipartUploadError(
+                file_id=file_id, bucket_id=bucket_id
             )
-            log.error(
-                error,
-                exc_info=True,
-                extra={
-                    "box_id": box_id,
-                    "file_id": file_id,
-                    "alias": alias,
-                    "storage_alias": storage_alias,
-                },
-            )
+            log.critical(str(error), exc_info=True, extra=extra)
+            await self._file_upload_dao.delete(file_id)
+            log.debug("Cleanup performed - FileUpload %s deleted.", file_id)
             raise error from err
 
         # Insert S3UploadDetails. Don't check for duplicate because insert only
@@ -285,17 +287,19 @@ class UploadController(UploadControllerPort):
         #  duplicates is performed in `_insert_validated_file_upload`.
         s3_upload = S3UploadDetails(
             file_id=file_id,
-            storage_alias=box.storage_alias,
+            storage_alias=storage_alias,
             s3_upload_id=s3_upload_id,
-            initiated=now_utc_ms_prec(),
+            initiated=initiated,
         )
         await self._s3_upload_details_dao.insert(s3_upload)
-        log.debug(
-            "S3UploadDetails created for file ID %s",
+        log.info(
+            "FileUpload object with ID %s created for file alias %s. The S3 multipart"
+            + " upload ID is %s.",
             file_id,
-            extra={"storage_alias": storage_alias, "bucket_id": bucket_id},
+            alias,
+            s3_upload_id,
+            extra=extra,
         )
-
         return file_id
 
     async def get_part_upload_url(self, *, file_id: UUID4, part_no: int) -> str:

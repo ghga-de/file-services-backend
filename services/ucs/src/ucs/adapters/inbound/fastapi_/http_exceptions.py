@@ -114,10 +114,10 @@ class HttpFileUploadAlreadyExistsError(HttpCustomExceptionBase):
         )
 
 
-class HttpMultipartUploadInProgressError(HttpCustomExceptionBase):
+class HttpOrphanedMultipartUploadError(HttpCustomExceptionBase):
     """Thrown when a multipart upload is already in progress for a file."""
 
-    exception_id = "multipartUploadDupe"
+    exception_id = "orphanedMultipartUpload"
 
     class DataModel(BaseModel):
         """Model for exception data"""
@@ -128,7 +128,11 @@ class HttpMultipartUploadInProgressError(HttpCustomExceptionBase):
         """Construct message and init the exception."""
         super().__init__(
             status_code=status_code,
-            description=f"A multipart upload is already in progress for file {file_alias}",
+            description=(
+                f"A multipart upload is already in progress for file {file_alias}, but"
+                + " cannot be aborted due to a system error. Please request file"
+                + " deletion and then attempt the upload again."
+            ),
             data={"file_alias": file_alias},
         )
 

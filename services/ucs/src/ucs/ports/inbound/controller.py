@@ -66,16 +66,20 @@ class UploadControllerPort(ABC):
         """Raised when completing an S3 multipart upload results in an error"""
 
         def __init__(self, *, file_id: UUID4, s3_upload_id: str, bucket_id: str):
-            msg = f"Failed to complete S3 multipart upload with ID {s3_upload_id} for"
-            f" file ID {file_id} in bucket ID {bucket_id}."
+            msg = (
+                f"Failed to complete S3 multipart upload with ID {s3_upload_id} for"
+                + f" file ID {file_id} in bucket ID {bucket_id}."
+            )
             super().__init__(msg)
 
-    class MultipartUploadInProgressError(RuntimeError):
+    class OrphanedMultipartUploadError(RuntimeError):
         """Raised when a pre-existing multipart upload is unexpectedly found"""
 
         def __init__(self, *, file_id: UUID4, bucket_id: str):
-            msg = f"An S3 multipart upload already exists for file ID {file_id} and"
-            f" bucket ID {bucket_id}."
+            msg = (
+                f"An S3 multipart upload already exists for file ID {file_id} and"
+                + f" bucket ID {bucket_id}."
+            )
             super().__init__(msg)
 
     class UnknownStorageAliasError(RuntimeError):
@@ -145,7 +149,7 @@ class UploadControllerPort(ABC):
         - `LockedBoxError` if the box exists but is locked.
         - `FileUploadAlreadyExists` if there's already a FileUpload for this alias.
         - `UnknownStorageAliasError` if the storage alias is not known.
-        - `MultipartUploadDupeError` if an S3 upload is already in progress.
+        - `OrphanedMultipartUploadError` if an S3 upload is already in progress.
         """
         ...
 

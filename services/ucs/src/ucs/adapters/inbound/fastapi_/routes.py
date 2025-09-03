@@ -69,12 +69,14 @@ ERROR_RESPONSES = {
         ),
         "model": http_exceptions.HttpFileUploadAlreadyExistsError.get_body_model(),
     },
-    "multipartUploadInProgress": {
+    "orphanedMultipartUpload": {
         "description": (
             "Exceptions by ID:"
-            + "\n- multipartUploadInProgress: A multipart upload is already in progress for this file."
+            + "\n- orphanedMultipartUpload: A multipart upload is already in progress"
+            + " for this file but cannot be aborted. Request file deletion and then"
+            + " attempt the upload again."
         ),
-        "model": http_exceptions.HttpMultipartUploadInProgressError.get_body_model(),
+        "model": http_exceptions.HttpOrphanedMultipartUploadError.get_body_model(),
     },
     "s3UploadDetailsNotFound": {
         "description": (
@@ -268,7 +270,7 @@ async def get_box_uploads(
         status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["boxNotFound"],
         status.HTTP_409_CONFLICT: ERROR_RESPONSES["lockedBox"]
         | ERROR_RESPONSES["fileUploadAlreadyExists"]
-        | ERROR_RESPONSES["multipartUploadInProgress"],
+        | ERROR_RESPONSES["orphanedMultipartUpload"],
     },
 )
 async def create_file_upload(
@@ -312,8 +314,8 @@ async def create_file_upload(
         # This should not happen in normal operation since the box was already created
         # with a valid storage alias, but handle it just in case
         raise http_exceptions.HttpUnknownStorageAliasError() from error
-    except UploadControllerPort.MultipartUploadInProgressError as error:
-        raise http_exceptions.HttpMultipartUploadInProgressError(
+    except UploadControllerPort.OrphanedMultipartUploadError as error:
+        raise http_exceptions.HttpOrphanedMultipartUploadError(
             file_alias=file_alias
         ) from error
     except Exception as error:

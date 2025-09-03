@@ -17,6 +17,7 @@
 
 from contextlib import nullcontext
 from tempfile import NamedTemporaryFile
+from unittest.mock import patch
 from uuid import UUID, uuid4
 
 import httpx
@@ -364,3 +365,74 @@ async def test_s3_upload_complete_fails(joint_fixture: JointFixture):
     assert len(file_uploads) == 1
     assert file_uploads[0]["completed"]
     assert uploads[0]["_id"] == file_uploads[0]["_id"]
+
+
+async def test_orphaned_s3_upload_in_file_create(joint_fixture: JointFixture, caplog):
+    """A test for the scenario where a crash occurs in the `init_file_upload` method
+    between creating the S3 upload and inserting the S3UploadDetails.
+
+    The expected behavior is that the FileUpload is deleted, a critical error log
+    is emitted, and the REST API returns a 409 CONFLICT error.
+    """
+    controller = joint_fixture.upload_controller
+    s3_storage = joint_fixture.s3.storage
+    bucket_id = joint_fixture.bucket_id
+    box_id = uuid4()
+
+    # Create a box first
+    correlation_id = uuid4()
+    async with set_correlation_id(correlation_id):
+        await controller.create_file_upload_box(box_id=box_id, storage_alias="test")
+
+    # Simulate the scenario by manually creating an S3 upload first
+    # This simulates the orphaned state where S3 has an upload but no DB record exists
+    file_id = uuid4()
+    s3_upload_id = await s3_storage.init_multipart_upload(
+        bucket_id=bucket_id, object_id=str(file_id)
+    )
+
+    # Now try to create a file upload with the same file_id through the normal process
+    # This should trigger the OrphanedMultipartUploadErrorError scenario
+    # Patch the uuid4 generation to return the predetermined file_id
+    create_token = utils.generate_create_file_token(
+        box_id=box_id, alias="test-file", jwk=joint_fixture.jwk
+    )
+    body = {"alias": "test-file", "checksum": "abc123", "size": 1024}
+    with (
+        caplog.at_level("CRITICAL"),
+        patch("ucs.core.controller.uuid4", return_value=file_id),
+    ):
+        caplog.clear()
+        response = await joint_fixture.rest_client.post(
+            f"/boxes/{box_id}/uploads", headers=auth_header(create_token), json=body
+        )
+    assert response.status_code == 409
+    http_error = response.json()
+    assert http_error["exception_id"] == "orphanedMultipartUpload"
+
+    # Verify that the FileUpload was cleaned up (deleted from DB)
+    db = joint_fixture.mongodb.client[joint_fixture.config.db_name]
+    file_upload_collection = db["fileUploads"]
+    file_uploads = file_upload_collection.find(
+        {"__metadata__.deleted": False, "_id": file_id}
+    ).to_list()
+    assert len(file_uploads) == 0, "FileUpload should have been deleted during cleanup"
+
+    records = caplog.records
+    assert len(records) == 1
+    # TODO: Adjust message to be more useful
+    expected_log_msg = (
+        f"An S3 multipart upload already exists for file ID {file_id}"
+        + f" and bucket ID {bucket_id}."
+    )
+    assert records[0].msg == expected_log_msg
+
+    # Verify that no S3UploadDetails were created
+    s3_upload_details_collection = db["s3UploadDetails"]
+    s3_uploads = s3_upload_details_collection.find({"_id": file_id}).to_list()
+    assert len(s3_uploads) == 0, "No S3UploadDetails should exist for the failed upload"
+
+    # Clean up the orphaned S3 upload for this test
+    await s3_storage.abort_multipart_upload(
+        bucket_id=bucket_id, object_id=str(file_id), upload_id=s3_upload_id
+    )
