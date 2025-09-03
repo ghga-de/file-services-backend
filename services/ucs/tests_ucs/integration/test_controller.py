@@ -27,6 +27,7 @@ from hexkit.correlation import set_correlation_id
 
 from tests_ucs.fixtures import utils
 from tests_ucs.fixtures.joint import JointFixture
+from ucs.constants import FILE_UPLOADS_COLLECTION, S3_UPLOAD_DETAILS_COLLECTION
 from ucs.inject import prepare_rest_app
 
 pytestmark = pytest.mark.asyncio()
@@ -229,7 +230,7 @@ async def test_s3_upload_completed_but_db_not_updated(joint_fixture: JointFixtur
     # To simulate the hiccup, we'll manually complete the upload. This will create the
     #  out-of-sync state described above.
     db = joint_fixture.mongodb.client[joint_fixture.config.db_name]
-    s3_upload_details_collection = db["s3UploadDetails"]
+    s3_upload_details_collection = db[S3_UPLOAD_DETAILS_COLLECTION]
     uploads = s3_upload_details_collection.find().to_list()
     assert len(uploads) == 1
     assert not uploads[0]["completed"]
@@ -254,7 +255,7 @@ async def test_s3_upload_completed_but_db_not_updated(joint_fixture: JointFixtur
     uploads = s3_upload_details_collection.find().to_list()
     assert len(uploads) == 1
     assert uploads[0]["completed"]
-    file_upload_collection = db["fileUploads"]
+    file_upload_collection = db[FILE_UPLOADS_COLLECTION]
     file_uploads = file_upload_collection.find(
         {"__metadata__.deleted": False}
     ).to_list()
@@ -288,7 +289,7 @@ async def test_s3_upload_complete_fails(joint_fixture: JointFixture):
     # To simulate the hiccup, we'll manually abort the upload. This will create the
     #  out-of-sync state described above.
     db = joint_fixture.mongodb.client[joint_fixture.config.db_name]
-    s3_upload_details_collection = db["s3UploadDetails"]
+    s3_upload_details_collection = db[S3_UPLOAD_DETAILS_COLLECTION]
     uploads = s3_upload_details_collection.find().to_list()
     assert len(uploads) == 1
     assert not uploads[0]["completed"]
@@ -358,7 +359,7 @@ async def test_s3_upload_complete_fails(joint_fixture: JointFixture):
     assert len(uploads) == 1
     assert uploads[0]["_id"] == file_id2
     assert uploads[0]["completed"]
-    file_upload_collection = db["fileUploads"]
+    file_upload_collection = db[FILE_UPLOADS_COLLECTION]
     file_uploads = file_upload_collection.find(
         {"__metadata__.deleted": False}
     ).to_list()
@@ -412,7 +413,7 @@ async def test_orphaned_s3_upload_in_file_create(joint_fixture: JointFixture, ca
 
     # Verify that the FileUpload was cleaned up (deleted from DB)
     db = joint_fixture.mongodb.client[joint_fixture.config.db_name]
-    file_upload_collection = db["fileUploads"]
+    file_upload_collection = db[FILE_UPLOADS_COLLECTION]
     file_uploads = file_upload_collection.find(
         {"__metadata__.deleted": False, "_id": file_id}
     ).to_list()
@@ -428,7 +429,7 @@ async def test_orphaned_s3_upload_in_file_create(joint_fixture: JointFixture, ca
     assert records[0].msg == expected_log_msg
 
     # Verify that no S3UploadDetails were created
-    s3_upload_details_collection = db["s3UploadDetails"]
+    s3_upload_details_collection = db[S3_UPLOAD_DETAILS_COLLECTION]
     s3_uploads = s3_upload_details_collection.find({"_id": file_id}).to_list()
     assert len(s3_uploads) == 0, "No S3UploadDetails should exist for the failed upload"
 
