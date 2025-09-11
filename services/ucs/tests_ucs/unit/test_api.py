@@ -38,7 +38,7 @@ async def test_create_box_endpoint_auth(config: ConfigFixture):
     a 403 if the work type is incorrect,
     and a 200 if the token is correct (and request succeeds).
     """
-    jwk = config.jwk
+    uos_jwk = config.uos_jwk
     body = {"storage_alias": "HD01"}
     core_mock = AsyncMock()
     core_mock.create_file_upload_box.return_value = TEST_BOX_ID
@@ -53,13 +53,13 @@ async def test_create_box_endpoint_auth(config: ConfigFixture):
         assert response.status_code == 401
 
         # generate a token with the wrong work type for this action
-        bad_token = utils.generate_close_file_token(jwk=jwk)
+        bad_token = utils.generate_change_file_box_token(jwk=uos_jwk)
         response = await rest_client.post(
             "/boxes", json=body, headers={"Authorization": f"Bearer {bad_token}"}
         )
         assert response.status_code == 403
 
-        good_token = utils.generate_create_file_box_token(jwk=jwk)
+        good_token = utils.generate_create_file_box_token(jwk=uos_jwk)
         response = await rest_client.post(
             "/boxes", json=body, headers={"Authorization": f"Bearer {good_token}"}
         )
@@ -71,7 +71,7 @@ async def test_update_box_endpoint_auth(config: ConfigFixture):
     a 403 if auth is supplied but for another resource/work type,
     and a 204 if the token is correct (and request succeeds).
     """
-    jwk = config.jwk
+    uos_jwk = config.uos_jwk
     body = {"lock": True}
     async with (
         prepare_rest_app(config=config.config, core_override=AsyncMock()) as app,
@@ -84,7 +84,7 @@ async def test_update_box_endpoint_auth(config: ConfigFixture):
         response = await rest_client.patch(url, json=body, headers=INVALID_HEADER)
         assert response.status_code == 401
 
-        wrong_id_token = utils.generate_change_file_box_token(jwk=jwk)
+        wrong_id_token = utils.generate_change_file_box_token(jwk=uos_jwk)
         response = await rest_client.patch(
             url, json=body, headers={"Authorization": f"Bearer {wrong_id_token}"}
         )
@@ -92,14 +92,16 @@ async def test_update_box_endpoint_auth(config: ConfigFixture):
 
         # generate a different kind of token with otherwise correct params
         wrong_work_token = utils.generate_change_file_box_token(
-            box_id=TEST_BOX_ID, work_type="unlock", jwk=jwk
+            box_id=TEST_BOX_ID, work_type="unlock", jwk=uos_jwk
         )
         response = await rest_client.patch(
             url, json=body, headers={"Authorization": f"Bearer {wrong_work_token}"}
         )
         assert response.status_code == 403
 
-        good_token = utils.generate_change_file_box_token(box_id=TEST_BOX_ID, jwk=jwk)
+        good_token = utils.generate_change_file_box_token(
+            box_id=TEST_BOX_ID, jwk=uos_jwk
+        )
         response = await rest_client.patch(
             url, json=body, headers={"Authorization": f"Bearer {good_token}"}
         )
@@ -111,7 +113,7 @@ async def test_view_box_endpoint_auth(config: ConfigFixture):
     a 403 if a structurally valid auth token is supplied but doesn't match the
     requested resource, and a 200 if the token is correct (and request succeeds).
     """
-    jwk = config.jwk
+    uos_jwk = config.uos_jwk
     async with (
         prepare_rest_app(config=config.config, core_override=AsyncMock()) as app,
         AsyncTestClient(app=app) as rest_client,
@@ -123,7 +125,7 @@ async def test_view_box_endpoint_auth(config: ConfigFixture):
         response = await rest_client.get(url, headers=INVALID_HEADER)
         assert response.status_code == 401
 
-        wrong_box_id = utils.generate_view_file_box_token(jwk=jwk)
+        wrong_box_id = utils.generate_view_file_box_token(jwk=uos_jwk)
         response = await rest_client.get(
             url, headers={"Authorization": f"Bearer {wrong_box_id}"}
         )
@@ -131,14 +133,14 @@ async def test_view_box_endpoint_auth(config: ConfigFixture):
 
         # generate a different kind of token with otherwise correct params
         wrong_work_type = utils.generate_change_file_box_token(
-            jwk=jwk, box_id=TEST_BOX_ID
+            jwk=uos_jwk, box_id=TEST_BOX_ID
         )
         response = await rest_client.get(
             url, headers={"Authorization": f"Bearer {wrong_work_type}"}
         )
         assert response.status_code == 403
 
-        good_token = utils.generate_view_file_box_token(jwk=jwk, box_id=TEST_BOX_ID)
+        good_token = utils.generate_view_file_box_token(jwk=uos_jwk, box_id=TEST_BOX_ID)
         response = await rest_client.get(
             url, headers={"Authorization": f"Bearer {good_token}"}
         )
@@ -150,7 +152,7 @@ async def test_create_file_upload_endpoint_auth(config: ConfigFixture):
     supplied or is invalid, a 403 if a structurally valid auth token is supplied
     but doesn't match the requested resource, and a 201 if the request succeeds.
     """
-    jwk = config.jwk
+    wps_jwk = config.wps_jwk
     body = {"alias": "test_file", "checksum": "sha256:abc123", "size": 1024}
     core_override = AsyncMock()
     core_override.initiate_file_upload.return_value = TEST_FILE_ID
@@ -171,7 +173,7 @@ async def test_create_file_upload_endpoint_auth(config: ConfigFixture):
             box_id=TEST_BOX_ID,
             alias="test_file",
             work_type=rest_models.WorkType.CLOSE,
-            jwk=jwk,
+            jwk=wps_jwk,
         )
         response = await rest_client.post(
             url, json=body, headers={"Authorization": f"Bearer {bad_token}"}
@@ -179,7 +181,9 @@ async def test_create_file_upload_endpoint_auth(config: ConfigFixture):
         assert response.status_code == 403
 
         # generate a token with wrong box ID
-        wrong_box_token = utils.generate_create_file_token(alias="test_file", jwk=jwk)
+        wrong_box_token = utils.generate_create_file_token(
+            alias="test_file", jwk=wps_jwk
+        )
         response = await rest_client.post(
             url, json=body, headers={"Authorization": f"Bearer {wrong_box_token}"}
         )
@@ -187,7 +191,7 @@ async def test_create_file_upload_endpoint_auth(config: ConfigFixture):
 
         # generate a token with wrong alias
         wrong_alias_token = utils.generate_create_file_token(
-            box_id=TEST_BOX_ID, alias="different_file", jwk=jwk
+            box_id=TEST_BOX_ID, alias="different_file", jwk=wps_jwk
         )
         response = await rest_client.post(
             url, json=body, headers={"Authorization": f"Bearer {wrong_alias_token}"}
@@ -195,7 +199,7 @@ async def test_create_file_upload_endpoint_auth(config: ConfigFixture):
         assert response.status_code == 403
 
         good_token = utils.generate_create_file_token(
-            box_id=TEST_BOX_ID, alias="test_file", jwk=jwk
+            box_id=TEST_BOX_ID, alias="test_file", jwk=wps_jwk
         )
         response = await rest_client.post(
             url, json=body, headers={"Authorization": f"Bearer {good_token}"}
@@ -208,7 +212,7 @@ async def test_get_file_part_upload_url_endpoint_auth(config: ConfigFixture):
     supplied or is invalid, a 403 if a structurally valid auth token is supplied
     but doesn't match the requested resource, and a 200 if the request succeeds.
     """
-    jwk = config.jwk
+    wps_jwk = config.wps_jwk
     core_override = AsyncMock()
     core_override.get_part_upload_url.return_value = "some-url-here"
     async with (
@@ -224,14 +228,16 @@ async def test_get_file_part_upload_url_endpoint_auth(config: ConfigFixture):
         assert response.status_code == 401
 
         wrong_box_token = utils.generate_upload_file_token(
-            file_id=TEST_FILE_ID, jwk=jwk
+            file_id=TEST_FILE_ID, jwk=wps_jwk
         )
         response = await rest_client.get(
             url, headers={"Authorization": f"Bearer {wrong_box_token}"}
         )
         assert response.status_code == 403
 
-        wrong_file_token = utils.generate_upload_file_token(box_id=TEST_BOX_ID, jwk=jwk)
+        wrong_file_token = utils.generate_upload_file_token(
+            box_id=TEST_BOX_ID, jwk=wps_jwk
+        )
         response = await rest_client.get(
             url, headers={"Authorization": f"Bearer {wrong_file_token}"}
         )
@@ -239,7 +245,7 @@ async def test_get_file_part_upload_url_endpoint_auth(config: ConfigFixture):
 
         # generate a different kind of token with otherwise correct params
         wrong_work_type_token = utils.generate_close_file_token(
-            box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=jwk
+            box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=wps_jwk
         )
         response = await rest_client.get(
             url, headers={"Authorization": f"Bearer {wrong_work_type_token}"}
@@ -247,7 +253,7 @@ async def test_get_file_part_upload_url_endpoint_auth(config: ConfigFixture):
         assert response.status_code == 403
 
         good_token = utils.generate_upload_file_token(
-            box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=jwk
+            box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=wps_jwk
         )
         response = await rest_client.get(
             url, headers={"Authorization": f"Bearer {good_token}"}
@@ -260,7 +266,7 @@ async def test_complete_file_upload_endpoint_auth(config: ConfigFixture):
     is absent or invalid, a 403 if the token is structurally valid but contains
     incorrect data, and a 204 if the request succeeds.
     """
-    jwk = config.jwk
+    wps_jwk = config.wps_jwk
     body: dict[str, str] = {}  # This endpoint doesn't require a body
     async with (
         prepare_rest_app(config=config.config, core_override=AsyncMock()) as app,
@@ -275,14 +281,18 @@ async def test_complete_file_upload_endpoint_auth(config: ConfigFixture):
         assert response.status_code == 401
 
         # generate a token with wrong box ID
-        wrong_box_token = utils.generate_close_file_token(file_id=TEST_FILE_ID, jwk=jwk)
+        wrong_box_token = utils.generate_close_file_token(
+            file_id=TEST_FILE_ID, jwk=wps_jwk
+        )
         response = await rest_client.patch(
             url, json=body, headers={"Authorization": f"Bearer {wrong_box_token}"}
         )
         assert response.status_code == 403
 
         # generate a token with wrong file ID
-        wrong_file_token = utils.generate_close_file_token(box_id=TEST_BOX_ID, jwk=jwk)
+        wrong_file_token = utils.generate_close_file_token(
+            box_id=TEST_BOX_ID, jwk=wps_jwk
+        )
         response = await rest_client.patch(
             url, json=body, headers={"Authorization": f"Bearer {wrong_file_token}"}
         )
@@ -290,7 +300,7 @@ async def test_complete_file_upload_endpoint_auth(config: ConfigFixture):
 
         # generate a token with wrong work type
         wrong_work_token = utils.generate_upload_file_token(
-            box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=jwk
+            box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=wps_jwk
         )
         response = await rest_client.patch(
             url, json=body, headers={"Authorization": f"Bearer {wrong_work_token}"}
@@ -298,7 +308,7 @@ async def test_complete_file_upload_endpoint_auth(config: ConfigFixture):
         assert response.status_code == 403
 
         good_token = utils.generate_close_file_token(
-            box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=jwk
+            box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=wps_jwk
         )
         response = await rest_client.patch(
             url, json=body, headers={"Authorization": f"Bearer {good_token}"}
@@ -311,7 +321,7 @@ async def test_delete_file_endpoint_auth(config: ConfigFixture):
     and a 403 if a structurally valid auth token is supplied but doesn't match the
     requested resource.
     """
-    jwk = config.jwk
+    wps_jwk = config.wps_jwk
     async with (
         prepare_rest_app(config=config.config, core_override=AsyncMock()) as app,
         AsyncTestClient(app=app) as rest_client,
@@ -325,14 +335,16 @@ async def test_delete_file_endpoint_auth(config: ConfigFixture):
         assert response.status_code == 401
 
         wrong_box_token = utils.generate_delete_file_token(
-            file_id=TEST_FILE_ID, jwk=jwk
+            file_id=TEST_FILE_ID, jwk=wps_jwk
         )
         response = await rest_client.delete(
             url, headers={"Authorization": f"Bearer {wrong_box_token}"}
         )
         assert response.status_code == 403
 
-        wrong_file_token = utils.generate_delete_file_token(box_id=TEST_BOX_ID, jwk=jwk)
+        wrong_file_token = utils.generate_delete_file_token(
+            box_id=TEST_BOX_ID, jwk=wps_jwk
+        )
         response = await rest_client.delete(
             url, headers={"Authorization": f"Bearer {wrong_file_token}"}
         )
@@ -340,7 +352,7 @@ async def test_delete_file_endpoint_auth(config: ConfigFixture):
 
         # generate a different kind of token with otherwise correct params
         wrong_work_type_token = utils.generate_close_file_token(
-            box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=jwk
+            box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=wps_jwk
         )
         response = await rest_client.delete(
             url, headers={"Authorization": f"Bearer {wrong_work_type_token}"}
@@ -348,7 +360,7 @@ async def test_delete_file_endpoint_auth(config: ConfigFixture):
         assert response.status_code == 403
 
         good_token = utils.generate_delete_file_token(
-            box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=jwk
+            box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=wps_jwk
         )
         response = await rest_client.delete(
             url, headers={"Authorization": f"Bearer {good_token}"}
@@ -371,7 +383,7 @@ async def test_create_box_endpoint_error_handling(
     config: ConfigFixture, core_error: Exception, http_error: Exception
 ):
     """Test that the endpoint correctly translates errors from the core."""
-    jwk = config.jwk
+    uos_jwk = config.uos_jwk
     body = {"storage_alias": "HD01"}
     core_override = AsyncMock()
     core_override.create_file_upload_box.side_effect = core_error
@@ -379,7 +391,7 @@ async def test_create_box_endpoint_error_handling(
         prepare_rest_app(config=config.config, core_override=core_override) as app,
         AsyncTestClient(app=app) as rest_client,
     ):
-        token = utils.generate_create_file_box_token(jwk=jwk)
+        token = utils.generate_create_file_box_token(jwk=uos_jwk)
         response = await rest_client.post(
             "/boxes", json=body, headers={"Authorization": f"Bearer {token}"}
         )
@@ -401,7 +413,7 @@ async def test_update_box_endpoint_error_handling(
     config: ConfigFixture, core_error: Exception, http_error: Exception
 ):
     """Test that the endpoint correctly translates errors from the core."""
-    jwk = config.jwk
+    uos_jwk = config.uos_jwk
     body = {"lock": True}
     core_override = AsyncMock()
     core_override.lock_file_upload_box.side_effect = core_error
@@ -409,7 +421,7 @@ async def test_update_box_endpoint_error_handling(
         prepare_rest_app(config=config.config, core_override=core_override) as app,
         AsyncTestClient(app=app) as rest_client,
     ):
-        token = utils.generate_change_file_box_token(box_id=TEST_BOX_ID, jwk=jwk)
+        token = utils.generate_change_file_box_token(box_id=TEST_BOX_ID, jwk=uos_jwk)
         response = await rest_client.patch(
             f"/boxes/{TEST_BOX_ID}",
             json=body,
@@ -433,14 +445,14 @@ async def test_view_box_endpoint_error_handling(
     config: ConfigFixture, core_error: Exception, http_error: Exception
 ):
     """Test that the endpoint correctly translates errors from the core."""
-    jwk = config.jwk
+    uos_jwk = config.uos_jwk
     core_override = AsyncMock()
     core_override.get_file_ids_for_box.side_effect = core_error
     async with (
         prepare_rest_app(config=config.config, core_override=core_override) as app,
         AsyncTestClient(app=app) as rest_client,
     ):
-        token = utils.generate_view_file_box_token(jwk=jwk, box_id=TEST_BOX_ID)
+        token = utils.generate_view_file_box_token(jwk=uos_jwk, box_id=TEST_BOX_ID)
         response = await rest_client.get(
             f"/boxes/{TEST_BOX_ID}/uploads",
             headers={"Authorization": f"Bearer {token}"},
@@ -488,7 +500,7 @@ async def test_create_file_upload_endpoint_error_handling(
     config: ConfigFixture, core_error: Exception, http_error: Exception
 ):
     """Test that the endpoint correctly translates errors from the core."""
-    jwk = config.jwk
+    wps_jwk = config.wps_jwk
     body = {"alias": "test_file", "checksum": "sha256:abc123", "size": 1024}
     core_override = AsyncMock()
     core_override.initiate_file_upload.side_effect = core_error
@@ -497,7 +509,7 @@ async def test_create_file_upload_endpoint_error_handling(
         AsyncTestClient(app=app) as rest_client,
     ):
         token = utils.generate_create_file_token(
-            box_id=TEST_BOX_ID, alias="test_file", jwk=jwk
+            box_id=TEST_BOX_ID, alias="test_file", jwk=wps_jwk
         )
         response = await rest_client.post(
             f"/boxes/{TEST_BOX_ID}/uploads",
@@ -537,7 +549,7 @@ async def test_get_file_part_upload_url_endpoint_error_handling(
     config: ConfigFixture, core_error: Exception, http_error: Exception
 ):
     """Test that the endpoint correctly translates errors from the core."""
-    jwk = config.jwk
+    wps_jwk = config.wps_jwk
     core_override = AsyncMock()
     core_override.get_part_upload_url.side_effect = core_error
     async with (
@@ -545,7 +557,7 @@ async def test_get_file_part_upload_url_endpoint_error_handling(
         AsyncTestClient(app=app) as rest_client,
     ):
         token = utils.generate_upload_file_token(
-            box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=jwk
+            box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=wps_jwk
         )
         response = await rest_client.get(
             f"/boxes/{TEST_BOX_ID}/uploads/{TEST_FILE_ID}/parts/1",
@@ -598,7 +610,7 @@ async def test_complete_file_upload_endpoint_error_handling(
     config: ConfigFixture, core_error: Exception, http_error: Exception
 ):
     """Test that the endpoint correctly translates errors from the core."""
-    jwk = config.jwk
+    wps_jwk = config.wps_jwk
     body: dict[str, str] = {}
     core_override = AsyncMock()
     core_override.complete_file_upload.side_effect = core_error
@@ -607,7 +619,7 @@ async def test_complete_file_upload_endpoint_error_handling(
         AsyncTestClient(app=app) as rest_client,
     ):
         token = utils.generate_close_file_token(
-            box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=jwk
+            box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=wps_jwk
         )
         response = await rest_client.patch(
             f"/boxes/{TEST_BOX_ID}/uploads/{TEST_FILE_ID}",
@@ -659,7 +671,7 @@ async def test_delete_file_endpoint_error_handling(
     config: ConfigFixture, core_error: Exception, http_error: Exception
 ):
     """Test that the endpoint correctly translates errors from the core."""
-    jwk = config.jwk
+    wps_jwk = config.wps_jwk
     core_override = AsyncMock()
     core_override.remove_file_upload.side_effect = core_error
     async with (
@@ -667,7 +679,7 @@ async def test_delete_file_endpoint_error_handling(
         AsyncTestClient(app=app) as rest_client,
     ):
         token = utils.generate_delete_file_token(
-            box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=jwk
+            box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=wps_jwk
         )
         response = await rest_client.delete(
             f"/boxes/{TEST_BOX_ID}/uploads/{TEST_FILE_ID}",

@@ -403,25 +403,9 @@ The service requires the following configuration parameters:
   ```
 
 
-- <a id="properties/auth_key"></a>**`auth_key`** *(string, required)*: The GHGA internal public key for validating the token signature.
+- <a id="properties/wps_token_auth_config"></a>**`wps_token_auth_config`** *(required)*: Refer to *[#/$defs/AuthConfig](#%24defs/AuthConfig)*.
 
-
-  Examples:
-
-  ```json
-  "{\"crv\": \"P-256\", \"kty\": \"EC\", \"x\": \"...\", \"y\": \"...\"}"
-  ```
-
-
-- <a id="properties/auth_algs"></a>**`auth_algs`** *(array)*: A list of all algorithms used for signing GHGA internal tokens. Default: `["ES256"]`.
-
-  - <a id="properties/auth_algs/items"></a>**Items** *(string)*
-
-- <a id="properties/auth_check_claims"></a>**`auth_check_claims`** *(object)*: A dict of all GHGA internal claims that shall be verified. Can contain additional properties. Default: `{"id": null, "name": null, "email": null, "iat": null, "exp": null}`.
-
-- <a id="properties/auth_map_claims"></a>**`auth_map_claims`** *(object)*: A mapping of claims to attributes in the GHGA auth context. Can contain additional properties. Default: `{}`.
-
-  - <a id="properties/auth_map_claims/additionalProperties"></a>**Additional properties** *(string)*
+- <a id="properties/uos_token_auth_config"></a>**`uos_token_auth_config`** *(required)*: Refer to *[#/$defs/AuthConfig](#%24defs/AuthConfig)*.
 
 - <a id="properties/host"></a>**`host`** *(string)*: IP of the host. Default: `"127.0.0.1"`.
 
@@ -535,6 +519,28 @@ The service requires the following configuration parameters:
 
 ## Definitions
 
+
+- <a id="%24defs/AuthConfig"></a>**`AuthConfig`** *(object)*: Config parameters and their defaults for the example auth context. Cannot contain additional properties.
+
+  - <a id="%24defs/AuthConfig/properties/auth_key"></a>**`auth_key`** *(string, required)*: The GHGA internal public key for validating the token signature.
+
+
+    Examples:
+
+    ```json
+    "{\"crv\": \"P-256\", \"kty\": \"EC\", \"x\": \"...\", \"y\": \"...\"}"
+    ```
+
+
+  - <a id="%24defs/AuthConfig/properties/auth_algs"></a>**`auth_algs`** *(array)*: A list of all algorithms used for signing GHGA internal tokens. Default: `["ES256"]`.
+
+    - <a id="%24defs/AuthConfig/properties/auth_algs/items"></a>**Items** *(string)*
+
+  - <a id="%24defs/AuthConfig/properties/auth_check_claims"></a>**`auth_check_claims`** *(object)*: A dict of all GHGA internal claims that shall be verified. Can contain additional properties. Default: `{"id": null, "name": null, "email": null, "iat": null, "exp": null}`.
+
+  - <a id="%24defs/AuthConfig/properties/auth_map_claims"></a>**`auth_map_claims`** *(object)*: A mapping of claims to attributes in the GHGA auth context. Can contain additional properties. Default: `{}`.
+
+    - <a id="%24defs/AuthConfig/properties/auth_map_claims/additionalProperties"></a>**Additional properties** *(string)*
 
 - <a id="%24defs/S3Config"></a>**`S3Config`** *(object)*: S3-specific config params.
 Inherit your config class from this class if you need

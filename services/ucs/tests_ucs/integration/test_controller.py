@@ -46,7 +46,8 @@ async def test_integrated_aspects(joint_fixture: JointFixture):
     This also serves as a truncated happy path test. It will not test all actions, just
     some of the core behavior branches.
     """
-    jwk = joint_fixture.jwk
+    wps_jwk = joint_fixture.wps_jwk
+    uos_jwk = joint_fixture.uos_jwk
     kafka = joint_fixture.kafka
     config = joint_fixture.config
 
@@ -59,7 +60,7 @@ async def test_integrated_aspects(joint_fixture: JointFixture):
         async with kafka.record_events(
             in_topic=config.file_upload_box_topic
         ) as box_recorder:
-            create_box_token = utils.generate_create_file_box_token(jwk=jwk)
+            create_box_token = utils.generate_create_file_box_token(jwk=uos_jwk)
             headers = auth_header(create_box_token)
             box_creation_body = {"storage_alias": "test"}
             response = await rest_client.post(
@@ -97,7 +98,7 @@ async def test_integrated_aspects(joint_fixture: JointFixture):
             in_topic=config.file_upload_topic
         ) as file_recorder:
             create_file_token = utils.generate_create_file_token(
-                jwk=jwk, box_id=box_id, alias="test_file"
+                jwk=wps_jwk, box_id=box_id, alias="test_file"
             )
             headers = auth_header(create_file_token)
             file_creation_body = {
@@ -123,7 +124,7 @@ async def test_integrated_aspects(joint_fixture: JointFixture):
 
         # Get part upload URL for the file (should only require 1 part since file is under 16 MiB)
         upload_token = utils.generate_upload_file_token(
-            jwk=jwk, box_id=box_id, file_id=file_id
+            jwk=wps_jwk, box_id=box_id, file_id=file_id
         )
         headers = auth_header(upload_token)
         response = await rest_client.get(
@@ -143,7 +144,7 @@ async def test_integrated_aspects(joint_fixture: JointFixture):
             in_topic=config.file_upload_topic
         ) as file_recorder:
             close_file_token = utils.generate_close_file_token(
-                jwk=jwk, box_id=box_id, file_id=file_id
+                jwk=wps_jwk, box_id=box_id, file_id=file_id
             )
             headers = auth_header(close_file_token)
             response = await rest_client.patch(
@@ -158,7 +159,7 @@ async def test_integrated_aspects(joint_fixture: JointFixture):
             in_topic=config.file_upload_box_topic
         ) as box_recorder:
             lock_box_token = utils.generate_change_file_box_token(
-                box_id=box_id, jwk=jwk
+                box_id=box_id, jwk=uos_jwk
             )
             headers = auth_header(lock_box_token)
             box_update_body = {"lock": True}
@@ -175,7 +176,7 @@ async def test_integrated_aspects(joint_fixture: JointFixture):
             in_topic=config.file_upload_topic
         ) as file_recorder:
             delete_file_token = utils.generate_delete_file_token(
-                jwk=jwk, box_id=box_id, file_id=file_id
+                jwk=wps_jwk, box_id=box_id, file_id=file_id
             )
             headers = auth_header(delete_file_token)
             response = await rest_client.delete(
@@ -188,7 +189,7 @@ async def test_integrated_aspects(joint_fixture: JointFixture):
         #  but don't check for events -- satisfied at this point that outbox is working
         box_update_body = {"lock": False}
         unlock_box_token = utils.generate_change_file_box_token(
-            box_id=box_id, work_type="unlock", jwk=jwk
+            box_id=box_id, work_type="unlock", jwk=uos_jwk
         )
         response = await rest_client.patch(
             f"/boxes/{box_id}",
@@ -241,7 +242,7 @@ async def test_s3_upload_completed_but_db_not_updated(joint_fixture: JointFixtur
 
     # Now call the completion endpoint using the rest client
     close_token = utils.generate_close_file_token(
-        box_id=box_id, file_id=file_id, jwk=joint_fixture.jwk
+        box_id=box_id, file_id=file_id, jwk=joint_fixture.wps_jwk
     )
     response = await joint_fixture.rest_client.patch(
         f"/boxes/{box_id}/uploads/{file_id}", headers=auth_header(close_token)
@@ -270,7 +271,7 @@ async def test_s3_upload_complete_fails(joint_fixture: JointFixture):
     In this case, the requester should receive an error indicating they need to
     delete the file upload and restart the process, since no recovery is possible.
     """
-    jwk = joint_fixture.jwk
+    wps_jwk = joint_fixture.wps_jwk
     rest_client = joint_fixture.rest_client
     controller = joint_fixture.upload_controller
     async with set_correlation_id(uuid4()):
@@ -298,7 +299,7 @@ async def test_s3_upload_complete_fails(joint_fixture: JointFixture):
 
     # Make the completion request with the rest client
     close_token = utils.generate_close_file_token(
-        box_id=box_id, file_id=file_id, jwk=jwk
+        box_id=box_id, file_id=file_id, jwk=wps_jwk
     )
     response = await rest_client.patch(
         f"/boxes/{box_id}/uploads/{file_id}", headers=auth_header(close_token)
@@ -311,7 +312,7 @@ async def test_s3_upload_complete_fails(joint_fixture: JointFixture):
 
     # Now request deletion of the file
     delete_token = utils.generate_delete_file_token(
-        box_id=box_id, file_id=file_id, jwk=jwk
+        box_id=box_id, file_id=file_id, jwk=wps_jwk
     )
     response = await rest_client.delete(
         f"/boxes/{box_id}/uploads/{file_id}", headers=auth_header(delete_token)
@@ -320,7 +321,7 @@ async def test_s3_upload_complete_fails(joint_fixture: JointFixture):
 
     # Now retry the upload process, obtaining a new file_id
     create_token = utils.generate_create_file_token(
-        box_id=box_id, alias="test-file", jwk=jwk
+        box_id=box_id, alias="test-file", jwk=wps_jwk
     )
     body = {"alias": "test-file", "checksum": "abc123", "size": 1024}
     response = await rest_client.post(
@@ -330,7 +331,7 @@ async def test_s3_upload_complete_fails(joint_fixture: JointFixture):
     file_id2 = UUID(response.json())
 
     upload_token = utils.generate_upload_file_token(
-        box_id=box_id, file_id=file_id2, jwk=jwk
+        box_id=box_id, file_id=file_id2, jwk=wps_jwk
     )
     response = await rest_client.get(
         f"/boxes/{box_id}/uploads/{file_id2}/parts/1", headers=auth_header(upload_token)
@@ -344,7 +345,7 @@ async def test_s3_upload_complete_fails(joint_fixture: JointFixture):
 
     # Now complete the file
     close_token2 = utils.generate_close_file_token(
-        box_id=box_id, file_id=file_id2, jwk=jwk
+        box_id=box_id, file_id=file_id2, jwk=wps_jwk
     )
     response = await rest_client.patch(
         f"/boxes/{box_id}/uploads/{file_id2}", headers=auth_header(close_token2)
@@ -393,7 +394,7 @@ async def test_orphaned_s3_upload_in_file_create(joint_fixture: JointFixture, ca
     # This should trigger the OrphanedMultipartUploadErrorError scenario
     # Patch the uuid4 generation to return the predetermined file_id
     create_token = utils.generate_create_file_token(
-        box_id=box_id, alias="test-file", jwk=joint_fixture.jwk
+        box_id=box_id, alias="test-file", jwk=joint_fixture.wps_jwk
     )
     body = {"alias": "test-file", "checksum": "abc123", "size": 1024}
     with (
@@ -418,7 +419,6 @@ async def test_orphaned_s3_upload_in_file_create(joint_fixture: JointFixture, ca
 
     records = caplog.records
     assert len(records) == 1
-    # TODO: Adjust message to be more useful
     expected_log_msg = (
         f"An S3 multipart upload already exists for file ID {file_id}"
         + f" and bucket ID {bucket_id}."

@@ -23,15 +23,23 @@ from hexkit.log import LoggingConfig
 from hexkit.opentelemetry import OpenTelemetryConfig
 from hexkit.providers.mongodb.migrations import MigrationConfig
 from hexkit.providers.mongokafka import MongoKafkaConfig
+from pydantic_settings import BaseSettings
 
 from ucs.adapters.outbound.dao import UploadDaoConfig
 from ucs.constants import SERVICE_NAME
 
 
+class PublicKeyConfig(BaseSettings):
+    """Auth config for WPS and UOS keys"""
+
+    wps_token_auth_config: AuthConfig
+    uos_token_auth_config: AuthConfig
+
+
 @config_from_yaml(prefix=SERVICE_NAME)
 class Config(
     ApiConfigBase,
-    AuthConfig,
+    PublicKeyConfig,
     UploadDaoConfig,
     MongoKafkaConfig,
     MigrationConfig,

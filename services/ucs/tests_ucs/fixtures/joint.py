@@ -23,6 +23,7 @@ from dataclasses import dataclass
 import httpx
 import pytest_asyncio
 from ghga_service_commons.api.testing import AsyncTestClient
+from ghga_service_commons.auth.ghga import AuthConfig
 from ghga_service_commons.utils.multinode_storage import (
     S3ObjectStorageNodeConfig,
     S3ObjectStoragesConfig,
@@ -50,7 +51,8 @@ class JointFixture:
     kafka: KafkaFixture
     s3: S3Fixture
     bucket_id: str
-    jwk: JWK
+    wps_jwk: JWK
+    uos_jwk: JWK
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -60,8 +62,12 @@ async def joint_fixture(
     s3: S3Fixture,
 ) -> AsyncGenerator[JointFixture, None]:
     """A fixture that embeds all other fixtures for API-level integration testing."""
-    jwk = generate_token_signing_keys()
-    auth_key = jwk.export(private_key=False)
+    wps_jwk = generate_token_signing_keys()
+    wps_auth_key = wps_jwk.export(private_key=False)
+    uos_jwk = generate_token_signing_keys()
+    uos_auth_key = uos_jwk.export(private_key=False)
+    wps_cfg = AuthConfig(auth_key=wps_auth_key, auth_check_claims={})
+    uos_cfg = AuthConfig(auth_key=uos_auth_key, auth_check_claims={})
 
     bucket_id = "test-inbox"
     node_config = S3ObjectStorageNodeConfig(bucket=bucket_id, credentials=s3.config)
@@ -72,7 +78,8 @@ async def joint_fixture(
     # merge configs from different sources with the default one:
     config = get_config(
         sources=[mongodb.config, kafka.config, object_storages_config],
-        auth_key=auth_key,
+        wps_token_auth_config=wps_cfg,
+        uos_token_auth_config=uos_cfg,
     )
 
     await s3.populate_buckets([bucket_id])
@@ -91,5 +98,6 @@ async def joint_fixture(
             kafka=kafka,
             s3=s3,
             bucket_id=bucket_id,
-            jwk=jwk,
+            wps_jwk=wps_jwk,
+            uos_jwk=uos_jwk,
         )

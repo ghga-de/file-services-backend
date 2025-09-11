@@ -24,11 +24,13 @@ __all__ = ["ConfigFixture"]
 
 class ConfigFixture:
     config: Config
-    jwk: JWK
+    wps_jwk: JWK
+    uos_jwk: JWK
 
-    def __init__(self, *, config: Config, jwk: JWK):
+    def __init__(self, *, config: Config, wps_jwk: JWK, uos_jwk: JWK):
         self.config = config
-        self.jwk = jwk
+        self.wps_jwk = wps_jwk
+        self.uos_jwk = uos_jwk
 
     def update(self, **kwargs) -> Config:
         """Override specified values"""

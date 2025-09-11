@@ -1,9 +1,4 @@
 api_root_path: ''
-auth_algs:
-- ES256
-auth_check_claims: {}
-auth_key: '{}'
-auth_map_claims: {}
 auto_reload: false
 cors_allow_credentials: null
 cors_allowed_headers: null
@@ -52,4 +47,16 @@ otel_trace_sampling_rate: 1.0
 port: 8080
 service_instance_id: '001'
 service_name: ucs
+uos_token_auth_config:
+  auth_algs:
+  - ES256
+  auth_check_claims: {}
+  auth_key: '{}'
+  auth_map_claims: {}
 workers: 1
+wps_token_auth_config:
+  auth_algs:
+  - ES256
+  auth_check_claims: {}
+  auth_key: '{}'
+  auth_map_claims: {}

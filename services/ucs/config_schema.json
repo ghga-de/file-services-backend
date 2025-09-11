@@ -1,5 +1,57 @@
 {
   "$defs": {
+    "AuthConfig": {
+      "additionalProperties": false,
+      "description": "Config parameters and their defaults for the example auth context.",
+      "properties": {
+        "auth_key": {
+          "description": "The GHGA internal public key for validating the token signature.",
+          "examples": [
+            "{\"crv\": \"P-256\", \"kty\": \"EC\", \"x\": \"...\", \"y\": \"...\"}"
+          ],
+          "title": "Internal public key",
+          "type": "string"
+        },
+        "auth_algs": {
+          "default": [
+            "ES256"
+          ],
+          "description": "A list of all algorithms used for signing GHGA internal tokens.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Auth Algs",
+          "type": "array"
+        },
+        "auth_check_claims": {
+          "additionalProperties": true,
+          "default": {
+            "id": null,
+            "name": null,
+            "email": null,
+            "iat": null,
+            "exp": null
+          },
+          "description": "A dict of all GHGA internal claims that shall be verified.",
+          "title": "Auth Check Claims",
+          "type": "object"
+        },
+        "auth_map_claims": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "description": "A mapping of claims to attributes in the GHGA auth context.",
+          "title": "Auth Map Claims",
+          "type": "object"
+        }
+      },
+      "required": [
+        "auth_key"
+      ],
+      "title": "AuthConfig",
+      "type": "object"
+    },
     "S3Config": {
       "additionalProperties": false,
       "description": "S3-specific config params.\nInherit your config class from this class if you need\nto talk to an S3 service in the backend.\n\nArgs:\n    s3_endpoint_url (str): The URL to the S3 endpoint.\n    s3_access_key_id (str):\n        Part of credentials for login into the S3 service. See:\n        https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html\n    s3_secret_access_key (str):\n        Part of credentials for login into the S3 service. See:\n        https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html\n    s3_session_token (Optional[str]):\n        Optional part of credentials for login into the S3 service. See:\n        https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html\n    aws_config_ini (Optional[Path]):\n        Path to a config file for specifying more advanced S3 parameters.\n        This should follow the format described here:\n        https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html#using-a-configuration-file\n        Defaults to None.",
@@ -403,46 +455,11 @@
       "title": "File Upload Topic",
       "type": "string"
     },
-    "auth_key": {
-      "description": "The GHGA internal public key for validating the token signature.",
-      "examples": [
-        "{\"crv\": \"P-256\", \"kty\": \"EC\", \"x\": \"...\", \"y\": \"...\"}"
-      ],
-      "title": "Internal public key",
-      "type": "string"
+    "wps_token_auth_config": {
+      "$ref": "#/$defs/AuthConfig"
     },
-    "auth_algs": {
-      "default": [
-        "ES256"
-      ],
-      "description": "A list of all algorithms used for signing GHGA internal tokens.",
-      "items": {
-        "type": "string"
-      },
-      "title": "Auth Algs",
-      "type": "array"
-    },
-    "auth_check_claims": {
-      "additionalProperties": true,
-      "default": {
-        "id": null,
-        "name": null,
-        "email": null,
-        "iat": null,
-        "exp": null
-      },
-      "description": "A dict of all GHGA internal claims that shall be verified.",
-      "title": "Auth Check Claims",
-      "type": "object"
-    },
-    "auth_map_claims": {
-      "additionalProperties": {
-        "type": "string"
-      },
-      "default": {},
-      "description": "A mapping of claims to attributes in the GHGA auth context.",
-      "title": "Auth Map Claims",
-      "type": "object"
+    "uos_token_auth_config": {
+      "$ref": "#/$defs/AuthConfig"
     },
     "host": {
       "default": "127.0.0.1",
@@ -597,7 +614,8 @@
     "migration_wait_sec",
     "file_upload_box_topic",
     "file_upload_topic",
-    "auth_key"
+    "wps_token_auth_config",
+    "uos_token_auth_config"
   ],
   "title": "ModSettings",
   "type": "object"

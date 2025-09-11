@@ -15,6 +15,7 @@
 """Set up session-scope fixtures for tests."""
 
 import pytest
+from ghga_service_commons.auth.ghga import AuthConfig
 from ghga_service_commons.utils import jwt_helpers
 from hexkit.providers.akafka.testutils import (  # noqa: F401
     kafka_container_fixture,
@@ -37,7 +38,11 @@ from tests_ucs.fixtures.joint import joint_fixture  # noqa: F401
 @pytest.fixture(name="config")
 def config_fixture() -> ConfigFixture:
     """Generate config from test yaml along with an auth key and JWK"""
-    jwk = jwt_helpers.generate_jwk()
-    auth_key = jwk.export(private_key=False)
-    config = get_config(auth_key=auth_key)
-    return ConfigFixture(config=config, jwk=jwk)
+    wps_jwk = jwt_helpers.generate_jwk()
+    wps_auth_key = wps_jwk.export(private_key=False)
+    uos_jwk = jwt_helpers.generate_jwk()
+    uos_auth_key = uos_jwk.export(private_key=False)
+    wps_cfg = AuthConfig(auth_key=wps_auth_key, auth_check_claims={})
+    uos_cfg = AuthConfig(auth_key=uos_auth_key, auth_check_claims={})
+    config = get_config(wps_token_auth_config=wps_cfg, uos_token_auth_config=uos_cfg)
+    return ConfigFixture(config=config, wps_jwk=wps_jwk, uos_jwk=uos_jwk)
