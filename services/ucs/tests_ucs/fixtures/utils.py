@@ -27,70 +27,55 @@ from ucs.adapters.inbound.fastapi_ import rest_models as models
 
 BASE_DIR = Path(__file__).parent.resolve()
 
+TOKEN_LIFESPAN = 30  # seconds
+
 SignedToken: TypeAlias = str
 
 
-def null_func(*args, **kwargs):
-    """I accept any args and kwargs but I do nothing."""
-    pass
-
-
-def is_success_http_code(http_code: int) -> bool:
-    """Checks if a http response code indicates success (a 2xx code)."""
-    return http_code >= 200 and http_code < 300
-
-
-def generate_create_file_box_token(*, jwk: JWK, valid_seconds: int = 30):
-    """Generate CreateFileBoxWorkOrder token for testing."""
-    work_order = models.CreateFileBoxWorkOrder(work_type="create")
+def _make_auth_header(work_order, jwk) -> dict[str, str]:
+    """Make an auth header from the supplied work order"""
     claims = work_order.model_dump(mode="json")
     signed_token = jwt_helpers.sign_and_serialize_token(
-        claims=claims, key=jwk, valid_seconds=valid_seconds
+        claims=claims, key=jwk, valid_seconds=TOKEN_LIFESPAN
     )
-    return signed_token
+    return {"Authorization": f"Bearer {signed_token}"}
 
 
-def generate_change_file_box_token(
+def create_file_box_token_header(*, jwk: JWK) -> dict[str, str]:
+    """Generate CreateFileBoxWorkOrder token for testing."""
+    work_order = models.CreateFileBoxWorkOrder(work_type="create")
+    return _make_auth_header(work_order, jwk)
+
+
+def change_file_box_token_header(
     *,
     box_id: UUID = uuid4(),
     work_type: Literal["lock", "unlock"] = "lock",
     jwk: JWK,
-    valid_seconds: int = 30,
-):
+) -> dict[str, str]:
     """Generate ChangeFileBoxWorkOrder token for testing.
 
     Leave box_id unspecified to use a random value.
     """
     work_order = models.ChangeFileBoxWorkOrder(work_type=work_type, box_id=box_id)
-    claims = work_order.model_dump(mode="json")
-    signed_token = jwt_helpers.sign_and_serialize_token(
-        claims=claims, key=jwk, valid_seconds=valid_seconds
-    )
-    return signed_token
+    return _make_auth_header(work_order, jwk)
 
 
-def generate_view_file_box_token(
-    *, box_id: UUID = uuid4(), jwk: JWK, valid_seconds: int = 30
-):
+def view_file_box_token_header(*, box_id: UUID = uuid4(), jwk: JWK) -> dict[str, str]:
     """Generate ViewFileBoxWorkOrder token for testing.
 
     Leave box_id unspecified to use a random value.
     """
     work_order = models.ViewFileBoxWorkOrder(work_type="view", box_id=box_id)
-    claims = work_order.model_dump(mode="json")
-    signed_token = jwt_helpers.sign_and_serialize_token(
-        claims=claims, key=jwk, valid_seconds=valid_seconds
-    )
-    return signed_token
+    return _make_auth_header(work_order, jwk)
 
 
-def generate_create_file_token(
+def create_file_token_header(
     *,
     box_id: UUID = uuid4(),
     alias: str = "junk",
     jwk: JWK,
-    valid_seconds: int = 30,
-):
+) -> dict[str, str]:
     """Generate CreateFileWorkOrder token for testing.
 
     Leave box_id and alias unspecified to use random values.
@@ -99,20 +84,15 @@ def generate_create_file_token(
     work_order = models.CreateFileWorkOrder(
         work_type="create", box_id=box_id, alias=alias
     )
-    claims = work_order.model_dump(mode="json")
-    signed_token = jwt_helpers.sign_and_serialize_token(
-        claims=claims, key=jwk, valid_seconds=valid_seconds
-    )
-    return signed_token
+    return _make_auth_header(work_order, jwk)
 
 
-def generate_upload_file_token(
+def upload_file_token_header(
     *,
     box_id: UUID = uuid4(),
     file_id: UUID4 = uuid4(),
     jwk: JWK,
-    valid_seconds: int = 30,
-):
+) -> dict[str, str]:
     """Generate UploadFileWorkOrder token with type UPLOAD for testing.
 
     Leave box_id and file_id unspecified to use random values.
@@ -120,20 +100,15 @@ def generate_upload_file_token(
     work_order = models.UploadFileWorkOrder(
         work_type="upload", box_id=box_id, file_id=file_id
     )
-    claims = work_order.model_dump(mode="json")
-    signed_token = jwt_helpers.sign_and_serialize_token(
-        claims=claims, key=jwk, valid_seconds=valid_seconds
-    )
-    return signed_token
+    return _make_auth_header(work_order, jwk)
 
 
-def generate_close_file_token(
+def close_file_token_header(
     *,
     box_id: UUID = uuid4(),
     file_id: UUID4 = uuid4(),
     jwk: JWK,
-    valid_seconds: int = 30,
-):
+) -> dict[str, str]:
     """Generate CloseFileWorkOrder token for testing.
 
     Leave box_id and file_id unspecified to use random values.
@@ -141,20 +116,15 @@ def generate_close_file_token(
     work_order = models.CloseFileWorkOrder(
         work_type="close", box_id=box_id, file_id=file_id
     )
-    claims = work_order.model_dump(mode="json")
-    signed_token = jwt_helpers.sign_and_serialize_token(
-        claims=claims, key=jwk, valid_seconds=valid_seconds
-    )
-    return signed_token
+    return _make_auth_header(work_order, jwk)
 
 
-def generate_delete_file_token(
+def delete_file_token_header(
     *,
     box_id: UUID = uuid4(),
     file_id: UUID4 = uuid4(),
     jwk: JWK,
-    valid_seconds: int = 30,
-):
+) -> dict[str, str]:
     """Generate DeleteFileWorkOrder token for testing.
 
     Leave box_id and file_id unspecified to use random values.
@@ -162,15 +132,4 @@ def generate_delete_file_token(
     work_order = models.DeleteFileWorkOrder(
         work_type="delete", box_id=box_id, file_id=file_id
     )
-    claims = work_order.model_dump(mode="json")
-    signed_token = jwt_helpers.sign_and_serialize_token(
-        claims=claims, key=jwk, valid_seconds=valid_seconds
-    )
-    return signed_token
-
-
-def generate_token_signing_keys() -> JWK:
-    """Generate JWK credentials that can be used for signing and verification
-    of JWT tokens.
-    """
-    return jwt_helpers.generate_jwk()
+    return _make_auth_header(work_order, jwk)

@@ -53,15 +53,13 @@ async def test_create_box_endpoint_auth(config: ConfigFixture):
         assert response.status_code == 401
 
         # generate a token with the wrong work type for this action
-        bad_token = utils.generate_change_file_box_token(jwk=uos_jwk)
-        response = await rest_client.post(
-            "/boxes", json=body, headers={"Authorization": f"Bearer {bad_token}"}
-        )
+        bad_token_header = utils.change_file_box_token_header(jwk=uos_jwk)
+        response = await rest_client.post("/boxes", json=body, headers=bad_token_header)
         assert response.status_code == 401
 
-        good_token = utils.generate_create_file_box_token(jwk=uos_jwk)
+        good_token_header = utils.create_file_box_token_header(jwk=uos_jwk)
         response = await rest_client.post(
-            "/boxes", json=body, headers={"Authorization": f"Bearer {good_token}"}
+            "/boxes", json=body, headers=good_token_header
         )
         assert response.status_code == 201
 
@@ -84,27 +82,25 @@ async def test_update_box_endpoint_auth(config: ConfigFixture):
         response = await rest_client.patch(url, json=body, headers=INVALID_HEADER)
         assert response.status_code == 401
 
-        wrong_id_token = utils.generate_change_file_box_token(jwk=uos_jwk)
+        wrong_id_token_header = utils.change_file_box_token_header(jwk=uos_jwk)
         response = await rest_client.patch(
-            url, json=body, headers={"Authorization": f"Bearer {wrong_id_token}"}
+            url, json=body, headers=wrong_id_token_header
         )
         assert response.status_code == 403
 
         # generate a different kind of token with otherwise correct params
-        wrong_work_token = utils.generate_change_file_box_token(
+        wrong_work_token_header = utils.change_file_box_token_header(
             box_id=TEST_BOX_ID, work_type="unlock", jwk=uos_jwk
         )
         response = await rest_client.patch(
-            url, json=body, headers={"Authorization": f"Bearer {wrong_work_token}"}
+            url, json=body, headers=wrong_work_token_header
         )
         assert response.status_code == 401
 
-        good_token = utils.generate_change_file_box_token(
+        good_token_header = utils.change_file_box_token_header(
             box_id=TEST_BOX_ID, jwk=uos_jwk
         )
-        response = await rest_client.patch(
-            url, json=body, headers={"Authorization": f"Bearer {good_token}"}
-        )
+        response = await rest_client.patch(url, json=body, headers=good_token_header)
         assert response.status_code == 204
 
 
@@ -125,25 +121,21 @@ async def test_view_box_endpoint_auth(config: ConfigFixture):
         response = await rest_client.get(url, headers=INVALID_HEADER)
         assert response.status_code == 401
 
-        wrong_box_id = utils.generate_view_file_box_token(jwk=uos_jwk)
-        response = await rest_client.get(
-            url, headers={"Authorization": f"Bearer {wrong_box_id}"}
-        )
+        wrong_box_id = utils.view_file_box_token_header(jwk=uos_jwk)
+        response = await rest_client.get(url, headers=wrong_box_id)
         assert response.status_code == 403
 
         # generate a different kind of token with otherwise correct params
-        wrong_work_type = utils.generate_change_file_box_token(
+        wrong_work_type = utils.change_file_box_token_header(
             jwk=uos_jwk, box_id=TEST_BOX_ID
         )
-        response = await rest_client.get(
-            url, headers={"Authorization": f"Bearer {wrong_work_type}"}
-        )
+        response = await rest_client.get(url, headers=wrong_work_type)
         assert response.status_code == 401
 
-        good_token = utils.generate_view_file_box_token(jwk=uos_jwk, box_id=TEST_BOX_ID)
-        response = await rest_client.get(
-            url, headers={"Authorization": f"Bearer {good_token}"}
+        good_token_header = utils.view_file_box_token_header(
+            jwk=uos_jwk, box_id=TEST_BOX_ID
         )
+        response = await rest_client.get(url, headers=good_token_header)
         assert response.status_code == 200
 
 
@@ -169,39 +161,35 @@ async def test_create_file_upload_endpoint_auth(config: ConfigFixture):
         assert response.status_code == 401
 
         # generate a token with the wrong work type for this action
-        bad_token = utils.generate_close_file_token(
+        bad_token_header = utils.close_file_token_header(
             box_id=TEST_BOX_ID,
             jwk=wps_jwk,
         )
-        response = await rest_client.post(
-            url, json=body, headers={"Authorization": f"Bearer {bad_token}"}
-        )
+        response = await rest_client.post(url, json=body, headers=bad_token_header)
         assert response.status_code == 401
 
         # generate a token with wrong box ID
-        wrong_box_token = utils.generate_create_file_token(
+        wrong_box_token_header = utils.create_file_token_header(
             alias="test_file", jwk=wps_jwk
         )
         response = await rest_client.post(
-            url, json=body, headers={"Authorization": f"Bearer {wrong_box_token}"}
+            url, json=body, headers=wrong_box_token_header
         )
         assert response.status_code == 403
 
         # generate a token with wrong alias
-        wrong_alias_token = utils.generate_create_file_token(
+        wrong_alias_token_header = utils.create_file_token_header(
             box_id=TEST_BOX_ID, alias="different_file", jwk=wps_jwk
         )
         response = await rest_client.post(
-            url, json=body, headers={"Authorization": f"Bearer {wrong_alias_token}"}
+            url, json=body, headers=wrong_alias_token_header
         )
         assert response.status_code == 403
 
-        good_token = utils.generate_create_file_token(
+        good_token_header = utils.create_file_token_header(
             box_id=TEST_BOX_ID, alias="test_file", jwk=wps_jwk
         )
-        response = await rest_client.post(
-            url, json=body, headers={"Authorization": f"Bearer {good_token}"}
-        )
+        response = await rest_client.post(url, json=body, headers=good_token_header)
         assert response.status_code == 201
 
 
@@ -225,37 +213,29 @@ async def test_get_file_part_upload_url_endpoint_auth(config: ConfigFixture):
         response = await rest_client.get(url)
         assert response.status_code == 401
 
-        wrong_box_token = utils.generate_upload_file_token(
+        wrong_box_token_header = utils.upload_file_token_header(
             file_id=TEST_FILE_ID, jwk=wps_jwk
         )
-        response = await rest_client.get(
-            url, headers={"Authorization": f"Bearer {wrong_box_token}"}
-        )
+        response = await rest_client.get(url, headers=wrong_box_token_header)
         assert response.status_code == 403
 
-        wrong_file_token = utils.generate_upload_file_token(
+        wrong_file_token_header = utils.upload_file_token_header(
             box_id=TEST_BOX_ID, jwk=wps_jwk
         )
-        response = await rest_client.get(
-            url, headers={"Authorization": f"Bearer {wrong_file_token}"}
-        )
+        response = await rest_client.get(url, headers=wrong_file_token_header)
         assert response.status_code == 403
 
         # generate a different kind of token with otherwise correct params
-        wrong_work_type_token = utils.generate_close_file_token(
+        wrong_work_type_token_header = utils.close_file_token_header(
             box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=wps_jwk
         )
-        response = await rest_client.get(
-            url, headers={"Authorization": f"Bearer {wrong_work_type_token}"}
-        )
+        response = await rest_client.get(url, headers=wrong_work_type_token_header)
         assert response.status_code == 401
 
-        good_token = utils.generate_upload_file_token(
+        good_token_header = utils.upload_file_token_header(
             box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=wps_jwk
         )
-        response = await rest_client.get(
-            url, headers={"Authorization": f"Bearer {good_token}"}
-        )
+        response = await rest_client.get(url, headers=good_token_header)
         assert response.status_code == 200
 
 
@@ -279,38 +259,36 @@ async def test_complete_file_upload_endpoint_auth(config: ConfigFixture):
         assert response.status_code == 401
 
         # generate a token with wrong box ID
-        wrong_box_token = utils.generate_close_file_token(
+        wrong_box_token_header = utils.close_file_token_header(
             file_id=TEST_FILE_ID, jwk=wps_jwk
         )
         response = await rest_client.patch(
-            url, json=body, headers={"Authorization": f"Bearer {wrong_box_token}"}
+            url, json=body, headers=wrong_box_token_header
         )
         assert response.status_code == 403
 
         # generate a token with wrong file ID
-        wrong_file_token = utils.generate_close_file_token(
+        wrong_file_token_header = utils.close_file_token_header(
             box_id=TEST_BOX_ID, jwk=wps_jwk
         )
         response = await rest_client.patch(
-            url, json=body, headers={"Authorization": f"Bearer {wrong_file_token}"}
+            url, json=body, headers=wrong_file_token_header
         )
         assert response.status_code == 403
 
         # generate a token with wrong work type
-        wrong_work_token = utils.generate_upload_file_token(
+        wrong_work_token_header = utils.upload_file_token_header(
             box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=wps_jwk
         )
         response = await rest_client.patch(
-            url, json=body, headers={"Authorization": f"Bearer {wrong_work_token}"}
+            url, json=body, headers=wrong_work_token_header
         )
         assert response.status_code == 401
 
-        good_token = utils.generate_close_file_token(
+        good_token_header = utils.close_file_token_header(
             box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=wps_jwk
         )
-        response = await rest_client.patch(
-            url, json=body, headers={"Authorization": f"Bearer {good_token}"}
-        )
+        response = await rest_client.patch(url, json=body, headers=good_token_header)
         assert response.status_code == 204
 
 
@@ -332,37 +310,29 @@ async def test_delete_file_endpoint_auth(config: ConfigFixture):
         response = await rest_client.delete(url)
         assert response.status_code == 401
 
-        wrong_box_token = utils.generate_delete_file_token(
+        wrong_box_token_header = utils.delete_file_token_header(
             file_id=TEST_FILE_ID, jwk=wps_jwk
         )
-        response = await rest_client.delete(
-            url, headers={"Authorization": f"Bearer {wrong_box_token}"}
-        )
+        response = await rest_client.delete(url, headers=wrong_box_token_header)
         assert response.status_code == 403
 
-        wrong_file_token = utils.generate_delete_file_token(
+        wrong_file_token_header = utils.delete_file_token_header(
             box_id=TEST_BOX_ID, jwk=wps_jwk
         )
-        response = await rest_client.delete(
-            url, headers={"Authorization": f"Bearer {wrong_file_token}"}
-        )
+        response = await rest_client.delete(url, headers=wrong_file_token_header)
         assert response.status_code == 403
 
         # generate a different kind of token with otherwise correct params
-        wrong_work_type_token = utils.generate_close_file_token(
+        wrong_work_type_token_header = utils.close_file_token_header(
             box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=wps_jwk
         )
-        response = await rest_client.delete(
-            url, headers={"Authorization": f"Bearer {wrong_work_type_token}"}
-        )
+        response = await rest_client.delete(url, headers=wrong_work_type_token_header)
         assert response.status_code == 401
 
-        good_token = utils.generate_delete_file_token(
+        good_token_header = utils.delete_file_token_header(
             box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=wps_jwk
         )
-        response = await rest_client.delete(
-            url, headers={"Authorization": f"Bearer {good_token}"}
-        )
+        response = await rest_client.delete(url, headers=good_token_header)
         assert response.status_code == 204
 
 
@@ -389,10 +359,8 @@ async def test_create_box_endpoint_error_handling(
         prepare_rest_app(config=config.config, core_override=core_override) as app,
         AsyncTestClient(app=app) as rest_client,
     ):
-        token = utils.generate_create_file_box_token(jwk=uos_jwk)
-        response = await rest_client.post(
-            "/boxes", json=body, headers={"Authorization": f"Bearer {token}"}
-        )
+        token_header = utils.create_file_box_token_header(jwk=uos_jwk)
+        response = await rest_client.post("/boxes", json=body, headers=token_header)
         assert response.json()["description"] == str(http_error)
 
 
@@ -419,11 +387,13 @@ async def test_update_box_endpoint_error_handling(
         prepare_rest_app(config=config.config, core_override=core_override) as app,
         AsyncTestClient(app=app) as rest_client,
     ):
-        token = utils.generate_change_file_box_token(box_id=TEST_BOX_ID, jwk=uos_jwk)
+        token_header = utils.change_file_box_token_header(
+            box_id=TEST_BOX_ID, jwk=uos_jwk
+        )
         response = await rest_client.patch(
             f"/boxes/{TEST_BOX_ID}",
             json=body,
-            headers={"Authorization": f"Bearer {token}"},
+            headers=token_header,
         )
         assert response.json()["description"] == str(http_error)
 
@@ -450,10 +420,10 @@ async def test_view_box_endpoint_error_handling(
         prepare_rest_app(config=config.config, core_override=core_override) as app,
         AsyncTestClient(app=app) as rest_client,
     ):
-        token = utils.generate_view_file_box_token(jwk=uos_jwk, box_id=TEST_BOX_ID)
+        token_header = utils.view_file_box_token_header(jwk=uos_jwk, box_id=TEST_BOX_ID)
         response = await rest_client.get(
             f"/boxes/{TEST_BOX_ID}/uploads",
-            headers={"Authorization": f"Bearer {token}"},
+            headers=token_header,
         )
         assert response.json()["description"] == str(http_error)
 
@@ -506,13 +476,13 @@ async def test_create_file_upload_endpoint_error_handling(
         prepare_rest_app(config=config.config, core_override=core_override) as app,
         AsyncTestClient(app=app) as rest_client,
     ):
-        token = utils.generate_create_file_token(
+        token_header = utils.create_file_token_header(
             box_id=TEST_BOX_ID, alias="test_file", jwk=wps_jwk
         )
         response = await rest_client.post(
             f"/boxes/{TEST_BOX_ID}/uploads",
             json=body,
-            headers={"Authorization": f"Bearer {token}"},
+            headers=token_header,
         )
         assert response.json()["description"] == str(http_error)
 
@@ -554,12 +524,12 @@ async def test_get_file_part_upload_url_endpoint_error_handling(
         prepare_rest_app(config=config.config, core_override=core_override) as app,
         AsyncTestClient(app=app) as rest_client,
     ):
-        token = utils.generate_upload_file_token(
+        token_header = utils.upload_file_token_header(
             box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=wps_jwk
         )
         response = await rest_client.get(
             f"/boxes/{TEST_BOX_ID}/uploads/{TEST_FILE_ID}/parts/1",
-            headers={"Authorization": f"Bearer {token}"},
+            headers=token_header,
         )
         assert response.json()["description"] == str(http_error)
 
@@ -616,13 +586,13 @@ async def test_complete_file_upload_endpoint_error_handling(
         prepare_rest_app(config=config.config, core_override=core_override) as app,
         AsyncTestClient(app=app) as rest_client,
     ):
-        token = utils.generate_close_file_token(
+        token_header = utils.close_file_token_header(
             box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=wps_jwk
         )
         response = await rest_client.patch(
             f"/boxes/{TEST_BOX_ID}/uploads/{TEST_FILE_ID}",
             json=body,
-            headers={"Authorization": f"Bearer {token}"},
+            headers=token_header,
         )
         assert response.json()["description"] == str(http_error)
 
@@ -676,11 +646,11 @@ async def test_delete_file_endpoint_error_handling(
         prepare_rest_app(config=config.config, core_override=core_override) as app,
         AsyncTestClient(app=app) as rest_client,
     ):
-        token = utils.generate_delete_file_token(
+        token_header = utils.delete_file_token_header(
             box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=wps_jwk
         )
         response = await rest_client.delete(
             f"/boxes/{TEST_BOX_ID}/uploads/{TEST_FILE_ID}",
-            headers={"Authorization": f"Bearer {token}"},
+            headers=token_header,
         )
         assert response.json()["description"] == str(http_error)

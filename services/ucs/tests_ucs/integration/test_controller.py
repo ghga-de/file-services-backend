@@ -33,11 +33,6 @@ from ucs.inject import prepare_rest_app
 pytestmark = pytest.mark.asyncio()
 
 
-def auth_header(token: str) -> dict[str, str]:
-    """Return auth header with the token embedded"""
-    return {"Authorization": f"Bearer {token}"}
-
-
 async def test_integrated_aspects(joint_fixture: JointFixture):
     """Test aspects that are not easily testable with unit test mocks:
     - outbox event publishing (e.g. the result of `dto_to_event`)
@@ -60,11 +55,10 @@ async def test_integrated_aspects(joint_fixture: JointFixture):
         async with kafka.record_events(
             in_topic=config.file_upload_box_topic
         ) as box_recorder:
-            create_box_token = utils.generate_create_file_box_token(jwk=uos_jwk)
-            headers = auth_header(create_box_token)
+            token_header = utils.create_file_box_token_header(jwk=uos_jwk)
             box_creation_body = {"storage_alias": "test"}
             response = await rest_client.post(
-                "/boxes", json=box_creation_body, headers=headers
+                "/boxes", json=box_creation_body, headers=token_header
             )
             assert response.status_code == 201
             box_id = UUID(response.json())
@@ -97,17 +91,18 @@ async def test_integrated_aspects(joint_fixture: JointFixture):
         async with kafka.record_events(
             in_topic=config.file_upload_topic
         ) as file_recorder:
-            create_file_token = utils.generate_create_file_token(
+            create_file_token_header = utils.create_file_token_header(
                 jwk=wps_jwk, box_id=box_id, alias="test_file"
             )
-            headers = auth_header(create_file_token)
             file_creation_body = {
                 "alias": "test_file",
                 "checksum": "abc123",
                 "size": file_size,
             }
             response = await rest_client.post(
-                f"/boxes/{box_id}/uploads", json=file_creation_body, headers=headers
+                f"/boxes/{box_id}/uploads",
+                json=file_creation_body,
+                headers=create_file_token_header,
             )
             assert response.status_code == 201
             file_id = UUID(response.json())
@@ -123,12 +118,11 @@ async def test_integrated_aspects(joint_fixture: JointFixture):
         }, "Payload was wrong for new file upload event"
 
         # Get part upload URL for the file (should only require 1 part since file is under 16 MiB)
-        upload_token = utils.generate_upload_file_token(
+        upload_token_header = utils.upload_file_token_header(
             jwk=wps_jwk, box_id=box_id, file_id=file_id
         )
-        headers = auth_header(upload_token)
         response = await rest_client.get(
-            f"/boxes/{box_id}/uploads/{file_id}/parts/1", headers=headers
+            f"/boxes/{box_id}/uploads/{file_id}/parts/1", headers=upload_token_header
         )
         url = str(response.json())
 
@@ -143,12 +137,11 @@ async def test_integrated_aspects(joint_fixture: JointFixture):
         async with kafka.record_events(
             in_topic=config.file_upload_topic
         ) as file_recorder:
-            close_file_token = utils.generate_close_file_token(
+            close_file_token_header = utils.close_file_token_header(
                 jwk=wps_jwk, box_id=box_id, file_id=file_id
             )
-            headers = auth_header(close_file_token)
             response = await rest_client.patch(
-                f"/boxes/{box_id}/uploads/{file_id}", headers=headers
+                f"/boxes/{box_id}/uploads/{file_id}", headers=close_file_token_header
             )
         events = file_recorder.recorded_events
         assert len(events) == 1
@@ -158,13 +151,12 @@ async def test_integrated_aspects(joint_fixture: JointFixture):
         async with kafka.record_events(
             in_topic=config.file_upload_box_topic
         ) as box_recorder:
-            lock_box_token = utils.generate_change_file_box_token(
+            lock_box_token_header = utils.change_file_box_token_header(
                 box_id=box_id, jwk=uos_jwk
             )
-            headers = auth_header(lock_box_token)
             box_update_body = {"lock": True}
             response = await rest_client.patch(
-                f"/boxes/{box_id}", json=box_update_body, headers=headers
+                f"/boxes/{box_id}", json=box_update_body, headers=lock_box_token_header
             )
             assert response.status_code == 204
         events = box_recorder.recorded_events
@@ -175,12 +167,11 @@ async def test_integrated_aspects(joint_fixture: JointFixture):
         async with kafka.record_events(
             in_topic=config.file_upload_topic
         ) as file_recorder:
-            delete_file_token = utils.generate_delete_file_token(
+            delete_file_token_header = utils.delete_file_token_header(
                 jwk=wps_jwk, box_id=box_id, file_id=file_id
             )
-            headers = auth_header(delete_file_token)
             response = await rest_client.delete(
-                f"/boxes/{box_id}/uploads/{file_id}", headers=headers
+                f"/boxes/{box_id}/uploads/{file_id}", headers=delete_file_token_header
             )
             assert response.status_code == 409
         assert not file_recorder.recorded_events
@@ -188,19 +179,19 @@ async def test_integrated_aspects(joint_fixture: JointFixture):
         # Great, we verified that the locked box prevents changes. Now unlock the box
         #  but don't check for events -- satisfied at this point that outbox is working
         box_update_body = {"lock": False}
-        unlock_box_token = utils.generate_change_file_box_token(
+        unlock_box_token_header = utils.change_file_box_token_header(
             box_id=box_id, work_type="unlock", jwk=uos_jwk
         )
         response = await rest_client.patch(
             f"/boxes/{box_id}",
             json=box_update_body,
-            headers=auth_header(unlock_box_token),
+            headers=unlock_box_token_header,
         )
         assert response.status_code == 204
 
         # Delete the file finally
         response = await rest_client.delete(
-            f"/boxes/{box_id}/uploads/{file_id}", headers=auth_header(delete_file_token)
+            f"/boxes/{box_id}/uploads/{file_id}", headers=delete_file_token_header
         )
         assert response.status_code == 204
 
@@ -241,11 +232,11 @@ async def test_s3_upload_completed_but_db_not_updated(joint_fixture: JointFixtur
     )
 
     # Now call the completion endpoint using the rest client
-    close_token = utils.generate_close_file_token(
+    close_token_header = utils.close_file_token_header(
         box_id=box_id, file_id=file_id, jwk=joint_fixture.wps_jwk
     )
     response = await joint_fixture.rest_client.patch(
-        f"/boxes/{box_id}/uploads/{file_id}", headers=auth_header(close_token)
+        f"/boxes/{box_id}/uploads/{file_id}", headers=close_token_header
     )
 
     # Response should indicate success because the file was uploaded
@@ -298,11 +289,11 @@ async def test_s3_upload_complete_fails(joint_fixture: JointFixture):
     )
 
     # Make the completion request with the rest client
-    close_token = utils.generate_close_file_token(
+    close_token_header = utils.close_file_token_header(
         box_id=box_id, file_id=file_id, jwk=wps_jwk
     )
     response = await rest_client.patch(
-        f"/boxes/{box_id}/uploads/{file_id}", headers=auth_header(close_token)
+        f"/boxes/{box_id}/uploads/{file_id}", headers=close_token_header
     )
     # Response should indicate failure and parameters
     assert response.status_code == 500
@@ -311,30 +302,30 @@ async def test_s3_upload_complete_fails(joint_fixture: JointFixture):
     assert error["data"] == {"box_id": str(box_id), "file_id": str(file_id)}
 
     # Now request deletion of the file
-    delete_token = utils.generate_delete_file_token(
+    delete_token_header = utils.delete_file_token_header(
         box_id=box_id, file_id=file_id, jwk=wps_jwk
     )
     response = await rest_client.delete(
-        f"/boxes/{box_id}/uploads/{file_id}", headers=auth_header(delete_token)
+        f"/boxes/{box_id}/uploads/{file_id}", headers=delete_token_header
     )
     assert response.status_code == 204
 
     # Now retry the upload process, obtaining a new file_id
-    create_token = utils.generate_create_file_token(
+    create_token_header = utils.create_file_token_header(
         box_id=box_id, alias="test-file", jwk=wps_jwk
     )
     body = {"alias": "test-file", "checksum": "abc123", "size": 1024}
     response = await rest_client.post(
-        f"/boxes/{box_id}/uploads", headers=auth_header(create_token), json=body
+        f"/boxes/{box_id}/uploads", headers=create_token_header, json=body
     )
     assert response.status_code == 201
     file_id2 = UUID(response.json())
 
-    upload_token = utils.generate_upload_file_token(
+    upload_token_header = utils.upload_file_token_header(
         box_id=box_id, file_id=file_id2, jwk=wps_jwk
     )
     response = await rest_client.get(
-        f"/boxes/{box_id}/uploads/{file_id2}/parts/1", headers=auth_header(upload_token)
+        f"/boxes/{box_id}/uploads/{file_id2}/parts/1", headers=upload_token_header
     )
     assert response.status_code == 200
     part_url = response.json()
@@ -344,11 +335,11 @@ async def test_s3_upload_complete_fails(joint_fixture: JointFixture):
     assert response.status_code == 200
 
     # Now complete the file
-    close_token2 = utils.generate_close_file_token(
+    close_token_header2 = utils.close_file_token_header(
         box_id=box_id, file_id=file_id2, jwk=wps_jwk
     )
     response = await rest_client.patch(
-        f"/boxes/{box_id}/uploads/{file_id2}", headers=auth_header(close_token2)
+        f"/boxes/{box_id}/uploads/{file_id2}", headers=close_token_header2
     )
     assert response.status_code == 204
 
@@ -393,7 +384,7 @@ async def test_orphaned_s3_upload_in_file_create(joint_fixture: JointFixture, ca
     # Now try to create a file upload with the same file_id through the normal process
     # This should trigger the OrphanedMultipartUploadErrorError scenario
     # Patch the uuid4 generation to return the predetermined file_id
-    create_token = utils.generate_create_file_token(
+    create_token_header = utils.create_file_token_header(
         box_id=box_id, alias="test-file", jwk=joint_fixture.wps_jwk
     )
     body = {"alias": "test-file", "checksum": "abc123", "size": 1024}
@@ -403,7 +394,7 @@ async def test_orphaned_s3_upload_in_file_create(joint_fixture: JointFixture, ca
     ):
         caplog.clear()
         response = await joint_fixture.rest_client.post(
-            f"/boxes/{box_id}/uploads", headers=auth_header(create_token), json=body
+            f"/boxes/{box_id}/uploads", headers=create_token_header, json=body
         )
     assert response.status_code == 409
     http_error = response.json()

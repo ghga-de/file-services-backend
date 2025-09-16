@@ -24,6 +24,7 @@ import httpx
 import pytest_asyncio
 from ghga_service_commons.api.testing import AsyncTestClient
 from ghga_service_commons.auth.ghga import AuthConfig
+from ghga_service_commons.utils.jwt_helpers import generate_jwk
 from ghga_service_commons.utils.multinode_storage import (
     S3ObjectStorageNodeConfig,
     S3ObjectStoragesConfig,
@@ -34,7 +35,6 @@ from hexkit.providers.s3.testutils import S3Fixture
 from jwcrypto.jwk import JWK
 
 from tests_ucs.fixtures.config import get_config
-from tests_ucs.fixtures.utils import generate_token_signing_keys
 from ucs.config import Config
 from ucs.inject import prepare_core, prepare_rest_app
 from ucs.ports.inbound.controller import UploadControllerPort
@@ -62,9 +62,9 @@ async def joint_fixture(
     s3: S3Fixture,
 ) -> AsyncGenerator[JointFixture, None]:
     """A fixture that embeds all other fixtures for API-level integration testing."""
-    wps_jwk = generate_token_signing_keys()
+    wps_jwk = generate_jwk()
     wps_auth_key = wps_jwk.export(private_key=False)
-    uos_jwk = generate_token_signing_keys()
+    uos_jwk = generate_jwk()
     uos_auth_key = uos_jwk.export(private_key=False)
     wps_cfg = AuthConfig(auth_key=wps_auth_key, auth_check_claims={})
     uos_cfg = AuthConfig(auth_key=uos_auth_key, auth_check_claims={})
