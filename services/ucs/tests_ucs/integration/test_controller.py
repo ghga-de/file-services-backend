@@ -79,12 +79,10 @@ async def test_integrated_aspects(joint_fixture: JointFixture):
         chunk_size = 1024
         chunk = b"\0" * chunk_size
         current_size = 0
-        while True:
-            if current_size + chunk_size >= file_size:
-                temp_file.write(chunk[: file_size - current_size])
-                break
-            temp_file.write(chunk)
-            current_size += chunk_size
+        while current_size < file_size:
+            write_size = min(chunk_size, file_size - current_size)
+            temp_file.write(chunk[:write_size])
+            current_size += write_size
         temp_file.flush()
 
         # Create a FileUpload
