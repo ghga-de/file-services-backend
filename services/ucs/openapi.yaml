@@ -411,7 +411,12 @@ paths:
       description: 'Update a FileUploadBox to lock or unlock it.
 
 
-        Request body must indicate whether the box is meant to be locked or unlocked.'
+        Request body must indicate whether the box is meant to be locked or unlocked.
+
+        Requires ChangeFileBoxWorkOrder token from the UOS. Users are only allowed
+        to lock
+
+        the box; a Data Steward role is required to unlock it.'
       operationId: updateBox
       parameters:
       - in: path
@@ -454,7 +459,9 @@ paths:
       description: 'Retrieve list of file IDs for a FileUploadBox.
 
 
-        Returns the list of file IDs for completed uploads in the specified box.'
+        Returns the list of file IDs for completed uploads in the specified box.
+
+        Requires ViewFileBoxWorkOrder token from the UOS.'
       operationId: getBoxUploads
       parameters:
       - in: path
@@ -498,7 +505,9 @@ paths:
         checksum, and size.
 
         Initiates a multipart upload and returns the file ID for the newly created
-        upload.'
+        upload.
+
+        Requires a CreateFileWorkOrder token from the WPS.'
       operationId: createFileUpload
       parameters:
       - in: path
@@ -565,7 +574,9 @@ paths:
       description: 'Remove a FileUpload from the FileUploadBox.
 
 
-        Deletes the FileUpload and tells S3 to cancel the multipart upload if applicable.'
+        Deletes the FileUpload and tells S3 to cancel the multipart upload if applicable.
+
+        Requires a DeleteFileWorkOrder token from the WPS.'
       operationId: removeFileUpload
       parameters:
       - in: path
@@ -636,7 +647,9 @@ paths:
 
         Concludes the file upload process in UCS by instructing S3 to complete the
 
-        multipart upload for the specified file.'
+        multipart upload for the specified file.
+
+        Requires a CloseFileWorkOrder token from the WPS.'
       operationId: completeFileUpload
       parameters:
       - in: path
@@ -699,7 +712,9 @@ paths:
 
         Returns a pre-signed URL that can be used to upload the bytes for the specified
 
-        part number of the specified file upload.'
+        part number of the specified file upload.
+
+        Requires an UploadFileWorkOrder token from the WPS.'
       operationId: getPartUploadUrl
       parameters:
       - in: path

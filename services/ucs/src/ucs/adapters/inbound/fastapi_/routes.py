@@ -180,6 +180,8 @@ async def update_box(
     """Update a FileUploadBox to lock or unlock it.
 
     Request body must indicate whether the box is meant to be locked or unlocked.
+    Requires ChangeFileBoxWorkOrder token from the UOS. Users are only allowed to lock
+    the box; a Data Steward role is required to unlock it.
     """
     required_work_type = "lock" if box_update.lock else "unlock"
     if work_order.box_id != box_id:
@@ -222,6 +224,7 @@ async def get_box_uploads(
     """Retrieve list of file IDs for a FileUploadBox.
 
     Returns the list of file IDs for completed uploads in the specified box.
+    Requires ViewFileBoxWorkOrder token from the UOS.
     """
     if work_order.box_id != box_id:
         raise http_exceptions.HttpNotAuthorizedError()
@@ -266,6 +269,7 @@ async def create_file_upload(
 
     Creates a new file upload within the specified box with the provided alias, checksum, and size.
     Initiates a multipart upload and returns the file ID for the newly created upload.
+    Requires a CreateFileWorkOrder token from the WPS.
     """
     file_alias = file_upload_creation.alias
     if work_order.box_id != box_id or work_order.alias != file_alias:
@@ -329,6 +333,7 @@ async def get_part_upload_url(
 
     Returns a pre-signed URL that can be used to upload the bytes for the specified
     part number of the specified file upload.
+    Requires an UploadFileWorkOrder token from the WPS.
     """
     if work_order.box_id != box_id or work_order.file_id != file_id:
         raise http_exceptions.HttpNotAuthorizedError()
@@ -384,6 +389,7 @@ async def complete_file_upload(
 
     Concludes the file upload process in UCS by instructing S3 to complete the
     multipart upload for the specified file.
+    Requires a CloseFileWorkOrder token from the WPS.
     """
     if work_order.box_id != box_id or work_order.file_id != file_id:
         raise http_exceptions.HttpNotAuthorizedError()
@@ -436,6 +442,7 @@ async def remove_file_upload(
     """Remove a FileUpload from the FileUploadBox.
 
     Deletes the FileUpload and tells S3 to cancel the multipart upload if applicable.
+    Requires a DeleteFileWorkOrder token from the WPS.
     """
     if work_order.box_id != box_id or work_order.file_id != file_id:
         raise http_exceptions.HttpNotAuthorizedError()
