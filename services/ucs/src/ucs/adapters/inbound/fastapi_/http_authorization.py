@@ -77,67 +77,67 @@ class JWTAuthContextProviderBundle:
 
 
 async def _require_create_file_box_work_order(
-    auth_provider: Annotated[
+    auth_provider_bundle: Annotated[
         JWTAuthContextProviderBundle,
-        Depends(dummies.auth_provider),
+        Depends(dummies.auth_provider_bundle),
     ],
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False)),
 ) -> models.CreateFileBoxWorkOrder:
-    """Require a work order context using FastAPI."""
-    provider = auth_provider.create_file_box_provider
+    """Require a "create file box" work order context using FastAPI."""
+    provider = auth_provider_bundle.create_file_box_provider
     return await require_auth_context_using_credentials(
         credentials=credentials, auth_provider=provider
     )
 
 
 async def _require_change_file_box_work_order(
-    auth_provider: Annotated[
+    auth_provider_bundle: Annotated[
         JWTAuthContextProviderBundle,
-        Depends(dummies.auth_provider),
+        Depends(dummies.auth_provider_bundle),
     ],
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False)),
 ) -> models.ChangeFileBoxWorkOrder:
-    """Require a work order context using FastAPI."""
-    provider = auth_provider.change_file_box_provider
+    """Require a "change file box" work order context using FastAPI."""
+    provider = auth_provider_bundle.change_file_box_provider
     return await require_auth_context_using_credentials(
         credentials=credentials, auth_provider=provider
     )
 
 
 async def _require_view_file_box_work_order(
-    auth_provider: Annotated[
-        JWTAuthContextProviderBundle, Depends(dummies.auth_provider)
+    auth_provider_bundle: Annotated[
+        JWTAuthContextProviderBundle, Depends(dummies.auth_provider_bundle)
     ],
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False)),
 ) -> models.ViewFileBoxWorkOrder:
-    """Require a work order context using FastAPI."""
-    provider = auth_provider.view_file_box_provider
+    """Require a "view file box" work order context using FastAPI."""
+    provider = auth_provider_bundle.view_file_box_provider
     return await require_auth_context_using_credentials(
         credentials=credentials, auth_provider=provider
     )
 
 
 async def _require_create_file_work_order(
-    auth_provider: Annotated[
-        JWTAuthContextProviderBundle, Depends(dummies.auth_provider)
+    auth_provider_bundle: Annotated[
+        JWTAuthContextProviderBundle, Depends(dummies.auth_provider_bundle)
     ],
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False)),
 ) -> models.CreateFileWorkOrder:
-    """Require a work order context using FastAPI."""
-    provider = auth_provider.create_file_provider
+    """Require a "create file" work order context using FastAPI."""
+    provider = auth_provider_bundle.create_file_provider
     return await require_auth_context_using_credentials(
         credentials=credentials, auth_provider=provider
     )
 
 
 async def _require_upload_file_work_order(
-    auth_provider: Annotated[
-        JWTAuthContextProviderBundle, Depends(dummies.auth_provider)
+    auth_provider_bundle: Annotated[
+        JWTAuthContextProviderBundle, Depends(dummies.auth_provider_bundle)
     ],
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False)),
 ) -> models.UploadFileWorkOrder:
-    """Require a work order context using FastAPI."""
-    provider = auth_provider.upload_file_provider
+    """Require an "upload file" work order context using FastAPI."""
+    provider = auth_provider_bundle.upload_file_provider
     return await require_auth_context_using_credentials(
         credentials=credentials, auth_provider=provider
     )

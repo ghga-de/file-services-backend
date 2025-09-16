@@ -25,7 +25,7 @@ from ghga_service_commons.api.di import DependencyDummy
 
 from ucs.ports.inbound.controller import UploadControllerPort
 
-auth_provider = DependencyDummy("auth_provider")
+auth_provider_bundle = DependencyDummy("auth_provider_bundle")
 upload_controller_port = DependencyDummy("upload_controller_port")
 
 UploadControllerDummy = Annotated[UploadControllerPort, Depends(upload_controller_port)]
