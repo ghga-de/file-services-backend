@@ -15,9 +15,9 @@
 
 """REST API-specific data models (not used by core package)"""
 
-from enum import StrEnum
+from typing import Literal, TypeVar
 
-from pydantic import UUID4, BaseModel, ConfigDict, Field, field_validator
+from pydantic import UUID4, BaseModel, ConfigDict, Field
 
 
 class BoxCreationRequest(BaseModel):
@@ -59,91 +59,42 @@ class FileUploadCreationRequest(BaseModel):
     model_config = ConfigDict(title="File Upload Creation Request")
 
 
-class WorkType(StrEnum):
-    """The type of work that a work package describes."""
+WorkType = Literal["create", "lock", "unlock", "view", "upload", "close", "delete"]
 
-    CREATE = "create"
-    LOCK = "lock"
-    UNLOCK = "unlock"
-    VIEW = "view"
-    UPLOAD = "upload"
-    CLOSE = "close"
-    DELETE = "delete"
+T = TypeVar("T", bound=WorkType)
 
 
-class BaseWorkOrderToken(BaseModel):
+class BaseWorkOrderToken[T: WorkType](BaseModel):
     """Base model pre-configured for use as Dto."""
 
-    work_type: WorkType
-
+    work_type: T
     model_config = ConfigDict(frozen=True)
 
 
-class CreateFileBoxWorkOrder(BaseWorkOrderToken):
-    """WOT schema authorizing a user to create a new FileUploadBox"""
-
-    @classmethod
-    @field_validator("work_type")
-    def enforce_work_type(cls, work_type):
-        """Make sure work type matches expectation"""
-        if work_type != WorkType.CREATE:
-            raise ValueError("Work type must be 'create'.")
-        return work_type
+CreateFileBoxWorkOrder = BaseWorkOrderToken[Literal["create"]]
 
 
-class ChangeFileBoxWorkOrder(BaseWorkOrderToken):
+class ChangeFileBoxWorkOrder(BaseWorkOrderToken[Literal["lock", "unlock"]]):
     """WOT schema authorizing a user to lock or unlock an existing FileUploadBox"""
 
     box_id: UUID4
 
-    @classmethod
-    @field_validator("work_type")
-    def enforce_work_type(cls, work_type):
-        """Make sure work type matches expectation"""
-        if work_type not in [WorkType.LOCK, WorkType.UNLOCK]:
-            raise ValueError("Work type must be 'lock' or 'unlock'.")
-        return work_type
 
-
-class ViewFileBoxWorkOrder(BaseWorkOrderToken):
+class ViewFileBoxWorkOrder(BaseWorkOrderToken[Literal["view"]]):
     """WOT schema authorizing a user to view a FileUploadBox and its FileUploads"""
 
     box_id: UUID4
 
-    @classmethod
-    @field_validator("work_type")
-    def enforce_work_type(cls, work_type):
-        """Make sure work type matches expectation"""
-        if work_type != WorkType.VIEW:
-            raise ValueError("Work type must be 'view'.")
-        return work_type
 
-
-class CreateFileWorkOrder(BaseWorkOrderToken):
+class CreateFileWorkOrder(BaseWorkOrderToken[Literal["create"]]):
     """WOT schema authorizing a user to create a new FileUpload"""
 
     alias: str
     box_id: UUID4
 
-    @classmethod
-    @field_validator("work_type")
-    def enforce_work_type(cls, work_type):
-        """Make sure work type matches expectation"""
-        if work_type != WorkType.CREATE:
-            raise ValueError("Work type must be 'create'.")
-        return work_type
 
-
-class UploadFileWorkOrder(BaseWorkOrderToken):
+class UploadFileWorkOrder(BaseWorkOrderToken[Literal["upload", "close", "delete"]]):
     """WOT schema authorizing a user to work with existing FileUploads"""
 
     file_id: UUID4
     box_id: UUID4
-
-    @classmethod
-    @field_validator("work_type")
-    def enforce_work_type(cls, work_type):
-        """Make sure work type matches expectation"""
-        if work_type not in [WorkType.UPLOAD, WorkType.CLOSE, WorkType.DELETE]:
-            raise ValueError("Work type must be 'upload', 'close', or 'delete'.")
-        return work_type
