@@ -65,7 +65,7 @@ class UploadController(UploadControllerPort):
         try:
             bucket_id, object_storage = self._object_storages.for_alias(storage_alias)
         except KeyError as error:
-            unknown_alias = self.UnknownStorageAliasError(storage_alias=(storage_alias))
+            unknown_alias = self.UnknownStorageAliasError(storage_alias=storage_alias)
             log.error(unknown_alias, extra={"storage_alias": storage_alias})
             raise unknown_alias from error
         log.debug(
@@ -89,13 +89,9 @@ class UploadController(UploadControllerPort):
         box_id = box.id
 
         # Verify that a file hasn't been created for this box + alias already
-        hits = [
-            x
-            async for x in self._file_upload_dao.find_all(
-                mapping={"box_id": box_id, "alias": alias}
-            )
-        ]
-        if hits:
+        async for _ in self._file_upload_dao.find_all(
+            mapping={"box_id": box_id, "alias": alias}
+        ):
             error = self.FileUploadAlreadyExists(alias=alias)
             log.error(
                 error,
@@ -236,11 +232,6 @@ class UploadController(UploadControllerPort):
         extra: dict[str, Any] = {"box_id": box_id, "alias": alias}
         # Get the box and create the FileUpload
         box = await self._get_unlocked_box(box_id=box_id)
-        initiated = now_utc_ms_prec()  # Generate timestamp early to minimize error risk
-        file_id = await self._insert_validated_file_upload(
-            box=box, alias=alias, checksum=checksum, size=size
-        )
-        log.info("FileUpload %s added for alias %s.", file_id, alias, extra=extra)
 
         # Get the S3 storage details
         storage_alias = box.storage_alias
@@ -249,6 +240,12 @@ class UploadController(UploadControllerPort):
         )
         extra["storage_alias"] = storage_alias
         extra["bucked_id"] = bucket_id
+
+        initiated = now_utc_ms_prec()  # Generate timestamp early to minimize error risk
+        file_id = await self._insert_validated_file_upload(
+            box=box, alias=alias, checksum=checksum, size=size
+        )
+        log.info("FileUpload %s added for alias %s.", file_id, alias, extra=extra)
 
         # Initiate a new multipart file upload on the S3 instance
         try:
