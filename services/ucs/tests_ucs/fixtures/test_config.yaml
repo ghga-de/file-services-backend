@@ -15,9 +15,9 @@ kafka_servers: ["kafka:9092"]
 kafka_enable_dlq: True
 migration_wait_sec: 10
 db_version_collection: ucsDbVersions
-wps_token_auth_config:
+wps_auth_config:
   auth_key: "{}"
   auth_check_claims: {}
-uos_token_auth_config:
+uos_auth_config:
   auth_key: "{}"
   auth_check_claims: {}

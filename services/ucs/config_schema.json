@@ -455,10 +455,10 @@
       "title": "File Upload Topic",
       "type": "string"
     },
-    "wps_token_auth_config": {
+    "wps_auth_config": {
       "$ref": "#/$defs/AuthConfig"
     },
-    "uos_token_auth_config": {
+    "uos_auth_config": {
       "$ref": "#/$defs/AuthConfig"
     },
     "host": {
@@ -614,8 +614,8 @@
     "migration_wait_sec",
     "file_upload_box_topic",
     "file_upload_topic",
-    "wps_token_auth_config",
-    "uos_token_auth_config"
+    "wps_auth_config",
+    "uos_auth_config"
   ],
   "title": "ModSettings",
   "type": "object"

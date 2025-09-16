@@ -51,35 +51,35 @@ class JWTAuthContextProviderBundle:
         config: Config,
     ):
         """Bundled auth providers configurable at runtime"""
-        self.uos_token_auth_config = config.uos_token_auth_config
-        self.wps_token_auth_config = config.wps_token_auth_config
+        self.uos_auth_config = config.uos_auth_config
+        self.wps_auth_config = config.wps_auth_config
 
         self.create_file_box_provider = JWTAuthContextProvider(
-            config=self.uos_token_auth_config,
+            config=self.uos_auth_config,
             context_class=models.CreateFileBoxWorkOrder,
         )
         self.change_file_box_provider = JWTAuthContextProvider(
-            config=self.uos_token_auth_config,
+            config=self.uos_auth_config,
             context_class=models.ChangeFileBoxWorkOrder,
         )
         self.view_file_box_provider = JWTAuthContextProvider(
-            config=self.uos_token_auth_config,
+            config=self.uos_auth_config,
             context_class=models.ViewFileBoxWorkOrder,
         )
         self.create_file_provider = JWTAuthContextProvider(
-            config=self.wps_token_auth_config,
+            config=self.wps_auth_config,
             context_class=models.CreateFileWorkOrder,
         )
         self.upload_file_provider = JWTAuthContextProvider(
-            config=self.wps_token_auth_config,
+            config=self.wps_auth_config,
             context_class=models.UploadFileWorkOrder,
         )
         self.close_file_provider = JWTAuthContextProvider(
-            config=self.wps_token_auth_config,
+            config=self.wps_auth_config,
             context_class=models.CloseFileWorkOrder,
         )
         self.delete_file_provider = JWTAuthContextProvider(
-            config=self.wps_token_auth_config,
+            config=self.wps_auth_config,
             context_class=models.DeleteFileWorkOrder,
         )
 

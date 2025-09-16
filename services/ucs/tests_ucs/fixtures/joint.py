@@ -78,8 +78,8 @@ async def joint_fixture(
     # merge configs from different sources with the default one:
     config = get_config(
         sources=[mongodb.config, kafka.config, object_storages_config],
-        wps_token_auth_config=wps_cfg,
-        uos_token_auth_config=uos_cfg,
+        wps_auth_config=wps_cfg,
+        uos_auth_config=uos_cfg,
     )
 
     await s3.populate_buckets([bucket_id])

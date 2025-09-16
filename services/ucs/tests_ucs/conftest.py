@@ -44,5 +44,5 @@ def config_fixture() -> ConfigFixture:
     uos_auth_key = uos_jwk.export(private_key=False)
     wps_cfg = AuthConfig(auth_key=wps_auth_key, auth_check_claims={})
     uos_cfg = AuthConfig(auth_key=uos_auth_key, auth_check_claims={})
-    config = get_config(wps_token_auth_config=wps_cfg, uos_token_auth_config=uos_cfg)
+    config = get_config(wps_auth_config=wps_cfg, uos_auth_config=uos_cfg)
     return ConfigFixture(config=config, wps_jwk=wps_jwk, uos_jwk=uos_jwk)
