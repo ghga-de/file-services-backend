@@ -22,13 +22,11 @@ from uuid import UUID, uuid4
 
 import httpx
 import pytest
-from ghga_service_commons.api.testing import AsyncTestClient
 from hexkit.correlation import set_correlation_id
 
 from tests_ucs.fixtures import utils
 from tests_ucs.fixtures.joint import JointFixture
 from ucs.constants import FILE_UPLOADS_COLLECTION, S3_UPLOAD_DETAILS_COLLECTION
-from ucs.inject import prepare_rest_app
 
 pytestmark = pytest.mark.asyncio()
 
@@ -45,12 +43,9 @@ async def test_integrated_aspects(joint_fixture: JointFixture):
     uos_jwk = joint_fixture.uos_jwk
     kafka = joint_fixture.kafka
     config = joint_fixture.config
+    rest_client = joint_fixture.rest_client
 
-    async with (
-        prepare_rest_app(config=config) as app,
-        AsyncTestClient(app=app) as rest_client,
-        nullcontext(NamedTemporaryFile("w+b")) as temp_file,
-    ):
+    async with nullcontext(NamedTemporaryFile("w+b")) as temp_file:
         # Create a box
         async with kafka.record_events(
             in_topic=config.file_upload_box_topic
