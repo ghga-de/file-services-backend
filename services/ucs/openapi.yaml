@@ -364,7 +364,7 @@ paths:
       description: 'Create a new FileUploadBox.
 
 
-        Requires CreateUploadWorkOrder token and only allowed for Data Stewards via
+        Requires CreateFileBoxWorkOrder token and only allowed for Data Stewards via
         the UOS.
 
         Request body should contain the storage alias to use for uploads within the

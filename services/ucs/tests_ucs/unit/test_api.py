@@ -22,7 +22,7 @@ import pytest
 from ghga_service_commons.api.testing import AsyncTestClient
 
 from tests_ucs.fixtures import ConfigFixture, utils
-from ucs.adapters.inbound.fastapi_ import http_exceptions, rest_models
+from ucs.adapters.inbound.fastapi_ import http_exceptions
 from ucs.inject import prepare_rest_app
 from ucs.ports.inbound.controller import UploadControllerPort
 
@@ -35,7 +35,7 @@ INVALID_HEADER: dict[str, str] = {"Authorization": "Bearer ab12"}
 
 async def test_create_box_endpoint_auth(config: ConfigFixture):
     """Test that the endpoint returns a 401 if auth is not supplied or is invalid,
-    a 403 if the work type is incorrect,
+    a 401 if the work type is incorrect,
     and a 200 if the token is correct (and request succeeds).
     """
     uos_jwk = config.uos_jwk
@@ -57,7 +57,7 @@ async def test_create_box_endpoint_auth(config: ConfigFixture):
         response = await rest_client.post(
             "/boxes", json=body, headers={"Authorization": f"Bearer {bad_token}"}
         )
-        assert response.status_code == 403
+        assert response.status_code == 401
 
         good_token = utils.generate_create_file_box_token(jwk=uos_jwk)
         response = await rest_client.post(
@@ -97,7 +97,7 @@ async def test_update_box_endpoint_auth(config: ConfigFixture):
         response = await rest_client.patch(
             url, json=body, headers={"Authorization": f"Bearer {wrong_work_token}"}
         )
-        assert response.status_code == 403
+        assert response.status_code == 401
 
         good_token = utils.generate_change_file_box_token(
             box_id=TEST_BOX_ID, jwk=uos_jwk
@@ -138,7 +138,7 @@ async def test_view_box_endpoint_auth(config: ConfigFixture):
         response = await rest_client.get(
             url, headers={"Authorization": f"Bearer {wrong_work_type}"}
         )
-        assert response.status_code == 403
+        assert response.status_code == 401
 
         good_token = utils.generate_view_file_box_token(jwk=uos_jwk, box_id=TEST_BOX_ID)
         response = await rest_client.get(
@@ -169,16 +169,14 @@ async def test_create_file_upload_endpoint_auth(config: ConfigFixture):
         assert response.status_code == 401
 
         # generate a token with the wrong work type for this action
-        bad_token = utils.generate_create_file_token(
+        bad_token = utils.generate_close_file_token(
             box_id=TEST_BOX_ID,
-            alias="test_file",
-            work_type=rest_models.WorkType.CLOSE,
             jwk=wps_jwk,
         )
         response = await rest_client.post(
             url, json=body, headers={"Authorization": f"Bearer {bad_token}"}
         )
-        assert response.status_code == 403
+        assert response.status_code == 401
 
         # generate a token with wrong box ID
         wrong_box_token = utils.generate_create_file_token(
@@ -250,7 +248,7 @@ async def test_get_file_part_upload_url_endpoint_auth(config: ConfigFixture):
         response = await rest_client.get(
             url, headers={"Authorization": f"Bearer {wrong_work_type_token}"}
         )
-        assert response.status_code == 403
+        assert response.status_code == 401
 
         good_token = utils.generate_upload_file_token(
             box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=wps_jwk
@@ -305,7 +303,7 @@ async def test_complete_file_upload_endpoint_auth(config: ConfigFixture):
         response = await rest_client.patch(
             url, json=body, headers={"Authorization": f"Bearer {wrong_work_token}"}
         )
-        assert response.status_code == 403
+        assert response.status_code == 401
 
         good_token = utils.generate_close_file_token(
             box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=wps_jwk
@@ -357,7 +355,7 @@ async def test_delete_file_endpoint_auth(config: ConfigFixture):
         response = await rest_client.delete(
             url, headers={"Authorization": f"Bearer {wrong_work_type_token}"}
         )
-        assert response.status_code == 403
+        assert response.status_code == 401
 
         good_token = utils.generate_delete_file_token(
             box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=wps_jwk

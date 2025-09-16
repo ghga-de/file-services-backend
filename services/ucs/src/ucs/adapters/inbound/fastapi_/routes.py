@@ -135,7 +135,7 @@ async def health():
 @TRACER.start_as_current_span("routes.create_box")
 async def create_box(
     box_creation: rest_models.BoxCreationRequest,
-    work_order_context: Annotated[
+    work_order: Annotated[
         rest_models.CreateFileBoxWorkOrder,
         http_authorization.require_create_file_box_work_order,
     ],
@@ -143,13 +143,10 @@ async def create_box(
 ) -> UUID4:
     """Create a new FileUploadBox.
 
-    Requires CreateUploadWorkOrder token and only allowed for Data Stewards via the UOS.
+    Requires CreateFileBoxWorkOrder token and only allowed for Data Stewards via the UOS.
     Request body should contain the storage alias to use for uploads within the box.
     Returns the box_id of the newly created FileUploadBox.
     """
-    if work_order_context.work_type != rest_models.WorkType.CREATE:
-        raise http_exceptions.HttpNotAuthorizedError()
-
     try:
         alias = box_creation.storage_alias
         return await upload_controller.create_file_upload_box(storage_alias=alias)
@@ -174,7 +171,7 @@ async def create_box(
 async def update_box(
     box_id: UUID4,
     box_update: rest_models.BoxUpdateRequest,
-    work_order_context: Annotated[
+    work_order: Annotated[
         rest_models.ChangeFileBoxWorkOrder,
         http_authorization.require_change_file_box_work_order,
     ],
@@ -184,14 +181,11 @@ async def update_box(
 
     Request body must indicate whether the box is meant to be locked or unlocked.
     """
-    required_work_type = (
-        rest_models.WorkType.LOCK if box_update.lock else rest_models.WorkType.UNLOCK
-    )
-    if (
-        work_order_context.box_id != box_id
-        or work_order_context.work_type != required_work_type
-    ):
+    required_work_type = "lock" if box_update.lock else "unlock"
+    if work_order.box_id != box_id:
         raise http_exceptions.HttpNotAuthorizedError()
+    elif work_order.work_type != required_work_type:
+        raise http_exceptions.HttpNotAuthorizedError(status_code=401)
 
     try:
         if box_update.lock:
@@ -219,7 +213,7 @@ async def update_box(
 @TRACER.start_as_current_span("routes.get_box_uploads")
 async def get_box_uploads(
     box_id: UUID4,
-    work_order_context: Annotated[
+    work_order: Annotated[
         rest_models.ViewFileBoxWorkOrder,
         http_authorization.require_view_file_box_work_order,
     ],
@@ -229,10 +223,7 @@ async def get_box_uploads(
 
     Returns the list of file IDs for completed uploads in the specified box.
     """
-    if (
-        work_order_context.box_id != box_id
-        or work_order_context.work_type != rest_models.WorkType.VIEW
-    ):
+    if work_order.box_id != box_id:
         raise http_exceptions.HttpNotAuthorizedError()
 
     try:
@@ -265,7 +256,7 @@ async def get_box_uploads(
 async def create_file_upload(
     box_id: UUID4,
     file_upload_creation: rest_models.FileUploadCreationRequest,
-    work_order_context: Annotated[
+    work_order: Annotated[
         rest_models.CreateFileWorkOrder,
         http_authorization.require_create_file_work_order,
     ],
@@ -277,11 +268,7 @@ async def create_file_upload(
     Initiates a multipart upload and returns the file ID for the newly created upload.
     """
     file_alias = file_upload_creation.alias
-    if (
-        work_order_context.box_id != box_id
-        or work_order_context.alias != file_alias
-        or work_order_context.work_type != rest_models.WorkType.CREATE
-    ):
+    if work_order.box_id != box_id or work_order.alias != file_alias:
         raise http_exceptions.HttpNotAuthorizedError()
 
     try:
@@ -332,7 +319,7 @@ async def get_part_upload_url(
     box_id: UUID4,
     file_id: UUID4,
     part_no: int,
-    work_order_context: Annotated[
+    work_order: Annotated[
         rest_models.UploadFileWorkOrder,
         http_authorization.require_upload_file_work_order,
     ],
@@ -343,12 +330,10 @@ async def get_part_upload_url(
     Returns a pre-signed URL that can be used to upload the bytes for the specified
     part number of the specified file upload.
     """
-    if (
-        work_order_context.box_id != box_id
-        or work_order_context.file_id != file_id
-        or work_order_context.work_type != rest_models.WorkType.UPLOAD
-    ):
+    if work_order.box_id != box_id or work_order.file_id != file_id:
         raise http_exceptions.HttpNotAuthorizedError()
+    elif work_order.work_type != "upload":
+        raise http_exceptions.HttpNotAuthorizedError(status_code=401)
 
     try:
         presigned_url = await upload_controller.get_part_upload_url(
@@ -389,9 +374,9 @@ async def get_part_upload_url(
 async def complete_file_upload(
     box_id: UUID4,
     file_id: UUID4,
-    work_order_context: Annotated[
-        rest_models.UploadFileWorkOrder,
-        http_authorization.require_upload_file_work_order,
+    work_order: Annotated[
+        rest_models.CloseFileWorkOrder,
+        http_authorization.require_close_file_work_order,
     ],
     upload_controller: dummies.UploadControllerDummy,
 ) -> None:
@@ -400,11 +385,7 @@ async def complete_file_upload(
     Concludes the file upload process in UCS by instructing S3 to complete the
     multipart upload for the specified file.
     """
-    if (
-        work_order_context.box_id != box_id
-        or work_order_context.file_id != file_id
-        or work_order_context.work_type != rest_models.WorkType.CLOSE
-    ):
+    if work_order.box_id != box_id or work_order.file_id != file_id:
         raise http_exceptions.HttpNotAuthorizedError()
 
     try:
@@ -446,9 +427,9 @@ async def complete_file_upload(
 async def remove_file_upload(
     box_id: UUID4,
     file_id: UUID4,
-    work_order_context: Annotated[
-        rest_models.UploadFileWorkOrder,
-        http_authorization.require_upload_file_work_order,
+    work_order: Annotated[
+        rest_models.DeleteFileWorkOrder,
+        http_authorization.require_delete_file_work_order,
     ],
     upload_controller: dummies.UploadControllerDummy,
 ) -> None:
@@ -456,11 +437,7 @@ async def remove_file_upload(
 
     Deletes the FileUpload and tells S3 to cancel the multipart upload if applicable.
     """
-    if (
-        work_order_context.box_id != box_id
-        or work_order_context.file_id != file_id
-        or work_order_context.work_type != rest_models.WorkType.DELETE
-    ):
+    if work_order.box_id != box_id or work_order.file_id != file_id:
         raise http_exceptions.HttpNotAuthorizedError()
 
     try:

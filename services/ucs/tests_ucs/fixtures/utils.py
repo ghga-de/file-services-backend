@@ -42,7 +42,7 @@ def is_success_http_code(http_code: int) -> bool:
 
 def generate_create_file_box_token(*, jwk: JWK, valid_seconds: int = 30):
     """Generate CreateFileBoxWorkOrder token for testing."""
-    wot = models.CreateFileBoxWorkOrder(work_type=models.WorkType.CREATE)
+    wot = models.CreateFileBoxWorkOrder(work_type="create")
     claims = wot.model_dump(mode="json")
     signed_token = jwt_helpers.sign_and_serialize_token(
         claims=claims, key=jwk, valid_seconds=valid_seconds
@@ -53,7 +53,7 @@ def generate_create_file_box_token(*, jwk: JWK, valid_seconds: int = 30):
 def generate_change_file_box_token(
     *,
     box_id: UUID = uuid4(),
-    work_type: Literal["lock"] | Literal["unlock"] = "lock",
+    work_type: Literal["lock", "unlock"] = "lock",
     jwk: JWK,
     valid_seconds: int = 30,
 ):
@@ -76,7 +76,7 @@ def generate_view_file_box_token(
 
     Leave box_id unspecified to use a random value.
     """
-    wot = models.ViewFileBoxWorkOrder(work_type=models.WorkType.VIEW, box_id=box_id)
+    wot = models.ViewFileBoxWorkOrder(work_type="view", box_id=box_id)
     claims = wot.model_dump(mode="json")
     signed_token = jwt_helpers.sign_and_serialize_token(
         claims=claims, key=jwk, valid_seconds=valid_seconds
@@ -88,7 +88,6 @@ def generate_create_file_token(
     *,
     box_id: UUID = uuid4(),
     alias: str = "junk",
-    work_type: models.WorkType = models.WorkType.CREATE,
     jwk: JWK,
     valid_seconds: int = 30,
 ):
@@ -97,7 +96,7 @@ def generate_create_file_token(
     Leave box_id and alias unspecified to use random values.
     Work_type can be specified here to test with wrong work type.
     """
-    wot = models.CreateFileWorkOrder(work_type=work_type, box_id=box_id, alias=alias)
+    wot = models.CreateFileWorkOrder(work_type="create", box_id=box_id, alias=alias)
     claims = wot.model_dump(mode="json")
     signed_token = jwt_helpers.sign_and_serialize_token(
         claims=claims, key=jwk, valid_seconds=valid_seconds
@@ -116,9 +115,7 @@ def generate_upload_file_token(
 
     Leave box_id and file_id unspecified to use random values.
     """
-    wot = models.UploadFileWorkOrder(
-        work_type=models.WorkType.UPLOAD, box_id=box_id, file_id=file_id
-    )
+    wot = models.UploadFileWorkOrder(work_type="upload", box_id=box_id, file_id=file_id)
     claims = wot.model_dump(mode="json")
     signed_token = jwt_helpers.sign_and_serialize_token(
         claims=claims, key=jwk, valid_seconds=valid_seconds
@@ -133,13 +130,11 @@ def generate_close_file_token(
     jwk: JWK,
     valid_seconds: int = 30,
 ):
-    """Generate UploadFileWorkOrder token with type CLOSE for testing.
+    """Generate CloseFileWorkOrder token for testing.
 
     Leave box_id and file_id unspecified to use random values.
     """
-    wot = models.UploadFileWorkOrder(
-        work_type=models.WorkType.CLOSE, box_id=box_id, file_id=file_id
-    )
+    wot = models.CloseFileWorkOrder(work_type="close", box_id=box_id, file_id=file_id)
     claims = wot.model_dump(mode="json")
     signed_token = jwt_helpers.sign_and_serialize_token(
         claims=claims, key=jwk, valid_seconds=valid_seconds
@@ -154,13 +149,11 @@ def generate_delete_file_token(
     jwk: JWK,
     valid_seconds: int = 30,
 ):
-    """Generate UploadFileWorkOrder token with type DELETE for testing.
+    """Generate DeleteFileWorkOrder token for testing.
 
     Leave box_id and file_id unspecified to use random values.
     """
-    wot = models.UploadFileWorkOrder(
-        work_type=models.WorkType.DELETE, box_id=box_id, file_id=file_id
-    )
+    wot = models.DeleteFileWorkOrder(work_type="delete", box_id=box_id, file_id=file_id)
     claims = wot.model_dump(mode="json")
     signed_token = jwt_helpers.sign_and_serialize_token(
         claims=claims, key=jwk, valid_seconds=valid_seconds

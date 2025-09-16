@@ -93,8 +93,23 @@ class CreateFileWorkOrder(BaseWorkOrderToken[Literal["create"]]):
     box_id: UUID4
 
 
-class UploadFileWorkOrder(BaseWorkOrderToken[Literal["upload", "close", "delete"]]):
-    """WOT schema authorizing a user to work with existing FileUploads"""
+class _FileUploadToken(BaseModel):
+    """Partial schema for WOTs authorizing a user to work with existing file uploads.
+
+    This is for existing file uploads only, not for the initiation of new file uploads.
+    """
 
     file_id: UUID4
     box_id: UUID4
+
+
+class UploadFileWorkOrder(BaseWorkOrderToken[Literal["upload"]], _FileUploadToken):
+    """WOT schema authorizing a user to get a file part upload URL"""
+
+
+class CloseFileWorkOrder(BaseWorkOrderToken[Literal["close"]], _FileUploadToken):
+    """WOT schema authorizing a user to complete a file upload"""
+
+
+class DeleteFileWorkOrder(BaseWorkOrderToken[Literal["delete"]], _FileUploadToken):
+    """WOT schema authorizing a user to delete a file upload"""

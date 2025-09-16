@@ -74,6 +74,14 @@ class JWTAuthContextProviderBundle:
             config=self.wps_token_auth_config,
             context_class=models.UploadFileWorkOrder,
         )
+        self.close_file_provider = JWTAuthContextProvider(
+            config=self.wps_token_auth_config,
+            context_class=models.CloseFileWorkOrder,
+        )
+        self.delete_file_provider = JWTAuthContextProvider(
+            config=self.wps_token_auth_config,
+            context_class=models.DeleteFileWorkOrder,
+        )
 
 
 async def _require_create_file_box_work_order(
@@ -143,8 +151,36 @@ async def _require_upload_file_work_order(
     )
 
 
+async def _require_close_file_work_order(
+    auth_provider_bundle: Annotated[
+        JWTAuthContextProviderBundle, Depends(dummies.auth_provider_bundle)
+    ],
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False)),
+) -> models.CloseFileWorkOrder:
+    """Require a "close file" work order context using FastAPI."""
+    provider = auth_provider_bundle.close_file_provider
+    return await require_auth_context_using_credentials(
+        credentials=credentials, auth_provider=provider
+    )
+
+
+async def _require_delete_file_work_order(
+    auth_provider_bundle: Annotated[
+        JWTAuthContextProviderBundle, Depends(dummies.auth_provider_bundle)
+    ],
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False)),
+) -> models.DeleteFileWorkOrder:
+    """Require a "delete file" work order context using FastAPI."""
+    provider = auth_provider_bundle.delete_file_provider
+    return await require_auth_context_using_credentials(
+        credentials=credentials, auth_provider=provider
+    )
+
+
 require_create_file_box_work_order = Security(_require_create_file_box_work_order)
 require_change_file_box_work_order = Security(_require_change_file_box_work_order)
 require_view_file_box_work_order = Security(_require_view_file_box_work_order)
 require_create_file_work_order = Security(_require_create_file_work_order)
 require_upload_file_work_order = Security(_require_upload_file_work_order)
+require_close_file_work_order = Security(_require_close_file_work_order)
+require_delete_file_work_order = Security(_require_delete_file_work_order)
