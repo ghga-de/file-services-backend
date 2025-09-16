@@ -493,14 +493,13 @@ class UploadController(UploadControllerPort):
 
         This helps mitigate potential state inconsistency arising from a hard crash.
         """
-        completed_files = [
-            x
-            async for x in self._file_upload_dao.find_all(
-                mapping={"box_id": box.id, "completed": True}
-            )
-        ]
-        file_count = len(completed_files)
-        total_size = sum([file.size for file in completed_files])
+        file_count = 0
+        total_size = 0
+        async for file_upload in self._file_upload_dao.find_all(
+            mapping={"box_id": box.id, "completed": True}
+        ):
+            file_count += 1
+            total_size += file_upload.size
 
         # Since every update triggers an event, only update if data differs
         if file_count != box.file_count or total_size != box.size:
