@@ -145,7 +145,7 @@ class UploadControllerPort(ABC):
     async def get_part_upload_url(self, *, file_id: UUID4, part_no: int) -> str:
         """
         Create and return a pre-signed URL to upload the bytes for the file part with
-        the given number of the upload with the given ID.
+        the given number of the upload with the given file ID.
 
         Raises:
         - `S3UploadDetailsNotFoundError` if no upload details are found.
