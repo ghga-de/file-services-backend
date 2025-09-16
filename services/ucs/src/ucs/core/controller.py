@@ -568,9 +568,12 @@ class UploadController(UploadControllerPort):
             log.error(error)
             raise error from err
 
-        box.locked = False
-        await self._file_upload_box_dao.update(box)
-        log.info("Unlocked box with ID %s", box_id)
+        if box.locked:
+            box.locked = False
+            await self._file_upload_box_dao.update(box)
+            log.info("Unlocked box with ID %s", box_id)
+        else:
+            log.debug("Box with ID %s is already unlocked", box_id)
 
     async def get_file_ids_for_box(self, *, box_id: UUID4) -> list[UUID4]:
         """Return the list of file IDs for a FileUploadBox.

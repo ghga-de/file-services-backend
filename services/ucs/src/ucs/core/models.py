@@ -32,7 +32,7 @@ class FileUploadBox(BaseModel):
 class FileUpload(BaseModel):
     """A File Upload"""
 
-    id: UUID4
+    id: UUID4  # unique identifier for the instance
     completed: bool = False  # whether or not the file upload has finished
     alias: str  # the submitted alias from the metadata (unique within the box)
     box_id: UUID4
@@ -43,7 +43,7 @@ class FileUpload(BaseModel):
 class S3UploadDetails(BaseModel):
     """Class for linking a multipart upload to its FileUpload object"""
 
-    file_id: UUID4
+    file_id: UUID4  # the id of the corresponding FileUpload
     storage_alias: str
     s3_upload_id: str
     initiated: UTCDatetime

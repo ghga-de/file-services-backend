@@ -76,7 +76,7 @@ class BaseInMemDao[DTO: BaseModel]:
     async def find_all(self, *, mapping: Mapping[str, Any]) -> AsyncIterator[DTO]:
         """Find all resources that match the specified mapping."""
         for resource in self.resources:
-            if all([getattr(resource, k) == v for k, v in mapping.items()]):
+            if all(getattr(resource, k) == v for k, v in mapping.items()):
                 yield deepcopy(resource)
 
     async def insert(self, dto: DTO) -> None:
