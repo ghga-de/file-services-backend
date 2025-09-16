@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Dummy object storage class"""
+"""Mock object storage class"""
 
 from collections import defaultdict
 from contextlib import contextmanager
@@ -41,7 +41,7 @@ def raise_object_storage_error(error_cls: type[Exception]):
 
 
 class InMemObjectStorage:
-    """In-memory object storage dummy mocking just the method used in this service"""
+    """In-memory object storage mock just the method used in this service"""
 
     class ObjectNotFoundError(S3ObjectStorage.ObjectNotFoundError):
         """Dummy error"""
