@@ -75,13 +75,13 @@ class UploadController(UploadControllerPort):
         )
         return bucket_id, object_storage
 
-    async def _insert_validated_file_upload(
+    async def _insert_file_upload_if_new(
         self, *, box: FileUploadBox, alias: str, checksum: str, size: int
     ) -> UUID4:
         """Create a new FileUpload for the provided file alias and return the file_id.
 
-        This method checks that a FileUpload doesn't already exist for the provided alias.
-        If these conditions are met, then it inserts a new FileUpload with a random
+        This method checks that a FileUpload doesn't already exist for the provided
+        alias and box ID. If it is new, then it inserts a new FileUpload with a random
         UUID4 for file_id.
 
         Raises `FileUploadAlreadyExists` if there's already a FileUpload for this alias.
@@ -264,7 +264,7 @@ class UploadController(UploadControllerPort):
         extra["bucked_id"] = bucket_id
 
         initiated = now_utc_ms_prec()  # Generate timestamp early to minimize error risk
-        file_id = await self._insert_validated_file_upload(
+        file_id = await self._insert_file_upload_if_new(
             box=box, alias=alias, checksum=checksum, size=size
         )
         log.info("FileUpload %s added for alias %s.", file_id, alias, extra=extra)
