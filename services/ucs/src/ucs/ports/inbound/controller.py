@@ -23,7 +23,10 @@ from pydantic import UUID4
 class UploadControllerPort(ABC):
     """A class for managing file uploads"""
 
-    class IncompleteUploadsError(RuntimeError):
+    class UploadError(RuntimeError):
+        """Base error class for all upload errors"""
+
+    class IncompleteUploadsError(UploadError):
         """Raised when trying to lock a FileUploadBox for which at least one incomplete
         FileUpload exists.
         """
@@ -32,7 +35,7 @@ class UploadControllerPort(ABC):
             msg = f"Cannot lock box {box_id} because these files are incomplete: {file_ids}"
             super().__init__(msg)
 
-    class S3UploadDetailsNotFoundError(RuntimeError):
+    class S3UploadDetailsNotFoundError(UploadError):
         """Raised when the expected S3 upload details aren't found in the local DB.
 
         This happens when there is a FileUpload object but no matching S3UploadDetails.
@@ -42,7 +45,7 @@ class UploadControllerPort(ABC):
             msg = f"Failed to find S3 multipart upload details for file ID {file_id}."
             super().__init__(msg)
 
-    class S3UploadNotFoundError(RuntimeError):
+    class S3UploadNotFoundError(UploadError):
         """Raised when the local DB has a record of an S3 multipart upload but S3 itself doesn't."""
 
         def __init__(self, *, bucket_id: str, s3_upload_id: str):
@@ -52,7 +55,7 @@ class UploadControllerPort(ABC):
             )
             super().__init__(msg)
 
-    class UploadAbortError(RuntimeError):
+    class UploadAbortError(UploadError):
         """Raised when aborting an S3 multipart upload results in an error."""
 
         def __init__(self, *, file_id: UUID4, s3_upload_id: str, bucket_id: str):
@@ -62,7 +65,7 @@ class UploadControllerPort(ABC):
             )
             super().__init__(msg)
 
-    class UploadCompletionError(RuntimeError):
+    class UploadCompletionError(UploadError):
         """Raised when completing an S3 multipart upload results in an error"""
 
         def __init__(self, *, file_id: UUID4, s3_upload_id: str, bucket_id: str):
@@ -72,7 +75,7 @@ class UploadControllerPort(ABC):
             )
             super().__init__(msg)
 
-    class OrphanedMultipartUploadError(RuntimeError):
+    class OrphanedMultipartUploadError(UploadError):
         """Raised when a pre-existing multipart upload is unexpectedly found"""
 
         def __init__(self, *, file_id: UUID4, bucket_id: str):
@@ -82,7 +85,7 @@ class UploadControllerPort(ABC):
             )
             super().__init__(msg)
 
-    class UnknownStorageAliasError(RuntimeError):
+    class UnknownStorageAliasError(UploadError):
         """Thrown when the requested storage location is not configured.
         The given parameter given should be a configured alias, but is not.
         """
@@ -91,7 +94,7 @@ class UploadControllerPort(ABC):
             message = f"No storage node exists for alias {storage_alias}."
             super().__init__(message)
 
-    class LockedBoxError(RuntimeError):
+    class LockedBoxError(UploadError):
         """Raised when a user tries to perform an action that requires the Box to be
         unlocked, but the Box is locked.
         """
@@ -100,7 +103,7 @@ class UploadControllerPort(ABC):
             msg = f"Can't perform this action because FileUploadBox with ID {box_id} is locked"
             super().__init__(msg)
 
-    class FileUploadAlreadyExists(RuntimeError):
+    class FileUploadAlreadyExists(UploadError):
         """Raised when a FileUpload can't be created for a given box ID and file alias
         because one already exists.
         """
@@ -112,14 +115,14 @@ class UploadControllerPort(ABC):
             )
             super().__init__(msg)
 
-    class BoxNotFoundError(RuntimeError):
+    class BoxNotFoundError(UploadError):
         """Raised when a FileUploadBox isn't found in the DB"""
 
         def __init__(self, *, box_id: UUID4):
             msg = f"FileUploadBox with ID {box_id} not found."
             super().__init__(msg)
 
-    class FileUploadNotFound(RuntimeError):
+    class FileUploadNotFound(UploadError):
         """Raised when a FileUpload isn't found in the DB"""
 
         def __init__(self, *, file_id: UUID4):
