@@ -20,7 +20,7 @@ from typing import Annotated
 
 import typer
 
-from ucs.main import publish_events, run_rest_app
+from ucs.main import initialize, publish_events, run_rest_app
 
 cli = typer.Typer()
 
@@ -40,3 +40,9 @@ def sync_run_publish_events(
 ):
     """Publish pending events."""
     asyncio.run(publish_events(all=all))
+
+
+@cli.command(name="initialize")
+def sync_initialize():
+    """Run the init container functionality"""
+    asyncio.run(initialize())
