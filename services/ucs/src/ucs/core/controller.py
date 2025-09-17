@@ -146,6 +146,8 @@ class UploadController(UploadControllerPort):
 
         Raises:
         - `UnknownStorageAliasError` if the storage alias is not known.
+        - `UploadAbortError` if there's an error instructing S3 to abort the upload.
+          If this occurs, developer intervention might be required.
         """
         object_id = str(s3_upload_details.file_id)
         storage_alias = s3_upload_details.storage_alias
@@ -171,6 +173,26 @@ class UploadController(UploadControllerPort):
                     "No multipart upload found for ID %s. Presumed already aborted.",
                     s3_upload_details.s3_upload_id,
                 )
+            except object_storage.MultiPartUploadAbortError as err:
+                file_id = s3_upload_details.file_id
+                s3_upload_id = s3_upload_details.s3_upload_id
+                error = self.UploadAbortError(
+                    file_id=file_id, s3_upload_id=s3_upload_id, bucket_id=bucket_id
+                )
+                log.error(
+                    "Removed completely uploaded object from inbox, but also found"
+                    + " an unexpected multipart upload. Received an error when upload"
+                    + " abort was attempted. Please investigate.",
+                    exc_info=True,
+                    extra={
+                        "s3_upload_id": s3_upload_id,
+                        "file_id": file_id,
+                        "object_id": object_id,
+                        "bucket_id": bucket_id,
+                        "storage_alias": storage_alias,
+                    },
+                )
+                raise error from err
 
     async def _remove_incomplete_file_upload(
         self, *, s3_upload_details: S3UploadDetails
