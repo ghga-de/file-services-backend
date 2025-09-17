@@ -22,7 +22,11 @@ from hexkit.providers.mongodb.provider import ConfiguredMongoClient
 
 from ucs.config import Config
 from ucs.constants import FILE_UPLOADS_COLLECTION
-from ucs.inject import prepare_outbox_publisher, prepare_rest_app
+from ucs.inject import (
+    prepare_event_subscriber,
+    prepare_outbox_publisher,
+    prepare_rest_app,
+)
 
 
 async def run_rest_app() -> None:
@@ -50,6 +54,16 @@ async def publish_events(*, all: bool = False) -> None:
         else:
             await file_upload_box_dao.publish_pending()
             await file_upload_dao.publish_pending()
+
+
+async def consume_events(run_forever: bool = True):
+    """Run an event consumer listening to the specified topics."""
+    config = Config()
+    configure_logging(config=config)
+    configure_opentelemetry(service_name=config.service_name, config=config)
+
+    async with prepare_event_subscriber(config=config) as event_subscriber:
+        await event_subscriber.run(forever=run_forever)
 
 
 async def initialize() -> None:

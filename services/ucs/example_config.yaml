@@ -10,6 +10,8 @@ db_version_collection: ucsDbVersions
 docs_url: /docs
 enable_opentelemetry: false
 file_upload_box_topic: file-upload-boxes
+file_upload_reports_topic: file-upload-reports
+file_upload_reports_type: file_upload_report
 file_upload_topic: file-uploads
 generate_correlation_id: true
 host: 127.0.0.1

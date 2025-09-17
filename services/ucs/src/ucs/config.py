@@ -25,6 +25,7 @@ from hexkit.providers.mongodb.migrations import MigrationConfig
 from hexkit.providers.mongokafka import MongoKafkaConfig
 from pydantic_settings import BaseSettings
 
+from ucs.adapters.inbound.event_sub import EventSubConfig
 from ucs.adapters.outbound.dao import UploadDaoConfig
 from ucs.constants import SERVICE_NAME
 
@@ -46,6 +47,7 @@ class Config(
     S3ObjectStoragesConfig,
     LoggingConfig,
     OpenTelemetryConfig,
+    EventSubConfig,
 ):
     """Config parameters and their defaults."""
 

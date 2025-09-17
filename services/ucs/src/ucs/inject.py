@@ -20,9 +20,11 @@ from contextlib import asynccontextmanager, nullcontext
 
 from fastapi import FastAPI
 from ghga_service_commons.utils.multinode_storage import S3ObjectStorages
+from hexkit.providers.akafka import KafkaEventPublisher, KafkaEventSubscriber
 from hexkit.providers.mongodb import MongoDbDaoFactory
 from hexkit.providers.mongokafka.provider import MongoKafkaDaoPublisherFactory
 
+from ucs.adapters.inbound.event_sub import EventSubTranslator
 from ucs.adapters.inbound.fastapi_ import dummies
 from ucs.adapters.inbound.fastapi_.configure import get_configured_app
 from ucs.adapters.inbound.fastapi_.http_authorization import (
@@ -113,3 +115,32 @@ async def prepare_rest_app(
             lambda: upload_controller
         )
         yield app
+
+
+@asynccontextmanager
+async def prepare_event_subscriber(
+    *,
+    config: Config,
+    core_override: UploadControllerPort | None = None,
+) -> AsyncGenerator[KafkaEventSubscriber, None]:
+    """Construct and initialize an event subscriber with all its dependencies.
+    By default, the core dependencies are automatically prepared but you can also
+    provide them using the core_override parameter.
+    """
+    async with prepare_core_with_override(
+        config=config, core_override=core_override
+    ) as controller:
+        event_sub_translator = EventSubTranslator(
+            config=config,
+            upload_controller=controller,
+        )
+
+        async with (
+            KafkaEventPublisher.construct(config=config) as dlq_publisher,
+            KafkaEventSubscriber.construct(
+                config=config,
+                translator=event_sub_translator,
+                dlq_publisher=dlq_publisher,
+            ) as event_subscriber,
+        ):
+            yield event_subscriber

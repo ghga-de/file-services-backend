@@ -19,6 +19,8 @@ from abc import ABC, abstractmethod
 
 from pydantic import UUID4
 
+from ucs.core.models import FileUploadReport
+
 
 class UploadControllerPort(ABC):
     """A class for managing file uploads"""
@@ -220,3 +222,15 @@ class UploadControllerPort(ABC):
         - `BoxNotFoundError` if the FileUploadBox isn't found in the DB.
         """
         ...
+
+    @abstractmethod
+    async def process_file_upload_report(
+        self, *, file_upload_report: FileUploadReport
+    ) -> None:
+        """Use a file upload report to clean up a file from the inbox bucket.
+
+        Raises:
+        - `S3UploadDetailsNotFoundError` if the S3UploadDetails aren't found.
+        - `UnknownStorageAliasError` if the storage alias is not known.
+        - `UploadAbortError` if there's an error instructing S3 to abort the upload.
+        """

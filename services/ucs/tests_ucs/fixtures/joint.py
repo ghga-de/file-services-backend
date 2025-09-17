@@ -29,6 +29,7 @@ from ghga_service_commons.utils.multinode_storage import (
     S3ObjectStorageNodeConfig,
     S3ObjectStoragesConfig,
 )
+from hexkit.providers.akafka import KafkaEventSubscriber
 from hexkit.providers.akafka.testutils import KafkaFixture
 from hexkit.providers.mongodb.testutils import MongoDbFixture
 from hexkit.providers.s3.testutils import S3Fixture
@@ -36,7 +37,7 @@ from jwcrypto.jwk import JWK
 
 from tests_ucs.fixtures.config import get_config
 from ucs.config import Config
-from ucs.inject import prepare_core, prepare_rest_app
+from ucs.inject import prepare_core, prepare_event_subscriber, prepare_rest_app
 from ucs.ports.inbound.controller import UploadControllerPort
 
 
@@ -48,6 +49,7 @@ class JointFixture:
     upload_controller: UploadControllerPort
     rest_client: httpx.AsyncClient
     mongodb: MongoDbFixture
+    event_subscriber: KafkaEventSubscriber
     kafka: KafkaFixture
     s3: S3Fixture
     bucket_id: str
@@ -88,6 +90,9 @@ async def joint_fixture(
     async with (
         prepare_core(config=config) as upload_controller,
         prepare_rest_app(config=config, core_override=upload_controller) as app,
+        prepare_event_subscriber(
+            config=config, core_override=upload_controller
+        ) as event_subscriber,
         AsyncTestClient(app=app) as rest_client,
     ):
         yield JointFixture(
@@ -96,6 +101,7 @@ async def joint_fixture(
             rest_client=rest_client,
             mongodb=mongodb,
             kafka=kafka,
+            event_subscriber=event_subscriber,
             s3=s3,
             bucket_id=bucket_id,
             wps_jwk=wps_jwk,

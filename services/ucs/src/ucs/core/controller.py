@@ -26,7 +26,7 @@ from hexkit.utils import now_utc_ms_prec
 from pydantic import UUID4
 
 from ucs.config import Config
-from ucs.core.models import FileUpload, FileUploadBox, S3UploadDetails
+from ucs.core.models import FileUpload, FileUploadBox, FileUploadReport, S3UploadDetails
 from ucs.ports.inbound.controller import UploadControllerPort
 from ucs.ports.outbound.dao import (
     FileUploadBoxDao,
@@ -616,3 +616,23 @@ class UploadController(UploadControllerPort):
             )
         ]
         return file_ids
+
+    async def process_file_upload_report(
+        self, *, file_upload_report: FileUploadReport
+    ) -> None:
+        """Use a file upload report to clean up a file from the inbox bucket.
+
+        Raises:
+        - `S3UploadDetailsNotFoundError` if the S3UploadDetails aren't found.
+        - `UnknownStorageAliasError` if the storage alias is not known.
+        - `UploadAbortError` if there's an error instructing S3 to abort the upload.
+        """
+        file_id = file_upload_report.file_id
+        try:
+            s3_upload_details = await self._s3_upload_details_dao.get_by_id(file_id)
+        except ResourceNotFoundError as err:
+            error = self.S3UploadDetailsNotFoundError(file_id=file_id)
+            log.error(error, extra={"file_id": file_id})
+            raise error from err
+
+        await self._remove_completed_file_upload(s3_upload_details=s3_upload_details)

@@ -46,6 +46,31 @@ ucs --help
 ### Parameters
 
 The service requires the following configuration parameters:
+- <a id="properties/file_upload_reports_topic"></a>**`file_upload_reports_topic`** *(string, required)*: Name of the topic used for events indicating that a Data Hub has completed re-encryption and inspection of a file.
+
+
+  Examples:
+
+  ```json
+  "file-upload-reports"
+  ```
+
+
+- <a id="properties/file_upload_reports_type"></a>**`file_upload_reports_type`** *(string, required)*: The type used for events indicating that a Data Hub has completed re-encryption and inspection of a file.
+
+
+  Examples:
+
+  ```json
+  "file_upload_report_generated"
+  ```
+
+
+  ```json
+  "file_upload_report"
+  ```
+
+
 - <a id="properties/enable_opentelemetry"></a>**`enable_opentelemetry`** *(boolean)*: If set to true, this will run necessary setup code.If set to false, environment variables are set that should also effectively disable autoinstrumentation. Default: `false`.
 
 - <a id="properties/otel_trace_sampling_rate"></a>**`otel_trace_sampling_rate`** *(number)*: Determines which proportion of spans should be sampled. A value of 1.0 means all and is equivalent to the previous behaviour. Setting this to 0 will result in no spans being sampled, but this does not automatically set `enable_opentelemetry` to False. Minimum: `0`. Maximum: `1`. Default: `1.0`.

@@ -48,3 +48,12 @@ class S3UploadDetails(BaseModel):
     s3_upload_id: str
     initiated: UTCDatetime
     completed: UTCDatetime | None = None
+
+
+class FileUploadReport(BaseModel):
+    """A report that models the result of the Data Hub-side file inspection"""
+
+    # Note, this model is subject to change; consider this a rough sketch for now
+    file_id: UUID4
+    secret_id: str
+    passed_inspection: bool

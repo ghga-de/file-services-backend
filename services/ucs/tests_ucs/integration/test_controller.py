@@ -27,6 +27,7 @@ from hexkit.correlation import set_correlation_id
 from tests_ucs.fixtures import utils
 from tests_ucs.fixtures.joint import JointFixture
 from ucs.constants import FILE_UPLOADS_COLLECTION, S3_UPLOAD_DETAILS_COLLECTION
+from ucs.core.models import FileUploadReport
 from ucs.main import initialize
 from ucs.ports.inbound.controller import UploadControllerPort
 
@@ -439,3 +440,81 @@ async def test_file_upload_index(joint_fixture: JointFixture, monkeypatch):
             _ = await joint_fixture.upload_controller.initiate_file_upload(
                 box_id=box_id, alias="file1", checksum="blah", size=1024
             )
+
+
+async def test_file_upload_report_happy(joint_fixture: JointFixture):
+    """Test the normal path of receiving a FileUploadReport event and deleting the file
+    from the S3 bucket.
+    """
+    controller = joint_fixture.upload_controller
+    s3_storage = joint_fixture.s3.storage
+    bucket_id = joint_fixture.bucket_id
+    config = joint_fixture.config
+
+    # Create a box and initiate a file upload
+    async with set_correlation_id(uuid4()):
+        box_id = await controller.create_file_upload_box(storage_alias="test")
+        file_id = await controller.initiate_file_upload(
+            box_id=box_id, alias="test-file", checksum="abc123", size=1024
+        )
+
+    # Get upload URL and upload the file content
+    url = await controller.get_part_upload_url(file_id=file_id, part_no=1)
+    response = httpx.put(url, content="a" * 1024)
+    assert response.status_code == 200
+
+    # Complete the file upload
+    async with set_correlation_id(uuid4()):
+        await controller.complete_file_upload(box_id=box_id, file_id=file_id)
+
+    # Verify the file exists in S3
+    object_id = str(file_id)
+    file_exists_before = await s3_storage.does_object_exist(
+        bucket_id=bucket_id, object_id=object_id
+    )
+    assert file_exists_before
+
+    # Verify the database records exist
+    db = joint_fixture.mongodb.client[config.db_name]
+    s3_upload_details_collection = db[S3_UPLOAD_DETAILS_COLLECTION]
+    file_upload_collection = db[FILE_UPLOADS_COLLECTION]
+
+    s3_uploads_before = s3_upload_details_collection.find({"_id": file_id}).to_list()
+    assert len(s3_uploads_before) == 1
+    assert s3_uploads_before[0]["completed"]
+
+    file_uploads_before = file_upload_collection.find(
+        {"_id": file_id, "__metadata__.deleted": False}
+    ).to_list()
+    assert len(file_uploads_before) == 1
+    assert file_uploads_before[0]["completed"]
+
+    # Create and publish a FileUploadReport event
+    file_upload_report = FileUploadReport(
+        file_id=file_id, secret_id="test-secret-123", passed_inspection=True
+    )
+
+    await joint_fixture.kafka.publish_event(
+        payload=file_upload_report.model_dump(),
+        type_=config.file_upload_reports_type,
+        topic=config.file_upload_reports_topic,
+    )
+
+    # Consume the event
+    await joint_fixture.event_subscriber.run(forever=False)
+
+    # Verify the file has been deleted from S3
+    file_exists_after = await s3_storage.does_object_exist(
+        bucket_id=bucket_id, object_id=object_id
+    )
+    assert not file_exists_after
+
+    # Now test for idempotency by repeating the publish and consume
+    await joint_fixture.kafka.publish_event(
+        payload=file_upload_report.model_dump(),
+        type_=config.file_upload_reports_type,
+        topic=config.file_upload_reports_topic,
+    )
+
+    # Consume the event -- should not receive an error
+    await joint_fixture.event_subscriber.run(forever=False)

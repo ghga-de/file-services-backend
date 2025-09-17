@@ -21,3 +21,5 @@ wps_auth_config:
 uos_auth_config:
   auth_key: "{}"
   auth_check_claims: {}
+file_upload_reports_topic: file-upload-reports
+file_upload_reports_type: file_upload_report
