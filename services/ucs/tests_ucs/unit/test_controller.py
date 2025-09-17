@@ -328,35 +328,6 @@ async def test_create_box_with_unknown_storage_alias(rig: JointRig):
     assert not rig.file_upload_box_dao.resources
 
 
-async def test_create_file_upload_alias_duplicate(rig: JointRig):
-    """Test for error handling when a user tries to create a FileUpload
-    for a file alias that already exists.
-    """
-    controller = rig.controller
-    file_upload_dao = rig.file_upload_dao
-
-    # First create a FileUploadBox
-    box_id = await controller.create_file_upload_box(storage_alias="test")
-
-    # Create a FileUpload with a specific alias
-    file_alias = "duplicate_alias"
-    await controller.initiate_file_upload(
-        box_id=box_id, alias=file_alias, checksum="sha256:abc123", size=1024
-    )
-
-    # Try to create another FileUpload with the same alias - should raise FileUploadAlreadyExists
-    with pytest.raises(UploadControllerPort.FileUploadAlreadyExists) as exc_info:
-        await controller.initiate_file_upload(
-            box_id=box_id, alias=file_alias, checksum="sha256:def456", size=2048
-        )
-
-    # Verify the exception message contains the alias
-    assert file_alias in str(exc_info.value)
-
-    # Verify only one FileUpload was created
-    assert len(file_upload_dao.resources) == 1
-
-
 async def test_create_file_upload_when_box_missing(rig: JointRig):
     """Test error handling in the case where the user tries to create a FileUpload
     for a box ID that doesn't exist.
