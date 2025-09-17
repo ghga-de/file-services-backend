@@ -20,6 +20,7 @@ from typing import Any
 from uuid import uuid4
 
 from ghga_service_commons.utils.multinode_storage import ObjectStorages
+from hexkit.protocols.dao import ResourceAlreadyExistsError
 from hexkit.protocols.objstorage import ObjectStorageProtocol
 from hexkit.utils import now_utc_ms_prec
 from pydantic import UUID4
@@ -80,38 +81,34 @@ class UploadController(UploadControllerPort):
     ) -> UUID4:
         """Create a new FileUpload for the provided file alias and return the file_id.
 
-        This method checks that a FileUpload doesn't already exist for the provided
-        alias and box ID. If it is new, then it inserts a new FileUpload with a random
-        UUID4 for file_id.
+        This method tries to insert a new FileUpload with a random UUID4 for file_id.
 
-        Raises `FileUploadAlreadyExists` if there's already a FileUpload for this alias.
+        Raises `FileUploadAlreadyExists` if there's already a FileUpload for this alias
+        and box_id.
         """
         box_id = box.id
+        file_id = uuid4()
 
-        # Verify that a file hasn't been created for this box + alias already
-        async for _ in self._file_upload_dao.find_all(
-            mapping={"box_id": box_id, "alias": alias}
-        ):
+        try:
+            file_upload = FileUpload(
+                id=file_id, box_id=box_id, alias=alias, size=size, checksum=checksum
+            )
+
+            await self._file_upload_dao.insert(file_upload)
+            return file_id
+        except ResourceAlreadyExistsError as err:
             error = self.FileUploadAlreadyExists(alias=alias)
             log.error(
                 error,
                 extra={
                     "box_id": box.id,
+                    "generated_file_id": file_id,
                     "file_alias": alias,
                     "checksum": checksum,
                     "size": size,
                 },
             )
-            raise error
-
-        # Insert the FileUpload object
-        file_id = uuid4()
-        file_upload = FileUpload(
-            id=file_id, box_id=box_id, alias=alias, size=size, checksum=checksum
-        )
-        await self._file_upload_dao.insert(file_upload)
-
-        return file_id
+            raise error from err
 
     async def _get_unlocked_box(self, *, box_id: UUID4) -> FileUploadBox:
         """Retrieve a FileUploadBox by ID.

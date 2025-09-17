@@ -27,6 +27,8 @@ from hexkit.correlation import set_correlation_id
 from tests_ucs.fixtures import utils
 from tests_ucs.fixtures.joint import JointFixture
 from ucs.constants import FILE_UPLOADS_COLLECTION, S3_UPLOAD_DETAILS_COLLECTION
+from ucs.main import initialize
+from ucs.ports.inbound.controller import UploadControllerPort
 
 pytestmark = pytest.mark.asyncio()
 
@@ -418,3 +420,22 @@ async def test_orphaned_s3_upload_in_file_create(joint_fixture: JointFixture, ca
     await s3_storage.abort_multipart_upload(
         bucket_id=bucket_id, object_id=str(file_id), upload_id=s3_upload_id
     )
+
+
+async def test_file_upload_index(joint_fixture: JointFixture, monkeypatch):
+    """Test that the compound FileUpload index works"""
+    monkeypatch.setattr("ucs.main.Config", lambda: joint_fixture.config)
+
+    async with set_correlation_id(uuid4()):
+        await initialize()
+
+        box_id = await joint_fixture.upload_controller.create_file_upload_box(
+            storage_alias="test"
+        )
+        _ = await joint_fixture.upload_controller.initiate_file_upload(
+            box_id=box_id, alias="file1", checksum="blah", size=1024
+        )
+        with pytest.raises(UploadControllerPort.FileUploadAlreadyExists):
+            _ = await joint_fixture.upload_controller.initiate_file_upload(
+                box_id=box_id, alias="file1", checksum="blah", size=1024
+            )

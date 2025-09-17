@@ -18,12 +18,14 @@
 from ghga_service_commons.api import run_server
 from hexkit.log import configure_logging
 from hexkit.opentelemetry import configure_opentelemetry
+from hexkit.providers.mongodb.provider import ConfiguredMongoClient
 
 from ucs.config import Config
+from ucs.constants import FILE_UPLOADS_COLLECTION
 from ucs.inject import prepare_outbox_publisher, prepare_rest_app
 
 
-async def run_rest_app():
+async def run_rest_app() -> None:
     """Run the HTTP REST API."""
     config = Config()
     configure_logging(config=config)
@@ -33,7 +35,7 @@ async def run_rest_app():
         await run_server(app=app, config=config)
 
 
-async def publish_events(*, all: bool = False):
+async def publish_events(*, all: bool = False) -> None:
     """Publish pending events. Set `--all` to (re)publish all events regardless of status."""
     config = Config()
     configure_logging(config=config)
@@ -48,3 +50,15 @@ async def publish_events(*, all: bool = False):
         else:
             await file_upload_box_dao.publish_pending()
             await file_upload_dao.publish_pending()
+
+
+async def initialize() -> None:
+    """Operations to be run in an init container before service startup."""
+    config = Config()
+
+    configure_logging(config=config)
+    configure_opentelemetry(service_name=config.service_name, config=config)
+    async with ConfiguredMongoClient(config=config) as client:
+        db = client.get_database(config.db_name)
+        file_uploads_collection = db.get_collection(FILE_UPLOADS_COLLECTION)
+        await file_uploads_collection.create_index(["box_id", "alias"], unique=True)
