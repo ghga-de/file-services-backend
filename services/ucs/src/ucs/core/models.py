@@ -15,6 +15,8 @@
 
 """Defines dataclasses for holding business-logic data"""
 
+from typing import Literal
+
 from ghga_service_commons.utils.utc_dates import UTCDatetime
 from pydantic import UUID4, BaseModel
 
@@ -29,11 +31,15 @@ class FileUploadBox(BaseModel):
     storage_alias: str
 
 
+FileUploadState = Literal["init", "inbox", "archived"]
+
+
 class FileUpload(BaseModel):
     """A File Upload"""
 
     id: UUID4  # unique identifier for the instance
     completed: bool = False  # whether or not the file upload has finished
+    state: FileUploadState = "init"
     alias: str  # the submitted alias from the metadata (unique within the box)
     box_id: UUID4
     checksum: str

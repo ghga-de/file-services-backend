@@ -227,10 +227,12 @@ class UploadControllerPort(ABC):
     async def process_file_upload_report(
         self, *, file_upload_report: FileUploadReport
     ) -> None:
-        """Use a file upload report to clean up a file from the inbox bucket.
+        """Use a file upload report to clean up a file from the inbox bucket and
+        set the FileUpload state to 'archived'.
 
         Raises:
         - `S3UploadDetailsNotFoundError` if the S3UploadDetails aren't found.
+        - `FileUploadNotFound` if the FileUpload isn't found.
         - `UnknownStorageAliasError` if the storage alias is not known.
         - `UploadAbortError` if there's an error instructing S3 to abort the upload.
         """

@@ -108,9 +108,10 @@ async def test_integrated_aspects(joint_fixture: JointFixture):
         assert events[0].type_ == "upserted"
         assert events[0].payload == {
             **file_creation_body,
+            "state": "init",
+            "completed": False,
             "id": str(file_id),
             "box_id": str(box_id),
-            "completed": False,
         }, "Payload was wrong for new file upload event"
 
         # Get part upload URL for the file (should only require 1 part since file is under 16 MiB)
@@ -141,7 +142,7 @@ async def test_integrated_aspects(joint_fixture: JointFixture):
             )
         events = file_recorder.recorded_events
         assert len(events) == 1
-        assert events[0].payload["completed"]
+        assert events[0].payload["state"] in ["inbox", "archived"]
 
         # Let's lock the box now and verify that it is reflected in the event
         async with kafka.record_events(
@@ -247,7 +248,7 @@ async def test_s3_upload_completed_but_db_not_updated(joint_fixture: JointFixtur
         {"__metadata__.deleted": False}
     ).to_list()
     assert len(file_uploads) == 1
-    assert file_uploads[0]["completed"]
+    assert file_uploads[0]["state"] in ["inbox", "archived"]
     assert uploads[0]["_id"] == file_uploads[0]["_id"]
 
 
@@ -350,7 +351,7 @@ async def test_s3_upload_complete_fails(joint_fixture: JointFixture):
         {"__metadata__.deleted": False}
     ).to_list()
     assert len(file_uploads) == 1
-    assert file_uploads[0]["completed"]
+    assert file_uploads[0]["state"] in ["inbox", "archived"]
     assert uploads[0]["_id"] == file_uploads[0]["_id"]
 
 
@@ -487,7 +488,7 @@ async def test_file_upload_report_happy(joint_fixture: JointFixture):
         {"_id": file_id, "__metadata__.deleted": False}
     ).to_list()
     assert len(file_uploads_before) == 1
-    assert file_uploads_before[0]["completed"]
+    assert file_uploads_before[0]["state"] == "inbox"
 
     # Create and publish a FileUploadReport event
     file_upload_report = FileUploadReport(
@@ -508,6 +509,11 @@ async def test_file_upload_report_happy(joint_fixture: JointFixture):
         bucket_id=bucket_id, object_id=object_id
     )
     assert not file_exists_after
+
+    # Verify the FileUpload state was updated
+    file_uploads_after = file_upload_collection.find().to_list()
+    assert len(file_uploads_after) == 1
+    assert file_uploads_after[0]["state"] == "archived"
 
     # Now test for idempotency by repeating the publish and consume
     await joint_fixture.kafka.publish_event(

@@ -148,6 +148,7 @@ class UploadController(UploadControllerPort):
         """
         object_id = str(s3_upload_details.file_id)
         storage_alias = s3_upload_details.storage_alias
+        s3_upload_id = s3_upload_details.s3_upload_id
         bucket_id, object_storage = self._get_bucket_and_storage(
             storage_alias=storage_alias
         )
@@ -155,24 +156,30 @@ class UploadController(UploadControllerPort):
         if await object_storage.does_object_exist(
             bucket_id=bucket_id, object_id=object_id
         ):
+            log.debug(
+                "Attempting to delete file %s from bucket %s", object_id, bucket_id
+            )
             await object_storage.delete_object(bucket_id=bucket_id, object_id=object_id)
+            log.info("Deleted file %s from bucket %s", object_id, bucket_id)
         else:
             # Suppress the error in case this is a retry after, e.g. a network hiccup
             #  (wherein the upload was actually cancelled but user still saw an error)
             try:
+                log.debug(
+                    "Attempting to abort S3 upload %s if it still exists", s3_upload_id
+                )
                 await object_storage.abort_multipart_upload(
                     bucket_id=bucket_id,
                     object_id=object_id,
-                    upload_id=s3_upload_details.s3_upload_id,
+                    upload_id=s3_upload_id,
                 )
             except object_storage.MultiPartUploadNotFoundError:
                 log.info(
                     "No multipart upload found for ID %s. Presumed already aborted.",
-                    s3_upload_details.s3_upload_id,
+                    s3_upload_id,
                 )
             except object_storage.MultiPartUploadAbortError as err:
                 file_id = s3_upload_details.file_id
-                s3_upload_id = s3_upload_details.s3_upload_id
                 error = self.UploadAbortError(
                     file_id=file_id, s3_upload_id=s3_upload_id, bucket_id=bucket_id
                 )
@@ -210,11 +217,15 @@ class UploadController(UploadControllerPort):
         )
 
         try:
+            log.debug(
+                "Attempting to abort S3 upload %s since it should exist.", s3_upload_id
+            )
             await object_storage.abort_multipart_upload(
                 upload_id=s3_upload_id,
                 bucket_id=bucket_id,
                 object_id=str(file_id),
             )
+            log.info("Successfully aborted S3 upload %s", s3_upload_id)
         except object_storage.MultiPartUploadAbortError as err:
             error = self.UploadAbortError(
                 file_id=file_id, s3_upload_id=s3_upload_id, bucket_id=bucket_id
@@ -394,10 +405,10 @@ class UploadController(UploadControllerPort):
             log.error(error, extra=extra)
             raise error from err
 
-        # Exit early if the FileUpload is already marked complete
+        # Exit early if the FileUpload is complete (already in the inbox or archived)
         if file_upload.completed:
-            log.info("FileUpload with ID %s already marked complete.", file_id)
-            # If this method is called but the file is already marked complete, triple
+            log.info("FileUpload with ID %s already complete.", file_id)
+            # If this method is called but the file is already completed, triple
             #  check that the box is up to date
             await self._update_box_stats(box=box)
             return
@@ -458,6 +469,7 @@ class UploadController(UploadControllerPort):
                 raise error from err
 
         # Update local collections now that S3 upload is successfully completed
+        file_upload.state = "inbox"
         file_upload.completed = True
         s3_upload_details.completed = now_utc_ms_prec()
         await self._file_upload_dao.update(file_upload)
@@ -620,14 +632,35 @@ class UploadController(UploadControllerPort):
     async def process_file_upload_report(
         self, *, file_upload_report: FileUploadReport
     ) -> None:
-        """Use a file upload report to clean up a file from the inbox bucket.
+        """Use a file upload report to clean up a file from the inbox bucket and
+        set the FileUpload state to 'archived'.
 
         Raises:
         - `S3UploadDetailsNotFoundError` if the S3UploadDetails aren't found.
+        - `FileUploadNotFound` if the FileUpload isn't found.
         - `UnknownStorageAliasError` if the storage alias is not known.
         - `UploadAbortError` if there's an error instructing S3 to abort the upload.
         """
         file_id = file_upload_report.file_id
+        try:
+            file_upload = await self._file_upload_dao.get_by_id(file_id)
+        except ResourceNotFoundError as err:
+            error = self.FileUploadNotFound(file_id=file_id)
+            log.error(error, extra={"file_id": file_id})
+            raise error from err
+
+        if file_upload.state != "archived":
+            file_upload.state = "archived"
+            log.debug("Marking FileUpload %s as 'archived'", file_id)
+            await self._file_upload_dao.update(file_upload)
+        else:
+            log.debug(
+                "FileUpload %s was already marked as 'archived', so it's likely"
+                + " this FileUploadReport has been processed already.",
+                file_id,
+            )
+
+        # Attempt to delete S3 file even if this event has been processed before
         try:
             s3_upload_details = await self._s3_upload_details_dao.get_by_id(file_id)
         except ResourceNotFoundError as err:

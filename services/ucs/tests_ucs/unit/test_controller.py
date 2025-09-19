@@ -813,8 +813,8 @@ async def test_get_file_ids_for_non_existent_box(rig: JointRig):
         await rig.controller.get_file_ids_for_box(box_id=uuid4())
 
 
-async def test_file_upload_report_no_s3_upload_details(rig: JointRig):
-    """Test the alt case where the S3 upload details don't exist."""
+async def test_file_upload_report_no_file_upload(rig: JointRig):
+    """Test the alt case where the file upload doesn't exist."""
     non_existent_file_id = uuid4()
     file_upload_report = models.FileUploadReport(
         file_id=non_existent_file_id,
@@ -822,7 +822,7 @@ async def test_file_upload_report_no_s3_upload_details(rig: JointRig):
         passed_inspection=True,
     )
 
-    with pytest.raises(UploadControllerPort.S3UploadDetailsNotFoundError):
+    with pytest.raises(UploadControllerPort.FileUploadNotFound):
         await rig.controller.process_file_upload_report(
             file_upload_report=file_upload_report
         )
