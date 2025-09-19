@@ -290,7 +290,7 @@ class UploadController(UploadControllerPort):
                 extra=extra,
             )
         except object_storage.MultiPartUploadAlreadyExistsError as err:
-            #  _insert_validated_file_upload precludes the existence of a FileUpload
+            #  _insert_file_upload_if_new precludes the existence of a FileUpload
             #  with the same `file_id`. If there's no FileUpload with the same file_id,
             #  then there cannot be an upload for said file_id (in S3, file_id is object_id).
             #  The most likely cause for this situation is that a crash occurred between
