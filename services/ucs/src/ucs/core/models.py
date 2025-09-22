@@ -32,6 +32,9 @@ class FileUploadBox(BaseModel):
 
 
 FileUploadState = Literal["init", "inbox", "archived"]
+# init = file upload initiated, but not yet finished
+# inbox = file upload complete, file in inbox
+# archived = file moved out of inbox after completion
 
 
 class FileUpload(BaseModel):
