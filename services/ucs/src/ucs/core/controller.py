@@ -649,16 +649,23 @@ class UploadController(UploadControllerPort):
             log.error(error, extra={"file_id": file_id})
             raise error from err
 
-        if file_upload.state != "archived":
-            file_upload.state = "archived"
-            log.debug("Marking FileUpload %s as 'archived'", file_id)
-            await self._file_upload_dao.update(file_upload)
-        else:
-            log.debug(
-                "FileUpload %s was already marked as 'archived', so it's likely"
-                + " this FileUploadReport has been processed already.",
-                file_id,
-            )
+        match file_upload.state:
+            case "init":
+                log.warning(
+                    "Ignoring FileUploadReport for FileUpload %s since it is still in the 'init' state.",
+                    file_id,
+                )
+                return
+            case "inbox":
+                file_upload.state = "archived"
+                log.debug("Marking FileUpload %s as 'archived'", file_id)
+                await self._file_upload_dao.update(file_upload)
+            case "archived":
+                log.debug(
+                    "FileUpload %s was already marked as 'archived', so it's likely"
+                    + " this FileUploadReport has been processed already.",
+                    file_id,
+                )
 
         # Attempt to delete S3 file even if this event has been processed before
         try:
