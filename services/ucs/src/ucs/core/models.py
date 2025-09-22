@@ -18,7 +18,7 @@
 from typing import Literal
 
 from ghga_service_commons.utils.utc_dates import UTCDatetime
-from pydantic import UUID4, BaseModel
+from pydantic import UUID4, BaseModel, model_validator
 
 
 class FileUploadBox(BaseModel):
@@ -47,6 +47,15 @@ class FileUpload(BaseModel):
     box_id: UUID4
     checksum: str
     size: int
+
+    @model_validator(mode="after")
+    def validate_completed(self):
+        """Make sure `completed` and `state` are in sync."""
+        if self.completed != (self.state in ["inbox", "archived"]):
+            raise ValueError(
+                "Completed must be False if state is 'init' and True otherwise."
+            )
+        return self
 
 
 class S3UploadDetails(BaseModel):

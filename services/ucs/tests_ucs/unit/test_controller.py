@@ -260,34 +260,35 @@ async def test_get_box_uploads(rig: JointRig):
     box_id = await controller.create_file_upload_box(storage_alias="test")
 
     # Create multiple FileUploads within the box
-    file_id_1 = await controller.initiate_file_upload(
-        box_id=box_id, alias="file_1", checksum="sha256:abc123", size=1024
-    )
-    file_id_2 = await controller.initiate_file_upload(
-        box_id=box_id, alias="file_2", checksum="sha256:def456", size=2048
-    )
-    file_id_3 = await controller.initiate_file_upload(
-        box_id=box_id, alias="file_3", checksum="sha256:ghi789", size=512
-    )
+    file_ids = [
+        await controller.initiate_file_upload(
+            box_id=box_id,
+            alias=f"file{i}",
+            checksum="sha256:xyz789",
+            size=1024,
+        )
+        for i in range(3)
+    ]
 
     # Create a second box with different files to test isolation
     other_box_id = await controller.create_file_upload_box(storage_alias="test")
-
-    other_file_id_1 = await controller.initiate_file_upload(
-        box_id=other_box_id, alias="other_file_1", checksum="sha256:xyz789", size=1536
-    )
-    other_file_id_2 = await controller.initiate_file_upload(
-        box_id=other_box_id, alias="other_file_2", checksum="sha256:uvw456", size=3072
-    )
+    other_file_ids = [
+        await controller.initiate_file_upload(
+            box_id=other_box_id,
+            alias=f"file{i}",
+            checksum="sha256:xyz789",
+            size=1024,
+        )
+        for i in range(2)
+    ]
 
     # Complete the file uploads so they appear in the results
-    await controller.complete_file_upload(box_id=box_id, file_id=file_id_1)
-    await controller.complete_file_upload(box_id=box_id, file_id=file_id_2)
-    await controller.complete_file_upload(box_id=box_id, file_id=file_id_3)
+    for file_id in file_ids:
+        await controller.complete_file_upload(box_id=box_id, file_id=file_id)
 
     # Complete the uploads in the other box too
-    await controller.complete_file_upload(box_id=other_box_id, file_id=other_file_id_1)
-    await controller.complete_file_upload(box_id=other_box_id, file_id=other_file_id_2)
+    for file_id in other_file_ids:
+        await controller.complete_file_upload(box_id=other_box_id, file_id=file_id)
 
     # Create a third, empty box
     empty_box_id = await controller.create_file_upload_box(storage_alias="test")
@@ -296,12 +297,12 @@ async def test_get_box_uploads(rig: JointRig):
     file_ids = await controller.get_file_ids_for_box(box_id=box_id)
 
     # Verify only the files from the first box are returned (not from other_box)
-    expected_file_ids = {file_id_1, file_id_2, file_id_3}
+    expected_file_ids = {file_ids[0], file_ids[1], file_ids[2]}
     assert set(file_ids) == expected_file_ids
 
     # Also verify the other box returns its own files
     other_file_ids = await controller.get_file_ids_for_box(box_id=other_box_id)
-    expected_other_file_ids = {other_file_id_1, other_file_id_2}
+    expected_other_file_ids = {other_file_ids[0], other_file_ids[1]}
     assert set(other_file_ids) == expected_other_file_ids
 
     # Verify that we get an empty list for the third box
@@ -825,4 +826,26 @@ async def test_file_upload_report_no_file_upload(rig: JointRig):
     with pytest.raises(UploadControllerPort.FileUploadNotFound):
         await rig.controller.process_file_upload_report(
             file_upload_report=file_upload_report
+        )
+
+
+@pytest.mark.parametrize(
+    "completed, state",
+    [
+        (False, "inbox"),
+        (False, "archived"),
+        (True, "init"),
+    ],
+)
+async def test_file_upload_validator(completed: bool, state: models.FileUploadState):
+    """Make sure the FileUpload model validator works."""
+    with pytest.raises(ValueError):
+        _ = models.FileUpload(
+            id=uuid4(),
+            completed=completed,
+            state=state,
+            box_id=uuid4(),
+            checksum="test123",
+            alias="test123",
+            size=1024,
         )
