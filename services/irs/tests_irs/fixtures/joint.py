@@ -71,7 +71,7 @@ async def joint_fixture(
     kafka: KafkaFixture,
     mongodb: MongoDbFixture,
     s3: S3Fixture,
-) -> AsyncGenerator[JointFixture, None]:
+) -> AsyncGenerator[JointFixture]:
     """A fixture that embeds all other fixtures for integration testing"""
     node_config = S3ObjectStorageNodeConfig(
         bucket=STAGING_BUCKET_ID, credentials=s3.config

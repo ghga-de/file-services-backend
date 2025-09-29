@@ -19,7 +19,12 @@ import logging
 from typing import Any
 from uuid import uuid4
 
-from ghga_event_schemas.pydantic_ import FileUpload, FileUploadBox, FileUploadReport
+from ghga_event_schemas.pydantic_ import (
+    FileUpload,
+    FileUploadBox,
+    FileUploadReport,
+    FileUploadState,
+)
 from ghga_service_commons.utils.multinode_storage import ObjectStorages
 from hexkit.protocols.dao import ResourceAlreadyExistsError
 from hexkit.protocols.objstorage import ObjectStorageProtocol
@@ -93,7 +98,7 @@ class UploadController(UploadControllerPort):
         try:
             file_upload = FileUpload(
                 id=file_id,
-                state="init",
+                state=FileUploadState.INIT,
                 box_id=box_id,
                 alias=alias,
                 size=size,
@@ -133,7 +138,7 @@ class UploadController(UploadControllerPort):
 
         # Verify that the box is not locked
         if box.locked:
-            error = self.LockedBoxError(box_id=box_id)
+            error = self.LockedBoxError(box_id=box_id)  # type: ignore[assignment]
             log.error(error)
             raise error
 
@@ -372,7 +377,7 @@ class UploadController(UploadControllerPort):
                 part_number=part_no,
             )
         except object_storage.MultiPartUploadNotFoundError as err:
-            error = self.S3UploadNotFoundError(
+            error = self.S3UploadNotFoundError(  # type: ignore[assignment]
                 s3_upload_id=s3_upload_id, bucket_id=bucket_id
             )
             log.error(
@@ -423,7 +428,7 @@ class UploadController(UploadControllerPort):
         try:
             s3_upload_details = await self._s3_upload_details_dao.get_by_id(file_id)
         except ResourceNotFoundError as err:
-            error = self.S3UploadDetailsNotFoundError(file_id=file_id)
+            error = self.S3UploadDetailsNotFoundError(file_id=file_id)  # type: ignore[assignment]
             log.error(error, extra=extra)
             raise error from err
         storage_alias = s3_upload_details.storage_alias
@@ -468,14 +473,14 @@ class UploadController(UploadControllerPort):
             else:
                 # Object was not found or completion failed, so no recovery can be done.
                 # User should request to delete the file and start over.
-                error = self.UploadCompletionError(
+                error = self.UploadCompletionError(  # type: ignore[assignment]
                     file_id=file_id, s3_upload_id=s3_upload_id, bucket_id=bucket_id
                 )
                 log.error(error, exc_info=True, extra=extra)
                 raise error from err
 
         # Update local collections now that S3 upload is successfully completed
-        file_upload.state = "inbox"
+        file_upload.state = FileUploadState.INIT
         file_upload.completed = True
         s3_upload_details.completed = now_utc_ms_prec()
         await self._file_upload_dao.update(file_upload)
@@ -584,7 +589,7 @@ class UploadController(UploadControllerPort):
         )
         file_ids = sorted([x.id async for x in incomplete_files_cursor])
         if file_ids:
-            error = self.IncompleteUploadsError(box_id=box_id, file_ids=file_ids)
+            error = self.IncompleteUploadsError(box_id=box_id, file_ids=file_ids)  # type: ignore[assignment]
             log.error(error, extra={"box_id": box_id, "file_ids": str(file_ids)})
             raise error
 
@@ -656,17 +661,17 @@ class UploadController(UploadControllerPort):
             raise error from err
 
         match file_upload.state:
-            case "init":
+            case FileUploadState.INIT:
                 log.warning(
                     "Ignoring FileUploadReport for FileUpload %s since it is still in the 'init' state.",
                     file_id,
                 )
                 return
-            case "inbox":
-                file_upload.state = "archived"
+            case FileUploadState.INBOX:
+                file_upload.state = FileUploadState.ARCHIVED
                 log.debug("Marking FileUpload %s as 'archived'", file_id)
                 await self._file_upload_dao.update(file_upload)
-            case "archived":
+            case FileUploadState.ARCHIVED:
                 log.debug(
                     "FileUpload %s was already marked as 'archived', so it's likely"
                     + " this FileUploadReport has been processed already.",
@@ -677,7 +682,7 @@ class UploadController(UploadControllerPort):
         try:
             s3_upload_details = await self._s3_upload_details_dao.get_by_id(file_id)
         except ResourceNotFoundError as err:
-            error = self.S3UploadDetailsNotFoundError(file_id=file_id)
+            error = self.S3UploadDetailsNotFoundError(file_id=file_id)  # type: ignore[assignment]
             log.error(error, extra={"file_id": file_id})
             raise error from err
 

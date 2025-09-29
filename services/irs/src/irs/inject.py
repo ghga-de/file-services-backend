@@ -35,7 +35,7 @@ from irs.ports.inbound.interrogator import InterrogatorPort
 @asynccontextmanager
 async def get_persistent_publisher(
     config: Config, dao_factory: MongoDbDaoFactory | None = None
-) -> AsyncGenerator[PersistentKafkaPublisher, None]:
+) -> AsyncGenerator[PersistentKafkaPublisher]:
     """Construct and return a PersistentKafkaPublisher."""
     async with (
         (
@@ -54,7 +54,7 @@ async def get_persistent_publisher(
 
 
 @asynccontextmanager
-async def prepare_core(*, config: Config) -> AsyncGenerator[InterrogatorPort, None]:
+async def prepare_core(*, config: Config) -> AsyncGenerator[InterrogatorPort]:
     """Constructs and initializes all core components and their outbound dependencies."""
     async with (
         MongoDbDaoFactory.construct(config=config) as dao_factory,
@@ -93,7 +93,7 @@ async def prepare_event_subscriber(
     *,
     config: Config,
     interrogator_override: InterrogatorPort | None = None,
-) -> AsyncGenerator[KafkaEventSubscriber, None]:
+) -> AsyncGenerator[KafkaEventSubscriber]:
     """Construct and initialize an event subscriber with all its dependencies.
 
     By default, the core dependencies are automatically prepared but you can also

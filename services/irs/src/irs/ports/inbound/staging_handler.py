@@ -46,7 +46,7 @@ class StagingHandlerPort(ABC):
         """Remove uploaded object from staging."""
 
     @abstractmethod
-    def retrieve_parts(self, *, offset: int = 0) -> AsyncGenerator[bytes, None]:
+    def retrieve_parts(self, *, offset: int = 0) -> AsyncGenerator[bytes]:
         """Get all parts from inbox, starting with file content at offset."""
 
     @abstractmethod
