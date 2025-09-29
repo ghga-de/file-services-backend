@@ -138,7 +138,7 @@ class UploadController(UploadControllerPort):
 
         # Verify that the box is not locked
         if box.locked:
-            error = self.LockedBoxError(box_id=box_id)  # type: ignore[assignment]
+            error = self.LockedBoxError(box_id=box_id)
             log.error(error)
             raise error
 
@@ -377,7 +377,7 @@ class UploadController(UploadControllerPort):
                 part_number=part_no,
             )
         except object_storage.MultiPartUploadNotFoundError as err:
-            error = self.S3UploadNotFoundError(  # type: ignore[assignment]
+            error = self.S3UploadNotFoundError(
                 s3_upload_id=s3_upload_id, bucket_id=bucket_id
             )
             log.error(
@@ -428,7 +428,7 @@ class UploadController(UploadControllerPort):
         try:
             s3_upload_details = await self._s3_upload_details_dao.get_by_id(file_id)
         except ResourceNotFoundError as err:
-            error = self.S3UploadDetailsNotFoundError(file_id=file_id)  # type: ignore[assignment]
+            error = self.S3UploadDetailsNotFoundError(file_id=file_id)
             log.error(error, extra=extra)
             raise error from err
         storage_alias = s3_upload_details.storage_alias
@@ -473,7 +473,7 @@ class UploadController(UploadControllerPort):
             else:
                 # Object was not found or completion failed, so no recovery can be done.
                 # User should request to delete the file and start over.
-                error = self.UploadCompletionError(  # type: ignore[assignment]
+                error = self.UploadCompletionError(
                     file_id=file_id, s3_upload_id=s3_upload_id, bucket_id=bucket_id
                 )
                 log.error(error, exc_info=True, extra=extra)
@@ -589,7 +589,7 @@ class UploadController(UploadControllerPort):
         )
         file_ids = sorted([x.id async for x in incomplete_files_cursor])
         if file_ids:
-            error = self.IncompleteUploadsError(box_id=box_id, file_ids=file_ids)  # type: ignore[assignment]
+            error = self.IncompleteUploadsError(box_id=box_id, file_ids=file_ids)
             log.error(error, extra={"box_id": box_id, "file_ids": str(file_ids)})
             raise error
 
@@ -682,7 +682,7 @@ class UploadController(UploadControllerPort):
         try:
             s3_upload_details = await self._s3_upload_details_dao.get_by_id(file_id)
         except ResourceNotFoundError as err:
-            error = self.S3UploadDetailsNotFoundError(file_id=file_id)  # type: ignore[assignment]
+            error = self.S3UploadDetailsNotFoundError(file_id=file_id)
             log.error(error, extra={"file_id": file_id})
             raise error from err
 
