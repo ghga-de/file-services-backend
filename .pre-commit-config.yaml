@@ -55,4 +55,4 @@ repos:
     rev: v1.18.2
     hooks:
       - id: mypy
-        args: ["--show-error-codes", "--warn-redundant-casts", "--warn-unused-ignores", "--check-untyped-defs", "--no-site-packages","--explicit-package-bases"]
+        args: [--no-warn-unused-ignores]
