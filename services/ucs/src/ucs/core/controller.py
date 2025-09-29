@@ -480,7 +480,7 @@ class UploadController(UploadControllerPort):
                 raise error from err
 
         # Update local collections now that S3 upload is successfully completed
-        file_upload.state = FileUploadState.INIT
+        file_upload.state = FileUploadState.INBOX
         file_upload.completed = True
         s3_upload_details.completed = now_utc_ms_prec()
         await self._file_upload_dao.update(file_upload)
