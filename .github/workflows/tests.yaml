@@ -28,15 +28,15 @@ jobs:
 
     steps:
       - name: Checkout ${{matrix.service}}
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 1
 
-      - name: Set up Python 3.12
+      - name: Set up Python 3.13
         id: setup-python
         uses: actions/setup-python@v5
         with:
-          python-version: 3.12
+          python-version: 3.13
 
       - name: Update pip and pyopenssl
         id: pip-update

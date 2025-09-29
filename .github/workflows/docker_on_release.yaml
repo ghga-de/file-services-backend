@@ -38,7 +38,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -127,15 +127,15 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      - name: Set up Python 3.12
+      - name: Set up Python 3.13
         id: setup-python
         uses: actions/setup-python@v5
         with:
-          python-version: 3.12
+          python-version: 3.13
 
       - name: Install casefy and typer
         id: setup-casefy
@@ -151,7 +151,7 @@ jobs:
         id: extract-service-version
         shell: bash
         run: |
-          echo version=$(python3.12 -c "import tomllib; print(tomllib.load(open('services/${{ matrix.service }}/pyproject.toml', 'rb'))['project']['version'])") >> $GITHUB_OUTPUT
+          echo version=$(python3 -c "import tomllib; print(tomllib.load(open('services/${{ matrix.service }}/pyproject.toml', 'rb'))['project']['version'])") >> $GITHUB_OUTPUT
 
       - name: Create current docker tag
         id: docker-tag
