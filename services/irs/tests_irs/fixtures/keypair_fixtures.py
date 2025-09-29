@@ -40,7 +40,7 @@ class KeypairFixture:
 
 
 @pytest.fixture(scope="session")
-def keypair_fixture() -> Generator[KeypairFixture, None, None]:
+def keypair_fixture() -> Generator[KeypairFixture]:
     """Creates a keypair using crypt4gh"""
     yield generate_keypair()
 

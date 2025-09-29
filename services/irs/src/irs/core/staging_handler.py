@@ -163,7 +163,7 @@ class StagingHandler(StagingHandlerPort):
                 self.staging.bucket_id,
             )
 
-    async def retrieve_parts(self, *, offset: int = 0) -> AsyncGenerator[bytes, None]:
+    async def retrieve_parts(self, *, offset: int = 0) -> AsyncGenerator[bytes]:
         """Get all parts from inbox, starting with file content at offset."""
         download_url = await self.storage.get_object_download_url(
             bucket_id=self.inbox.bucket_id, object_id=self.inbox.object_id
