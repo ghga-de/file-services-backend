@@ -660,7 +660,7 @@ The service requires the following configuration parameters:
 
   - <a id="properties/auth_algs/items"></a>**Items** *(string)*
 
-- <a id="properties/auth_check_claims"></a>**`auth_check_claims`** *(object)*: A dict of all GHGA internal claims that shall be verified. Can contain additional properties. Default: `{"type": null, "file_id": null, "user_public_crypt4gh_key": null, "iat": null, "exp": null}`.
+- <a id="properties/auth_check_claims"></a>**`auth_check_claims`** *(object)*: A dict of all GHGA internal claims that shall be verified. Can contain additional properties. Default: `{"work_type": null, "file_id": null, "user_public_crypt4gh_key": null, "iat": null, "exp": null}`.
 
 - <a id="properties/auth_map_claims"></a>**`auth_map_claims`** *(object)*: A mapping of claims to attributes in the GHGA auth context. Can contain additional properties. Default: `{}`.
 
