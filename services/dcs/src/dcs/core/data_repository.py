@@ -287,10 +287,7 @@ class DataRepository(DataRepositoryPort):
         )
 
         # filter to get all files in outbox that should be removed
-        object_ids = [
-            uuid.UUID(x)
-            for x in await object_storage.list_all_object_ids(bucket_id=bucket_id)
-        ]
+        object_ids = await object_storage.list_all_object_ids(bucket_id=bucket_id)
         log.debug(
             f"Retrieved list of deletion candidates for storage '{storage_alias}'"
         )
@@ -301,7 +298,9 @@ class DataRepository(DataRepositoryPort):
                     mapping={"object_id": object_id}
                 )
             except NoHitsFoundError as error:
-                cleanup_error = self.CleanupError(object_id=object_id, from_error=error)
+                cleanup_error = self.CleanupError(
+                    object_id=uuid.UUID(object_id), from_error=error
+                )
                 log.critical(cleanup_error)
                 log.warning(
                     f"Object with id {object_id} in storage {storage_alias} not found in database, skipping."
@@ -320,7 +319,7 @@ class DataRepository(DataRepositoryPort):
                     object_storage.ObjectStorageProtocolError,
                 ) as error:
                     cleanup_error = self.CleanupError(
-                        object_id=object_id, from_error=error
+                        object_id=uuid.UUID(object_id), from_error=error
                     )
                     log.critical(cleanup_error)
                     log.warning(
