@@ -263,26 +263,25 @@ async def test_migration_v2_with_other_cid_versions(mongodb: MongoDbFixture):
     events_collection = db["ifrsPersistedEvents"]
 
     # Create already migrated event data (with UUID and datetime types)
+    now = now_utc_ms_prec()
     migrated_event: dict[str, Any] = {
         "_id": "test-topic:test-key1",
         "topic": "test-topic",
-        "payload": {"upload_date": now_utc_ms_prec(), "object_id": uuid4()},
+        "payload": {"upload_date": now, "object_id": uuid4()},
         "key": "test-key",
         "type_": "some-type",
         "headers": {},
         "correlation_id": uuid1(),
-        "created": now_utc_ms_prec(),
+        "created": now,
         "published": True,
         "event_id": uuid4(),
     }
     old_event: dict[str, Any] = deepcopy(migrated_event)
     old_event["_id"] = old_event["_id"].replace("1", "2")
     del old_event["event_id"]
-    old_event["created"] = old_event["created"].isoformat()
+    old_event["created"] = now.isoformat()
     old_event["correlation_id"] = str(uuid1())
-    old_event["payload"]["upload_date"] = old_event["payload"][
-        "upload_date"
-    ].isoformat()
+    old_event["payload"]["upload_date"] = now.isoformat()
 
     events = [migrated_event, old_event]
     events_collection.delete_many({})
