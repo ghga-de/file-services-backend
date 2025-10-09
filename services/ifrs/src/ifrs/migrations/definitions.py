@@ -73,9 +73,9 @@ class V2Migration(MigrationDefinition, Reversible):
             UUID `object_id` and datetime date fields. So we check if the
             `object_id` is a string to tell if the document needs migration.
             """
-            if isinstance(doc["object_id"], str):
-                doc = await _convert_file_metadata(doc)
-            return doc
+            if isinstance(doc["object_id"], UUID):
+                return doc
+            return await _convert_file_metadata(doc)
 
         async def convert_event(doc: Document) -> Document:
             """Convert a persistent event and its payload."""

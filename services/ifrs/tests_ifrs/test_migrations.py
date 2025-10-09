@@ -183,9 +183,9 @@ async def test_v2_migration(mongodb: MongoDbFixture):
     assert reverted_metadata == expected_reverted_metadata
 
 
-async def test_migration_v2_mixed_file_metadata(mongodb: MongoDbFixture):
-    """This test verifies that the fix for V2 will gracefully handle a partially
-    migrated file_metadata collection.
+async def test_migration_v2_on_migrated_file_metadata(mongodb: MongoDbFixture):
+    """This test verifies that the fix for V2 will gracefully handle the presence of
+    already migrated data by simply skipping it.
     """
     config = get_config(sources=[mongodb.config])
     db = mongodb.client[config.db_name]
@@ -220,9 +220,9 @@ async def test_migration_v2_mixed_file_metadata(mongodb: MongoDbFixture):
     await run_db_migrations(config=config, target_version=2)
 
 
-async def test_migration_v2_mixed_persisted_events(mongodb: MongoDbFixture):
-    """This test verifies that the fix for V2 will gracefully handle a partially
-    migrated persisted events collection.
+async def test_migration_v2_on_migrated_persisted_events(mongodb: MongoDbFixture):
+    """This test verifies that the fix for V2 will gracefully handle the presence of
+    already migrated persistent event data by simply skipping it.
     """
     config = get_config(sources=[mongodb.config])
     db = mongodb.client[config.db_name]
