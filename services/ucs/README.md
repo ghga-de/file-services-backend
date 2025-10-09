@@ -577,10 +577,10 @@ to talk to an S3 service in the backend.<br>  Args:
     s3_secret_access_key (str):
         Part of credentials for login into the S3 service. See:
         https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html
-    s3_session_token (Optional[str]):
+    s3_session_token (str | None):
         Optional part of credentials for login into the S3 service. See:
         https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html
-    aws_config_ini (Optional[Path]):
+    aws_config_ini (Path | None):
         Path to a config file for specifying more advanced S3 parameters.
         This should follow the format described here:
         https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html#using-a-configuration-file
