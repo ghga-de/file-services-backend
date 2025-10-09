@@ -64,9 +64,9 @@ class V2Migration(MigrationDefinition, Reversible):
             migrated.
             """
             object_id = doc["object_id"]
-            if isinstance(object_id, str):
-                doc = await _convert_drs_objects(doc)
-            return doc
+            if isinstance(object_id, UUID):
+                return doc
+            return await _convert_drs_objects(doc)
 
         convert_file_registered = convert_uuids_and_datetimes_v6(
             date_fields=["upload_date"]

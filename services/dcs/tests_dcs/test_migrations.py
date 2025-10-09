@@ -124,9 +124,9 @@ async def test_migration_v2_drs_objects(mongodb: MongoDbFixture):
         assert reverted["last_accessed"] == new["last_accessed"].isoformat()
 
 
-async def test_migration_v2_mixed_data(mongodb: MongoDbFixture):
-    """This test is to verify that the fix for V2 will gracefully handle a partially
-    migrated collection.
+async def test_migration_v2_on_migrated_data(mongodb: MongoDbFixture):
+    """This test is to verify that the fix for V2 will gracefully handle already
+    migrated drs object data.
     """
     config = get_config(sources=[mongodb.config])
 
@@ -156,11 +156,9 @@ async def test_migration_v2_mixed_data(mongodb: MongoDbFixture):
     await run_db_migrations(config=config, target_version=2)
 
 
-async def test_migration_v2_persisted_events_mixed_data(mongodb: MongoDbFixture):
-    """This test is to verify that the fix for V2 will gracefully handle a partially
-    migrated collection.
-
-    This test is only for persisted events.
+async def test_migration_v2_on_migrated_persisted_events_(mongodb: MongoDbFixture):
+    """This test is to verify that the fix for V2 will gracefully handle already
+    migrated persisted event data.
     """
     config = get_config(sources=[mongodb.config])
 
