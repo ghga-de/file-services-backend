@@ -4,6 +4,10 @@ on:
     branches-ignore:
       - main
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   IFRS_CONFIG_YAML: ./services/ifrs/dev_config.yaml
   IRS_CONFIG_YAML: ./services/irs/dev_config.yaml
@@ -18,9 +22,6 @@ jobs:
     uses: ./.github/workflows/get_affected_services.yaml
 
   test:
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
-      cancel-in-progress: true
     needs: get-changed-services
     if: ${{ needs.get-changed-services.outputs.services != '' && needs.get-changed-services.outputs.services != '[]' }}
     runs-on: ubuntu-latest
