@@ -387,7 +387,31 @@ class UploadController(UploadControllerPort):
             )
             raise error from err
 
-    async def complete_file_upload(  # noqa: PLR0915
+    async def _compare_checksums(
+        self,
+        object_storage: ObjectStorageProtocol,
+        bucket_id: str,
+        file_id: UUID4,
+        expected_checksum: str,
+    ) -> None:
+        """Compare checksums and raise a `ChecksumMismatchError` if they don't match."""
+        actual_checksum = await object_storage.get_object_etag(
+            bucket_id=bucket_id, object_id=str(file_id)
+        )
+        actual_checksum = actual_checksum.strip('"')
+
+        if actual_checksum != expected_checksum:
+            error = self.ChecksumMismatchError(file_id=file_id)
+            extra = {
+                "bucket_id": bucket_id,
+                "file_id": file_id,
+                "expected_checksum": expected_checksum,
+                "actual_checksum": actual_checksum,
+            }
+            log.error(error, exc_info=True, extra=extra)
+            raise error
+
+    async def complete_file_upload(
         self,
         *,
         box_id: UUID4,
@@ -442,15 +466,12 @@ class UploadController(UploadControllerPort):
             # If this method is called but the file is already completed, triple
             #  check that the box is up to date
             await self._update_box_stats(box=box)
-            remote_md5 = await object_storage.get_object_etag(
-                bucket_id=bucket_id, object_id=str(file_id)
+            await self._compare_checksums(
+                object_storage=object_storage,
+                bucket_id=bucket_id,
+                file_id=file_id,
+                expected_checksum=encrypted_checksum,
             )
-            remote_md5 = remote_md5.strip('"')
-
-            if remote_md5 != encrypted_checksum:
-                error = self.ChecksumMismatchError(file_id=file_id)
-                log.error(error, exc_info=True, extra=extra)
-                raise error
             return
 
         try:
@@ -493,14 +514,12 @@ class UploadController(UploadControllerPort):
                 log.error(error, exc_info=True, extra=extra)
                 raise error from err
 
-        remote_md5 = await object_storage.get_object_etag(
-            bucket_id=bucket_id, object_id=str(file_id)
+        await self._compare_checksums(
+            object_storage=object_storage,
+            bucket_id=bucket_id,
+            file_id=file_id,
+            expected_checksum=encrypted_checksum,
         )
-        remote_md5 = remote_md5.strip('"')
-        if remote_md5 != encrypted_checksum:
-            error = self.ChecksumMismatchError(file_id=file_id)
-            log.error(error, exc_info=True, extra=extra)
-            raise error
 
         # Update local collections now that S3 upload is successfully completed
         file_upload.state = FileUploadState.INBOX
