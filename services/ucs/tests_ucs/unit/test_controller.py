@@ -549,7 +549,7 @@ async def test_delete_file_upload_with_s3_error(rig: JointRig):
     async def do_error(*args, **kwargs):
         raise ObjectStorageProtocol.MultiPartUploadAbortError("", "", "")
 
-    storage.abort_multipart_upload = do_error
+    storage.abort_multipart_upload = do_error  # type: ignore[method-assign]
     with (
         raise_object_storage_error(InMemObjectStorage.MultiPartUploadAbortError),
         pytest.raises(UploadControllerPort.UploadAbortError) as exc_info,
@@ -786,7 +786,7 @@ async def test_complete_file_upload_with_s3_error(rig: JointRig):
     async def do_error(*args, **kwargs):
         raise ObjectStorageProtocol.MultiPartUploadConfirmError("", "", "")
 
-    storage.complete_multipart_upload = do_error
+    storage.complete_multipart_upload = do_error  # type: ignore[method-assign]
     with (
         raise_object_storage_error(InMemObjectStorage.MultiPartUploadConfirmError),
         pytest.raises(UploadControllerPort.UploadCompletionError) as exc_info,
@@ -875,7 +875,7 @@ async def test_get_part_upload_url_when_s3_upload_not_found(rig: JointRig):
     async def do_error(*args, **kwargs):
         raise ObjectStorageProtocol.MultiPartUploadNotFoundError("", "", "")
 
-    storage.get_part_upload_url = do_error
+    storage.get_part_upload_url = do_error  # type: ignore[method-assign]
     with (
         raise_object_storage_error(InMemObjectStorage.MultiPartUploadNotFoundError),
         pytest.raises(UploadControllerPort.S3UploadNotFoundError) as exc_info,
