@@ -34,6 +34,7 @@ from ucs.main import initialize
 from ucs.ports.inbound.controller import UploadControllerPort
 
 pytestmark = pytest.mark.asyncio()
+CONTENT = "a" * 1024
 
 
 def calc_expected_encrypted_checksum(content: str) -> str:
@@ -41,9 +42,8 @@ def calc_expected_encrypted_checksum(content: str) -> str:
 
     This assumes only one object part for simplicity.
     """
-    part_md5 = hashlib.md5(content.encode(), usedforsecurity=False).hexdigest()
-    concatenated_md5s = bytes.fromhex(part_md5)
-    object_md5 = hashlib.md5(concatenated_md5s, usedforsecurity=False).hexdigest()
+    part_md5 = hashlib.md5(content.encode(), usedforsecurity=False).digest()
+    object_md5 = hashlib.md5(part_md5, usedforsecurity=False).hexdigest()
     return object_md5 + "-1"  # only one part
 
 
@@ -226,8 +226,7 @@ async def test_s3_upload_completed_but_db_not_updated(joint_fixture: JointFixtur
     url = await controller.get_part_upload_url(file_id=file_id, part_no=1)
 
     # Upload the content
-    content = "a" * 1024
-    response = httpx.put(url, content="a" * 1024)
+    response = httpx.put(url, content=CONTENT)
     assert response.status_code == 200
 
     # To simulate the hiccup, we'll manually complete the upload. This will create the
@@ -247,7 +246,7 @@ async def test_s3_upload_completed_but_db_not_updated(joint_fixture: JointFixtur
     close_token_header = utils.close_file_token_header(
         box_id=box_id, file_id=file_id, jwk=joint_fixture.wps_jwk
     )
-    expected_encrypted_checksum = calc_expected_encrypted_checksum(content)
+    expected_encrypted_checksum = calc_expected_encrypted_checksum(CONTENT)
     body = {
         "unencrypted_checksum": "abc123",
         "encrypted_checksum": expected_encrypted_checksum,
@@ -290,7 +289,7 @@ async def test_s3_upload_complete_fails(joint_fixture: JointFixture):
     url = await controller.get_part_upload_url(file_id=file_id, part_no=1)
 
     # Upload the content
-    response = httpx.put(url, content="a" * 1024)
+    response = httpx.put(url, content=CONTENT)
     assert response.status_code == 200
 
     # To simulate the hiccup, we'll manually abort the upload. This will create the
@@ -352,10 +351,9 @@ async def test_s3_upload_complete_fails(joint_fixture: JointFixture):
     part_url = response.json()
 
     # Upload the content again
-    content = "a" * 1024
-    response = httpx.put(part_url, content=content)
+    response = httpx.put(part_url, content=CONTENT)
     assert response.status_code == 200
-    expected_encrypted_checksum = calc_expected_encrypted_checksum(content)
+    expected_encrypted_checksum = calc_expected_encrypted_checksum(CONTENT)
 
     # Now complete the file
     close_token_header2 = utils.close_file_token_header(
@@ -491,9 +489,8 @@ async def test_file_upload_report_happy(joint_fixture: JointFixture):
 
     # Get upload URL and upload the file content
     url = await controller.get_part_upload_url(file_id=file_id, part_no=1)
-    content = "a" * 1024
-    response = httpx.put(url, content=content)
-    expected_encrypted_checksum = calc_expected_encrypted_checksum(content)
+    response = httpx.put(url, content=CONTENT)
+    expected_encrypted_checksum = calc_expected_encrypted_checksum(CONTENT)
     assert response.status_code == 200
 
     # Complete the file upload
