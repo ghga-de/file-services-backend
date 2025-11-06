@@ -135,8 +135,8 @@ class UploadControllerPort(ABC):
 
         def __init__(self, *, file_id: UUID4):
             msg = (
-                f"The checksum supplied for file {file_id} doesn't match the value"
-                + " calculated by S3."
+                f"The MD5 checksum supplied for the encrypted file content of {file_id}"
+                + " doesn't match the value calculated by S3."
             )
             super().__init__(msg)
 
