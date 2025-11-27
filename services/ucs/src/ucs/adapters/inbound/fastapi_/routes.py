@@ -19,7 +19,7 @@ import logging
 from typing import Annotated
 
 from fastapi import APIRouter, status
-from ghga_event_schemas.pydantic_ import FileUpload
+from ghga_event_schemas.pydantic_ import FileUpload, FileUploadBox
 from pydantic import UUID4
 
 from ucs.adapters.inbound.fastapi_ import (
@@ -131,6 +131,36 @@ async def health():
     return {"status": "OK"}
 
 
+@router.get(
+    "/boxes/{box_id}",
+    summary="Retrieve an existing FileUploadBox",
+    operation_id="getBox",
+    status_code=status.HTTP_200_OK,
+    response_model=FileUploadBox,
+    response_description="The requested FileUploadBox",
+    responses={status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["boxNotFound"]},
+)
+@TRACER.start_as_current_span("routes.get_box")
+async def get_box(
+    box_id: UUID4,
+    work_order: Annotated[
+        rest_models.ViewFileBoxWorkOrder,
+        http_authorization.require_view_file_box_work_order_wps,
+    ],
+    upload_controller: dummies.UploadControllerDummy,
+) -> FileUploadBox:
+    """Retrieve an existing FileUploadBox"""
+    if work_order.box_id != box_id:
+        raise http_exceptions.HttpNotAuthorizedError()
+    try:
+        return await upload_controller.get_file_upload_box(box_id=box_id)
+    except UploadControllerPort.BoxNotFoundError as error:
+        raise http_exceptions.HttpBoxNotFoundError(box_id=box_id) from error
+    except Exception as error:
+        log.error(error, exc_info=True)
+        raise http_exceptions.HttpInternalError() from error
+
+
 @router.post(
     "/boxes",
     summary="Create a new FileUploadBox",
@@ -225,7 +255,7 @@ async def get_box_uploads(
     box_id: UUID4,
     work_order: Annotated[
         rest_models.ViewFileBoxWorkOrder,
-        http_authorization.require_view_file_box_work_order,
+        http_authorization.require_view_file_box_work_order_uos,
     ],
     upload_controller: dummies.UploadControllerDummy,
 ) -> list[FileUpload]:

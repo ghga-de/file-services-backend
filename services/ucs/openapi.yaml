@@ -64,6 +64,39 @@ components:
       - size
       title: FileUpload
       type: object
+    FileUploadBox:
+      description: A class representing a box that bundles files belonging to the
+        same upload.
+      properties:
+        file_count:
+          default: 0
+          description: The number of files in the box
+          title: File Count
+          type: integer
+        id:
+          description: Unique identifier for the instance
+          format: uuid4
+          title: Id
+          type: string
+        locked:
+          default: false
+          description: Whether or not changes to the files in the box are allowed
+          title: Locked
+          type: boolean
+        size:
+          default: 0
+          description: The total size of all files in the box
+          title: Size
+          type: integer
+        storage_alias:
+          description: S3 storage alias to use for uploads
+          title: Storage Alias
+          type: string
+      required:
+      - id
+      - storage_alias
+      title: FileUploadBox
+      type: object
     FileUploadCompletionRequest:
       description: Request body for completing a FileUpload.
       properties:
@@ -440,7 +473,7 @@ info:
   description: A service managing uploads of file objects to an S3-compatible Object
     Storage.
   title: Upload Controller Service
-  version: 10.0.0
+  version: 10.1.0
 openapi: 3.1.0
 paths:
   /boxes:
@@ -491,6 +524,43 @@ paths:
       tags:
       - UploadControllerService
   /boxes/{box_id}:
+    get:
+      description: Retrieve an existing FileUploadBox
+      operationId: getBox
+      parameters:
+      - in: path
+        name: box_id
+        required: true
+        schema:
+          format: uuid4
+          title: Box Id
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileUploadBox'
+          description: The requested FileUploadBox
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpBoxNotFoundError'
+          description: 'Exceptions by ID:
+
+            - boxNotFound: The FileUploadBox with the given ID does not exist.'
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      security:
+      - HTTPBearer: []
+      summary: Retrieve an existing FileUploadBox
+      tags:
+      - UploadControllerService
     patch:
       description: 'Update a FileUploadBox to lock or unlock it.
 

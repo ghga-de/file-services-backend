@@ -21,6 +21,7 @@ from uuid import UUID
 
 import pytest
 import pytest_asyncio
+from ghga_event_schemas.pydantic_ import FileUploadBox
 from ghga_service_commons.api.testing import AsyncTestClient
 
 from tests_ucs.fixtures import ConfigFixture, utils
@@ -116,6 +117,32 @@ async def test_update_box_endpoint_auth(config: ConfigFixture, app_fixture: AppF
 
 
 async def test_view_box_endpoint_auth(config: ConfigFixture, app_fixture: AppFixture):
+    """Test that the endpoint returns a 401 if auth is not supplied or is invalid,
+    a 403 if a structurally valid auth token is supplied but doesn't match the requested
+    resource, and a 200 if the token is correct (and resource exists).
+    """
+    wps_jwk = config.wps_jwk
+    rest_client = app_fixture.rest_client
+    url = f"/boxes/{TEST_BOX_ID}"
+
+    response = await rest_client.get(url, headers=INVALID_HEADER)
+    assert response.status_code == 401
+
+    wrong_box_id = utils.view_file_box_token_header(jwk=wps_jwk)
+    response = await rest_client.get(url, headers=wrong_box_id)
+    assert response.status_code == 403
+    # Use a WPS-signed token like we would see in Connector-based requests
+    wps_token_header = utils.view_file_box_token_header(jwk=wps_jwk, box_id=TEST_BOX_ID)
+    app_fixture.core_mock.get_file_upload_box.return_value = FileUploadBox(
+        id=TEST_FILE_ID, storage_alias="HD01"
+    )
+    response = await rest_client.get(url, headers=wps_token_header)
+    assert response.status_code == 200
+
+
+async def test_view_box_files_endpoint_auth(
+    config: ConfigFixture, app_fixture: AppFixture
+):
     """Test that the endpoint returns a 401 if auth is not supplied or is invalid,
     a 403 if a structurally valid auth token is supplied but doesn't match the
     requested resource, and a 200 if the token is correct (and request succeeds).
@@ -406,6 +433,32 @@ async def test_update_box_endpoint_error_handling(
     ids=["BoxNotFound", "InternalError"],
 )
 async def test_view_box_endpoint_error_handling(
+    config: ConfigFixture,
+    core_error: Exception,
+    http_error: Exception,
+    app_fixture: AppFixture,
+):
+    """Test that the endpoint correctly translates errors from the core."""
+    wps_jwk = config.wps_jwk
+    rest_client = app_fixture.rest_client
+    app_fixture.core_mock.get_file_upload_box.side_effect = core_error
+    token_header = utils.view_file_box_token_header(jwk=wps_jwk, box_id=TEST_BOX_ID)
+    response = await rest_client.get(f"/boxes/{TEST_BOX_ID}", headers=token_header)
+    assert response.json()["description"] == str(http_error), response.json()
+
+
+@pytest.mark.parametrize(
+    "core_error, http_error",
+    [
+        (
+            UploadControllerPort.BoxNotFoundError(box_id=TEST_BOX_ID),
+            http_exceptions.HttpBoxNotFoundError(box_id=TEST_BOX_ID),
+        ),
+        (RuntimeError("Random error"), http_exceptions.HttpInternalError()),
+    ],
+    ids=["BoxNotFound", "InternalError"],
+)
+async def test_view_box_files_endpoint_error_handling(
     config: ConfigFixture,
     core_error: Exception,
     http_error: Exception,

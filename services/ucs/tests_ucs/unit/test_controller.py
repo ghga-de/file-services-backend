@@ -283,6 +283,21 @@ async def test_unlock_file_upload_box(rig: JointRig):
     assert not file_upload_box_dao.latest.locked
 
 
+async def test_get_box(rig: JointRig):
+    """Test getting a FileUploadBox by ID"""
+    controller = rig.controller
+
+    # Request a FileUploadBox that doesn't exist
+    with pytest.raises(UploadControllerPort.BoxNotFoundError):
+        await controller.get_file_upload_box(box_id=uuid4())
+
+    # Now create a FileUploadBox
+    box_id = await controller.create_file_upload_box(storage_alias="test")
+    box = await controller.get_file_upload_box(box_id=box_id)
+    assert box.storage_alias == "test"
+    assert box.id == box_id
+
+
 async def test_get_box_uploads(rig: JointRig):
     """Test getting file IDs for a given box ID"""
     controller = rig.controller

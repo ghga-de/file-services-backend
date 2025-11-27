@@ -17,7 +17,7 @@
 
 from abc import ABC, abstractmethod
 
-from ghga_event_schemas.pydantic_ import FileUpload, FileUploadReport
+from ghga_event_schemas.pydantic_ import FileUpload, FileUploadBox, FileUploadReport
 from pydantic import UUID4
 
 
@@ -227,6 +227,15 @@ class UploadControllerPort(ABC):
     @abstractmethod
     async def unlock_file_upload_box(self, *, box_id: UUID4) -> None:
         """Unlock an existing FileUploadBox.
+
+        Raises:
+        - `BoxNotFoundError` if the FileUploadBox isn't found in the DB.
+        """
+        ...
+
+    @abstractmethod
+    async def get_file_upload_box(self, *, box_id: UUID4) -> FileUploadBox:
+        """Return the FileUploadBox with the specified ID
 
         Raises:
         - `BoxNotFoundError` if the FileUploadBox isn't found in the DB.
