@@ -30,16 +30,11 @@ from ghga_event_schemas.pydantic_ import (
 )
 from ghga_service_commons.utils.multinode_storage import ObjectStorages
 from hexkit.protocols.objstorage import ObjectStorageProtocol
+from hexkit.providers.testing.dao import BaseInMemDao, new_mock_dao_class
 from hexkit.providers.testing.s3 import InMemObjectStorage
 from hexkit.utils import now_utc_ms_prec
 
 from tests_ucs.fixtures import ConfigFixture
-from tests_ucs.fixtures.in_mem_dao import (
-    BaseInMemDao,
-    InMemFileUploadBoxDao,
-    InMemFileUploadDao,
-    InMemS3UploadDetailsDao,
-)
 from tests_ucs.fixtures.in_mem_obj_storage import (
     InMemS3ObjectStorages,
     raise_object_storage_error,
@@ -47,9 +42,17 @@ from tests_ucs.fixtures.in_mem_obj_storage import (
 from ucs.config import Config
 from ucs.core import models
 from ucs.core.controller import UploadController
+from ucs.core.models import S3UploadDetails
 from ucs.ports.inbound.controller import UploadControllerPort
 
 pytestmark = pytest.mark.asyncio()
+
+# Define mock DAO classes using the mock DAO utility provided by hexkit
+InMemFileUploadBoxDao = new_mock_dao_class(dto_model=FileUploadBox, id_field="id")
+InMemFileUploadDao = new_mock_dao_class(dto_model=FileUpload, id_field="id")
+InMemS3UploadDetailsDao = new_mock_dao_class(
+    dto_model=S3UploadDetails, id_field="file_id"
+)
 
 
 @pytest.fixture()
