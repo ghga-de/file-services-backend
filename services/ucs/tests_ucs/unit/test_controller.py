@@ -452,6 +452,42 @@ async def test_create_file_upload_when_box_locked(rig: JointRig):
     assert not rig.s3_upload_details_dao.resources
 
 
+async def test_create_file_upload_when_not_enough_space(rig: JointRig):
+    """Test error handling when a file upload would exceed the FileUploadBox size limit."""
+    controller = rig.controller
+    config = rig.config
+
+    # Create a FileUploadBox
+    box_id = await controller.create_file_upload_box(storage_alias="test")
+
+    # Create a file that uses up most of the space
+    large_file_size = config.file_box_size_limit - 500
+    file_id_1 = await controller.initiate_file_upload(
+        box_id=box_id, alias="large_file", size=large_file_size
+    )
+    assert file_id_1 is not None
+
+    # Try to create another file that would exceed the limit
+    # This should raise NotEnoughSpaceError
+    with pytest.raises(UploadControllerPort.NotEnoughSpaceError) as exc_info:
+        await controller.initiate_file_upload(
+            box_id=box_id, alias="second_file", size=1024
+        )
+
+    # Verify the exception contains the expected information
+    error = exc_info.value
+    assert error.box_id == box_id
+    assert error.file_alias == "second_file"
+    assert error.file_size == 1024
+    assert error.remaining_space < 1024
+    assert "second_file" in str(error)
+    assert "1024" in str(error)
+
+    # Verify only the first FileUpload was created
+    assert len(rig.file_upload_dao.resources) == 1
+    assert len(rig.s3_upload_details_dao.resources) == 1
+
+
 async def test_delete_file_upload_when_box_missing(rig: JointRig):
     """Test error handling in the case where the user tries to delete a FileUpload
     for a box ID that doesn't exist.

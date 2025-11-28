@@ -502,6 +502,20 @@ async def test_view_box_files_endpoint_error_handling(
             ),
             http_exceptions.HttpOrphanedMultipartUploadError(file_alias="test_file"),
         ),
+        (
+            UploadControllerPort.NotEnoughSpaceError(
+                box_id=TEST_BOX_ID,
+                file_alias="test_file",
+                file_size=1024,
+                remaining_space=512,
+            ),
+            http_exceptions.HttpNotEnoughSpaceError(
+                box_id=TEST_BOX_ID,
+                file_alias="test_file",
+                file_size=1024,
+                remaining_space=512,
+            ),
+        ),
         (RuntimeError("Random error"), http_exceptions.HttpInternalError()),
     ],
     ids=[
@@ -510,6 +524,7 @@ async def test_view_box_files_endpoint_error_handling(
         "FileUploadAlreadyExists",
         "UnknownStorageAlias",
         "OrphanedMultipartUploadError",
+        "NotEnoughSpace",
         "InternalError",
     ],
 )
