@@ -257,6 +257,15 @@ class UploadController(UploadControllerPort):
             # resolve this inconsistency, this exception will be ignored.
             pass
 
+    async def _calculate_total_box_size(self, *, box_id: UUID4) -> int:
+        """Calculates the total size of all FileUploads within a FileUploadBox,
+        both in-progress and completed.
+        """
+        mapping = {"box_id": box_id}
+        return sum(
+            [x.size async for x in self._file_upload_dao.find_all(mapping=mapping)]
+        )
+
     async def initiate_file_upload(
         self, *, box_id: UUID4, alias: str, size: int
     ) -> UUID4:
@@ -268,10 +277,24 @@ class UploadController(UploadControllerPort):
         - `FileUploadAlreadyExists` if there's already a FileUpload for this alias.
         - `UnknownStorageAliasError` if the storage alias is not known.
         - `OrphanedMultipartUploadError` if an S3 upload is already in progress.
+        - `NotEnoughSpaceError` if the proposed file is too big.
         """
         extra: dict[str, Any] = {"box_id": box_id, "alias": alias}
         # Get the box and create the FileUpload
         box = await self._get_unlocked_box(box_id=box_id)
+
+        # Only allow file upload if enough space remains in FileUploadBox
+        space_allocated = await self._calculate_total_box_size(box_id=box_id)
+        remaining_space = self._config.file_box_size_limit - space_allocated
+        if remaining_space < size:
+            error = self.NotEnoughSpaceError(
+                box_id=box_id,
+                file_alias=alias,
+                file_size=size,
+                remaining_space=remaining_space,
+            )
+            log.error(error)
+            raise error
 
         # Get the S3 storage details
         storage_alias = box.storage_alias

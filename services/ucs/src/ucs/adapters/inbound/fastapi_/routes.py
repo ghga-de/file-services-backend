@@ -117,6 +117,13 @@ ERROR_RESPONSES = {
         ),
         "model": http_exceptions.HttpChecksumMismatchError.get_body_model(),
     },
+    "notEnoughSpace": {
+        "description": (
+            "Exceptions by ID:"
+            + "\n- notEnoughSpace: The file size would exceed the remaining space allowed for the FileUploadBox."
+        ),
+        "model": http_exceptions.HttpNotEnoughSpaceError.get_body_model(),
+    },
 }
 
 
@@ -290,7 +297,8 @@ async def get_box_uploads(
         status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["boxNotFound"],
         status.HTTP_409_CONFLICT: ERROR_RESPONSES["lockedBox"]
         | ERROR_RESPONSES["fileUploadAlreadyExists"]
-        | ERROR_RESPONSES["orphanedMultipartUpload"],
+        | ERROR_RESPONSES["orphanedMultipartUpload"]
+        | ERROR_RESPONSES["notEnoughSpace"],
     },
 )
 @TRACER.start_as_current_span("routes.create_file_upload")
@@ -334,6 +342,13 @@ async def create_file_upload(
     except UploadControllerPort.OrphanedMultipartUploadError as error:
         raise http_exceptions.HttpOrphanedMultipartUploadError(
             file_alias=file_alias
+        ) from error
+    except UploadControllerPort.NotEnoughSpaceError as error:
+        raise http_exceptions.HttpNotEnoughSpaceError(
+            box_id=error.box_id,
+            file_alias=error.file_alias,
+            file_size=error.file_size,
+            remaining_space=error.remaining_space,
         ) from error
     except Exception as error:
         log.error(error, exc_info=True)
