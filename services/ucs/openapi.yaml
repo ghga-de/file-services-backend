@@ -275,34 +275,47 @@ components:
       - box_id
       title: HttpLockedBoxErrorData
       type: object
-    HttpOrphanedMultipartUploadError:
+    HttpNotEnoughSpaceError:
       additionalProperties: false
       properties:
         data:
-          $ref: '#/components/schemas/HttpOrphanedMultipartUploadErrorData'
+          $ref: '#/components/schemas/HttpNotEnoughSpaceErrorData'
         description:
           description: A human readable message to the client explaining the cause
             of the exception.
           title: Description
           type: string
         exception_id:
-          const: orphanedMultipartUpload
+          const: notEnoughSpace
           title: Exception Id
           type: string
       required:
       - data
       - description
       - exception_id
-      title: HttpOrphanedMultipartUploadError
+      title: HttpNotEnoughSpaceError
       type: object
-    HttpOrphanedMultipartUploadErrorData:
+    HttpNotEnoughSpaceErrorData:
       properties:
+        box_id:
+          format: uuid4
+          title: Box Id
+          type: string
         file_alias:
           title: File Alias
           type: string
+        file_size:
+          title: File Size
+          type: integer
+        remaining_space:
+          title: Remaining Space
+          type: integer
       required:
+      - box_id
       - file_alias
-      title: HttpOrphanedMultipartUploadErrorData
+      - file_size
+      - remaining_space
+      title: HttpNotEnoughSpaceErrorData
       type: object
     HttpS3UploadDetailsNotFoundError:
       additionalProperties: false
@@ -709,12 +722,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HttpOrphanedMultipartUploadError'
+                $ref: '#/components/schemas/HttpNotEnoughSpaceError'
           description: 'Exceptions by ID:
 
-            - orphanedMultipartUpload: A multipart upload is already in progress for
-            this file but cannot be aborted. Request file deletion and then attempt
-            the upload again.'
+            - notEnoughSpace: The file size would exceed the remaining space allowed
+            for the FileUploadBox.'
         '422':
           content:
             application/json:
