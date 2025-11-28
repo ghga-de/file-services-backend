@@ -35,10 +35,7 @@ from hexkit.providers.testing.s3 import InMemObjectStorage
 from hexkit.utils import now_utc_ms_prec
 
 from tests_ucs.fixtures import ConfigFixture
-from tests_ucs.fixtures.in_mem_obj_storage import (
-    InMemS3ObjectStorages,
-    raise_object_storage_error,
-)
+from tests_ucs.fixtures.in_mem_obj_storage import InMemS3ObjectStorages
 from ucs.config import Config
 from ucs.core import models
 from ucs.core.controller import UploadController
@@ -58,7 +55,6 @@ InMemS3UploadDetailsDao = new_mock_dao_class(
 @pytest.fixture()
 def patch_s3_calls(monkeypatch):
     """Mocks the object storage provider with an InMemObjectStorage object"""
-    pass
     monkeypatch.setattr(
         f"{InMemS3ObjectStorages.__module__}.S3ObjectStorage", InMemObjectStorage
     )
@@ -622,10 +618,7 @@ async def test_delete_file_upload_with_s3_error(rig: JointRig):
         raise ObjectStorageProtocol.MultiPartUploadAbortError("", "", "")
 
     storage.abort_multipart_upload = do_error  # type: ignore[method-assign]
-    with (
-        raise_object_storage_error(InMemObjectStorage.MultiPartUploadAbortError),
-        pytest.raises(UploadControllerPort.UploadAbortError) as exc_info,
-    ):
+    with pytest.raises(UploadControllerPort.UploadAbortError) as exc_info:
         await controller.remove_file_upload(box_id=box_id, file_id=file_id)
 
     # Verify the exception contains the S3 upload ID
@@ -859,10 +852,7 @@ async def test_complete_file_upload_with_s3_error(rig: JointRig):
         raise ObjectStorageProtocol.MultiPartUploadConfirmError("", "", "")
 
     storage.complete_multipart_upload = do_error  # type: ignore[method-assign]
-    with (
-        raise_object_storage_error(InMemObjectStorage.MultiPartUploadConfirmError),
-        pytest.raises(UploadControllerPort.UploadCompletionError) as exc_info,
-    ):
+    with pytest.raises(UploadControllerPort.UploadCompletionError) as exc_info:
         await controller.complete_file_upload(
             box_id=box_id,
             file_id=file_id,
@@ -948,10 +938,7 @@ async def test_get_part_upload_url_when_s3_upload_not_found(rig: JointRig):
         raise ObjectStorageProtocol.MultiPartUploadNotFoundError("", "", "")
 
     storage.get_part_upload_url = do_error  # type: ignore[method-assign]
-    with (
-        raise_object_storage_error(InMemObjectStorage.MultiPartUploadNotFoundError),
-        pytest.raises(UploadControllerPort.S3UploadNotFoundError) as exc_info,
-    ):
+    with pytest.raises(UploadControllerPort.S3UploadNotFoundError) as exc_info:
         await controller.get_part_upload_url(file_id=file_id, part_no=1)
 
     # Verify the exception contains the S3 upload ID
