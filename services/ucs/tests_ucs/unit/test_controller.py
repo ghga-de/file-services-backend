@@ -109,13 +109,20 @@ async def test_create_new_file_upload(rig: JointRig):
     """Test creating a new FileUpload"""
     # First create a FileUploadBox
     file_upload_dao = rig.file_upload_dao
+    file_upload_box_dao = rig.file_upload_box_dao
     controller = rig.controller
     box_id = await controller.create_file_upload_box(storage_alias="test")
+    assert file_upload_box_dao.latest.size == 0
+    assert file_upload_box_dao.latest.file_count == 0
 
     # Then create a FileUpload within the box
     file_id = await controller.initiate_file_upload(
         box_id=box_id, alias="test_file", size=1024
     )
+
+    # Verify the box stats were updated
+    assert file_upload_box_dao.latest.size == 1024
+    assert file_upload_box_dao.latest.file_count == 1
 
     # Verify the FileUpload was created
     assert file_upload_dao.latest.id == file_id
@@ -220,6 +227,9 @@ async def test_delete_file_upload(rig: JointRig, complete_before_delete: bool):
         box_id=box_id, alias="test_file", size=1024
     )
 
+    assert file_upload_box_dao.latest.file_count == 1
+    assert file_upload_box_dao.latest.size == 1024
+
     if complete_before_delete:
         await controller.complete_file_upload(
             box_id=box_id,
@@ -227,8 +237,6 @@ async def test_delete_file_upload(rig: JointRig, complete_before_delete: bool):
             unencrypted_checksum="unencrypted_checksum",
             encrypted_checksum=f"etag_for_{file_id}",
         )
-        assert file_upload_box_dao.latest.file_count == 1
-        assert file_upload_box_dao.latest.size == 1024
         assert await object_storage.does_object_exist(
             bucket_id=bucket_id, object_id=str(file_id)
         )
@@ -783,10 +791,11 @@ async def test_complete_file_upload_with_missing_s3_details(rig: JointRig):
     # Verify the exception contains the correct file_id
     assert str(file_id) in str(exc_info.value)
 
-    # Verify the FileUpload is still marked as incomplete
+    # Verify the FileUpload is still marked as incomplete, but that the box's stats are
+    #  still up to date
     assert not rig.file_upload_dao.latest.completed
-    assert rig.file_upload_box_dao.latest.size == 0
-    assert rig.file_upload_box_dao.latest.file_count == 0
+    assert rig.file_upload_box_dao.latest.size == 1024
+    assert rig.file_upload_box_dao.latest.file_count == 1
 
 
 async def test_complete_file_upload_with_unknown_storage_alias(rig: JointRig):
@@ -825,8 +834,8 @@ async def test_complete_file_upload_with_unknown_storage_alias(rig: JointRig):
     # Verify the exception message contains the unknown storage alias
     assert "does_not_exist" in str(exc_info.value)
     assert not file_upload_dao.latest.completed
-    assert rig.file_upload_box_dao.latest.size == 0
-    assert rig.file_upload_box_dao.latest.file_count == 0
+    assert rig.file_upload_box_dao.latest.size == 1024
+    assert rig.file_upload_box_dao.latest.file_count == 1
 
 
 async def test_complete_file_upload_with_s3_error(rig: JointRig):
@@ -865,8 +874,8 @@ async def test_complete_file_upload_with_s3_error(rig: JointRig):
     assert s3_upload_id in str(exc_info.value)
     assert not rig.file_upload_dao.latest.completed
     assert not s3_upload_details_dao.latest.completed
-    assert file_upload_box_dao.latest.size == 0
-    assert file_upload_box_dao.latest.file_count == 0
+    assert file_upload_box_dao.latest.size == 1024
+    assert file_upload_box_dao.latest.file_count == 1
 
 
 async def test_get_part_upload_url_with_missing_file_id(rig: JointRig):
