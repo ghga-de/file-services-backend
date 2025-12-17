@@ -16,7 +16,6 @@ This is a monorepo containing all GHGA file backend microservices.
 [Encryption Key Store Service](services/ekss)  
 [File Ingest Service](services/fis)  
 [Internal File Registry Service](services/ifrs)  
-[Interrogation Room Service](services/irs)  
 [Purge Controller Service](services/pcs)  
 [Upload Controller Service](services/ucs)
 

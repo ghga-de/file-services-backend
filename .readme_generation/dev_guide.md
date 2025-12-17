@@ -119,7 +119,7 @@ both `config_schema.json` and `example_config.yaml`.
 The dev_config.yaml for each service is loaded into the development environment when the
 devcontainer is activated, but *only* if it is listed in `.devcontainer/docker-compose.yml`
 under the `environment` section as <service_name>_CONFIG_YAML. 
-- E.g.: `IRS_CONFIG_YAML: /workspace/services/irs/dev_config.yaml`
+- E.g.: `IFRS_CONFIG_YAML: /workspace/services/ifrs/dev_config.yaml`
 
 ### Testing
 
