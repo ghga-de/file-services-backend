@@ -9,6 +9,7 @@ db_name: dev
 db_version_collection: ucsDbVersions
 docs_url: /docs
 enable_opentelemetry: false
+file_box_size_limit: 164926744166400
 file_upload_box_topic: file-upload-boxes
 file_upload_reports_topic: file-upload-reports
 file_upload_reports_type: file_upload_report

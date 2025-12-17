@@ -23,3 +23,4 @@ uos_auth_config:
   auth_check_claims: {}
 file_upload_reports_topic: file-upload-reports
 file_upload_reports_type: file_upload_report
+file_box_size_limit: 164926744166400  # 150 TiB
