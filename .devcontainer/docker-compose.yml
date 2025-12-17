@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 
 services:
   app:
@@ -30,7 +30,6 @@ services:
     # define environment variables
     environment:
       IFRS_CONFIG_YAML: /workspace/services/ifrs/dev_config.yaml
-      IRS_CONFIG_YAML: /workspace/services/irs/dev_config.yaml
       PCS_CONFIG_YAML: /workspace/services/pcs/dev_config.yaml
       UCS_CONFIG_YAML: /workspace/services/ucs/dev_config.yaml
       DCS_CONFIG_YAML: /workspace/services/dcs/dev_config.yaml

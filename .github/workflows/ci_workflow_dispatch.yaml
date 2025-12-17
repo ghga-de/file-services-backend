@@ -14,7 +14,6 @@ env:
   DOCKERHUB_PLATFORMS: "linux/amd64,linux/arm64"
   TRIVY_SEVERITY: "CRITICAL,HIGH"
   IFRS_CONFIG_YAML: ./services/ifrs/dev_config.yaml
-  IRS_CONFIG_YAML: ./services/irs/dev_config.yaml
   PCS_CONFIG_YAML: ./services/pcs/dev_config.yaml
   UCS_CONFIG_YAML: ./services/ucs/dev_config.yaml
   DCS_CONFIG_YAML: ./services/dcs/dev_config.yaml
