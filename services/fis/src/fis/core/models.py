@@ -172,10 +172,16 @@ class InterrogationReport(BaseModel):
     def validate_conditional_fields(self) -> "InterrogationReport":
         """Validate that conditional fields are set based on passed status."""
         if self.passed:
-            if self.encrypted_parts_md5 is None or self.encrypted_parts_sha256 is None:
+            if self.encrypted_parts_md5 is None:
                 raise ValueError(
-                    "encrypted_parts_md5 and encrypted_parts_sha256 must not be None when passed is True"
+                    "encrypted_parts_md5 must not be None when passed is True"
                 )
+            if self.encrypted_parts_sha256 is None:
+                raise ValueError(
+                    "encrypted_parts_sha256 must not be None when passed is True"
+                )
+            if self.secret is None:
+                raise ValueError("secret must not be None when passed is True")
         elif self.reason is None:
             raise ValueError("reason must not be None when passed is False")
         return self
