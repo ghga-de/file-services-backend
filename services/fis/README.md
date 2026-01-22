@@ -231,7 +231,17 @@ The service requires the following configuration parameters:
   Examples:
 
   ```json
-  "file_interrogation_success"
+  "interrogation_success"
+  ```
+
+
+- <a id="properties/interrogation_failure_type"></a>**`interrogation_failure_type`** *(string, required)*: The type used for events informing about failed file validations.
+
+
+  Examples:
+
+  ```json
+  "interrogation_failed"
   ```
 
 
