@@ -1,0 +1,63 @@
+# Copyright 2021 - 2025 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
+# for the German Human Genome-Phenome Archive (GHGA)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Describes a class for managing FileUnderInterrogation objects and interpreting
+InterrogationReports.
+"""
+
+from abc import ABC, abstractmethod
+
+from pydantic import UUID4
+
+from fis.core import models
+
+
+class InterrogationHandlerPort(ABC):
+    """This is the core class that manages `FileUnderInterrogation` and
+    `InterrogationReport` objects.
+    """
+
+    class FileNotFoundError(RuntimeError):
+        """Raised when a file cannot be found in the database"""
+
+        def __init__(self, *, file_id: UUID4):
+            msg = f"The file with the ID {file_id} does not exist."
+            super().__init__(msg)
+
+    @abstractmethod
+    async def check_if_removable(self, file_id: UUID4) -> bool:
+        """Return `True` if a file can be removed from the interrogation bucket and
+        `False` otherwise.
+        """
+
+    @abstractmethod
+    async def handle_interrogation_report(self, report: models.InterrogationReport):
+        """Handle an interrogation report and publish the appropriate event.
+
+        If the report relays a success, then deposit the secret with EKSS and publish
+        an InterrogationSuccess event. Otherwise, publish an InterrogationFailure event.
+        In both cases, set `interrogated=True`, `state="interrogated"`, and
+        `state_updated=now()` for the `FileUnderInterrogation` event. In the case of
+        interrogation failure, also set `can_remove=True`.
+        """
+
+    @abstractmethod
+    async def process_file_upload(self, file: models.FileUnderInterrogation) -> None:
+        """Process a newly received file upload.
+
+        Make sure we don't already have this file. If we don't, then add it to the DB.
+        If we do, see if this information is old or new. If old, ignore it.
+        If new, update our copy.
+        """
