@@ -17,7 +17,7 @@
 from enum import StrEnum
 
 from ghga_service_commons.utils.utc_dates import UTCDatetime
-from pydantic import UUID4, BaseModel, Field, SecretStr
+from pydantic import UUID4, BaseModel, Field, SecretBytes, SecretStr, model_validator
 
 
 class EncryptedPayload(BaseModel):
@@ -141,3 +141,43 @@ class InterrogationFailure(BaseModel):
     reason: str = Field(
         ..., description="The text of the error that caused interrogation to fail"
     )
+
+
+class InterrogationReport(BaseModel):
+    """Contains the results of file interrogation"""
+
+    file_id: UUID4 = Field(..., description="Unique identifier for the file upload")
+    storage_alias: str = Field(
+        ..., description="The storage alias for the interrogation bucket"
+    )
+    interrogated_at: UTCDatetime = Field(
+        ..., description="Timestamp showing when interrogation finished"
+    )
+    passed: bool = Field(..., description="Whether the interrogation was a success")
+    secret: SecretBytes | None = Field(
+        default=None, description="Encrypted file encryption secret"
+    )
+    encrypted_parts_md5: list[str] | None = Field(
+        default=None, description="Conditional upon success"
+    )
+    encrypted_parts_sha256: list[str] | None = Field(
+        default=None, description="Conditional upon success"
+    )
+    reason: str | None = Field(
+        default=None,
+        description="Conditional upon failure, contains reason for failure",
+    )
+
+    @model_validator(mode="after")
+    def validate_conditional_fields(self) -> "InterrogationReport":
+        """Validate that conditional fields are set based on passed status."""
+        if self.passed:
+            if self.encrypted_parts_md5 is None or self.encrypted_parts_sha256 is None:
+                raise ValueError(
+                    "encrypted_parts_md5 and encrypted_parts_sha256 must not be None when passed is True"
+                )
+        elif self.reason is None:
+            raise ValueError("reason must not be None when passed is False")
+        return self
+
+    # TODO: Write a unit test for this validator
