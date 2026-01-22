@@ -219,9 +219,17 @@
     "interrogation_success_type": {
       "description": "The type used for events informing about successful file validations.",
       "examples": [
-        "file_interrogation_success"
+        "interrogation_success"
       ],
       "title": "Interrogation Success Type",
+      "type": "string"
+    },
+    "interrogation_failure_type": {
+      "description": "The type used for events informing about failed file validations.",
+      "examples": [
+        "interrogation_failed"
+      ],
+      "title": "Interrogation Failure Type",
       "type": "string"
     },
     "host": {
@@ -601,6 +609,7 @@
     "token_hashes",
     "file_interrogations_topic",
     "interrogation_success_type",
+    "interrogation_failure_type",
     "kafka_servers",
     "mongo_dsn",
     "db_name",

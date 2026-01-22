@@ -13,7 +13,8 @@ file_interrogations_topic: file-interrogations
 file_validations_collection: fileValidations
 generate_correlation_id: true
 host: 127.0.0.1
-interrogation_success_type: file_interrogation_success
+interrogation_failure_type: interrogation_failed
+interrogation_success_type: interrogation_success
 kafka_compression_type: null
 kafka_dlq_topic: dlq
 kafka_enable_dlq: false

@@ -22,7 +22,7 @@ from hexkit.providers.mongodb.migrations import MigrationConfig
 from hexkit.providers.mongokafka import MongoKafkaConfig
 from pydantic import Field
 
-from fis.adapters.outbound.event_pub import EventPubTranslatorConfig
+from fis.adapters.outbound.event_pub import EventPubConfig
 from fis.adapters.outbound.vault import VaultConfig
 from fis.constants import SERVICE_NAME
 from fis.core.ingest import ServiceConfig
@@ -33,7 +33,7 @@ class Config(
     MongoKafkaConfig,
     MigrationConfig,
     ApiConfigBase,
-    EventPubTranslatorConfig,
+    EventPubConfig,
     ServiceConfig,
     VaultConfig,
     LoggingConfig,
