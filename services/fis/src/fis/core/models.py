@@ -14,7 +14,10 @@
 # limitations under the License.
 """Models for internal representation"""
 
-from pydantic import UUID4, BaseModel, SecretStr
+from enum import StrEnum
+
+from ghga_service_commons.utils.utc_dates import UTCDatetime
+from pydantic import UUID4, BaseModel, Field, SecretStr
 
 
 class EncryptedPayload(BaseModel):
@@ -60,3 +63,81 @@ class UploadMetadata(UploadMetadataBase):
     """
 
     secret_id: str
+
+
+class FileUploadState(StrEnum):
+    """The possible states of a FileUpload"""
+
+    INIT = "init"
+    INBOX = "inbox"
+    FAILED = "failed"
+    INTERROGATED = "interrogated"
+    AWAITING_ARCHIVAL = "awaiting_archival"
+    ARCHIVED = "archived"
+
+
+class FileUnderInterrogation(BaseModel):
+    """A user-submitted file upload that needs to be interrogated"""
+
+    id: UUID4 = Field(..., description="Unique identifier for the file upload")
+    state: FileUploadState = Field(
+        default=FileUploadState.INIT, description="The state of the FileUpload"
+    )
+    state_updated: UTCDatetime = Field(
+        ..., description="Timestamp of when state was updated"
+    )
+    storage_alias: str = Field(
+        ..., description="The storage alias for the inbox bucket"
+    )
+    decrypted_sha256: str = Field(
+        ..., description="SHA-256 checksum of the entire unencrypted file content"
+    )
+    decrypted_size: int = Field(..., description="The size of the unencrypted file")
+    part_size: int = Field(
+        ...,
+        description="The number of bytes in each file part (last part is likely smaller)",
+    )
+    interrogated: bool = Field(
+        default=False, description="Indicates whether interrogation has been completed"
+    )
+    can_remove: bool = Field(
+        default=False,
+        description="Indicates whether the file can be deleted from the interrogation bucket",
+    )
+
+
+class InterrogationSuccess(BaseModel):
+    """Event model informing services that file interrogation succeeded"""
+
+    file_id: UUID4 = Field(..., description="Unique identifier for the file upload")
+    secret_id: str | None = Field(
+        default=None,
+        description="The internal ID of the Data Hub-generated decryption secret",
+    )
+    storage_alias: str = Field(
+        ..., description="The storage alias of the interrogation bucket"
+    )
+    interrogated_at: UTCDatetime = Field(
+        ..., description="Time that the report was generated"
+    )
+    encrypted_parts_md5: list[str] = Field(
+        ..., description="The MD5 checksum for each file part, in sequence"
+    )
+    encrypted_parts_sha256: list[str] = Field(
+        ..., description="The SHA256 checksum for each file part, in sequence"
+    )
+
+
+class InterrogationFailure(BaseModel):
+    """Event model informing services that file interrogation failed"""
+
+    file_id: UUID4 = Field(..., description="Unique identifier for the file upload")
+    storage_alias: str = Field(
+        ..., description="The interrogation bucket storage alias"
+    )
+    interrogated_at: UTCDatetime = Field(
+        ..., description="Time that the report was generated"
+    )
+    reason: str = Field(
+        ..., description="The text of the error that caused interrogation to fail"
+    )
