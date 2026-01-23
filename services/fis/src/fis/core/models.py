@@ -17,52 +17,13 @@
 from enum import StrEnum
 
 from ghga_service_commons.utils.utc_dates import UTCDatetime
-from pydantic import UUID4, BaseModel, Field, SecretBytes, SecretStr, model_validator
-
-
-class EncryptedPayload(BaseModel):
-    """Generic model for an encrypted payload.
-
-    Can correspond to current/legacy upload metadata or a file secret.
-    """
-
-    payload: str
+from pydantic import UUID4, BaseModel, Field, SecretBytes, model_validator
 
 
 class FileIdModel(BaseModel):
     """Model for a file ID"""
 
     file_id: str
-
-
-class UploadMetadataBase(FileIdModel):
-    """BaseModel for common parts of different variants of the decrypted payload model
-    representing the S3 upload script output
-    """
-
-    object_id: UUID4
-    bucket_id: str
-    part_size: int
-    unencrypted_size: int
-    encrypted_size: int
-    unencrypted_checksum: str
-    encrypted_md5_checksums: list[str]
-    encrypted_sha256_checksums: list[str]
-    storage_alias: str
-
-
-class LegacyUploadMetadata(UploadMetadataBase):
-    """Legacy model including file encryption/decryption secret"""
-
-    file_secret: SecretStr
-
-
-class UploadMetadata(UploadMetadataBase):
-    """Current model including a secret ID that can be used to retrieve a stored secret
-    in place of the actual secret.
-    """
-
-    secret_id: str
 
 
 class FileUploadState(StrEnum):
@@ -76,7 +37,28 @@ class FileUploadState(StrEnum):
     ARCHIVED = "archived"
 
 
-class FileUnderInterrogation(BaseModel):
+class BaseFileInformation(BaseModel):
+    """Basic file information - all that is needed for interrogation."""
+
+    id: UUID4 = Field(..., description="Unique identifier for the file upload")
+    data_hub: str = Field(..., description="The data hub at which the file is stored")
+    storage_alias: str = Field(
+        ..., description="The storage alias for the inbox bucket"
+    )
+    decrypted_sha256: str = Field(
+        ..., description="SHA-256 checksum of the entire unencrypted file content"
+    )
+    decrypted_size: int = Field(..., description="The size of the unencrypted file")
+    encrypted_size: int = Field(
+        ..., description="The encrypted size of the file before re-encryption"
+    )
+    part_size: int = Field(
+        ...,
+        description="The number of bytes in each file part (last part is likely smaller)",
+    )
+
+
+class FileUnderInterrogation(BaseFileInformation):
     """A user-submitted file upload that needs to be interrogated"""
 
     id: UUID4 = Field(..., description="Unique identifier for the file upload")
@@ -85,17 +67,6 @@ class FileUnderInterrogation(BaseModel):
     )
     state_updated: UTCDatetime = Field(
         ..., description="Timestamp of when state was updated"
-    )
-    storage_alias: str = Field(
-        ..., description="The storage alias for the inbox bucket"
-    )
-    decrypted_sha256: str = Field(
-        ..., description="SHA-256 checksum of the entire unencrypted file content"
-    )
-    decrypted_size: int = Field(..., description="The size of the unencrypted file")
-    part_size: int = Field(
-        ...,
-        description="The number of bytes in each file part (last part is likely smaller)",
     )
     interrogated: bool = Field(
         default=False, description="Indicates whether interrogation has been completed"
