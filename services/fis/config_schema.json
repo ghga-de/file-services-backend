@@ -66,148 +66,6 @@
       "title": "Log Traceback",
       "type": "boolean"
     },
-    "vault_url": {
-      "description": "URL of the vault instance to connect to",
-      "examples": [
-        "http://127.0.0.1.8200"
-      ],
-      "title": "Vault Url",
-      "type": "string"
-    },
-    "vault_role_id": {
-      "anyOf": [
-        {
-          "format": "password",
-          "type": "string",
-          "writeOnly": true
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "description": "Vault role ID to access a specific prefix",
-      "examples": [
-        "example_role"
-      ],
-      "title": "Vault Role Id"
-    },
-    "vault_secret_id": {
-      "anyOf": [
-        {
-          "format": "password",
-          "type": "string",
-          "writeOnly": true
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "description": "Vault secret ID to access a specific prefix",
-      "examples": [
-        "example_secret"
-      ],
-      "title": "Vault Secret Id"
-    },
-    "vault_verify": {
-      "anyOf": [
-        {
-          "type": "boolean"
-        },
-        {
-          "type": "string"
-        }
-      ],
-      "default": true,
-      "description": "SSL certificates (CA bundle) used to verify the identity of the vault, or True to use the default CAs, or False for no verification.",
-      "examples": [
-        "/etc/ssl/certs/my_bundle.pem"
-      ],
-      "title": "Vault Verify"
-    },
-    "vault_path": {
-      "description": "Path without leading or trailing slashes where secrets should be stored in the vault.",
-      "title": "Vault Path",
-      "type": "string"
-    },
-    "vault_secrets_mount_point": {
-      "default": "secret",
-      "description": "Name used to address the secret engine under a custom mount path.",
-      "examples": [
-        "secret"
-      ],
-      "title": "Vault Secrets Mount Point",
-      "type": "string"
-    },
-    "vault_kube_role": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "description": "Vault role name used for Kubernetes authentication",
-      "examples": [
-        "file-ingest-role"
-      ],
-      "title": "Vault Kube Role"
-    },
-    "vault_auth_mount_point": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "description": "Adapter specific mount path for the corresponding auth backend. If none is provided, the default is used.",
-      "examples": [
-        null,
-        "approle",
-        "kubernetes"
-      ],
-      "title": "Vault Auth Mount Point"
-    },
-    "service_account_token_path": {
-      "default": "/var/run/secrets/kubernetes.io/serviceaccount/token",
-      "description": "Path to service account token used by kube auth adapter.",
-      "format": "path",
-      "title": "Service Account Token Path",
-      "type": "string"
-    },
-    "private_key_path": {
-      "description": "Path to the Crypt4GH private key file of the keypair whose public key is used to encrypt the payload.",
-      "format": "path",
-      "title": "Private Key Path",
-      "type": "string"
-    },
-    "private_key_passphrase": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "description": "Passphrase needed to read the content of the private key file. Only needed if the private key is encrypted.",
-      "title": "Private Key Passphrase"
-    },
-    "token_hashes": {
-      "description": "List of token hashes corresponding to the tokens that can be used to authenticate calls to this service.",
-      "items": {
-        "type": "string"
-      },
-      "title": "Token Hashes",
-      "type": "array"
-    },
     "file_interrogations_topic": {
       "description": "The name of the topic use to publish file interrogation outcome events.",
       "examples": [
@@ -591,22 +449,34 @@
       ],
       "title": "Migration Max Wait Sec"
     },
-    "file_validations_collection": {
-      "default": "fileValidations",
-      "description": "The name of the collection used to store FileUploadValidationSuccess events.",
+    "ekss_api_url": {
+      "description": "The base URL for the EKSS API",
       "examples": [
-        "fileValidations"
+        "http://127.0.0.1/ekss"
       ],
-      "title": "File Validations Collection",
+      "format": "uri",
+      "maxLength": 2083,
+      "minLength": 1,
+      "title": "Ekss Api Url",
       "type": "string"
+    },
+    "data_hub_auth_keys": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Mapping of data hub aliases to their public token signature validation keys",
+      "examples": [
+        {
+          "HD": "{\"crv\": \"P-256\", \"kty\": \"EC\", \"x\": \"...\", \"y\": \"...\"}",
+          "TU": "{\"crv\": \"P-256\", \"kty\": \"EC\", \"x\": \"...\", \"y\": \"...\"}"
+        }
+      ],
+      "title": "Data Hub Auth Keys",
+      "type": "object"
     }
   },
   "required": [
     "service_instance_id",
-    "vault_url",
-    "vault_path",
-    "private_key_path",
-    "token_hashes",
     "file_interrogations_topic",
     "interrogation_success_type",
     "interrogation_failure_type",
@@ -614,7 +484,9 @@
     "mongo_dsn",
     "db_name",
     "db_version_collection",
-    "migration_wait_sec"
+    "migration_wait_sec",
+    "ekss_api_url",
+    "data_hub_auth_keys"
   ],
   "title": "ModSettings",
   "type": "object"

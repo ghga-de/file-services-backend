@@ -5,12 +5,15 @@ cors_allowed_headers: null
 cors_allowed_methods: null
 cors_allowed_origins: null
 cors_exposed_headers: null
+data_hub_auth_keys:
+  HD: '{"crv":"P-256","kty":"EC","x":"nix0eRNBLpSOQqEa63MB48FwKinZYpPL2G9QZEEAFGQ","y":"UEQBvFFSJmS95tBZCR1paF97jnwOZUyjKaE4aY6aaCk"}'
+  TU: '{"crv":"P-256","kty":"EC","x":"1XAs84RlUVBlMlE8l_4rTTlSYWDeQiLH21iTDLKTIM8","y":"cySDIURnb35Z6kv5FaidwIiwMcpFCnwKVausc9o8BRs"}'
 db_name: dev
 db_version_collection: fisDbVersions
 docs_url: /docs
+ekss_api_url: http://127.0.0.1/ekss
 enable_opentelemetry: false
 file_interrogations_topic: file-interrogations
-file_validations_collection: fileValidations
 generate_correlation_id: true
 host: 127.0.0.1
 interrogation_failure_type: interrogation_failed
@@ -38,20 +41,6 @@ mongo_timeout: null
 openapi_url: /openapi.json
 otel_trace_sampling_rate: 1.0
 port: 8080
-private_key_passphrase: null
-private_key_path: placeholder.sec
-service_account_token_path: /var/run/secrets/kubernetes.io/serviceaccount/token
 service_instance_id: '1'
 service_name: fis
-token_hashes:
-- abcdef
-- ghijkl
-vault_auth_mount_point: null
-vault_kube_role: dummy-role
-vault_path: ekss
-vault_role_id: '**********'
-vault_secret_id: '**********'
-vault_secrets_mount_point: secret
-vault_url: http://127.0.0.1:8200
-vault_verify: true
 workers: 1

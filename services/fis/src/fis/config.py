@@ -20,12 +20,10 @@ from hexkit.log import LoggingConfig
 from hexkit.opentelemetry import OpenTelemetryConfig
 from hexkit.providers.mongodb.migrations import MigrationConfig
 from hexkit.providers.mongokafka import MongoKafkaConfig
-from pydantic import Field
+from pydantic import Field, HttpUrl
 
 from fis.adapters.outbound.event_pub import EventPubConfig
-from fis.adapters.outbound.vault import VaultConfig
 from fis.constants import SERVICE_NAME
-from fis.core.ingest import ServiceConfig
 
 
 @config_from_yaml(prefix=SERVICE_NAME)
@@ -34,8 +32,6 @@ class Config(
     MigrationConfig,
     ApiConfigBase,
     EventPubConfig,
-    ServiceConfig,
-    VaultConfig,
     LoggingConfig,
     OpenTelemetryConfig,
 ):
@@ -43,11 +39,18 @@ class Config(
 
     service_name: str = SERVICE_NAME
 
-    # Remove this parameter once the v2 migration has been run in production
-    file_validations_collection: str = Field(
-        default="fileValidations",
-        description=(
-            "The name of the collection used to store FileUploadValidationSuccess events."
-        ),
-        examples=["fileValidations"],
+    ekss_api_url: HttpUrl = Field(
+        default=...,
+        description="The base URL for the EKSS API",
+        examples=["http://127.0.0.1/ekss"],
+    )
+    data_hub_auth_keys: dict[str, str] = Field(
+        default=...,
+        description="Mapping of data hub aliases to their public token signature validation keys",
+        examples=[
+            {
+                "HD": '{"crv": "P-256", "kty": "EC", "x": "...", "y": "..."}',
+                "TU": '{"crv": "P-256", "kty": "EC", "x": "...", "y": "..."}',
+            }
+        ],
     )
