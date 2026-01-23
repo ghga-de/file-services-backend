@@ -20,8 +20,9 @@ InterrogationReports.
 import logging
 from contextlib import suppress
 
+import httpx
 from hexkit.utils import now_utc_ms_prec
-from pydantic import UUID4, SecretBytes
+from pydantic import UUID4
 
 from fis.config import Config
 from fis.core import models
@@ -53,7 +54,7 @@ class InterrogationHandler(InterrogationHandlerPort):
         self._dao = file_dao
         self._publisher = event_publisher
 
-    async def check_if_removable(self, file_id: UUID4) -> bool:
+    async def check_if_removable(self, *, file_id: UUID4) -> bool:
         """Return `True` if a file can be removed from the interrogation bucket and
         `False` otherwise.
         """
@@ -65,7 +66,7 @@ class InterrogationHandler(InterrogationHandlerPort):
             return True
         return file.can_remove
 
-    async def handle_interrogation_report(self, report: models.InterrogationReport):
+    async def handle_interrogation_report(self, *, report: models.InterrogationReport):
         """Handle an interrogation report and publish the appropriate event.
 
         If the report relays a success, then deposit the secret with EKSS and publish
@@ -73,6 +74,10 @@ class InterrogationHandler(InterrogationHandlerPort):
         In both cases, set `interrogated=True`, `state="interrogated"`, and
         `state_updated=now()` for the `FileUnderInterrogation` event. In the case of
         interrogation failure, also set `can_remove=True`.
+
+        Raises:
+        - FileNotFoundError if there's no file with the ID specified in the report.
+        - SecretDepositionError if there's a problem depositing the secret with EKSS.
         """
         # First make sure we have this file
         try:
@@ -92,7 +97,19 @@ class InterrogationHandler(InterrogationHandlerPort):
         # See if this is a success report or a failure report
         if report.passed:
             # Deposit the secret with the EKSS
-            secret_id = await self._deposit_secret(report.secret)  # type: ignore
+            url = f"{self._config.ekss_api_url}/secrets"
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    url,
+                    content=report.secret.get_secret_value(),  # type: ignore
+                )  # type: ignore
+
+            if response.status_code != 201:
+                error = self.SecretDepositionError(file_id=report.file_id)
+                log.error(error)
+                raise error
+
+            secret_id = response.json()
 
             # Publish event
             await self._publisher.publish_interrogation_success(
@@ -112,12 +129,7 @@ class InterrogationHandler(InterrogationHandlerPort):
                 reason=report.reason,  # type: ignore
             )
 
-    async def _deposit_secret(self, secret: SecretBytes) -> str:
-        """Deposit a secret with the EKSS and get a secret id in return"""
-        # TODO: use thomas's creations
-        raise NotImplementedError()
-
-    async def process_file_upload(self, file: models.FileUnderInterrogation) -> None:
+    async def process_file_upload(self, *, file: models.FileUnderInterrogation) -> None:
         """Process a newly received file upload.
 
         Make sure we don't already have this file. If we don't, then add it to the DB.
@@ -146,3 +158,14 @@ class InterrogationHandler(InterrogationHandlerPort):
                 file.id,
                 file.state.value,
             )
+
+    async def get_files_not_yet_interrogated(
+        self, *, data_hub: str
+    ) -> list[models.BaseFileInformation]:
+        """Return a list of not-yet-interrogated files for a Data Hub"""
+        files = [
+            models.BaseFileInformation(**x.model_dump())
+            async for x in self._dao.find_all(mapping={"data_hub": data_hub})
+        ]
+        log.info("Fetched list of %i files for data hub %s.", len(files), data_hub)
+        return files

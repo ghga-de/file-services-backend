@@ -36,14 +36,23 @@ class InterrogationHandlerPort(ABC):
             msg = f"The file with the ID {file_id} does not exist."
             super().__init__(msg)
 
+    class SecretDepositionError(RuntimeError):
+        """Raised when there's a problem depositing a new file encryption secret with
+        the EKSS.
+        """
+
+        def __init__(self, *, file_id: UUID4):
+            msg = f"Failed to deposit encryption secret for file with the ID {file_id}."
+            super().__init__(msg)
+
     @abstractmethod
-    async def check_if_removable(self, file_id: UUID4) -> bool:
+    async def check_if_removable(self, *, file_id: UUID4) -> bool:
         """Return `True` if a file can be removed from the interrogation bucket and
         `False` otherwise.
         """
 
     @abstractmethod
-    async def handle_interrogation_report(self, report: models.InterrogationReport):
+    async def handle_interrogation_report(self, *, report: models.InterrogationReport):
         """Handle an interrogation report and publish the appropriate event.
 
         If the report relays a success, then deposit the secret with EKSS and publish
@@ -51,13 +60,23 @@ class InterrogationHandlerPort(ABC):
         In both cases, set `interrogated=True`, `state="interrogated"`, and
         `state_updated=now()` for the `FileUnderInterrogation` event. In the case of
         interrogation failure, also set `can_remove=True`.
+
+        Raises:
+        - FileNotFoundError if there's no file with the ID specified in the report.
+        - SecretDepositionError if there's a problem depositing the secret with EKSS.
         """
 
     @abstractmethod
-    async def process_file_upload(self, file: models.FileUnderInterrogation) -> None:
+    async def process_file_upload(self, *, file: models.FileUnderInterrogation) -> None:
         """Process a newly received file upload.
 
         Make sure we don't already have this file. If we don't, then add it to the DB.
         If we do, see if this information is old or new. If old, ignore it.
         If new, update our copy.
         """
+
+    @abstractmethod
+    async def get_files_not_yet_interrogated(
+        self, *, data_hub: str
+    ) -> list[models.BaseFileInformation]:
+        """Return a list of not-yet-interrogated files for a Data Hub"""
