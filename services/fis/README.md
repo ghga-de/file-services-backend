@@ -1,6 +1,6 @@
 # File Ingest Service
 
-A lightweight service to propagate file upload metadata to the GHGA file backend services
+A service to liaise between Central File Services and Data Hubs for file inspection.
 
 ## Description
 
@@ -86,134 +86,6 @@ The service requires the following configuration parameters:
 
 
 - <a id="properties/log_traceback"></a>**`log_traceback`** *(boolean)*: Whether to include exception tracebacks in log messages. Default: `true`.
-
-- <a id="properties/vault_url"></a>**`vault_url`** *(string, required)*: URL of the vault instance to connect to.
-
-
-  Examples:
-
-  ```json
-  "http://127.0.0.1.8200"
-  ```
-
-
-- <a id="properties/vault_role_id"></a>**`vault_role_id`**: Vault role ID to access a specific prefix. Default: `null`.
-
-  - **Any of**
-
-    - <a id="properties/vault_role_id/anyOf/0"></a>*string, format: password*
-
-    - <a id="properties/vault_role_id/anyOf/1"></a>*null*
-
-
-  Examples:
-
-  ```json
-  "example_role"
-  ```
-
-
-- <a id="properties/vault_secret_id"></a>**`vault_secret_id`**: Vault secret ID to access a specific prefix. Default: `null`.
-
-  - **Any of**
-
-    - <a id="properties/vault_secret_id/anyOf/0"></a>*string, format: password*
-
-    - <a id="properties/vault_secret_id/anyOf/1"></a>*null*
-
-
-  Examples:
-
-  ```json
-  "example_secret"
-  ```
-
-
-- <a id="properties/vault_verify"></a>**`vault_verify`**: SSL certificates (CA bundle) used to verify the identity of the vault, or True to use the default CAs, or False for no verification. Default: `true`.
-
-  - **Any of**
-
-    - <a id="properties/vault_verify/anyOf/0"></a>*boolean*
-
-    - <a id="properties/vault_verify/anyOf/1"></a>*string*
-
-
-  Examples:
-
-  ```json
-  "/etc/ssl/certs/my_bundle.pem"
-  ```
-
-
-- <a id="properties/vault_path"></a>**`vault_path`** *(string, required)*: Path without leading or trailing slashes where secrets should be stored in the vault.
-
-- <a id="properties/vault_secrets_mount_point"></a>**`vault_secrets_mount_point`** *(string)*: Name used to address the secret engine under a custom mount path. Default: `"secret"`.
-
-
-  Examples:
-
-  ```json
-  "secret"
-  ```
-
-
-- <a id="properties/vault_kube_role"></a>**`vault_kube_role`**: Vault role name used for Kubernetes authentication. Default: `null`.
-
-  - **Any of**
-
-    - <a id="properties/vault_kube_role/anyOf/0"></a>*string*
-
-    - <a id="properties/vault_kube_role/anyOf/1"></a>*null*
-
-
-  Examples:
-
-  ```json
-  "file-ingest-role"
-  ```
-
-
-- <a id="properties/vault_auth_mount_point"></a>**`vault_auth_mount_point`**: Adapter specific mount path for the corresponding auth backend. If none is provided, the default is used. Default: `null`.
-
-  - **Any of**
-
-    - <a id="properties/vault_auth_mount_point/anyOf/0"></a>*string*
-
-    - <a id="properties/vault_auth_mount_point/anyOf/1"></a>*null*
-
-
-  Examples:
-
-  ```json
-  null
-  ```
-
-
-  ```json
-  "approle"
-  ```
-
-
-  ```json
-  "kubernetes"
-  ```
-
-
-- <a id="properties/service_account_token_path"></a>**`service_account_token_path`** *(string, format: path)*: Path to service account token used by kube auth adapter. Default: `"/var/run/secrets/kubernetes.io/serviceaccount/token"`.
-
-- <a id="properties/private_key_path"></a>**`private_key_path`** *(string, format: path, required)*: Path to the Crypt4GH private key file of the keypair whose public key is used to encrypt the payload.
-
-- <a id="properties/private_key_passphrase"></a>**`private_key_passphrase`**: Passphrase needed to read the content of the private key file. Only needed if the private key is encrypted. Default: `null`.
-
-  - **Any of**
-
-    - <a id="properties/private_key_passphrase/anyOf/0"></a>*string*
-
-    - <a id="properties/private_key_passphrase/anyOf/1"></a>*null*
-
-- <a id="properties/token_hashes"></a>**`token_hashes`** *(array, required)*: List of token hashes corresponding to the tokens that can be used to authenticate calls to this service.
-
-  - <a id="properties/token_hashes/items"></a>**Items** *(string)*
 
 - <a id="properties/file_interrogations_topic"></a>**`file_interrogations_topic`** *(string, required)*: The name of the topic use to publish file interrogation outcome events.
 
@@ -637,13 +509,28 @@ The service requires the following configuration parameters:
   ```
 
 
-- <a id="properties/file_validations_collection"></a>**`file_validations_collection`** *(string)*: The name of the collection used to store FileUploadValidationSuccess events. Default: `"fileValidations"`.
+- <a id="properties/ekss_api_url"></a>**`ekss_api_url`** *(string, format: uri, required)*: The base URL for the EKSS API. Length must be between 1 and 2083 (inclusive).
 
 
   Examples:
 
   ```json
-  "fileValidations"
+  "http://127.0.0.1/ekss"
+  ```
+
+
+- <a id="properties/data_hub_auth_keys"></a>**`data_hub_auth_keys`** *(object, required)*: Mapping of data hub aliases to their public token signature validation keys. Can contain additional properties.
+
+  - <a id="properties/data_hub_auth_keys/additionalProperties"></a>**Additional properties** *(string)*
+
+
+  Examples:
+
+  ```json
+  {
+      "HD": "{\"crv\": \"P-256\", \"kty\": \"EC\", \"x\": \"...\", \"y\": \"...\"}",
+      "TU": "{\"crv\": \"P-256\", \"kty\": \"EC\", \"x\": \"...\", \"y\": \"...\"}"
+  }
   ```
 
 
