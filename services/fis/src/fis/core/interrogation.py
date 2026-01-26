@@ -153,7 +153,9 @@ class InterrogationHandler(InterrogationHandlerPort):
         If we do, see if this information is old or new. If old, ignore it.
         If new, update our copy.
         """
-        if file.state == "inbox":
+        if file.state == "init":
+            return
+        elif file.state == "inbox":
             with suppress(ResourceAlreadyExistsError):
                 await self._dao.insert(file)
                 return
@@ -167,8 +169,9 @@ class InterrogationHandler(InterrogationHandlerPort):
             return
 
         # If not outdated, see if the state is one we're interested in
-        if file.state in ["failed", "archived"]:
+        if file.state != local_file.state and file.state in ["failed", "archived"]:
             file.can_remove = True
+            file.interrogated = local_file.interrogated  # preserve interrogation status
             await self._dao.update(file)
             log.info(
                 "File %s arrived with state %s. Set can_remove to True.",
