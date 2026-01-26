@@ -16,14 +16,13 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Body, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Body, HTTPException, status
 from pydantic import UUID4
 
 from fis.adapters.inbound.fastapi_ import dummies
 from fis.adapters.inbound.fastapi_.http_authorization import JWT, require_data_hub_jwt
 from fis.constants import TRACER
 from fis.core import models
-from fis.ports.inbound.interrogation import InterrogationHandlerPort
 
 router = APIRouter()
 
@@ -90,12 +89,11 @@ async def post_interrogation_report(
     data_hub: str,
     interrogator: dummies.InterrogatorPort,
     _token: Annotated[JWT, require_data_hub_jwt],
+    background_tasks: BackgroundTasks,
     report: models.InterrogationReport = Body(),
 ) -> None:
     """Post an InterrogationReport"""
-    try:
-        await interrogator.handle_interrogation_report(report=report)
-    except InterrogationHandlerPort.FileNotFoundError as err:
-        raise HTTPException(
-            status_code=404, detail=f"File {report.file_id} not found"
-        ) from err
+    if not await interrogator.does_file_exist(file_id=report.file_id):
+        raise HTTPException(status_code=404, detail=f"File {report.file_id} not found")
+
+    background_tasks.add_task(interrogator.handle_interrogation_report, report=report)

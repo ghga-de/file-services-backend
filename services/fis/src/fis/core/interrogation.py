@@ -66,6 +66,16 @@ class InterrogationHandler(InterrogationHandlerPort):
             return True
         return file.can_remove
 
+    async def does_file_exist(self, *, file_id: UUID4) -> bool:
+        """Return `True` if there is a `FileUnderInterrogation` with a matching ID and
+        return `False` if not.
+        """
+        try:
+            _ = await self._dao.get_by_id(file_id)
+            return True
+        except ResourceNotFoundError:
+            return False
+
     async def handle_interrogation_report(self, *, report: models.InterrogationReport):
         """Handle an interrogation report and publish the appropriate event.
 
@@ -89,13 +99,11 @@ class InterrogationHandler(InterrogationHandlerPort):
             )
             raise self.FileNotFoundError(file_id=report.file_id) from err
 
-        # Set the 'interrogated' flag, state, and timestamp
-        file.interrogated = True
-        file.state = STATES.INTERROGATED
-        file.state_updated = now_utc_ms_prec()
-
         # See if this is a success report or a failure report
         if report.passed:
+            # Update file state
+            file.state = "interrogated"
+
             # Deposit the secret with the EKSS
             url = f"{self._config.ekss_api_url}/secrets"
             async with httpx.AsyncClient() as client:
@@ -121,6 +129,10 @@ class InterrogationHandler(InterrogationHandlerPort):
                 encrypted_parts_sha256=report.encrypted_parts_sha256,  # type: ignore
             )
         else:
+            # Update file state
+            file.state = "failed"
+            file.can_remove = True
+
             # Publish event
             await self._publisher.publish_interrogation_failed(
                 file_id=report.file_id,
@@ -129,6 +141,11 @@ class InterrogationHandler(InterrogationHandlerPort):
                 reason=report.reason,  # type: ignore
             )
 
+        # Set the 'interrogated' flag and timestamp, and update the FileUnderInterrogation
+        file.interrogated = True
+        file.state_updated = now_utc_ms_prec()
+        await self._dao.update(file)
+
     async def process_file_upload(self, *, file: models.FileUnderInterrogation) -> None:
         """Process a newly received file upload.
 
@@ -136,7 +153,7 @@ class InterrogationHandler(InterrogationHandlerPort):
         If we do, see if this information is old or new. If old, ignore it.
         If new, update our copy.
         """
-        if file.state == STATES.INBOX:
+        if file.state == "inbox":
             with suppress(ResourceAlreadyExistsError):
                 await self._dao.insert(file)
                 return
@@ -150,13 +167,13 @@ class InterrogationHandler(InterrogationHandlerPort):
             return
 
         # If not outdated, see if the state is one we're interested in
-        if file.state in [STATES.FAILED, STATES.ARCHIVED]:
+        if file.state in ["failed", "archived"]:
             file.can_remove = True
             await self._dao.update(file)
             log.info(
                 "File %s arrived with state %s. Set can_remove to True.",
                 file.id,
-                file.state.value,
+                file.state,
             )
 
     async def get_files_not_yet_interrogated(

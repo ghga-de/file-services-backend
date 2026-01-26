@@ -166,12 +166,6 @@ paths:
         schema:
           title: Data Hub
           type: string
-      - in: query
-        name: storage_alias
-        required: true
-        schema:
-          title: Storage Alias
-          type: string
       requestBody:
         content:
           application/json:
@@ -208,12 +202,6 @@ paths:
         schema:
           title: Data Hub
           type: string
-      - in: query
-        name: storage_alias
-        required: true
-        schema:
-          title: Storage Alias
-          type: string
       responses:
         '200':
           content:
@@ -248,12 +236,6 @@ paths:
         required: true
         schema:
           title: Data Hub
-          type: string
-      - in: query
-        name: storage_alias
-        required: true
-        schema:
-          title: Storage Alias
           type: string
       requestBody:
         content:

@@ -52,6 +52,12 @@ class InterrogationHandlerPort(ABC):
         """
 
     @abstractmethod
+    async def does_file_exist(self, *, file_id: UUID4) -> bool:
+        """Return `True` if there is a `FileUnderInterrogation` with a matching ID and
+        return `False` if not.
+        """
+
+    @abstractmethod
     async def handle_interrogation_report(self, *, report: models.InterrogationReport):
         """Handle an interrogation report and publish the appropriate event.
 
