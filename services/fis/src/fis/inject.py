@@ -21,9 +21,15 @@ from contextlib import asynccontextmanager, nullcontext
 
 from fastapi import FastAPI
 from ghga_service_commons.auth.jwt_auth import JWTAuthConfig, JWTAuthContextProvider
+from hexkit.providers.akafka import (
+    ComboTranslator,
+    KafkaEventPublisher,
+    KafkaEventSubscriber,
+)
 from hexkit.providers.mongodb import MongoDbDaoFactory
 from hexkit.providers.mongokafka import PersistentKafkaPublisher
 
+from fis.adapters.inbound.event_sub import EventSubTranslator, OutboxSubTranslator
 from fis.adapters.inbound.fastapi_ import dummies
 from fis.adapters.inbound.fastapi_.configure import get_configured_app
 from fis.adapters.inbound.fastapi_.http_authorization import JWT
@@ -115,3 +121,38 @@ async def prepare_rest_app(
         app.dependency_overrides[dummies.auth_providers_dummy] = lambda: auth_providers
 
         yield app
+
+
+@asynccontextmanager
+async def prepare_event_subscriber(
+    *,
+    config: Config,
+    core_override: InterrogationHandlerPort | None = None,
+) -> AsyncGenerator[KafkaEventSubscriber]:
+    """Construct and initialize an event subscriber with all its dependencies.
+    By default, the core dependencies are automatically prepared but you can also
+    provide them using the override parameter.
+    """
+    async with prepare_core_with_override(
+        config=config, core_override=core_override
+    ) as interrogation_handler:
+        event_sub_translator = EventSubTranslator(
+            config=config, interrogation_handler=interrogation_handler
+        )
+        access_request_outbox_translator = OutboxSubTranslator(
+            config=config,
+            interrogation_handler=interrogation_handler,
+        )
+        combo_translator = ComboTranslator(
+            translators=[event_sub_translator, access_request_outbox_translator]
+        )
+
+        async with (
+            KafkaEventPublisher.construct(config=config) as dlq_publisher,
+            KafkaEventSubscriber.construct(
+                config=config,
+                translator=combo_translator,
+                dlq_publisher=dlq_publisher,
+            ) as event_subscriber,
+        ):
+            yield event_subscriber

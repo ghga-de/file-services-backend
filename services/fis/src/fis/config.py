@@ -22,6 +22,7 @@ from hexkit.providers.mongodb.migrations import MigrationConfig
 from hexkit.providers.mongokafka import MongoKafkaConfig
 from pydantic import Field, HttpUrl
 
+from fis.adapters.inbound.event_sub import EventSubConfig, OutboxSubConfig
 from fis.adapters.outbound.event_pub import EventPubConfig
 from fis.constants import SERVICE_NAME
 
@@ -34,6 +35,8 @@ class Config(
     EventPubConfig,
     LoggingConfig,
     OpenTelemetryConfig,
+    EventSubConfig,
+    OutboxSubConfig,
 ):
     """Config parameters and their defaults."""
 
