@@ -41,7 +41,7 @@ async def run_rest():
 
 async def consume_events(run_forever: bool = True):
     """Start consuming events with kafka"""
-    config = Config()  # type: ignore
+    config = Config()
 
     configure_logging(config=config)
 
@@ -64,6 +64,6 @@ async def publish_events(*, all: bool = False):
 
 async def migrate_db() -> None:
     """Run database migrations as a one-off command."""
-    config = Config()  # type: ignore
+    config = Config()
     configure_logging(config=config)
     await run_db_migrations(config=config, target_version=DB_VERSION)

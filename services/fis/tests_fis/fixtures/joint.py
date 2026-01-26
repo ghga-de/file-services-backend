@@ -78,7 +78,7 @@ async def joint_fixture(
         yield JointFixture(
             config=config,
             kafka=kafka,
-            dao=interrogation_handler._dao,  # type: ignore
+            dao=interrogation_handler._dao,
             rest_client=rest_client,
             outbox_consumer=outbox_consumer,
             interrogation_handler=interrogation_handler,
