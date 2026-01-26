@@ -23,6 +23,7 @@ import httpx
 import pytest
 import pytest_asyncio
 from ghga_service_commons.api.testing import AsyncTestClient
+from hexkit.providers.akafka import KafkaEventSubscriber
 from hexkit.providers.akafka.testutils import KafkaFixture
 from hexkit.providers.mongodb.testutils import MongoDbFixture
 from hexkit.providers.testing.dao import new_mock_dao_class
@@ -32,7 +33,7 @@ from fis.adapters.outbound.event_pub import EventPubTranslator
 from fis.config import Config
 from fis.core.interrogation import InterrogationHandler
 from fis.core.models import FileUnderInterrogation
-from fis.inject import prepare_core, prepare_rest_app
+from fis.inject import prepare_core, prepare_event_subscriber, prepare_rest_app
 from fis.ports.inbound.interrogation import InterrogationHandlerPort
 from fis.ports.outbound.dao import FileDao
 from fis.ports.outbound.event_pub import EventPubTranslatorPort
@@ -49,12 +50,13 @@ InMemFileDao: type[FileDao] = new_mock_dao_class(
 
 @dataclass
 class JointFixture:
-    """Holds generated test keypair and configured container"""
+    """A test class that holds the main components of the service for testing"""
 
     config: Config
     kafka: KafkaFixture
-    mongodb: MongoDbFixture
+    dao: FileDao
     rest_client: httpx.AsyncClient
+    outbox_consumer: KafkaEventSubscriber
     interrogation_handler: InterrogationHandlerPort
 
 
@@ -62,19 +64,23 @@ class JointFixture:
 async def joint_fixture(
     kafka: KafkaFixture, mongodb: MongoDbFixture
 ) -> AsyncGenerator[JointFixture]:
-    """Generate keypair for testing and setup container with updated config"""
+    """Set up fixture with testcontainer config spliced in"""
     config = get_config(sources=[kafka.config, mongodb.config])
 
     async with (
         prepare_core(config=config) as interrogation_handler,
         prepare_rest_app(config=config, core_override=interrogation_handler) as app,
+        prepare_event_subscriber(
+            config=config, core_override=interrogation_handler
+        ) as outbox_consumer,
         AsyncTestClient(app=app) as rest_client,
     ):
         yield JointFixture(
             config=config,
             kafka=kafka,
-            mongodb=mongodb,
+            dao=interrogation_handler._dao,  # type: ignore
             rest_client=rest_client,
+            outbox_consumer=outbox_consumer,
             interrogation_handler=interrogation_handler,
         )
 
