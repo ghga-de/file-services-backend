@@ -29,7 +29,7 @@ from hexkit.providers.akafka import (
 from hexkit.providers.mongodb import MongoDbDaoFactory
 from hexkit.providers.mongokafka import PersistentKafkaPublisher
 
-from fis.adapters.inbound.event_sub import EventSubTranslator, OutboxSubTranslator
+from fis.adapters.inbound.event_sub import OutboxSubTranslator
 from fis.adapters.inbound.fastapi_ import dummies
 from fis.adapters.inbound.fastapi_.configure import get_configured_app
 from fis.adapters.inbound.fastapi_.http_authorization import JWT
@@ -136,16 +136,11 @@ async def prepare_event_subscriber(
     async with prepare_core_with_override(
         config=config, core_override=core_override
     ) as interrogation_handler:
-        event_sub_translator = EventSubTranslator(
-            config=config, interrogation_handler=interrogation_handler
-        )
-        access_request_outbox_translator = OutboxSubTranslator(
+        file_upload_translator = OutboxSubTranslator(
             config=config,
             interrogation_handler=interrogation_handler,
         )
-        combo_translator = ComboTranslator(
-            translators=[event_sub_translator, access_request_outbox_translator]
-        )
+        combo_translator = ComboTranslator(translators=[file_upload_translator])
 
         async with (
             KafkaEventPublisher.construct(config=config) as dlq_publisher,
