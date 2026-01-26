@@ -13,8 +13,6 @@ db_version_collection: fisDbVersions
 docs_url: /docs
 ekss_api_url: http://127.0.0.1/ekss
 enable_opentelemetry: false
-file_internally_registered_topic: file-registrations
-file_internally_registered_type: file_internally_registered
 file_interrogations_topic: file-interrogations
 file_upload_topic: file-uploads
 generate_correlation_id: true

@@ -158,27 +158,3 @@ class InterrogationReport(BaseModel):
         return self
 
     # TODO: Write a unit test for this validator
-
-
-class FileInternallyRegistered(BaseModel):
-    """Temporary placeholder until this same model is updated in the library
-
-    For now, the `file_id` field continues to hold the accession, despite the name.
-    In the future, the plan is to replace all values in this field with the value from
-    `object_id`. We will have to simply be aware for the interim that, although
-    `file_id` refers to `FileUpload.id` in the rest of the spec, the naming here is an
-    unfortunate collision with existing implementation. `file_id` is still the object's
-    primary identifier for now.
-    """
-
-    file_id: str  # The file accession number
-    object_id: UUID4  # unchanged -- see note above
-    upload_date: UTCDatetime  # unchanged
-    storage_alias: str  # renamed from s3_endpoint_alias
-    secret_id: str  # renamed from decryption_secret_id
-    decrypted_size: int  # unchanged
-    encrypted_size: int  # new field
-    decrypted_sha256: str  # unchanged
-    part_size: int  # renamed from encrypted_part_size
-    encrypted_parts_md5: list[str]  # unchanged
-    encrypted_parts_sha256: list[str]  # unchanged
