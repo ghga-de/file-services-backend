@@ -86,3 +86,11 @@ class InterrogationHandlerPort(ABC):
         self, *, data_hub: str
     ) -> list[models.BaseFileInformation]:
         """Return a list of not-yet-interrogated files for a Data Hub"""
+
+    @abstractmethod
+    async def ack_file_registration(self, *, file_id: UUID4) -> None:
+        """Acknowledge a file registration by updating the FileUnderInterrogation."""
+
+    @abstractmethod
+    async def ack_file_cancellation(self, *, file_id: UUID4) -> None:
+        """Acknowledge the removal or cancellation of a FileUpload."""
