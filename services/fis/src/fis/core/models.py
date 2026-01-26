@@ -156,5 +156,3 @@ class InterrogationReport(BaseModel):
         elif self.reason is None:
             raise ValueError("reason must not be None when passed is False")
         return self
-
-    # TODO: Write a unit test for this validator
