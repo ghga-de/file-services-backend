@@ -22,14 +22,9 @@ from typing import Annotated
 from fastapi import Depends
 from ghga_service_commons.api.di import DependencyDummy
 
-from fis.config import Config
 from fis.ports.inbound.interrogation import InterrogationHandlerPort
 
-config_dummy = DependencyDummy("config_dummy")
 interrogator_dummy = DependencyDummy("interrogator_port")
 auth_providers_dummy = DependencyDummy("auth_providers_dummy")
-
-# TODO: delete config dummy if never used
-ConfigDummy = Annotated[Config, Depends(config_dummy)]
 
 InterrogatorPort = Annotated[InterrogationHandlerPort, Depends(interrogator_dummy)]

@@ -105,7 +105,6 @@ async def prepare_rest_app(
     async with prepare_core_with_override(
         config=config, core_override=core_override
     ) as interrogator:
-        app.dependency_overrides[dummies.config_dummy] = lambda: config
         app.dependency_overrides[dummies.interrogator_dummy] = lambda: interrogator
 
         # Configure JWT auth provider for each known data hub
