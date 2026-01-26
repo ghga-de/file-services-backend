@@ -14,7 +14,7 @@
 # limitations under the License.
 """Models for internal representation"""
 
-from enum import StrEnum
+from typing import Literal
 
 from ghga_service_commons.utils.utc_dates import UTCDatetime
 from pydantic import UUID4, BaseModel, Field, SecretBytes, model_validator
@@ -26,15 +26,14 @@ class FileIdModel(BaseModel):
     file_id: str
 
 
-class FileUploadState(StrEnum):
-    """The possible states of a FileUpload"""
-
-    INIT = "init"
-    INBOX = "inbox"
-    FAILED = "failed"
-    INTERROGATED = "interrogated"
-    AWAITING_ARCHIVAL = "awaiting_archival"
-    ARCHIVED = "archived"
+FileUploadState = Literal[
+    "init",
+    "inbox",
+    "failed",
+    "interrogated",
+    "awaiting_archival",
+    "archived",
+]
 
 
 class BaseFileInformation(BaseModel):
@@ -63,7 +62,7 @@ class FileUnderInterrogation(BaseFileInformation):
 
     id: UUID4 = Field(..., description="Unique identifier for the file upload")
     state: FileUploadState = Field(
-        default=FileUploadState.INIT, description="The state of the FileUpload"
+        default="init", description="The state of the FileUpload"
     )
     state_updated: UTCDatetime = Field(
         ..., description="Timestamp of when state was updated"
