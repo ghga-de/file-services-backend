@@ -109,8 +109,8 @@ class InterrogationHandler(InterrogationHandlerPort):
             async with httpx.AsyncClient() as client:
                 response = await client.post(
                     url,
-                    content=report.secret.get_secret_value(),  # type: ignore
-                )  # type: ignore
+                    content=report.secret.get_secret_value(),
+                )
 
             if response.status_code != 201:
                 error = self.SecretDepositionError(file_id=report.file_id)
@@ -125,8 +125,8 @@ class InterrogationHandler(InterrogationHandlerPort):
                 secret_id=secret_id,
                 storage_alias=report.storage_alias,
                 interrogated_at=report.interrogated_at,
-                encrypted_parts_md5=report.encrypted_parts_md5,  # type: ignore
-                encrypted_parts_sha256=report.encrypted_parts_sha256,  # type: ignore
+                encrypted_parts_md5=report.encrypted_parts_md5,
+                encrypted_parts_sha256=report.encrypted_parts_sha256,
             )
         else:
             # Update file state
@@ -138,7 +138,7 @@ class InterrogationHandler(InterrogationHandlerPort):
                 file_id=report.file_id,
                 storage_alias=report.storage_alias,
                 interrogated_at=report.interrogated_at,
-                reason=report.reason,  # type: ignore
+                reason=report.reason,
             )
 
         # Set the 'interrogated' flag and timestamp, and update the FileUnderInterrogation
