@@ -186,3 +186,45 @@ class InterrogationHandler(InterrogationHandlerPort):
         ]
         log.info("Fetched list of %i files for data hub %s.", len(files), data_hub)
         return files
+
+    async def ack_file_registration(self, *, file_id: UUID4) -> None:
+        """Acknowledge a file registration by updating the FileUnderInterrogation."""
+        # First make sure we have this file
+        try:
+            file = await self._dao.get_by_id(file_id)
+        except ResourceNotFoundError as err:
+            log.error(
+                "Can't acknowledge file registration because no file with ID %s exists.",
+                file_id,
+            )
+            raise self.FileNotFoundError(file_id=file_id) from err
+
+        if file.state == "archived" and file.can_remove:
+            # Already done, maybe this event was already processed
+            return
+
+        file.state = "archived"
+        file.state_updated = now_utc_ms_prec()
+        file.can_remove = True
+
+        await self._dao.update(file)
+        log.info("Acknowledged file registration for %s", file_id)
+
+    async def ack_file_cancellation(self, *, file_id: UUID4) -> None:
+        """Acknowledge the removal or cancellation of a FileUpload."""
+        # First make sure we have this file
+        try:
+            file = await self._dao.get_by_id(file_id)
+        except ResourceNotFoundError as err:
+            log.error(
+                "Can't acknowledge file cancellation because no file with ID %s exists.",
+                file_id,
+            )
+            raise self.FileNotFoundError(file_id=file_id) from err
+
+        file.state = "cancelled"
+        file.state_updated = now_utc_ms_prec()
+        file.can_remove = True
+
+        await self._dao.update(file)
+        log.info("Acknowledged file cancellation for %s", file_id)
