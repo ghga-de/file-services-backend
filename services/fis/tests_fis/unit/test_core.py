@@ -30,6 +30,7 @@ from tests_fis.fixtures.utils import create_file_under_interrogation
 pytestmark = pytest.mark.asyncio()
 
 HUB1 = "HUB1"
+HUB2 = "HUB2"
 
 
 async def test_check_if_removable(rig: JointRig):
@@ -263,3 +264,82 @@ async def test_process_file_upload_updates(
         f"File {local_file.id} arrived with state failed" in record.getMessage()
         for record in caplog.records
     )
+
+
+async def test_get_files_not_yet_interrogated(rig: JointRig):
+    """Test the `.get_files_not_yet_interrogated()` method"""
+    # Assert that when there are no files, we still get an empty list
+    assert (
+        await rig.interrogation_handler.get_files_not_yet_interrogated(data_hub=HUB1)
+        == []
+    )
+
+    # Insert files for hub1 and hub 2
+    hub1_files = [create_file_under_interrogation(HUB1) for _ in range(3)]
+    hub2_files = [create_file_under_interrogation(HUB2) for _ in range(3)]
+    for file in hub2_files + hub1_files:
+        await rig.dao.insert(file)
+
+    hub1_ids = set(f.id for f in hub1_files)
+    hub2_ids = set(f.id for f in hub2_files)
+
+    # Make sure the query mapping works by querying for one of the hubs
+    retrieve_h1 = await rig.interrogation_handler.get_files_not_yet_interrogated(
+        data_hub=HUB1
+    )
+    assert set(f.id for f in retrieve_h1) == hub1_ids
+
+    # Set a file to 'interrogated'
+    hub1_files[0].interrogated = True
+    hub1_files[0].can_remove = True
+    hub1_files[0].state = "interrogated"
+    await rig.dao.update(hub1_files[0])
+
+    # Set another file to 'failed'
+    hub2_files[0].state = "failed"
+    hub2_files[0].interrogated = False
+    hub2_files[0].can_remove = True
+    await rig.dao.update(hub2_files[0])
+
+    # Set another file to 'cancelled'
+    hub2_files[1].state = "cancelled"
+    hub2_files[1].interrogated = True
+    hub2_files[1].can_remove = True
+    await rig.dao.update(hub2_files[1])
+
+    # Compare Hub 1 results
+    hub1_ids.remove(hub1_files[0].id)
+    results_h1 = await rig.interrogation_handler.get_files_not_yet_interrogated(
+        data_hub=HUB1
+    )
+    assert set(f.id for f in results_h1) == hub1_ids
+
+    # Compare Hub 2 results
+    hub2_ids.remove(hub2_files[0].id)
+    hub2_ids.remove(hub2_files[1].id)
+    results_h2 = await rig.interrogation_handler.get_files_not_yet_interrogated(
+        data_hub=HUB2
+    )
+    assert set(f.id for f in results_h2) == hub2_ids
+
+
+async def test_ack_file_cancellation(rig: JointRig):
+    """Test the `.ack_file_cancellation()` method"""
+    # Test file not found error
+    file = create_file_under_interrogation(HUB1)
+    with pytest.raises(InterrogationHandlerPort.FileNotFoundError):
+        await rig.interrogation_handler.ack_file_cancellation(file_id=file.id)
+
+    # Insert a file
+    file.state = "inbox"
+    file.state_updated -= timedelta(hours=1)
+    await rig.dao.insert(file)
+
+    # Acknowledge the file cancellation
+    await rig.interrogation_handler.ack_file_cancellation(file_id=file.id)
+
+    # Verify file was updated
+    updated_file = await rig.dao.get_by_id(file.id)
+    assert updated_file.state == "cancelled"
+    assert updated_file.can_remove is True
+    assert updated_file.state_updated >= file.state_updated
