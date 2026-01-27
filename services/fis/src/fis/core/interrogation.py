@@ -21,6 +21,8 @@ import logging
 from contextlib import suppress
 
 import httpx
+import tenacity
+from ghga_service_commons.transports import AsyncRetryTransport
 from hexkit.utils import now_utc_ms_prec
 from pydantic import UUID4
 
@@ -53,6 +55,13 @@ class InterrogationHandler(InterrogationHandlerPort):
         self._config = config
         self._dao = file_dao
         self._publisher = event_publisher
+
+        # Set up the async client with automatic retry logic
+        self._client = httpx.AsyncClient(
+            transport=AsyncRetryTransport(
+                config=config, transport=httpx.AsyncHTTPTransport()
+            )
+        )
 
     async def check_if_removable(self, *, file_id: UUID4) -> bool:
         """Return `True` if a file can be removed from the interrogation bucket and
@@ -106,14 +115,34 @@ class InterrogationHandler(InterrogationHandlerPort):
 
             # Deposit the secret with the EKSS
             url = f"{self._config.ekss_api_url}/secrets"
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
+
+            try:
+                response = await self._client.post(
                     url,
                     content=report.secret.get_secret_value(),
                 )
+            except tenacity.RetryError as err:
+                exception = err.last_attempt.exception()
+                reason = (
+                    str(exception.args[0])
+                    if exception and exception.args
+                    else "Unknown"
+                )
+                raise self.SecretDepositionError(
+                    file_id=report.file_id, reason=reason
+                ) from err
+            except httpx.HTTPError as err:
+                # Catch any httpx errors that weren't wrapped in RetryError
+                reason = str(err.args[0]) if err.args else str(err)
+                raise self.SecretDepositionError(
+                    file_id=report.file_id, reason=reason
+                ) from err
 
             if response.status_code != 201:
-                error = self.SecretDepositionError(file_id=report.file_id)
+                error = self.SecretDepositionError(
+                    file_id=report.file_id,
+                    reason=f"Status Code received was {response.status_code}",
+                )
                 log.error(error)
                 raise error
 
@@ -151,7 +180,16 @@ class InterrogationHandler(InterrogationHandlerPort):
 
         Make sure we don't already have this file. If we don't, then add it to the DB.
         If we do, see if this information is old or new. If old, ignore it.
-        If new, update our copy.
+        If the received information is newer than what we have, and the state is
+        different, *and* the new state represents one of the end states, then update our
+        copy.
+
+        We don't track files that are only in the 'init' state, we only track them once
+        they reach 'inbox'. The transition from 'inbox' to 'interrogated' or from 'inbox'
+        to 'failed' is performed by the FIS in `.handle_interrogation_report()`. The
+        state 'awaiting_archival' is not of interest of the FIS and has no functional
+        difference from 'interrogated' from the perspective of the FIS. Therefore, the
+        only states of interest in this method are 'cancelled', 'failed', and 'archived'.
         """
         if file.state == "init":
             return
@@ -169,7 +207,11 @@ class InterrogationHandler(InterrogationHandlerPort):
             return
 
         # If not outdated, see if the state is one we're interested in
-        if file.state != local_file.state and file.state in ["failed", "archived"]:
+        if file.state != local_file.state and file.state in [
+            "cancelled",
+            "failed",
+            "archived",
+        ]:
             file.can_remove = True
             file.interrogated = local_file.interrogated  # preserve interrogation status
             await self._dao.update(file)
@@ -197,7 +239,11 @@ class InterrogationHandler(InterrogationHandlerPort):
         return files
 
     async def ack_file_cancellation(self, *, file_id: UUID4) -> None:
-        """Acknowledge the removal or cancellation of a FileUpload."""
+        """Acknowledge the removal or cancellation of a FileUpload.
+
+        Raises:
+        - FileNotFoundError if there's no file with the ID specified in the report.
+        """
         # First make sure we have this file
         try:
             file = await self._dao.get_by_id(file_id)
