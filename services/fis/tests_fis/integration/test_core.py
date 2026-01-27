@@ -42,10 +42,7 @@ async def test_typical_journey(joint_fixture: JointFixture, httpx_mock: HTTPXMoc
     await joint_fixture.outbox_consumer.run(forever=False)
 
     # Verify that the file was stored in the database
-    stored_file = await joint_fixture.interrogation_handler.does_file_exist(
-        file_id=file.id
-    )
-    assert stored_file is True
+    _ = await joint_fixture.dao.get_by_id(file.id)
 
     # Get a list of files for hub1 that need to be interrogated
     files_to_interrogate = (
