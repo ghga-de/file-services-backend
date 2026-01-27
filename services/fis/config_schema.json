@@ -2,6 +2,43 @@
   "additionalProperties": false,
   "description": "Modifies the original Settings class provided by the user",
   "properties": {
+    "client_exponential_backoff_max": {
+      "default": 60,
+      "description": "Maximum number of seconds to wait between retries when using exponential backoff retry strategies. The client timeout might need to be adjusted accordingly.",
+      "minimum": 0,
+      "title": "Client Exponential Backoff Max",
+      "type": "integer"
+    },
+    "client_num_retries": {
+      "default": 3,
+      "description": "Number of times to retry failed API calls.",
+      "minimum": 0,
+      "title": "Client Num Retries",
+      "type": "integer"
+    },
+    "client_retry_status_codes": {
+      "default": [
+        408,
+        429,
+        500,
+        502,
+        503,
+        504
+      ],
+      "description": "List of status codes that should trigger retrying a request.",
+      "items": {
+        "minimum": 0,
+        "type": "integer"
+      },
+      "title": "Client Retry Status Codes",
+      "type": "array"
+    },
+    "client_reraise_from_retry_error": {
+      "default": true,
+      "description": "Specifies if the exception wrapped in the final RetryError is reraised or the RetryError is returned as is.",
+      "title": "Client Reraise From Retry Error",
+      "type": "boolean"
+    },
     "file_upload_topic": {
       "description": "Topic containing published FileUpload outbox events",
       "examples": [
