@@ -15,6 +15,7 @@
 """Config Parameter Modeling and Parsing"""
 
 from ghga_service_commons.api import ApiConfigBase
+from ghga_service_commons.transports.config import RetryTransportConfig
 from hexkit.config import config_from_yaml
 from hexkit.log import LoggingConfig
 from hexkit.opentelemetry import OpenTelemetryConfig
@@ -36,6 +37,7 @@ class Config(
     LoggingConfig,
     OpenTelemetryConfig,
     OutboxSubConfig,
+    RetryTransportConfig,
 ):
     """Config parameters and their defaults."""
 

@@ -1,5 +1,15 @@
 api_root_path: ''
 auto_reload: false
+client_exponential_backoff_max: 60
+client_num_retries: 3
+client_reraise_from_retry_error: true
+client_retry_status_codes:
+- 408
+- 429
+- 500
+- 502
+- 503
+- 504
 cors_allow_credentials: null
 cors_allowed_headers: null
 cors_allowed_methods: null
