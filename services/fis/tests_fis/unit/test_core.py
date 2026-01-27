@@ -48,15 +48,6 @@ async def test_check_if_removable(rig: JointRig):
     assert await rig.interrogation_handler.check_if_removable(file_id=file.id) == True
 
 
-async def test_does_file_exist(rig: JointRig):
-    """Test the `.does_file_exist()` method"""
-    file = create_file_under_interrogation(HUB1)
-    assert await rig.interrogation_handler.does_file_exist(file_id=file.id) == False
-
-    await rig.dao.insert(file)
-    assert await rig.interrogation_handler.does_file_exist(file_id=file.id) == True
-
-
 async def test_report_handling_successful(rig: JointRig, httpx_mock: HTTPXMock):
     """Test the `.handle_interrogation_report()` method happy path"""
     file = create_file_under_interrogation(HUB1)

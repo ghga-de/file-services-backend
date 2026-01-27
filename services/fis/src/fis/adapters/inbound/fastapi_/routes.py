@@ -14,16 +14,19 @@
 # limitations under the License.
 """FastAPI routes for S3 upload metadata ingest"""
 
+import logging
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Body, HTTPException, status
+from fastapi import APIRouter, Body, HTTPException, status
 from pydantic import UUID4
 
 from fis.adapters.inbound.fastapi_ import dummies
 from fis.adapters.inbound.fastapi_.http_authorization import JWT, require_data_hub_jwt
 from fis.constants import TRACER
 from fis.core import models
+from fis.ports.inbound.interrogation import InterrogationHandlerPort
 
+log = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -53,7 +56,12 @@ async def list_uploads(
     _token: Annotated[JWT, require_data_hub_jwt],
 ) -> list[models.BaseFileInformation]:
     """Return a list of not-yet-interrogated files for a Data Hub"""
-    return await interrogator.get_files_not_yet_interrogated(data_hub=data_hub)
+    try:
+        return await interrogator.get_files_not_yet_interrogated(data_hub=data_hub)
+    except Exception as err:
+        error = HTTPException(status_code=500, detail="Something went wrong.")
+        log.error(error, exc_info=True)
+        raise error from err
 
 
 @router.post(
@@ -73,7 +81,12 @@ async def get_removable_files(
     """Returns a subset of the provided file ID list containing the IDs of all files
     which may be now removed from the interrogation bucket.
     """
-    return [f for f in file_ids if await interrogator.check_if_removable(file_id=f)]
+    try:
+        return [f for f in file_ids if await interrogator.check_if_removable(file_id=f)]
+    except Exception as err:
+        error = HTTPException(status_code=500, detail="Something went wrong.")
+        log.error(error, exc_info=True)
+        raise error from err
 
 
 @router.post(
@@ -89,11 +102,16 @@ async def post_interrogation_report(
     data_hub: str,
     interrogator: dummies.InterrogatorPort,
     _token: Annotated[JWT, require_data_hub_jwt],
-    background_tasks: BackgroundTasks,
     report: models.InterrogationReport = Body(),
 ) -> None:
     """Post an InterrogationReport"""
-    if not await interrogator.does_file_exist(file_id=report.file_id):
-        raise HTTPException(status_code=404, detail=f"File {report.file_id} not found")
-
-    background_tasks.add_task(interrogator.handle_interrogation_report, report=report)
+    try:
+        await interrogator.handle_interrogation_report(report=report)
+    except InterrogationHandlerPort.FileNotFoundError as err:
+        raise HTTPException(
+            status_code=404, detail=f"File {report.file_id} not found"
+        ) from err
+    except Exception as err:
+        error = HTTPException(status_code=500, detail="Something went wrong.")
+        log.error(error, exc_info=True, extra={"file_id": report.file_id})
+        raise error from err
