@@ -17,6 +17,7 @@
 
 from datetime import timedelta
 
+import httpx
 import pytest
 from hexkit.utils import now_utc_ms_prec
 from pytest_httpx import HTTPXMock
@@ -132,13 +133,20 @@ async def test_report_handling_failure(rig: JointRig):
     assert failure_event.payload["reason"] == "Checksum mismatch detected"
 
 
-async def test_report_handling_ekss_error(rig: JointRig, httpx_mock: HTTPXMock):
-    """Test handling any unsuccessful status codes from the EKSS during secret deposition"""
-    # Test secret deposition error
+@pytest.mark.httpx_mock(can_send_already_matched_responses=True)
+async def test_report_handling_ekss_non_201_status(
+    rig: JointRig, httpx_mock: HTTPXMock
+):
+    """Test handling unsuccessful status codes from EKSS during secret deposition.
+
+    500 status codes are retried by AsyncRetryTransport, which eventually raises
+    RetryError after exhausting retries. The error handler catches this and wraps
+    it in SecretDepositionError.
+    """
     file = create_file_under_interrogation(HUB1)
     await rig.dao.insert(file)
 
-    # Mock EKSS to return error
+    # Mock EKSS to return 500 error (will be retried due to AsyncRetryTransport)
     ekss_url = f"{rig.config.ekss_api_url}/secrets"
     httpx_mock.add_response(
         url=ekss_url,
@@ -156,8 +164,49 @@ async def test_report_handling_ekss_error(rig: JointRig, httpx_mock: HTTPXMock):
         encrypted_parts_sha256=["sha"],
     )
 
-    with pytest.raises(rig.interrogation_handler.SecretDepositionError):
+    # The retry transport will retry 500 errors and eventually raise RetryError
+    with pytest.raises(rig.interrogation_handler.SecretDepositionError) as exc_info:
         await rig.interrogation_handler.handle_interrogation_report(report=error_report)
+
+    # Verify the error is raised and contains file_id
+    assert str(file.id) in str(exc_info.value)
+
+
+@pytest.mark.httpx_mock(can_send_already_matched_responses=True)
+async def test_report_handling_ekss_network_error(rig: JointRig, httpx_mock: HTTPXMock):
+    """Test handling network/connection errors when communicating with EKSS.
+
+    Connection errors like httpx.ConnectError are retried by AsyncRetryTransport
+    and eventually wrapped in tenacity.RetryError after exhausting retries.
+    """
+    file = create_file_under_interrogation(HUB1)
+    await rig.dao.insert(file)
+
+    # Mock EKSS to raise a connection error that will trigger retries and eventually RetryError
+    ekss_url = f"{rig.config.ekss_api_url}/secrets"
+    httpx_mock.add_exception(
+        httpx.ConnectError("Connection failed"),
+        url=ekss_url,
+        method="POST",
+    )
+
+    error_report = models.InterrogationReport(
+        file_id=file.id,
+        storage_alias=file.storage_alias,
+        interrogated_at=now_utc_ms_prec(),
+        passed=True,
+        secret=b"secret",
+        encrypted_parts_md5=["abc"],
+        encrypted_parts_sha256=["sha"],
+    )
+
+    # Connection errors should be retried and eventually raise SecretDepositionError
+    with pytest.raises(rig.interrogation_handler.SecretDepositionError) as exc_info:
+        await rig.interrogation_handler.handle_interrogation_report(report=error_report)
+
+    # Verify the error message contains the file ID
+    error_msg = str(exc_info.value)
+    assert str(file.id) in error_msg
 
 
 async def test_process_file_upload_insertion(rig: JointRig):

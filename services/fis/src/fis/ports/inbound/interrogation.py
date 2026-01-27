@@ -41,8 +41,11 @@ class InterrogationHandlerPort(ABC):
         the EKSS.
         """
 
-        def __init__(self, *, file_id: UUID4):
-            msg = f"Failed to deposit encryption secret for file with the ID {file_id}."
+        def __init__(self, *, file_id: UUID4, reason: str):
+            msg = (
+                f"Failed to deposit encryption secret for file with the ID {file_id}."
+                + f" Reason: {reason}"
+            )
             super().__init__(msg)
 
     @abstractmethod
@@ -78,7 +81,16 @@ class InterrogationHandlerPort(ABC):
 
         Make sure we don't already have this file. If we don't, then add it to the DB.
         If we do, see if this information is old or new. If old, ignore it.
-        If new, update our copy.
+        If the received information is newer than what we have, and the state is
+        different, *and* the new state represents one of the end states, then update our
+        copy.
+
+        We don't track files that are only in the 'init' state, we only track them once
+        they reach 'inbox'. The transition from 'inbox' to 'interrogated' or from 'inbox'
+        to 'failed' is performed by the FIS in `.handle_interrogation_report()`. The
+        state 'awaiting_archival' is not of interest of the FIS and has no functional
+        difference from 'interrogated' from the perspective of the FIS. Therefore, the
+        only states of interest in this method are 'cancelled', 'failed', and 'archived'.
         """
 
     @abstractmethod
@@ -89,4 +101,8 @@ class InterrogationHandlerPort(ABC):
 
     @abstractmethod
     async def ack_file_cancellation(self, *, file_id: UUID4) -> None:
-        """Acknowledge the removal or cancellation of a FileUpload."""
+        """Acknowledge the removal or cancellation of a FileUpload.
+
+        Raises:
+        - FileNotFoundError if there's no file with the ID specified in the report.
+        """
