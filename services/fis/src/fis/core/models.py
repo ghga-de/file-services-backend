@@ -41,9 +41,8 @@ class BaseFileInformation(BaseModel):
     """Basic file information - all that is needed for interrogation."""
 
     id: UUID4 = Field(..., description="Unique identifier for the file upload")
-    data_hub: str = Field(..., description="The data hub at which the file is stored")
     storage_alias: str = Field(
-        ..., description="The storage alias for the inbox bucket"
+        ..., description="The storage alias of the Data Hub housing the file"
     )
     decrypted_sha256: str = Field(
         ..., description="SHA-256 checksum of the entire unencrypted file content"
@@ -86,7 +85,7 @@ class InterrogationSuccess(BaseModel):
         description="The internal ID of the Data Hub-generated decryption secret",
     )
     storage_alias: str = Field(
-        ..., description="The storage alias of the interrogation bucket"
+        ..., description="The storage alias of the Data Hub housing the file"
     )
     interrogated_at: UTCDatetime = Field(
         ..., description="Time that the report was generated"
@@ -104,7 +103,7 @@ class InterrogationFailure(BaseModel):
 
     file_id: UUID4 = Field(..., description="Unique identifier for the file upload")
     storage_alias: str = Field(
-        ..., description="The interrogation bucket storage alias"
+        ..., description="The storage alias of the Data Hub housing the file"
     )
     interrogated_at: UTCDatetime = Field(
         ..., description="Time that the report was generated"
@@ -119,7 +118,7 @@ class InterrogationReport(BaseModel):
 
     file_id: UUID4 = Field(..., description="Unique identifier for the file upload")
     storage_alias: str = Field(
-        ..., description="The storage alias for the interrogation bucket"
+        ..., description="The storage alias of the Data Hub housing the file"
     )
     interrogated_at: UTCDatetime = Field(
         ..., description="Timestamp showing when interrogation finished"

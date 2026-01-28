@@ -3,10 +3,6 @@ components:
     BaseFileInformation:
       description: Basic file information - all that is needed for interrogation.
       properties:
-        data_hub:
-          description: The data hub at which the file is stored
-          title: Data Hub
-          type: string
         decrypted_sha256:
           description: SHA-256 checksum of the entire unencrypted file content
           title: Decrypted Sha256
@@ -30,12 +26,11 @@ components:
           title: Part Size
           type: integer
         storage_alias:
-          description: The storage alias for the inbox bucket
+          description: The storage alias of the Data Hub housing the file
           title: Storage Alias
           type: string
       required:
       - id
-      - data_hub
       - storage_alias
       - decrypted_sha256
       - decrypted_size
@@ -100,7 +95,7 @@ components:
           description: Encrypted file encryption secret
           title: Secret
         storage_alias:
-          description: The storage alias for the interrogation bucket
+          description: The storage alias of the Data Hub housing the file
           title: Storage Alias
           type: string
       required:
@@ -155,16 +150,16 @@ paths:
       summary: health
       tags:
       - FileIngestService
-  /hubs/{data_hub}/interrogation-reports:
+  /storages/{storage_alias}/interrogation-reports:
     post:
       description: Post an InterrogationReport
       operationId: postInterrogationReport
       parameters:
       - in: path
-        name: data_hub
+        name: storage_alias
         required: true
         schema:
-          title: Data Hub
+          title: Storage Alias
           type: string
       requestBody:
         content:
@@ -191,16 +186,16 @@ paths:
       summary: Accepts an InterrogationReport for a file
       tags:
       - FileIngestService
-  /hubs/{data_hub}/uploads:
+  /storages/{storage_alias}/uploads:
     get:
-      description: Return a list of not-yet-interrogated files for a Data Hub
+      description: Return a list of not-yet-interrogated files for a Data Hub (storage_alias)
       operationId: listUploads
       parameters:
       - in: path
-        name: data_hub
+        name: storage_alias
         required: true
         schema:
-          title: Data Hub
+          title: Storage Alias
           type: string
       responses:
         '200':
@@ -223,7 +218,7 @@ paths:
       summary: Serve a list of new file uploads (yet to be interrogated)
       tags:
       - FileIngestService
-  /hubs/{data_hub}/uploads/can_remove:
+  /storages/{storage_alias}/uploads/can_remove:
     post:
       description: 'Returns a subset of the provided file ID list containing the IDs
         of all files
@@ -232,10 +227,10 @@ paths:
       operationId: getRemovableFiles
       parameters:
       - in: path
-        name: data_hub
+        name: storage_alias
         required: true
         schema:
-          title: Data Hub
+          title: Storage Alias
           type: string
       requestBody:
         content:

@@ -212,20 +212,22 @@ class InterrogationHandler(InterrogationHandlerPort):
             )
 
     async def get_files_not_yet_interrogated(
-        self, *, data_hub: str
+        self, *, storage_alias: str
     ) -> list[models.BaseFileInformation]:
-        """Return a list of not-yet-interrogated files for a Data Hub"""
+        """Return a list of not-yet-interrogated files for a Data Hub (storage_alias)"""
         files = [
             models.BaseFileInformation(**x.model_dump())
             async for x in self._dao.find_all(
                 mapping={
-                    "data_hub": data_hub,
+                    "storage_alias": storage_alias,
                     "state": "inbox",
                     "interrogated": False,
                 }
             )
         ]
-        log.info("Fetched list of %i files for data hub %s.", len(files), data_hub)
+        log.info(
+            "Fetched list of %i files for storage_alias %s.", len(files), storage_alias
+        )
         return files
 
     async def ack_file_cancellation(self, *, file_id: UUID4) -> None:

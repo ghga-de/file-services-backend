@@ -544,7 +544,7 @@ The service requires the following configuration parameters:
   ```
 
 
-- <a id="properties/data_hub_auth_keys"></a>**`data_hub_auth_keys`** *(object, required)*: Mapping of data hub aliases to their public token signature validation keys. Can contain additional properties.
+- <a id="properties/data_hub_auth_keys"></a>**`data_hub_auth_keys`** *(object, required)*: Mapping of storage (data hub) aliases to their public token signature validation keys. Can contain additional properties.
 
   - <a id="properties/data_hub_auth_keys/additionalProperties"></a>**Additional properties** *(string)*
 

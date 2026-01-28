@@ -50,7 +50,10 @@ class Config(
     )
     data_hub_auth_keys: dict[str, str] = Field(
         default=...,
-        description="Mapping of data hub aliases to their public token signature validation keys",
+        description=(
+            "Mapping of storage (data hub) aliases to their public token signature"
+            + " validation keys"
+        ),
         examples=[
             {
                 "HD": '{"crv": "P-256", "kty": "EC", "x": "...", "y": "..."}',
