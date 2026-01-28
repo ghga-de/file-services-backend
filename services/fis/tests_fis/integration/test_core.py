@@ -68,6 +68,7 @@ async def test_typical_journey(joint_fixture: JointFixture, httpx_mock: HTTPXMoc
         success_report = models.InterrogationReport(
             file_id=file.id,
             storage_alias=file.storage_alias,
+            bucket_id="interrogation1",
             interrogated_at=now_utc_ms_prec(),
             passed=True,
             secret=b"secret_data_here",

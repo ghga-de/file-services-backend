@@ -44,6 +44,9 @@ class BaseFileInformation(BaseModel):
     storage_alias: str = Field(
         ..., description="The storage alias of the Data Hub housing the file"
     )
+    bucket_id: str = Field(
+        ..., description="The name of the bucket where the file is currently stored"
+    )
     decrypted_sha256: str = Field(
         ..., description="SHA-256 checksum of the entire unencrypted file content"
     )
@@ -87,6 +90,9 @@ class InterrogationSuccess(BaseModel):
     storage_alias: str = Field(
         ..., description="The storage alias of the Data Hub housing the file"
     )
+    bucket_id: str = Field(
+        ..., description="The name of the interrogation bucket the file is stored in"
+    )
     interrogated_at: UTCDatetime = Field(
         ..., description="Time that the report was generated"
     )
@@ -124,6 +130,13 @@ class InterrogationReport(BaseModel):
         ..., description="Timestamp showing when interrogation finished"
     )
     passed: bool = Field(..., description="Whether the interrogation was a success")
+    bucket_id: str | None = Field(
+        default=None,
+        description=(
+            "The name of the interrogation bucket the file is stored in, if the"
+            + " interrogation was successful"
+        ),
+    )
     secret: SecretBytes | None = Field(
         default=None, description="Encrypted file encryption secret"
     )
@@ -142,6 +155,8 @@ class InterrogationReport(BaseModel):
     def validate_conditional_fields(self) -> "InterrogationReport":
         """Validate that conditional fields are set based on passed status."""
         if self.passed:
+            if self.bucket_id is None:
+                raise ValueError("bucket_id must not be None when passed is True")
             if self.encrypted_parts_md5 is None:
                 raise ValueError(
                     "encrypted_parts_md5 must not be None when passed is True"

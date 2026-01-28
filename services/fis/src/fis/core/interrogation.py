@@ -143,6 +143,7 @@ class InterrogationHandler(InterrogationHandlerPort):
                 file_id=report.file_id,
                 secret_id=secret_id,
                 storage_alias=report.storage_alias,
+                bucket_id=report.bucket_id,
                 interrogated_at=report.interrogated_at,
                 encrypted_parts_md5=report.encrypted_parts_md5,
                 encrypted_parts_sha256=report.encrypted_parts_sha256,

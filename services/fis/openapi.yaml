@@ -3,6 +3,10 @@ components:
     BaseFileInformation:
       description: Basic file information - all that is needed for interrogation.
       properties:
+        bucket_id:
+          description: The name of the bucket where the file is currently stored
+          title: Bucket Id
+          type: string
         decrypted_sha256:
           description: SHA-256 checksum of the entire unencrypted file content
           title: Decrypted Sha256
@@ -32,6 +36,7 @@ components:
       required:
       - id
       - storage_alias
+      - bucket_id
       - decrypted_sha256
       - decrypted_size
       - encrypted_size
@@ -50,6 +55,13 @@ components:
     InterrogationReport:
       description: Contains the results of file interrogation
       properties:
+        bucket_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: The name of the interrogation bucket the file is stored in,
+            if the interrogation was successful
+          title: Bucket Id
         encrypted_parts_md5:
           anyOf:
           - items:
