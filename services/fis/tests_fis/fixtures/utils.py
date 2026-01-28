@@ -25,12 +25,11 @@ from fis.core.models import FileUnderInterrogation
 BASE_DIR = Path(__file__).parent.resolve()
 
 
-def create_file_under_interrogation(hub: str):
-    """Generate some dummy data for the specified Data Hub"""
+def create_file_under_interrogation(storage_alias: str):
+    """Generate some dummy data for the specified storage_alias"""
     file = FileUnderInterrogation(
         id=uuid4(),
-        data_hub=hub,
-        storage_alias=f"{hub}01",
+        storage_alias=storage_alias,
         decrypted_sha256="",
         decrypted_size=123456789,
         encrypted_size=123466789,

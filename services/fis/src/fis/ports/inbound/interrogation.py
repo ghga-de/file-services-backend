@@ -89,7 +89,7 @@ class InterrogationHandlerPort(ABC):
 
     @abstractmethod
     async def get_files_not_yet_interrogated(
-        self, *, data_hub: str
+        self, *, storage_alias: str
     ) -> list[models.BaseFileInformation]:
         """Return a list of not-yet-interrogated files for a Data Hub"""
 

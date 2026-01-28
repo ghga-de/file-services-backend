@@ -47,7 +47,7 @@ async def test_typical_journey(joint_fixture: JointFixture, httpx_mock: HTTPXMoc
     # Get a list of files for hub1 that need to be interrogated
     files_to_interrogate = (
         await joint_fixture.interrogation_handler.get_files_not_yet_interrogated(
-            data_hub="HUB1"
+            storage_alias="HUB1"
         )
     )
     assert len(files_to_interrogate) == 1
@@ -93,7 +93,7 @@ async def test_typical_journey(joint_fixture: JointFixture, httpx_mock: HTTPXMoc
     # Verify that calling the 'new uploads' endpoint returns an empty list
     assert (
         await joint_fixture.interrogation_handler.get_files_not_yet_interrogated(
-            data_hub="HUB1"
+            storage_alias="HUB1"
         )
     ) == []
 

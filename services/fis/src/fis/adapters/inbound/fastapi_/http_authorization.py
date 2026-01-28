@@ -41,12 +41,12 @@ AuthProviders = dict[str, JWTAuthContextProvider[JWT]]
 
 
 async def _require_data_hub_jwt(
-    data_hub: str,
+    storage_alias: str,
     auth_providers: Annotated[AuthProviders, Depends(dummies.auth_providers_dummy)],
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=True)),
 ) -> JWT:
-    """Require a JWT signed by the Data Hub making the request."""
-    provider = auth_providers.get(data_hub)
+    """Require a JWT signed by the Data Hub (storage_alias) making the request."""
+    provider = auth_providers.get(storage_alias)
     token = credentials.credentials if credentials else None
     if not token:
         raise HTTPException(
@@ -54,7 +54,7 @@ async def _require_data_hub_jwt(
         )
 
     if provider is None:
-        raise RuntimeError(f"No auth provider found for data hub {data_hub}")
+        raise RuntimeError(f"No auth provider found for storage_alias {storage_alias}")
 
     try:
         context = await provider.get_context(token)
@@ -72,7 +72,7 @@ async def _require_data_hub_jwt(
         context.exp < context.iat
         or context.iss != "GHGA"
         or context.aud != "GHGA"
-        or context.sub != data_hub
+        or context.sub != storage_alias
         or context.exp <= now_as_utc()
     ):
         raise HTTPException(

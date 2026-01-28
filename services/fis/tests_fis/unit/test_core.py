@@ -310,7 +310,9 @@ async def test_get_files_not_yet_interrogated(rig: JointRig):
     """Test the `.get_files_not_yet_interrogated()` method"""
     # Assert that when there are no files, we still get an empty list
     assert (
-        await rig.interrogation_handler.get_files_not_yet_interrogated(data_hub=HUB1)
+        await rig.interrogation_handler.get_files_not_yet_interrogated(
+            storage_alias=HUB1
+        )
         == []
     )
 
@@ -325,7 +327,7 @@ async def test_get_files_not_yet_interrogated(rig: JointRig):
 
     # Make sure the query mapping works by querying for one of the hubs
     retrieve_h1 = await rig.interrogation_handler.get_files_not_yet_interrogated(
-        data_hub=HUB1
+        storage_alias=HUB1
     )
     assert set(f.id for f in retrieve_h1) == hub1_ids
 
@@ -350,7 +352,7 @@ async def test_get_files_not_yet_interrogated(rig: JointRig):
     # Compare Hub 1 results
     hub1_ids.remove(hub1_files[0].id)
     results_h1 = await rig.interrogation_handler.get_files_not_yet_interrogated(
-        data_hub=HUB1
+        storage_alias=HUB1
     )
     assert set(f.id for f in results_h1) == hub1_ids
 
@@ -358,7 +360,7 @@ async def test_get_files_not_yet_interrogated(rig: JointRig):
     hub2_ids.remove(hub2_files[0].id)
     hub2_ids.remove(hub2_files[1].id)
     results_h2 = await rig.interrogation_handler.get_files_not_yet_interrogated(
-        data_hub=HUB2
+        storage_alias=HUB2
     )
     assert set(f.id for f in results_h2) == hub2_ids
 

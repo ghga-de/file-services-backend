@@ -39,22 +39,22 @@ class JWTTestFactory:
 
     def __init__(self, data_hub_jwt_keys: dict[str, JWK]):
         """This class is for testing purposes only!"""
-        self._hub_keys = data_hub_jwt_keys
+        self._storage_aliases = data_hub_jwt_keys
 
-    def make_jwt(self, hub: str) -> str:
-        """Sign and serialize an auth token for the specified hub"""
-        claims: dict[str, str] = {"iss": "GHGA", "aud": "GHGA", "sub": hub}
-        assert hub in self._hub_keys, (
-            f"Misuse of JWTTestFactory: {hub} is not configured as a data hub."
-            + f" Options are: {','.join(self._hub_keys)}"
+    def make_jwt(self, storage_alias: str) -> str:
+        """Sign and serialize an auth token for the specified storage_alias"""
+        claims: dict[str, str] = {"iss": "GHGA", "aud": "GHGA", "sub": storage_alias}
+        assert storage_alias in self._storage_aliases, (
+            f"Misuse of JWTTestFactory: {storage_alias} is not configured as a storage"
+            + f"  alias. Options are: {','.join(self._storage_aliases)}"
         )
         return sign_and_serialize_token(
-            claims=claims, key=self._hub_keys[hub], valid_seconds=60
+            claims=claims, key=self._storage_aliases[storage_alias], valid_seconds=60
         )
 
-    def auth_header(self, hub: str) -> dict[str, str]:
+    def auth_header(self, storage_alias: str) -> dict[str, str]:
         """Create an auth header using the `make_jwt()` method"""
-        return {"Authorization": f"Bearer {self.make_jwt(hub)}"}
+        return {"Authorization": f"Bearer {self.make_jwt(storage_alias)}"}
 
 
 @pytest.fixture()
@@ -73,8 +73,8 @@ async def test_health(rest_client: AsyncTestClient, rig: JointRig):
 async def test_list_uploads(
     rest_client: AsyncTestClient, rig: JointRig, jwt_factory: JWTTestFactory
 ):
-    """Test the GET /hubs/{data_hub}/uploads endpoint"""
-    url = f"/hubs/{HUB1}/uploads"
+    """Test the GET /storages/{storage_alias}/uploads endpoint"""
+    url = f"/storages/{HUB1}/uploads"
 
     # Assert no auth returns a 403 (this is a known bug with fastapi)
     response = await rest_client.get(url)
@@ -111,8 +111,8 @@ async def test_list_uploads(
 async def test_get_removable_files(
     rest_client: AsyncTestClient, rig: JointRig, jwt_factory: JWTTestFactory
 ):
-    """Test the POST /hubs/{data_hub}/uploads/can_remove endpoint"""
-    url = f"/hubs/{HUB1}/uploads/can_remove"
+    """Test the POST /storages/{storage_alias}/uploads/can_remove endpoint"""
+    url = f"/storages/{HUB1}/uploads/can_remove"
 
     # Create test files with different can_remove states
     file_removable = create_file_under_interrogation(HUB1)
@@ -172,8 +172,8 @@ async def test_post_interrogation_report(
     jwt_factory: JWTTestFactory,
     httpx_mock: HTTPXMock,
 ):
-    """Test the POST /hubs/{data_hub}/interrogation-reports endpoint"""
-    url = f"/hubs/{HUB1}/interrogation-reports"
+    """Test the POST /storages/{storage_alias}/interrogation-reports endpoint"""
+    url = f"/storages/{HUB1}/interrogation-reports"
 
     # Mock the EKSS secret deposition endpoint
     ekss_url = f"{rig.config.ekss_api_url}/secrets"

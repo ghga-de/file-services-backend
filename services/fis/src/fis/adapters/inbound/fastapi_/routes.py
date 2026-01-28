@@ -43,7 +43,7 @@ async def health():
 
 
 @router.get(
-    "/hubs/{data_hub}/uploads",
+    "/storages/{storage_alias}/uploads",
     summary="Serve a list of new file uploads (yet to be interrogated)",
     operation_id="listUploads",
     tags=["FileIngestService"],
@@ -51,13 +51,15 @@ async def health():
 )
 @TRACER.start_as_current_span("routes.list_uploads")
 async def list_uploads(
-    data_hub: str,
+    storage_alias: str,
     interrogator: dummies.InterrogatorPort,
     _token: Annotated[JWT, require_data_hub_jwt],
 ) -> list[models.BaseFileInformation]:
-    """Return a list of not-yet-interrogated files for a Data Hub"""
+    """Return a list of not-yet-interrogated files for a Data Hub (storage_alias)"""
     try:
-        return await interrogator.get_files_not_yet_interrogated(data_hub=data_hub)
+        return await interrogator.get_files_not_yet_interrogated(
+            storage_alias=storage_alias
+        )
     except Exception as err:
         error = HTTPException(status_code=500, detail="Something went wrong.")
         log.error(error, exc_info=True)
@@ -65,7 +67,7 @@ async def list_uploads(
 
 
 @router.post(
-    "/hubs/{data_hub}/uploads/can_remove",
+    "/storages/{storage_alias}/uploads/can_remove",
     summary="Returns a list of IDs indicating which files can be removed from the interrogation bucket",
     operation_id="getRemovableFiles",
     tags=["FileIngestService"],
@@ -73,7 +75,7 @@ async def list_uploads(
 )
 @TRACER.start_as_current_span("routes.get_removable_files")
 async def get_removable_files(
-    data_hub: str,
+    storage_alias: str,
     interrogator: dummies.InterrogatorPort,
     _token: Annotated[JWT, require_data_hub_jwt],
     file_ids: list[UUID4] = Body(),
@@ -90,7 +92,7 @@ async def get_removable_files(
 
 
 @router.post(
-    "/hubs/{data_hub}/interrogation-reports",
+    "/storages/{storage_alias}/interrogation-reports",
     summary="Accepts an InterrogationReport for a file",
     operation_id="postInterrogationReport",
     tags=["FileIngestService"],
@@ -99,7 +101,7 @@ async def get_removable_files(
 )
 @TRACER.start_as_current_span("routes.get_removable_files")
 async def post_interrogation_report(
-    data_hub: str,
+    storage_alias: str,
     interrogator: dummies.InterrogatorPort,
     _token: Annotated[JWT, require_data_hub_jwt],
     report: models.InterrogationReport = Body(),
