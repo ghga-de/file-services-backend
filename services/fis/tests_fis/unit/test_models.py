@@ -28,12 +28,14 @@ def test_interrogation_report_validator():
     """Test the validator on the InterrogationReport model"""
     file_id = uuid4()
     storage_alias = "test-alias"
+    bucket_id = "interrogation1"
     interrogated_at = now_utc_ms_prec()
 
     # Valid case: passed=True with all required fields
     valid_success = InterrogationReport(
         file_id=file_id,
         storage_alias=storage_alias,
+        bucket_id=bucket_id,
         interrogated_at=interrogated_at,
         passed=True,
         secret=SecretBytes(b"encrypted_secret"),
@@ -52,11 +54,24 @@ def test_interrogation_report_validator():
     )
     assert valid_failure.passed is False
 
+    # Invalid: passed=True but bucket_id is None
+    with pytest.raises(ValidationError, match="bucket_id must not be None"):
+        InterrogationReport(
+            file_id=file_id,
+            storage_alias=storage_alias,
+            interrogated_at=interrogated_at,
+            passed=True,
+            secret=SecretBytes(b"encrypted_secret"),
+            encrypted_parts_md5=["abc123"],
+            encrypted_parts_sha256=["def456"],
+        )
+
     # Invalid: passed=True but encrypted_parts_md5 is None
     with pytest.raises(ValidationError, match="encrypted_parts_md5 must not be None"):
         InterrogationReport(
             file_id=file_id,
             storage_alias=storage_alias,
+            bucket_id=bucket_id,
             interrogated_at=interrogated_at,
             passed=True,
             secret=SecretBytes(b"encrypted_secret"),
@@ -71,6 +86,7 @@ def test_interrogation_report_validator():
         InterrogationReport(
             file_id=file_id,
             storage_alias=storage_alias,
+            bucket_id=bucket_id,
             interrogated_at=interrogated_at,
             passed=True,
             secret=SecretBytes(b"encrypted_secret"),
@@ -83,6 +99,7 @@ def test_interrogation_report_validator():
         InterrogationReport(
             file_id=file_id,
             storage_alias=storage_alias,
+            bucket_id=bucket_id,
             interrogated_at=interrogated_at,
             passed=True,
             secret=None,

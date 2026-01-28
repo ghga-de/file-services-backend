@@ -189,6 +189,7 @@ async def test_post_interrogation_report(
     success_report = {
         "file_id": str(file.id),
         "storage_alias": file.storage_alias,
+        "bucket_id": "interrogation1",
         "interrogated_at": now_utc_ms_prec().isoformat(),
         "passed": True,
         "secret": "c2VjcmV0X2RhdGFfaGVyZQ==",
@@ -252,6 +253,7 @@ async def test_post_interrogation_report(
     invalid_success_report = {
         "file_id": str(file.id),
         "storage_alias": file.storage_alias,
+        "bucket_id": "interrogation1",
         "interrogated_at": now_utc_ms_prec().isoformat(),
         "passed": True,
         "secret": "c2VjcmV0X2RhdGFfaGVyZQ==",

@@ -54,6 +54,7 @@ async def test_report_handling_successful(rig: JointRig, httpx_mock: HTTPXMock):
     success_report = models.InterrogationReport(
         file_id=file.id,
         storage_alias=file.storage_alias,
+        bucket_id="interrogation1",
         interrogated_at=now_utc_ms_prec(),
         passed=True,
         secret=b"secret_data_here",
@@ -148,6 +149,7 @@ async def test_report_handling_ekss_non_201_status(
     error_report = models.InterrogationReport(
         file_id=file.id,
         storage_alias=file.storage_alias,
+        bucket_id="interrogation1",
         interrogated_at=now_utc_ms_prec(),
         passed=True,
         secret=b"secret",
@@ -184,6 +186,7 @@ async def test_report_handling_ekss_network_error(rig: JointRig, httpx_mock: HTT
     error_report = models.InterrogationReport(
         file_id=file.id,
         storage_alias=file.storage_alias,
+        bucket_id="interrogation1",
         interrogated_at=now_utc_ms_prec(),
         passed=True,
         secret=b"secret",
