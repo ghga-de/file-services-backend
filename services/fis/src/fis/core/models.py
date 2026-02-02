@@ -19,13 +19,6 @@ from typing import Literal
 from ghga_service_commons.utils.utc_dates import UTCDatetime
 from pydantic import UUID4, BaseModel, Field, SecretBytes, model_validator
 
-
-class FileIdModel(BaseModel):
-    """Model for a file ID"""
-
-    file_id: str
-
-
 FileUploadState = Literal[
     "init",
     "inbox",
