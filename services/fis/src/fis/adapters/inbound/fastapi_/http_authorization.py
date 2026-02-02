@@ -23,6 +23,7 @@ from ghga_service_commons.utils.utc_dates import UTCDatetime, now_as_utc
 from pydantic import BaseModel, Field
 
 from fis.adapters.inbound.fastapi_ import dummies
+from fis.constants import GHGA
 
 __all__ = ["AuthProviders", "require_data_hub_jwt"]
 
@@ -70,8 +71,8 @@ async def _require_data_hub_jwt(
 
     if (
         context.exp < context.iat
-        or context.iss != "GHGA"
-        or context.aud != "GHGA"
+        or context.iss != GHGA
+        or context.aud != GHGA
         or context.sub != storage_alias
         or context.exp <= now_as_utc()
     ):
