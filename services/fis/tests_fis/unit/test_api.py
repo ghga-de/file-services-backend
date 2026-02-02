@@ -24,6 +24,7 @@ from hexkit.utils import now_utc_ms_prec
 from jwcrypto.jwk import JWK
 from pytest_httpx import HTTPXMock
 
+from fis.constants import GHGA
 from fis.core import models
 from tests_fis.fixtures.joint import JointRig
 from tests_fis.fixtures.utils import create_file_under_interrogation
@@ -43,7 +44,7 @@ class JWTTestFactory:
 
     def make_jwt(self, storage_alias: str) -> str:
         """Sign and serialize an auth token for the specified storage_alias"""
-        claims: dict[str, str] = {"iss": "GHGA", "aud": "GHGA", "sub": storage_alias}
+        claims: dict[str, str] = {"iss": GHGA, "aud": GHGA, "sub": storage_alias}
         assert storage_alias in self._storage_aliases, (
             f"Misuse of JWTTestFactory: {storage_alias} is not configured as a storage"
             + f"  alias. Options are: {','.join(self._storage_aliases)}"
