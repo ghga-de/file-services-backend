@@ -30,9 +30,9 @@ __all__ = ["AuthProviders", "require_data_hub_jwt"]
 class JWT(BaseModel):
     """A JSON Web Token model"""
 
-    iss: str
-    aud: str
-    sub: str
+    iss: str = Field(default=..., title="Issuer")
+    aud: str = Field(default=..., title="Audience")
+    sub: str = Field(default=..., title="Subject")
     iat: UTCDatetime = Field(default=..., title="Issued at")
     exp: UTCDatetime = Field(default=..., title="Expiration time")
 
