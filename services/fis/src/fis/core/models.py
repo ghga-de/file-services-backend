@@ -56,7 +56,6 @@ class BaseFileInformation(BaseModel):
 class FileUnderInterrogation(BaseFileInformation):
     """A user-submitted file upload that needs to be interrogated"""
 
-    id: UUID4 = Field(..., description="Unique identifier for the file upload")
     state: FileUploadState = Field(
         default="init", description="The state of the FileUpload"
     )
