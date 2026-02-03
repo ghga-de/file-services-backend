@@ -20,7 +20,7 @@ from hexkit.protocols.dao import (  # noqa: F401
     ResourceNotFoundError,
 )
 
-from fis.core.models import FileIdModel
+from fis.core.models import FileUnderInterrogation
 
 # port described by a type alias:
-FileDao = Dao[FileIdModel]
+FileDao = Dao[FileUnderInterrogation]
