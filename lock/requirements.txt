@@ -61,9 +61,9 @@ anysqlite==0.0.5 \
     # via
     #   -c lock/requirements-dev.txt
     #   hishel
-asgiref==3.11.0 \
-    --hash=sha256:13acff32519542a1736223fb79a715acdebe24286d98e8b164a73085f40da2c4 \
-    --hash=sha256:1db9021efadb0d9512ce8ffaf72fcef601c7b73a8807a1bb2ef143dc6b14846d
+asgiref==3.11.1 \
+    --hash=sha256:5f184dc43b7e763efe848065441eac62229c9f7b0475f41f80e207a114eda4ce \
+    --hash=sha256:e8667a091e69529631969fd45dc268fa79b99c92c5fcdda727757e52146ec133
     # via
     #   -c lock/requirements-dev.txt
     #   opentelemetry-instrumentation-asgi
@@ -147,15 +147,15 @@ bcrypt==5.0.0 \
     # via
     #   -c lock/requirements-dev.txt
     #   crypt4gh
-boto3==1.42.35 \
-    --hash=sha256:4251bbac90e4a190680439973d9e9ed851e50292c10cd063c8bf0c365410ffe1 \
-    --hash=sha256:edbfbfbadd419e65888166dd044786d4b731cf60abeb2301b73e775e154d7c5e
+boto3==1.42.43 \
+    --hash=sha256:01fc5501209b23849fb30b01c6c086583ac91c40842a76083662fbfb84a82491 \
+    --hash=sha256:44ddcaa37c350333c5a4799f533e786a595a97f1ee2fd7fc3e394cdebeb15e44
     # via
     #   -c lock/requirements-dev.txt
     #   hexkit
-botocore==1.42.35 \
-    --hash=sha256:40a6e0f16afe9e5d42e956f0b6d909869793fadb21780e409063601fc3d094b8 \
-    --hash=sha256:b89f527987691abbd1374c4116cc2711471ce48e6da502db17e92b17b2af8d47
+botocore==1.42.43 \
+    --hash=sha256:1c0e30f62e274978ac3bcab253e3a859febea634b72b5e343589db7d17f83cd6 \
+    --hash=sha256:41d04ead0b0862eec21f841811fb5764fe370a2df9b319e0d5297325c50fba1b
     # via
     #   -c lock/requirements-dev.txt
     #   boto3
@@ -610,9 +610,9 @@ ghga-event-schemas==11.1.1 \
     # via
     #   -c lock/requirements-dev.txt
     #   fsb (pyproject.toml)
-ghga-service-commons==6.1.0 \
-    --hash=sha256:5ae3af599be98db35f2d4dad365eae3a850443598ba8f8e2bc270b27b5b9ef75 \
-    --hash=sha256:999d455696a9fb3e62ec0b46b6c667ac89c3c7293b82e72c87fef0675235cc5d
+ghga-service-commons==7.0.0 \
+    --hash=sha256:7336920f472a202d2afc052ec357473119c7c2a5fac6b1dc9c93a6102e57e95a \
+    --hash=sha256:d7decdb2635c79b2beb53405390ad065734406bb401a4a0d5678ef4163753fd3
     # via
     #   -c lock/requirements-dev.txt
     #   fsb (pyproject.toml)
@@ -696,16 +696,16 @@ h11==0.16.0 \
     #   -c lock/requirements-dev.txt
     #   httpcore
     #   uvicorn
-hexkit==7.3.0 \
-    --hash=sha256:4412482d30edf7714d95144457cbdb11cdb3277f45ae1bc728cbe981181b40ec \
-    --hash=sha256:f0cd36f5974bc32546cd504b0e26efd0c37b7ef11211511cce68969bafd6c8a6
+hexkit==8.1.0 \
+    --hash=sha256:c7d3476e606769a887a95004261043a3b4b852b2d6980b4655bb5b30cbfa5044 \
+    --hash=sha256:ee54ed2a3892241bb4534c9a1fc2b86b37081f04391abdc27e170938841ab3c0
     # via
     #   -c lock/requirements-dev.txt
     #   fsb (pyproject.toml)
     #   ghga-service-commons
-hishel==0.1.5 \
-    --hash=sha256:0bfbe9a2b9342090eba82ba6de88258092e1c4c7b730cd4cb4b570e4b40e44a7 \
-    --hash=sha256:9d40c682cd94fd6e1394fb05713ae20a75ed8aeba6f5272380444039ce6257f2
+hishel==1.1.9 \
+    --hash=sha256:47248a50e4cff4fbaa141832782d8c07b2169914916f4bd792f37449176dfa23 \
+    --hash=sha256:6b6f294cb7593f170a9bf874849cc85330ff81f5e35d2ca189548498fed10806
     # via
     #   -c lock/requirements-dev.txt
     #   ghga-service-commons
@@ -769,7 +769,6 @@ httpx==0.28.1 \
     #   -c lock/requirements-dev.txt
     #   fsb (pyproject.toml)
     #   ghga-service-commons
-    #   hishel
 hvac==2.4.0 \
     --hash=sha256:008db5efd8c2f77bd37d2368ea5f713edceae1c65f11fd608393179478649e0f \
     --hash=sha256:e0056ad9064e7923e874e6769015b032580b639e29246f5ab1044f7959c1c7e0
@@ -1425,9 +1424,9 @@ requests==2.32.5 \
     #   -c lock/requirements-dev.txt
     #   hvac
     #   opentelemetry-exporter-otlp-proto-http
-rich==14.3.1 \
-    --hash=sha256:b8c5f568a3a749f9290ec6bddedf835cec33696bfc1e48bcfecb276c7386e4b8 \
-    --hash=sha256:da750b1aebbff0b372557426fb3f35ba56de8ef954b3190315eb64076d6fb54e
+rich==14.3.2 \
+    --hash=sha256:08e67c3e90884651da3239ea668222d19bea7b589149d8014a21c633420dbb69 \
+    --hash=sha256:e712f11c1a562a11843306f5ed999475f09ac31ffb64281f73ab29ffdda8b3b8
     # via
     #   -c lock/requirements-dev.txt
     #   typer
@@ -1575,9 +1574,9 @@ starlette==0.50.0 \
     # via
     #   -c lock/requirements-dev.txt
     #   fastapi
-tenacity==9.1.2 \
-    --hash=sha256:1169d376c297e7de388d18b4481760d478b0e99a777cad3a9c86e556f4b697cb \
-    --hash=sha256:f77bf36710d8b73a50b2dd155c97b870017ad21afe6ab300326b0371b3b05138
+tenacity==9.1.3 \
+    --hash=sha256:51171cfc6b8a7826551e2f029426b10a6af189c5ac6986adcd7eb36d42f17954 \
+    --hash=sha256:a6724c947aa717087e2531f883bde5c9188f603f6669a9b8d54eb998e604c12a
     # via
     #   -c lock/requirements-dev.txt
     #   ghga-service-commons
