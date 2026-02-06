@@ -118,6 +118,44 @@ class HttpOrphanedMultipartUploadError(HttpCustomExceptionBase):
         )
 
 
+class HttpNotEnoughSpaceError(HttpCustomExceptionBase):
+    """Thrown when accepting a file would exceed the allowed total FileUploadBox limit."""
+
+    exception_id = "notEnoughSpace"
+
+    class DataModel(BaseModel):
+        """Model for exception data"""
+
+        box_id: UUID4
+        file_alias: str
+        file_size: int
+        remaining_space: int
+
+    def __init__(
+        self,
+        *,
+        box_id: UUID4,
+        file_alias: str,
+        file_size: int,
+        remaining_space: int,
+        status_code: int = 409,
+    ):
+        """Construct message and init the exception."""
+        super().__init__(
+            status_code=status_code,
+            description=(
+                f"The file {file_alias} has a size of {file_size} bytes, which would"
+                + f" exceed the remaining space of {remaining_space} bytes for box {box_id}."
+            ),
+            data={
+                "box_id": str(box_id),
+                "file_alias": file_alias,
+                "file_size": file_size,
+                "remaining_space": remaining_space,
+            },
+        )
+
+
 class HttpS3UploadDetailsNotFoundError(HttpCustomExceptionBase):
     """Thrown when S3 upload details for a file cannot be found."""
 

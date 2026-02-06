@@ -17,7 +17,7 @@
 
 from abc import ABC, abstractmethod
 
-from ghga_event_schemas.pydantic_ import FileUpload, FileUploadReport
+from ghga_event_schemas.pydantic_ import FileUpload, FileUploadBox, FileUploadReport
 from pydantic import UUID4
 
 
@@ -140,6 +140,27 @@ class UploadControllerPort(ABC):
             )
             super().__init__(msg)
 
+    class NotEnoughSpaceError(UploadError):
+        """Raised when accepting a file would exceed the allowed total FileUploadBox limit"""
+
+        def __init__(
+            self,
+            *,
+            box_id: UUID4,
+            file_alias: str,
+            file_size: int,
+            remaining_space: int,
+        ):
+            self.box_id = box_id
+            self.file_alias = file_alias
+            self.file_size = file_size
+            self.remaining_space = remaining_space
+            msg = (
+                f"The file {file_alias} has a size of {file_size} bytes, which would"
+                + f" exceed the remaining space of {remaining_space} for box {box_id}."
+            )
+            super().__init__(msg)
+
     @abstractmethod
     async def initiate_file_upload(
         self, *, box_id: UUID4, alias: str, size: int
@@ -152,6 +173,7 @@ class UploadControllerPort(ABC):
         - `FileUploadAlreadyExists` if there's already a FileUpload for this alias.
         - `UnknownStorageAliasError` if the storage alias is not known.
         - `OrphanedMultipartUploadError` if an S3 upload is already in progress.
+        - `NotEnoughSpaceError` if the proposed file is too big.
         """
         ...
 
@@ -227,6 +249,15 @@ class UploadControllerPort(ABC):
     @abstractmethod
     async def unlock_file_upload_box(self, *, box_id: UUID4) -> None:
         """Unlock an existing FileUploadBox.
+
+        Raises:
+        - `BoxNotFoundError` if the FileUploadBox isn't found in the DB.
+        """
+        ...
+
+    @abstractmethod
+    async def get_file_upload_box(self, *, box_id: UUID4) -> FileUploadBox:
+        """Return the FileUploadBox with the specified ID
 
         Raises:
         - `BoxNotFoundError` if the FileUploadBox isn't found in the DB.

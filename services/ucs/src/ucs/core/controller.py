@@ -268,10 +268,23 @@ class UploadController(UploadControllerPort):
         - `FileUploadAlreadyExists` if there's already a FileUpload for this alias.
         - `UnknownStorageAliasError` if the storage alias is not known.
         - `OrphanedMultipartUploadError` if an S3 upload is already in progress.
+        - `NotEnoughSpaceError` if the proposed file is too big.
         """
         extra: dict[str, Any] = {"box_id": box_id, "alias": alias}
         # Get the box and create the FileUpload
         box = await self._get_unlocked_box(box_id=box_id)
+
+        # Only allow file upload if enough space remains in FileUploadBox
+        remaining_space = self._config.file_box_size_limit - box.size
+        if remaining_space < size:
+            error = self.NotEnoughSpaceError(
+                box_id=box_id,
+                file_alias=alias,
+                file_size=size,
+                remaining_space=remaining_space,
+            )
+            log.error(error)
+            raise error
 
         # Get the S3 storage details
         storage_alias = box.storage_alias
@@ -334,6 +347,7 @@ class UploadController(UploadControllerPort):
             s3_upload_id,
             extra=extra,
         )
+        await self._update_box_stats(box=box)
         return file_id
 
     async def get_part_upload_url(self, *, file_id: UUID4, part_no: int) -> str:
@@ -433,7 +447,7 @@ class UploadController(UploadControllerPort):
         - `ChecksumMismatchError` if the checksums don't match.
         """
         # Get the FileUploadBox instance and verify that it is unlocked
-        box = await self._get_unlocked_box(box_id=box_id)
+        _ = await self._get_unlocked_box(box_id=box_id)
         extra: dict[str, Any] = {"box_id": box_id, "file_id": file_id}  # just 4 logging
 
         # Get the FileUpload from the DB
@@ -463,9 +477,6 @@ class UploadController(UploadControllerPort):
         # Exit early if the FileUpload is complete (already in the inbox or archived)
         if file_upload.completed:
             log.info("FileUpload with ID %s already complete.", file_id)
-            # If this method is called but the file is already completed, triple
-            #  check that the box is up to date
-            await self._update_box_stats(box=box)
             await self._compare_checksums(
                 object_storage=object_storage,
                 bucket_id=bucket_id,
@@ -528,9 +539,6 @@ class UploadController(UploadControllerPort):
         s3_upload_details.completed = now_utc_ms_prec()
         await self._file_upload_dao.update(file_upload)
         await self._s3_upload_details_dao.update(s3_upload_details)
-
-        # Update the FileUploadBox with new size and file count
-        await self._update_box_stats(box=box)
         log.debug("DB data updated for upload completion of file %s", file_id)
 
     async def remove_file_upload(self, *, box_id: UUID4, file_id: UUID4) -> None:
@@ -580,9 +588,8 @@ class UploadController(UploadControllerPort):
         """
         file_count = 0
         total_size = 0
-        async for file_upload in self._file_upload_dao.find_all(
-            mapping={"box_id": box.id, "completed": True}
-        ):
+        mapping = {"box_id": box.id}
+        async for file_upload in self._file_upload_dao.find_all(mapping=mapping):
             file_count += 1
             total_size += file_upload.size
 
@@ -659,6 +666,19 @@ class UploadController(UploadControllerPort):
             log.info("Unlocked box with ID %s", box_id)
         else:
             log.debug("Box with ID %s is already unlocked", box_id)
+
+    async def get_file_upload_box(self, *, box_id: UUID4) -> FileUploadBox:
+        """Return the FileUploadBox with the specified ID
+
+        Raises:
+        - `BoxNotFoundError` if the FileUploadBox isn't found in the DB.
+        """
+        try:
+            return await self._file_upload_box_dao.get_by_id(box_id)
+        except ResourceNotFoundError as err:
+            error = self.BoxNotFoundError(box_id=box_id)
+            log.error(error)
+            raise error from err
 
     async def get_box_file_info(self, *, box_id: UUID4) -> list[FileUpload]:
         """Return the list of FileUploads for a FileUploadBox, sorted by alias.

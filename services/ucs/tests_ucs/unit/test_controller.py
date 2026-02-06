@@ -30,32 +30,31 @@ from ghga_event_schemas.pydantic_ import (
 )
 from ghga_service_commons.utils.multinode_storage import ObjectStorages
 from hexkit.protocols.objstorage import ObjectStorageProtocol
+from hexkit.providers.testing.dao import BaseInMemDao, new_mock_dao_class
 from hexkit.providers.testing.s3 import InMemObjectStorage
 from hexkit.utils import now_utc_ms_prec
 
 from tests_ucs.fixtures import ConfigFixture
-from tests_ucs.fixtures.in_mem_dao import (
-    BaseInMemDao,
-    InMemFileUploadBoxDao,
-    InMemFileUploadDao,
-    InMemS3UploadDetailsDao,
-)
-from tests_ucs.fixtures.in_mem_obj_storage import (
-    InMemS3ObjectStorages,
-    raise_object_storage_error,
-)
+from tests_ucs.fixtures.in_mem_obj_storage import InMemS3ObjectStorages
 from ucs.config import Config
 from ucs.core import models
 from ucs.core.controller import UploadController
+from ucs.core.models import S3UploadDetails
 from ucs.ports.inbound.controller import UploadControllerPort
 
 pytestmark = pytest.mark.asyncio()
+
+# Define mock DAO classes using the mock DAO utility provided by hexkit
+InMemFileUploadBoxDao = new_mock_dao_class(dto_model=FileUploadBox, id_field="id")
+InMemFileUploadDao = new_mock_dao_class(dto_model=FileUpload, id_field="id")
+InMemS3UploadDetailsDao = new_mock_dao_class(
+    dto_model=S3UploadDetails, id_field="file_id"
+)
 
 
 @pytest.fixture()
 def patch_s3_calls(monkeypatch):
     """Mocks the object storage provider with an InMemObjectStorage object"""
-    pass
     monkeypatch.setattr(
         f"{InMemS3ObjectStorages.__module__}.S3ObjectStorage", InMemObjectStorage
     )
@@ -110,13 +109,20 @@ async def test_create_new_file_upload(rig: JointRig):
     """Test creating a new FileUpload"""
     # First create a FileUploadBox
     file_upload_dao = rig.file_upload_dao
+    file_upload_box_dao = rig.file_upload_box_dao
     controller = rig.controller
     box_id = await controller.create_file_upload_box(storage_alias="test")
+    assert file_upload_box_dao.latest.size == 0
+    assert file_upload_box_dao.latest.file_count == 0
 
     # Then create a FileUpload within the box
     file_id = await controller.initiate_file_upload(
         box_id=box_id, alias="test_file", size=1024
     )
+
+    # Verify the box stats were updated
+    assert file_upload_box_dao.latest.size == 1024
+    assert file_upload_box_dao.latest.file_count == 1
 
     # Verify the FileUpload was created
     assert file_upload_dao.latest.id == file_id
@@ -221,6 +227,9 @@ async def test_delete_file_upload(rig: JointRig, complete_before_delete: bool):
         box_id=box_id, alias="test_file", size=1024
     )
 
+    assert file_upload_box_dao.latest.file_count == 1
+    assert file_upload_box_dao.latest.size == 1024
+
     if complete_before_delete:
         await controller.complete_file_upload(
             box_id=box_id,
@@ -228,8 +237,6 @@ async def test_delete_file_upload(rig: JointRig, complete_before_delete: bool):
             unencrypted_checksum="unencrypted_checksum",
             encrypted_checksum=f"etag_for_{file_id}",
         )
-        assert file_upload_box_dao.latest.file_count == 1
-        assert file_upload_box_dao.latest.size == 1024
         assert await object_storage.does_object_exist(
             bucket_id=bucket_id, object_id=str(file_id)
         )
@@ -281,6 +288,21 @@ async def test_unlock_file_upload_box(rig: JointRig):
 
     # Verify the box is now unlocked
     assert not file_upload_box_dao.latest.locked
+
+
+async def test_get_box(rig: JointRig):
+    """Test getting a FileUploadBox by ID"""
+    controller = rig.controller
+
+    # Request a FileUploadBox that doesn't exist
+    with pytest.raises(UploadControllerPort.BoxNotFoundError):
+        await controller.get_file_upload_box(box_id=uuid4())
+
+    # Now create a FileUploadBox
+    box_id = await controller.create_file_upload_box(storage_alias="test")
+    box = await controller.get_file_upload_box(box_id=box_id)
+    assert box.storage_alias == "test"
+    assert box.id == box_id
 
 
 async def test_get_box_uploads(rig: JointRig):
@@ -437,6 +459,42 @@ async def test_create_file_upload_when_box_locked(rig: JointRig):
     assert not rig.s3_upload_details_dao.resources
 
 
+async def test_create_file_upload_when_not_enough_space(rig: JointRig):
+    """Test error handling when a file upload would exceed the FileUploadBox size limit."""
+    controller = rig.controller
+    config = rig.config
+
+    # Create a FileUploadBox
+    box_id = await controller.create_file_upload_box(storage_alias="test")
+
+    # Create a file that uses up most of the space
+    large_file_size = config.file_box_size_limit - 500
+    file_id_1 = await controller.initiate_file_upload(
+        box_id=box_id, alias="large_file", size=large_file_size
+    )
+    assert file_id_1 is not None
+
+    # Try to create another file that would exceed the limit
+    # This should raise NotEnoughSpaceError
+    with pytest.raises(UploadControllerPort.NotEnoughSpaceError) as exc_info:
+        await controller.initiate_file_upload(
+            box_id=box_id, alias="second_file", size=1024
+        )
+
+    # Verify the exception contains the expected information
+    error = exc_info.value
+    assert error.box_id == box_id
+    assert error.file_alias == "second_file"
+    assert error.file_size == 1024
+    assert error.remaining_space < 1024
+    assert "second_file" in str(error)
+    assert "1024" in str(error)
+
+    # Verify only the first FileUpload was created
+    assert len(rig.file_upload_dao.resources) == 1
+    assert len(rig.s3_upload_details_dao.resources) == 1
+
+
 async def test_delete_file_upload_when_box_missing(rig: JointRig):
     """Test error handling in the case where the user tries to delete a FileUpload
     for a box ID that doesn't exist.
@@ -568,10 +626,7 @@ async def test_delete_file_upload_with_s3_error(rig: JointRig):
         raise ObjectStorageProtocol.MultiPartUploadAbortError("", "", "")
 
     storage.abort_multipart_upload = do_error  # type: ignore[method-assign]
-    with (
-        raise_object_storage_error(InMemObjectStorage.MultiPartUploadAbortError),
-        pytest.raises(UploadControllerPort.UploadAbortError) as exc_info,
-    ):
+    with pytest.raises(UploadControllerPort.UploadAbortError) as exc_info:
         await controller.remove_file_upload(box_id=box_id, file_id=file_id)
 
     # Verify the exception contains the S3 upload ID
@@ -736,10 +791,11 @@ async def test_complete_file_upload_with_missing_s3_details(rig: JointRig):
     # Verify the exception contains the correct file_id
     assert str(file_id) in str(exc_info.value)
 
-    # Verify the FileUpload is still marked as incomplete
+    # Verify the FileUpload is still marked as incomplete, but that the box's stats are
+    #  still up to date
     assert not rig.file_upload_dao.latest.completed
-    assert rig.file_upload_box_dao.latest.size == 0
-    assert rig.file_upload_box_dao.latest.file_count == 0
+    assert rig.file_upload_box_dao.latest.size == 1024
+    assert rig.file_upload_box_dao.latest.file_count == 1
 
 
 async def test_complete_file_upload_with_unknown_storage_alias(rig: JointRig):
@@ -778,8 +834,8 @@ async def test_complete_file_upload_with_unknown_storage_alias(rig: JointRig):
     # Verify the exception message contains the unknown storage alias
     assert "does_not_exist" in str(exc_info.value)
     assert not file_upload_dao.latest.completed
-    assert rig.file_upload_box_dao.latest.size == 0
-    assert rig.file_upload_box_dao.latest.file_count == 0
+    assert rig.file_upload_box_dao.latest.size == 1024
+    assert rig.file_upload_box_dao.latest.file_count == 1
 
 
 async def test_complete_file_upload_with_s3_error(rig: JointRig):
@@ -805,10 +861,7 @@ async def test_complete_file_upload_with_s3_error(rig: JointRig):
         raise ObjectStorageProtocol.MultiPartUploadConfirmError("", "", "")
 
     storage.complete_multipart_upload = do_error  # type: ignore[method-assign]
-    with (
-        raise_object_storage_error(InMemObjectStorage.MultiPartUploadConfirmError),
-        pytest.raises(UploadControllerPort.UploadCompletionError) as exc_info,
-    ):
+    with pytest.raises(UploadControllerPort.UploadCompletionError) as exc_info:
         await controller.complete_file_upload(
             box_id=box_id,
             file_id=file_id,
@@ -821,8 +874,8 @@ async def test_complete_file_upload_with_s3_error(rig: JointRig):
     assert s3_upload_id in str(exc_info.value)
     assert not rig.file_upload_dao.latest.completed
     assert not s3_upload_details_dao.latest.completed
-    assert file_upload_box_dao.latest.size == 0
-    assert file_upload_box_dao.latest.file_count == 0
+    assert file_upload_box_dao.latest.size == 1024
+    assert file_upload_box_dao.latest.file_count == 1
 
 
 async def test_get_part_upload_url_with_missing_file_id(rig: JointRig):
@@ -894,10 +947,7 @@ async def test_get_part_upload_url_when_s3_upload_not_found(rig: JointRig):
         raise ObjectStorageProtocol.MultiPartUploadNotFoundError("", "", "")
 
     storage.get_part_upload_url = do_error  # type: ignore[method-assign]
-    with (
-        raise_object_storage_error(InMemObjectStorage.MultiPartUploadNotFoundError),
-        pytest.raises(UploadControllerPort.S3UploadNotFoundError) as exc_info,
-    ):
+    with pytest.raises(UploadControllerPort.S3UploadNotFoundError) as exc_info:
         await controller.get_part_upload_url(file_id=file_id, part_no=1)
 
     # Verify the exception contains the S3 upload ID

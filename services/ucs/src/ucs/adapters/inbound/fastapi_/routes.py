@@ -19,7 +19,7 @@ import logging
 from typing import Annotated
 
 from fastapi import APIRouter, status
-from ghga_event_schemas.pydantic_ import FileUpload
+from ghga_event_schemas.pydantic_ import FileUpload, FileUploadBox
 from pydantic import UUID4
 
 from ucs.adapters.inbound.fastapi_ import (
@@ -117,6 +117,13 @@ ERROR_RESPONSES = {
         ),
         "model": http_exceptions.HttpChecksumMismatchError.get_body_model(),
     },
+    "notEnoughSpace": {
+        "description": (
+            "Exceptions by ID:"
+            + "\n- notEnoughSpace: The file size would exceed the remaining space allowed for the FileUploadBox."
+        ),
+        "model": http_exceptions.HttpNotEnoughSpaceError.get_body_model(),
+    },
 }
 
 
@@ -129,6 +136,36 @@ ERROR_RESPONSES = {
 async def health():
     """Used to test if this service is alive"""
     return {"status": "OK"}
+
+
+@router.get(
+    "/boxes/{box_id}",
+    summary="Retrieve an existing FileUploadBox",
+    operation_id="getBox",
+    status_code=status.HTTP_200_OK,
+    response_model=FileUploadBox,
+    response_description="The requested FileUploadBox",
+    responses={status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["boxNotFound"]},
+)
+@TRACER.start_as_current_span("routes.get_box")
+async def get_box(
+    box_id: UUID4,
+    work_order: Annotated[
+        rest_models.ViewFileBoxWorkOrder,
+        http_authorization.require_view_file_box_work_order_wps,
+    ],
+    upload_controller: dummies.UploadControllerDummy,
+) -> FileUploadBox:
+    """Retrieve an existing FileUploadBox"""
+    if work_order.box_id != box_id:
+        raise http_exceptions.HttpNotAuthorizedError()
+    try:
+        return await upload_controller.get_file_upload_box(box_id=box_id)
+    except UploadControllerPort.BoxNotFoundError as error:
+        raise http_exceptions.HttpBoxNotFoundError(box_id=box_id) from error
+    except Exception as error:
+        log.error(error, exc_info=True)
+        raise http_exceptions.HttpInternalError() from error
 
 
 @router.post(
@@ -225,7 +262,7 @@ async def get_box_uploads(
     box_id: UUID4,
     work_order: Annotated[
         rest_models.ViewFileBoxWorkOrder,
-        http_authorization.require_view_file_box_work_order,
+        http_authorization.require_view_file_box_work_order_uos,
     ],
     upload_controller: dummies.UploadControllerDummy,
 ) -> list[FileUpload]:
@@ -260,7 +297,8 @@ async def get_box_uploads(
         status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["boxNotFound"],
         status.HTTP_409_CONFLICT: ERROR_RESPONSES["lockedBox"]
         | ERROR_RESPONSES["fileUploadAlreadyExists"]
-        | ERROR_RESPONSES["orphanedMultipartUpload"],
+        | ERROR_RESPONSES["orphanedMultipartUpload"]
+        | ERROR_RESPONSES["notEnoughSpace"],
     },
 )
 @TRACER.start_as_current_span("routes.create_file_upload")
@@ -304,6 +342,13 @@ async def create_file_upload(
     except UploadControllerPort.OrphanedMultipartUploadError as error:
         raise http_exceptions.HttpOrphanedMultipartUploadError(
             file_alias=file_alias
+        ) from error
+    except UploadControllerPort.NotEnoughSpaceError as error:
+        raise http_exceptions.HttpNotEnoughSpaceError(
+            box_id=error.box_id,
+            file_alias=error.file_alias,
+            file_size=error.file_size,
+            remaining_space=error.remaining_space,
         ) from error
     except Exception as error:
         log.error(error, exc_info=True)
