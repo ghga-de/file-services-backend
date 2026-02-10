@@ -80,6 +80,8 @@ async def prepare_core(*, config: Config) -> AsyncGenerator[FileRegistryPort]:
         )
         file_registry = FileRegistry(
             file_metadata_dao=file_metadata_dao,
+            file_accession_dao=file_accession_dao,
+            pending_file_dao=pending_file_dao,
             event_publisher=event_publisher,
             object_storages=object_storages,
             config=config,

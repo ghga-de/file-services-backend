@@ -16,6 +16,7 @@
 """Adapter for receiving events providing metadata on files"""
 
 import logging
+from uuid import UUID
 
 from ghga_event_schemas.configs import (
     FileDeletionRequestEventsConfig,
@@ -27,7 +28,7 @@ from ghga_event_schemas.validation import get_validated_payload
 from hexkit.custom_types import JsonObject
 from hexkit.protocols.daosub import DaoSubscriberProtocol
 from hexkit.protocols.eventsub import EventSubscriberProtocol
-from pydantic import UUID4
+from pydantic import UUID4, Field
 
 from ifrs.constants import TRACER
 from ifrs.core.models import FileDeletionRequested, FileUpload, NonStagedFileRequested
@@ -43,6 +44,17 @@ class EventSubTranslatorConfig(
 ):
     """Config for the event subscriber"""
 
+    accession_map_topic: str = Field(
+        default=...,
+        description="The name of the topic used for file accession map events",
+        examples=["accession-maps", "file-accession-maps"],
+    )
+    accession_map_type: str = Field(
+        default=...,
+        description="The event type to use for file accession map events",
+        examples=["accession_map", "file_accession_map"],
+    )
+
 
 class EventSubTranslator(EventSubscriberProtocol):
     """An event sub translator"""
@@ -56,11 +68,13 @@ class EventSubTranslator(EventSubscriberProtocol):
             config.files_to_stage_topic,
             config.file_deletion_request_topic,
             config.file_interrogations_topic,
+            config.accession_map_topic,
         ]
         self.types_of_interest = [
             config.files_to_stage_type,
             config.file_deletion_request_type,
             config.interrogation_success_type,
+            config.accession_map_type,
         ]
 
     @TRACER.start_as_current_span("EventSubTranslator._consume_file_staging_request")

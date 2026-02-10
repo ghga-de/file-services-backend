@@ -252,6 +252,36 @@ The service requires the following configuration parameters:
   ```
 
 
+- <a id="properties/accession_map_topic"></a>**`accession_map_topic`** *(string, required)*: The name of the topic used for file accession map events.
+
+
+  Examples:
+
+  ```json
+  "accession-maps"
+  ```
+
+
+  ```json
+  "file-accession-maps"
+  ```
+
+
+- <a id="properties/accession_map_type"></a>**`accession_map_type`** *(string, required)*: The event type to use for file accession map events.
+
+
+  Examples:
+
+  ```json
+  "accession_map"
+  ```
+
+
+  ```json
+  "file_accession_map"
+  ```
+
+
 - <a id="properties/kafka_servers"></a>**`kafka_servers`** *(array, required)*: A list of connection strings to connect to Kafka bootstrap servers.
 
   - <a id="properties/kafka_servers/items"></a>**Items** *(string)*

@@ -179,8 +179,53 @@ class NonStagedFileRequested(BaseModel):
         ..., description="The ID to use for the file in the download bucket."
     )
     decrypted_sha256: str = Field(
+        default=...,
+        description="SHA-256 checksum of the entire unencrypted file content",
+    )
+    encrypted_parts_md5: list[str] = Field(
+        default=..., description="The MD5 checksum of each encrypted file part"
+    )
+    encrypted_parts_sha256: list[str] = Field(
+        default=..., description="The SHA-256 checksum of each encrypted file part"
+    )
+
+
+Accession = Annotated[str, StringConstraints(pattern=r"^GHGA.+")]
+
+
+class FileMetadata(PendingFileUpload):
+    """A file upload with an assigned accession number"""
+
+    accession: Accession = Field(
+        default=..., description="The accession number assigned to this file."
+    )
+
+
+class FileIdToAccession(BaseModel):
+    """A class used to tie a file ID to an accession number"""
+
+    file_id: UUID4 = Field(
+        default=..., description="Unique identifier for the file upload"
+    )
+    accession: Accession = Field(
+        default=..., description="The accession number assigned to this file."
+    )
+
+
+class FileInternallyRegistered(BaseModel):
+    """An event schema communicating that a file has been copied into permanent storage.
+
+    This local definition will be replaced by the `ghga-event-schemas` definition
+    once implemented there.
+    """
+
+    file_id: UUID4 = Field(..., description="Unique identifier for the file upload")
+    accession: Accession = Field(
+        default=..., description="The accession number assigned to this file."
+    )
+    archive_date: UTCDatetime = Field(
         ...,
-        description="The SHA-256 checksum of the entire decrypted file content.",
+        description="The date and time when this file was archived.",
     )
     model_config = ConfigDict(title="non_staged_file_requested")
 
