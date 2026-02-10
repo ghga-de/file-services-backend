@@ -22,7 +22,7 @@ from ghga_event_schemas.configs import (
     FileStagedEventsConfig,
 )
 from hexkit.protocols.eventpub import EventPublisherProtocol
-from pydantic import UUID4
+from hexkit.utils import now_utc_ms_prec
 
 from ifrs.constants import TRACER
 from ifrs.core import models
@@ -50,67 +50,41 @@ class EventPubTranslator(EventPublisherPort):
         self._provider = provider
 
     @TRACER.start_as_current_span("EventPubTranslator.file_internally_registered")
-    async def file_internally_registered(
-        self, *, file: models.FileMetadata, bucket_id: str
-    ) -> None:
+    async def file_internally_registered(self, *, file: models.FileMetadata) -> None:
         """Communicates the event that a new file has been internally registered."""
-        payload = event_schemas.FileInternallyRegistered(
-            s3_endpoint_alias=file.storage_alias,
-            file_id=file.file_id,
-            object_id=file.object_id,
-            bucket_id=bucket_id,
-            decrypted_sha256=file.decrypted_sha256,
+        # TODO: Overhaul this event schema with local definition
+        payload = models.FileInternallyRegistered(
+            file_id=file.id,
+            accession=file.accession,
+            archive_date=now_utc_ms_prec(),
+            storage_alias=file.storage_alias,
+            bucket_id=file.bucket_id,  # TODO: Make sure we store bucket ID as permanent bucket and not the interrogation bucket
+            secret_id=file.secret_id,
             decrypted_size=file.decrypted_size,
-            decryption_secret_id=file.decryption_secret_id,
-            content_offset=file.content_offset,
-            encrypted_size=file.object_size,
-            encrypted_part_size=file.encrypted_part_size,
+            encrypted_size=file.encrypted_size,
+            decrypted_sha256=file.decrypted_sha256,
             encrypted_parts_md5=file.encrypted_parts_md5,
             encrypted_parts_sha256=file.encrypted_parts_sha256,
-            upload_date=file.upload_date,
+            part_size=file.part_size,
         )
 
         await self._provider.publish(
             payload=payload.model_dump(mode="json"),
             type_=self._config.file_internally_registered_type,
             topic=self._config.file_internally_registered_topic,
-            key=file.file_id,
-        )
-
-    @TRACER.start_as_current_span("EventPubTranslator.file_staged_for_download")
-    async def file_staged_for_download(
-        self,
-        *,
-        file_id: str,
-        decrypted_sha256: str,
-        target_object_id: UUID4,
-        target_bucket_id: str,
-        storage_alias: str,
-    ) -> None:
-        """Communicates the event that a file has been staged for download."""
-        payload = event_schemas.FileStagedForDownload(
-            s3_endpoint_alias=storage_alias,
-            file_id=file_id,
-            decrypted_sha256=decrypted_sha256,
-            target_object_id=target_object_id,
-            target_bucket_id=target_bucket_id,
-        )
-
-        await self._provider.publish(
-            payload=payload.model_dump(mode="json"),
-            type_=self._config.file_staged_type,
-            topic=self._config.file_staged_topic,
-            key=file_id,
+            key=str(file.id),  # TODO: Is there any reason this should remain accession?
         )
 
     @TRACER.start_as_current_span("EventPubTranslator.file_deleted")
-    async def file_deleted(self, *, file_id: str) -> None:
+    async def file_deleted(self, *, accession: str) -> None:
         """Communicates the event that a file has been successfully deleted."""
-        payload = event_schemas.FileDeletionSuccess(file_id=file_id)
+        payload = event_schemas.FileDeletionSuccess(file_id=accession)
+
+        # TODO: Are files meant to be specified by non-file-services by accession, or is there to be a service that translates between accession and file ID? Kind of crucial
 
         await self._provider.publish(
             payload=payload.model_dump(),
             type_=self._config.file_deleted_type,
             topic=self._config.file_deleted_topic,
-            key=file_id,
+            key=accession,
         )

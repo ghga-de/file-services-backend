@@ -15,78 +15,151 @@
 
 """Defines dataclasses for holding business-logic data"""
 
+from typing import Annotated, Literal
+
 from ghga_service_commons.utils.utc_dates import UTCDatetime
-from pydantic import UUID4, BaseModel, Field
+from pydantic import UUID4, BaseModel, Field, StringConstraints
+
+FileUploadState = Literal[
+    "init",
+    "inbox",
+    "failed",
+    "cancelled",
+    "interrogated",
+    "awaiting_archival",
+    "archived",
+]
 
 
-class FileMetadataBase(BaseModel):
-    """A model containing metadata on a registered file."""
+class CoreFileMetadata(BaseModel):
+    """The core file upload properties"""
 
-    file_id: str = Field(
-        ..., description="The public ID of the file as present in the metadata catalog."
+    id: UUID4 = Field(default=..., description="Unique identifier for the file upload")
+    storage_alias: str = Field(
+        default=..., description="The storage alias of the Data Hub housing the file"
     )
-    upload_date: UTCDatetime = Field(
-        ...,
-        description="The date and time when this file was ingested into the system.",
+    bucket_id: str = Field(
+        default=...,
+        description="The name of the bucket where the file is currently stored",
     )
-    decrypted_size: int = Field(
-        ...,
-        description="The size of the entire decrypted file content in bytes.",
+    secret_id: str = Field(
+        default=..., description="The ID of the file decryption secret."
     )
-    decryption_secret_id: str = Field(
-        ...,
-        description=(
-            "The ID of the symmetic file encryption/decryption secret."
-            + " Please note, this is not the secret itself."
-        ),
+    decrypted_size: int = Field(..., description="The size of the unencrypted file")
+    part_size: int = Field(
+        default=...,
+        description="The number of bytes in each file part (last part is likely smaller)",
     )
-    content_offset: int = Field(
-        ...,
-        description=(
-            "The offset in bytes at which the encrypted content starts (excluding the"
-            + " crypt4GH envelope)."
-        ),
+
+
+class FileUpload(CoreFileMetadata):
+    """Information pertaining to a single given file upload.
+
+    This form of the data might or might not have the following fields populated.
+    """
+
+    state: FileUploadState = Field(
+        default="init", description="The state of the FileUpload"
     )
-    encrypted_part_size: int = Field(
-        ...,
-        description=(
-            "The size of the file parts of the encrypted content (excluding the"
-            + " crypt4gh envelope) as used for the encrypted_parts_md5 and the"
-            + " encrypted_parts_sha256 in bytes. The same part size is recommended for"
-            + " moving that content."
-        ),
+    state_updated: UTCDatetime = Field(
+        default=..., description="Timestamp of when state was updated"
     )
-    encrypted_parts_md5: list[str] = Field(
-        ...,
-        description=(
-            "MD5 checksums of file parts of the encrypted content (excluding the"
-            + " crypt4gh envelope)."
-        ),
+    encrypted_size: int | None = Field(
+        default=None, description="The encrypted size of the file before re-encryption"
     )
-    encrypted_parts_sha256: list[str] = Field(
-        ...,
-        description=(
-            "SHA-256 checksums of file parts of the encrypted content (excluding the"
-            + " crypt4gh envelope)."
-        ),
+    decrypted_sha256: str | None = Field(
+        default=None,
+        description="SHA-256 checksum of the entire unencrypted file content",
+    )
+    encrypted_parts_md5: list[str] | None = Field(
+        default=None, description="The MD5 checksum of each encrypted file part"
+    )
+    encrypted_parts_sha256: list[str] | None = Field(
+        default=None, description="The SHA-256 checksum of each encrypted file part"
+    )
+
+
+class PendingFileUpload(CoreFileMetadata):
+    """A view of a FileUpload event which contains all the information necessary to
+    archive a file, minus the accession.
+    """
+
+    encrypted_size: int = Field(
+        default=..., description="The encrypted size of the file before re-encryption"
     )
     decrypted_sha256: str = Field(
+        default=...,
+        description="SHA-256 checksum of the entire unencrypted file content",
+    )
+    encrypted_parts_md5: list[str] = Field(
+        default=..., description="The MD5 checksum of each encrypted file part"
+    )
+    encrypted_parts_sha256: list[str] = Field(
+        default=..., description="The SHA-256 checksum of each encrypted file part"
+    )
+
+
+Accession = Annotated[str, StringConstraints(pattern=r"^GHGA.+")]
+
+
+class FileMetadata(PendingFileUpload):
+    """A file upload with an assigned accession number"""
+
+    accession: Accession = Field(
+        default=..., description="The accession number assigned to this file."
+    )
+
+
+class FileIdToAccession(BaseModel):
+    """A class used to tie a file ID to an accession number"""
+
+    file_id: UUID4 = Field(
+        default=..., description="Unique identifier for the file upload"
+    )
+    accession: Accession = Field(
+        default=..., description="The accession number assigned to this file."
+    )
+
+
+class FileInternallyRegistered(BaseModel):
+    """An event schema communicating that a file has been copied into permanent storage.
+
+    This local definition will be replaced by the `ghga-event-schemas` definition
+    once implemented there.
+    """
+
+    file_id: UUID4 = Field(..., description="Unique identifier for the file upload")
+    accession: Accession = Field(
+        default=..., description="The accession number assigned to this file."
+    )
+    archive_date: UTCDatetime = Field(
         ...,
-        description="The SHA-256 checksum of the entire decrypted file content.",
+        description="The date and time when this file was archived.",
     )
     storage_alias: str = Field(
-        ...,
-        description="Alias for the object storage location where the given object is stored.",
+        default=..., description="The storage alias of the Data Hub housing the file"
     )
-
-
-class FileMetadata(FileMetadataBase):
-    """The file metadata plus a object storage ID generated upon registration"""
-
-    object_id: UUID4 = Field(
-        ..., description="A UUID to identify the file in object storage"
+    bucket_id: str = Field(
+        ..., description="The ID/name of the S3 bucket used to store the file."
     )
-    object_size: int = Field(
-        ...,
-        description="The size of the file content in bytes as stored in the permanent storage.",
+    secret_id: str = Field(
+        default=..., description="The ID of the file decryption secret."
+    )
+    decrypted_size: int = Field(..., description="The size of the unencrypted file")
+    encrypted_size: int = Field(
+        default=..., description="The encrypted size of the file before re-encryption"
+    )
+    decrypted_sha256: str = Field(
+        default=...,
+        description="SHA-256 checksum of the entire unencrypted file content",
+    )
+    encrypted_parts_md5: list[str] = Field(
+        default=..., description="The MD5 checksum of each encrypted file part"
+    )
+    encrypted_parts_sha256: list[str] = Field(
+        default=..., description="The SHA-256 checksum of each encrypted file part"
+    )
+    part_size: int = Field(
+        default=...,
+        description="The number of bytes in each file part (last part is likely smaller)",
     )

@@ -16,17 +16,37 @@
 """DAO translators for accessing the database."""
 
 from hexkit.protocols.dao import DaoFactoryProtocol
+from hexkit.providers.mongodb import MongoDbIndex
 
-from ifrs.core.models import FileMetadata
-from ifrs.ports.outbound.dao import FileMetadataDaoPort
+from ifrs.core.models import FileIdToAccession, FileMetadata, PendingFileUpload
+from ifrs.ports.outbound.dao import FileAccessionDao, PendingFileDao, file_dao
 
 
-async def get_file_metadata_dao(
-    *, dao_factory: DaoFactoryProtocol
-) -> FileMetadataDaoPort:
+async def get_file_dao(*, dao_factory: DaoFactoryProtocol) -> file_dao:
     """Setup the DAOs using the specified provider of the DaoFactoryProtocol."""
     return await dao_factory.get_dao(
         name="file_metadata",
         dto_model=FileMetadata,
+        id_field="id",
+        indexes=[MongoDbIndex(fields="accession")],
+    )
+
+
+async def get_file_accession_dao(
+    *, dao_factory: DaoFactoryProtocol
+) -> FileAccessionDao:
+    """Setup the DAOs using the specified provider of the DaoFactoryProtocol."""
+    return await dao_factory.get_dao(
+        name="fileAccessions",
+        dto_model=FileIdToAccession,
         id_field="file_id",
+    )
+
+
+async def get_pending_file_dao(*, dao_factory: DaoFactoryProtocol) -> PendingFileDao:
+    """Setup the DAOs using the specified provider of the DaoFactoryProtocol."""
+    return await dao_factory.get_dao(
+        name="pendingFiles",
+        dto_model=PendingFileUpload,
+        id_field="id",
     )

@@ -17,8 +17,6 @@
 
 from abc import ABC, abstractmethod
 
-from pydantic import UUID4
-
 from ifrs.core import models
 
 
@@ -26,23 +24,8 @@ class EventPublisherPort(ABC):
     """A port through which service-internal events are communicated with the outside."""
 
     @abstractmethod
-    async def file_internally_registered(
-        self, *, file: models.FileMetadata, bucket_id: str
-    ) -> None:
+    async def file_internally_registered(self, *, file: models.FileMetadata) -> None:
         """Communicates the event that a new file has been internally registered."""
-        ...
-
-    @abstractmethod
-    async def file_staged_for_download(
-        self,
-        *,
-        file_id: str,
-        decrypted_sha256: str,
-        target_object_id: UUID4,
-        target_bucket_id: str,
-        storage_alias: str,
-    ) -> None:
-        """Communicates the event that a file has been staged for download"""
         ...
 
     @abstractmethod

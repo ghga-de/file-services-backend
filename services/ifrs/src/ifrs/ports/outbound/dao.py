@@ -17,7 +17,9 @@
 
 from hexkit.protocols.dao import Dao, ResourceNotFoundError  # noqa: F401
 
-from ifrs.core.models import FileMetadata
+from ifrs.core.models import FileIdToAccession, FileMetadata, PendingFileUpload
 
 # port described by a type alias:
-FileMetadataDaoPort = Dao[FileMetadata]
+file_dao = Dao[FileMetadata]
+FileAccessionDao = Dao[FileIdToAccession]
+PendingFileDao = Dao[PendingFileUpload]

@@ -112,6 +112,21 @@ The service requires the following configuration parameters:
 
   - <a id="properties/object_storages/additionalProperties"></a>**Additional properties**: Refer to *[#/$defs/S3ObjectStorageNodeConfig](#%24defs/S3ObjectStorageNodeConfig)*.
 
+- <a id="properties/file_upload_topic"></a>**`file_upload_topic`** *(string, required)*: Topic containing published FileUpload outbox events.
+
+
+  Examples:
+
+  ```json
+  "file-uploads"
+  ```
+
+
+  ```json
+  "file-upload-topic"
+  ```
+
+
 - <a id="properties/file_internally_registered_topic"></a>**`file_internally_registered_topic`** *(string, required)*: Name of the topic used for events indicating that a file has been registered for download.
 
 
@@ -234,6 +249,36 @@ The service requires the following configuration parameters:
 
   ```json
   "file_staging_requested"
+  ```
+
+
+- <a id="properties/accession_map_topic"></a>**`accession_map_topic`** *(string, required)*: The name of the topic used for file accession map events.
+
+
+  Examples:
+
+  ```json
+  "accession-maps"
+  ```
+
+
+  ```json
+  "file-accession-maps"
+  ```
+
+
+- <a id="properties/accession_map_type"></a>**`accession_map_type`** *(string, required)*: The event type to use for file accession map events.
+
+
+  Examples:
+
+  ```json
+  "accession_map"
+  ```
+
+
+  ```json
+  "file_accession_map"
   ```
 
 
