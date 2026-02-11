@@ -18,16 +18,17 @@
 import pytest
 from ghga_event_schemas import pydantic_ as event_schemas
 from hexkit.providers.akafka.testutils import KafkaFixture
+from hexkit.providers.mongodb.testutils import MongoDbFixture
 
 from ifrs.inject import prepare_event_subscriber
 from tests_ifrs.fixtures.config import get_config
 
-pytestmark = pytest.mark.asyncio()
+pytestmark = pytest.mark.asyncio
 
 
-async def test_event_subscriber_dlq(kafka: KafkaFixture):
+async def test_event_subscriber_dlq(kafka: KafkaFixture, mongodb: MongoDbFixture):
     """Verify that if we get an error when consuming an event, it gets published to the DLQ."""
-    config = get_config(sources=[kafka.config], kafka_enable_dlq=True)
+    config = get_config(sources=[kafka.config, mongodb.config], kafka_enable_dlq=True)
     assert config.kafka_enable_dlq
 
     # Publish an event with a bogus payload to a topic/type this service expects
@@ -48,9 +49,9 @@ async def test_event_subscriber_dlq(kafka: KafkaFixture):
     assert event.payload == {"some_key": "some_value"}
 
 
-async def test_consume_from_retry(kafka: KafkaFixture):
+async def test_consume_from_retry(kafka: KafkaFixture, mongodb: MongoDbFixture):
     """Verify that this service will correctly get events from the retry topic"""
-    config = get_config(sources=[kafka.config], kafka_enable_dlq=True)
+    config = get_config(sources=[kafka.config, mongodb.config], kafka_enable_dlq=True)
     assert config.kafka_enable_dlq
 
     payload = event_schemas.FileDeletionRequested(file_id="123")
