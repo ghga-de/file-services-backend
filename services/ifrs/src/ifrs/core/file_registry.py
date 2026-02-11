@@ -343,15 +343,13 @@ class FileRegistry(FileRegistryPort):
         )
         await self._event_publisher.file_deleted(file_id=accession)
 
-    async def store_accessions(
-        self, *, accession_map: dict[models.Accession, UUID4]
-    ) -> None:
+    async def store_accessions(self, *, accession_map: models.AccessionMap) -> None:
         """Handle an accession map by storing it in the database and, if possible,
         archiving files for which the corresponding File Upload data has already
         been received.
         """
         # Loop through the mapping
-        for accession, file_id in accession_map.items():
+        for accession, file_id in accession_map.model_dump().items():
             # First check if there's a pending file upload which can be immediately archived
             try:
                 pending_file = await self._pending_file_dao.get_by_id(file_id)

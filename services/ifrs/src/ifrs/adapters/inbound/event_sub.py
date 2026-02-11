@@ -16,7 +16,6 @@
 """Adapter for receiving events providing metadata on files"""
 
 import logging
-from uuid import UUID
 
 from ghga_event_schemas import pydantic_ as event_schemas
 from ghga_event_schemas.configs import (
@@ -32,7 +31,7 @@ from hexkit.protocols.eventsub import EventSubscriberProtocol
 from pydantic import UUID4, Field
 
 from ifrs.constants import TRACER
-from ifrs.core.models import FileUpload, PendingFileUpload
+from ifrs.core.models import AccessionMap, FileUpload, PendingFileUpload
 from ifrs.ports.inbound.file_registry import FileRegistryPort
 
 log = logging.getLogger(__name__)
@@ -44,17 +43,6 @@ class EventSubTranslatorConfig(
     FileInterrogationSuccessEventsConfig,
 ):
     """Config for the event subscriber"""
-
-    accession_map_topic: str = Field(
-        default=...,
-        description="The name of the topic used for file accession map events",
-        examples=["accession-maps", "file-accession-maps"],
-    )
-    accession_map_type: str = Field(
-        default=...,
-        description="The event type to use for file accession map events",
-        examples=["accession_map", "file_accession_map"],
-    )
 
 
 class EventSubTranslator(EventSubscriberProtocol):
@@ -69,13 +57,11 @@ class EventSubTranslator(EventSubscriberProtocol):
             config.files_to_stage_topic,
             config.file_deletion_request_topic,
             config.file_interrogations_topic,
-            config.accession_map_topic,
         ]
         self.types_of_interest = [
             config.files_to_stage_type,
             config.file_deletion_request_type,
             config.interrogation_success_type,
-            config.accession_map_type,
         ]
 
     @TRACER.start_as_current_span("EventSubTranslator._consume_file_staging_request")
@@ -86,7 +72,7 @@ class EventSubTranslator(EventSubscriberProtocol):
         )
 
         await self._file_registry.stage_registered_file(
-            file_id=validated_payload.file_id,
+            accession=validated_payload.file_id,
             decrypted_sha256=validated_payload.decrypted_sha256,
             outbox_object_id=validated_payload.target_object_id,
             outbox_bucket_id=validated_payload.target_bucket_id,
@@ -98,13 +84,7 @@ class EventSubTranslator(EventSubscriberProtocol):
         validated_payload = get_validated_payload(
             payload, event_schemas.FileDeletionRequested
         )
-        await self._file_registry.delete_file(file_id=validated_payload.file_id)
-
-    @TRACER.start_as_current_span("EventSubTranslator._consume_accession_map")
-    async def _consume_accession_map(self, *, payload: JsonObject):
-        """Consume an event containing a file accession map"""
-        validated_map = {k: UUID(v) for k, v in payload.items()}
-        await self._file_registry.store_accessions(accession_map=validated_map)
+        await self._file_registry.delete_file(accession=validated_payload.file_id)
 
     async def _consume_validated(
         self, *, payload: JsonObject, type_: str, topic: str, key: str, event_id: UUID4
@@ -116,14 +96,18 @@ class EventSubTranslator(EventSubscriberProtocol):
                 await self._consume_file_staging_request(payload=payload)
             case (cfg.file_deletion_request_topic, cfg.file_deletion_request_type):
                 await self._consume_file_deletion_request(payload=payload)
-            case (cfg.accession_map_topic, cfg.accession_map_type):
-                await self._consume_accession_map(payload=payload)
             case _:
                 raise RuntimeError(f"Unexpected event of type: {type_}")
 
 
 class OutboxSubConfig(FileUploadEventsConfig):
     """Configuration for the outbox sub translator"""
+
+    accession_map_topic: str = Field(
+        default=...,
+        description="The name of the topic used for file accession map events",
+        examples=["accession-maps", "file-accession-maps"],
+    )
 
 
 class FileUploadOutboxTranslator(DaoSubscriberProtocol[FileUpload]):
@@ -142,6 +126,7 @@ class FileUploadOutboxTranslator(DaoSubscriberProtocol[FileUpload]):
         self.event_topic = config.file_upload_topic
         self._file_registry = file_registry
 
+    @TRACER.start_as_current_span("FileUploadOutboxTranslator.changed")
     async def changed(self, resource_id: str, update: FileUpload) -> None:
         """Process a FileUpload event if the state is 'awaiting_archival'."""
         if update.state == "awaiting_archival":
@@ -149,11 +134,12 @@ class FileUploadOutboxTranslator(DaoSubscriberProtocol[FileUpload]):
             await self._file_registry.handle_file_upload(pending_file=pending_file)
         else:
             log.info(
-                "Ignoring event for FileUpload %s because the state is %s",
+                "Ignoring event for FileUpload %s because the state is %s.",
                 resource_id,
                 update.state,
             )
 
+    @TRACER.start_as_current_span("FileUploadOutboxTranslator.deleted")
     async def deleted(self, resource_id: str) -> None:
         """This should not be hit.
 
@@ -162,5 +148,42 @@ class FileUploadOutboxTranslator(DaoSubscriberProtocol[FileUpload]):
         inconsistency in implementation between services. The event should be sent
         to the DLQ.
         """
-        log.error("Received deletion outbox event for FileUpload %s", resource_id)
+        log.error("Received deletion outbox event for FileUpload %s.", resource_id)
         raise RuntimeError(f"Unexpected deletion event for FileUpload {resource_id}.")
+
+
+class AccessionMapOutboxTranslator(DaoSubscriberProtocol[AccessionMap]):
+    """An outbox subscriber event translator for AccessionMap outbox events."""
+
+    event_topic: str
+    dto_model = AccessionMap
+
+    def __init__(self, *, config: OutboxSubConfig, file_registry: FileRegistryPort):
+        """Initialize the outbox subscriber"""
+        self.event_topic = config.accession_map_topic
+        self._file_registry = file_registry
+
+    @TRACER.start_as_current_span("AccessionMapOutboxTranslator.changed")
+    async def changed(self, resource_id: str, update: AccessionMap) -> None:
+        """Process a AccessionMap event."""
+        log.info(
+            "Received upsertion outbox event for AccessionMap for box ID %s.",
+            resource_id,
+        )
+        await self._file_registry.store_accessions(accession_map=update)
+
+    @TRACER.start_as_current_span("AccessionMapOutboxTranslator.deleted")
+    async def deleted(self, resource_id: str) -> None:
+        """This should not be hit.
+
+        AccessionMap objects are inserted, modified, but not deleted. If we receive a
+        deletion event for an AccessionMap, there is an inconsistency in implementation
+        between services. The event should be sent to the DLQ.
+        """
+        log.error(
+            "Received deletion outbox event for AccessionMap for box ID %s.",
+            resource_id,
+        )
+        raise RuntimeError(
+            f"Unexpected deletion event for AccessionMap for box ID {resource_id}."
+        )

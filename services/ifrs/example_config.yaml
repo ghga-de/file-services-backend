@@ -1,5 +1,4 @@
 accession_map_topic: accession-maps
-accession_map_type: accession_map
 db_name: dev
 db_version_collection: ifrsDbVersions
 enable_opentelemetry: false

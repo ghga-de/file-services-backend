@@ -28,6 +28,7 @@ from hexkit.providers.mongodb import MongoDbDaoFactory
 from hexkit.providers.mongokafka import PersistentKafkaPublisher
 
 from ifrs.adapters.inbound.event_sub import (
+    AccessionMapOutboxTranslator,
     EventSubTranslator,
     FileUploadOutboxTranslator,
 )
@@ -119,8 +120,15 @@ async def prepare_event_subscriber(
         file_upload_outbox_translator = FileUploadOutboxTranslator(
             config=config, file_registry=file_registry
         )
+        accession_map_outbox_translator = AccessionMapOutboxTranslator(
+            config=config, file_registry=file_registry
+        )
         translator = ComboTranslator(
-            translators=[event_sub_translator, file_upload_outbox_translator]
+            translators=[
+                event_sub_translator,
+                file_upload_outbox_translator,
+                accession_map_outbox_translator,
+            ]
         )
         async with (
             KafkaEventPublisher.construct(config=config) as dlq_publisher,

@@ -23,7 +23,6 @@ file_staged_type: file_staged_for_download
 file_deleted_topic: file-deletions
 file_deleted_type: file_deleted
 accession_map_topic: accession-maps
-accession_map_type: accession_map
 file_upload_topic: file-uploads
 migration_wait_sec: 10
 db_version_collection: ifrsDbVersions

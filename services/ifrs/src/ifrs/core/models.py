@@ -18,7 +18,7 @@
 from typing import Annotated, Literal
 
 from ghga_service_commons.utils.utc_dates import UTCDatetime
-from pydantic import UUID4, BaseModel, Field, StringConstraints
+from pydantic import UUID4, BaseModel, Field, RootModel, StringConstraints
 
 FileUploadState = Literal[
     "init",
@@ -101,12 +101,17 @@ class PendingFileUpload(CoreFileMetadata):
 
 Accession = Annotated[str, StringConstraints(pattern=r"^GHGA.+")]
 
+AccessionMap = RootModel[dict[Accession, UUID4]]
+
 
 class FileMetadata(PendingFileUpload):
     """A file upload with an assigned accession number"""
 
     accession: Accession = Field(
         default=..., description="The accession number assigned to this file."
+    )
+    archive_date: UTCDatetime = Field(
+        default=..., description="The date and time when this file was archived."
     )
 
 
