@@ -1,6 +1,18 @@
 object_storages:
-  test:
-    bucket: test-permanent
+  HD01:
+    bucket: permanent
+    credentials:
+      s3_endpoint_url: http://ifrs:4566
+      s3_access_key_id: test
+      s3_secret_access_key: test
+  TUE01:
+    bucket: interrogation
+    credentials:
+      s3_endpoint_url: http://ifrs:4566
+      s3_access_key_id: test
+      s3_secret_access_key: test
+  KL01:
+    bucket: interrogation
     credentials:
       s3_endpoint_url: http://ifrs:4566
       s3_access_key_id: test

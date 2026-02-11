@@ -29,6 +29,6 @@ class EventPublisherPort(ABC):
         ...
 
     @abstractmethod
-    async def file_deleted(self, *, file_id: str) -> None:
+    async def file_deleted(self, *, accession: str) -> None:
         """Communicates the event that a file has been successfully deleted."""
         ...

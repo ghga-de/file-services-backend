@@ -20,6 +20,7 @@ from contextlib import suppress
 
 from ghga_service_commons.utils.multinode_storage import ObjectStorages
 from hexkit.protocols.dao import NoHitsFoundError
+from hexkit.utils import now_utc_ms_prec
 from pydantic import UUID4
 
 from ifrs.config import Config
@@ -58,7 +59,7 @@ class FileRegistry(FileRegistryPort):
         self._object_storages = object_storages
         self._config = config
 
-    async def _is_file_registered(self, *, file: models.FileMetadata) -> bool:
+    async def _is_file_registered(self, *, file: models.AccessionedFileUpload) -> bool:
         """Checks if the specified file is already registered. There are three possible
         outcomes:
             - Yes, the file has been registered with metadata that is identical to the
@@ -71,13 +72,13 @@ class FileRegistry(FileRegistryPort):
         except ResourceNotFoundError:
             return False
 
-        if file.model_dump() == registered_file.model_dump():
+        if file.model_dump() == registered_file.model_dump(exclude={"archive_date"}):
             return True
 
         raise self.FileUpdateError(file_id=file.id)
 
     @TRACER.start_as_current_span("FileRegistry.register_file")
-    async def register_file(self, *, file: models.FileMetadata) -> None:
+    async def register_file(self, *, file: models.AccessionedFileUpload) -> None:
         """Registers a file and moves its content from the interrogation bucket into
         permanent storage. If the file with that exact metadata has already been
         registered, nothing is done.
@@ -126,7 +127,7 @@ class FileRegistry(FileRegistryPort):
         # Validate the file size against the expected value
         try:
             actual_size = await object_storage.get_object_size(
-                bucket_id=permanent_bucket_id, object_id=str(file.id)
+                bucket_id=file.bucket_id, object_id=str(file.id)
             )
             if actual_size != file.encrypted_size:
                 raise self.SizeMismatchError(
@@ -165,11 +166,17 @@ class FileRegistry(FileRegistryPort):
             log.critical(obj_error, exc_info=True)
             raise obj_error from exc
 
+        # Create the full file metadata object w/ archive timestamp and permanent bucket
+        file_metadata = models.FileMetadata(
+            archive_date=now_utc_ms_prec(),
+            bucket_id=permanent_bucket_id,
+            **file.model_dump(exclude={"bucket_id"}),
+        )
+
         # Log the registration and publish an event
         log.info("Inserting file with file ID '%s'.", file.id)
-        await self._file_metadata_dao.insert(file)
-
-        await self._event_publisher.file_internally_registered(file=file)
+        await self._file_metadata_dao.insert(file_metadata)
+        await self._event_publisher.file_internally_registered(file=file_metadata)
 
     @TRACER.start_as_current_span("FileRegistry.stage_registered_file")
     async def stage_registered_file(
@@ -342,7 +349,7 @@ class FileRegistry(FileRegistryPort):
             accession,
             extra={"file_id": file.id, "accession": accession, "bucket_id": bucket_id},
         )
-        await self._event_publisher.file_deleted(file_id=accession)
+        await self._event_publisher.file_deleted(accession=accession)
 
     async def store_accessions(self, *, accession_map: models.AccessionMap) -> None:
         """Handle an accession map by storing it in the database and, if possible,
@@ -356,15 +363,23 @@ class FileRegistry(FileRegistryPort):
                 pending_file = await self._pending_file_dao.get_by_id(file_id)
             except ResourceNotFoundError:
                 # Not received yet, so instead we must store the accession
+                log.info(
+                    "Storing accession %s until file info is received for file %s.",
+                    accession,
+                    file_id,
+                )
                 file_accession = models.FileIdToAccession(
                     file_id=file_id, accession=accession
                 )
                 await self._file_accession_dao.upsert(file_accession)
             else:
                 # We DO have a pending file, so now we can archive it
-                # TODO: Log statements
-                file = models.FileMetadata(
-                    **pending_file.model_dump(), accession=accession
+                log.info(
+                    "Archiving file with ID %s now.",
+                    pending_file.id,
+                )
+                file = models.AccessionedFileUpload(
+                    accession=accession, **pending_file.model_dump()
                 )
                 await self.register_file(file=file)
 
@@ -381,11 +396,18 @@ class FileRegistry(FileRegistryPort):
             file_accession = await self._file_accession_dao.get_by_id(pending_file.id)
         except ResourceNotFoundError:
             # Accession not received yet, so store the file information for now
+            log.info(
+                "Storing pending file with ID %s until accession is received.",
+                pending_file.id,
+            )
             await self._pending_file_dao.upsert(pending_file)
         else:
             # We DO have the file accession. Start archival.
-            # TODO: log statements
-            file = models.FileMetadata(
-                **pending_file.model_dump(), accession=file_accession.accession
+            log.info(
+                "Archiving file with ID %s now because we already have the accession.",
+                pending_file.id,
+            )
+            file = models.AccessionedFileUpload(
+                accession=file_accession.accession, **pending_file.model_dump()
             )
             await self.register_file(file=file)

@@ -22,7 +22,6 @@ from ghga_event_schemas.configs import (
     FileStagedEventsConfig,
 )
 from hexkit.protocols.eventpub import EventPublisherProtocol
-from hexkit.utils import now_utc_ms_prec
 
 from ifrs.constants import TRACER
 from ifrs.core import models
@@ -52,13 +51,12 @@ class EventPubTranslator(EventPublisherPort):
     @TRACER.start_as_current_span("EventPubTranslator.file_internally_registered")
     async def file_internally_registered(self, *, file: models.FileMetadata) -> None:
         """Communicates the event that a new file has been internally registered."""
-        # TODO: Overhaul this event schema with local definition
         payload = models.FileInternallyRegistered(
             file_id=file.id,
             accession=file.accession,
-            archive_date=now_utc_ms_prec(),
+            archive_date=file.archive_date,
             storage_alias=file.storage_alias,
-            bucket_id=file.bucket_id,  # TODO: Make sure we store bucket ID as permanent bucket and not the interrogation bucket
+            bucket_id=file.bucket_id,
             secret_id=file.secret_id,
             decrypted_size=file.decrypted_size,
             encrypted_size=file.encrypted_size,
@@ -80,7 +78,8 @@ class EventPubTranslator(EventPublisherPort):
         """Communicates the event that a file has been successfully deleted."""
         payload = event_schemas.FileDeletionSuccess(file_id=accession)
 
-        # TODO: Are files meant to be specified by non-file-services by accession, or is there to be a service that translates between accession and file ID? Kind of crucial
+        # TODO: Are files meant to be specified by non-file-services by accession, or
+        #   is there to be a service that translates between accession and file ID?
 
         await self._provider.publish(
             payload=payload.model_dump(),

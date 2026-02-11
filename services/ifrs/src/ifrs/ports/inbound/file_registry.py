@@ -119,7 +119,7 @@ class FileRegistryPort(ABC):
             super().__init__(message)
 
     @abstractmethod
-    async def register_file(self, *, file: models.FileMetadata) -> None:
+    async def register_file(self, *, file: models.AccessionedFileUpload) -> None:
         """Registers a file and moves its content from the interrogation bucket into
         permanent storage. If the file with that exact metadata has already been
         registered, nothing is done.

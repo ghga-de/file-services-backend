@@ -31,10 +31,13 @@ from hexkit.providers.s3.testutils import (
 from hexkit.utils import now_utc_ms_prec
 
 from ifrs.ports.inbound.file_registry import FileRegistryPort
-from tests_ifrs.fixtures.example_data import EXAMPLE_METADATA, EXAMPLE_METADATA_BASE
+from tests_ifrs.fixtures.example_data import (
+    EXAMPLE_ACCESSIONED_FILE,
+    EXAMPLE_METADATA_BASE,
+)
 from tests_ifrs.fixtures.joint import JointFixture
 
-pytestmark = pytest.mark.asyncio()
+pytestmark = pytest.mark.asyncio
 
 TEST_FILE_ID = "test_id"
 TEST_NONSTAGED_FILE_REQUESTED = event_schemas.NonStagedFileRequested(
@@ -65,11 +68,11 @@ TEST_FILE_DELETION_REQUESTED = event_schemas.FileDeletionRequested(file_id=TEST_
 
 async def test_register_with_empty_staging(joint_fixture: JointFixture):
     """Test registration of a file when the file content is missing from staging."""
-    with pytest.raises(FileRegistryPort.FileContentNotInStagingError):
+    with pytest.raises(FileRegistryPort.FileNotInInterrogationError):
         await joint_fixture.file_registry.register_file(
             file_without_object_id=EXAMPLE_METADATA_BASE,
             staging_object_id=uuid4(),
-            staging_bucket_id=joint_fixture.staging_bucket,
+            staging_bucket_id=joint_fixture.interrogation_bucket,
         )
 
 
@@ -81,13 +84,13 @@ async def test_reregistration(
     an exception). Test PR/Push workflow message
     """
     storage = joint_fixture.s3
-    storage_alias = joint_fixture.storage_aliases.node1
+    storage_alias = joint_fixture.storage_aliases.node0
 
     # place example content in the staging bucket:
     file_object = tmp_file.model_copy(
         update={
-            "bucket_id": joint_fixture.staging_bucket,
-            "object_id": str(EXAMPLE_METADATA.object_id),
+            "bucket_id": joint_fixture.interrogation_bucket,
+            "object_id": str(EXAMPLE_ACCESSIONED_FILE.object_id),
         }
     )
     await storage.populate_file_objects(file_objects=[file_object])
@@ -103,8 +106,8 @@ async def test_reregistration(
     ) as recorder:
         await joint_fixture.file_registry.register_file(
             file_without_object_id=file_metadata_base,
-            staging_object_id=EXAMPLE_METADATA.object_id,
-            staging_bucket_id=joint_fixture.staging_bucket,
+            staging_object_id=EXAMPLE_ACCESSIONED_FILE.object_id,
+            staging_bucket_id=joint_fixture.interrogation_bucket,
         )
 
     assert len(recorder.recorded_events) == 1
@@ -120,8 +123,8 @@ async def test_reregistration(
     ):
         await joint_fixture.file_registry.register_file(
             file_without_object_id=file_metadata_base,
-            staging_object_id=EXAMPLE_METADATA.object_id,
-            staging_bucket_id=joint_fixture.staging_bucket,
+            staging_object_id=EXAMPLE_ACCESSIONED_FILE.object_id,
+            staging_bucket_id=joint_fixture.interrogation_bucket,
         )
 
 
@@ -134,12 +137,12 @@ async def test_reregistration_with_updated_metadata(
     expected exception.
     """
     storage = joint_fixture.s3
-    storage_alias = joint_fixture.storage_aliases.node1
+    storage_alias = joint_fixture.storage_aliases.node0
     # place example content in the staging bucket:
     file_object = tmp_file.model_copy(
         update={
-            "bucket_id": joint_fixture.staging_bucket,
-            "object_id": str(EXAMPLE_METADATA.object_id),
+            "bucket_id": joint_fixture.interrogation_bucket,
+            "object_id": str(EXAMPLE_ACCESSIONED_FILE.object_id),
         }
     )
     await storage.populate_file_objects(file_objects=[file_object])
@@ -155,8 +158,8 @@ async def test_reregistration_with_updated_metadata(
     ) as recorder:
         await joint_fixture.file_registry.register_file(
             file_without_object_id=file_metadata_base,
-            staging_object_id=EXAMPLE_METADATA.object_id,
-            staging_bucket_id=joint_fixture.staging_bucket,
+            staging_object_id=EXAMPLE_ACCESSIONED_FILE.object_id,
+            staging_bucket_id=joint_fixture.interrogation_bucket,
         )
 
     assert len(recorder.recorded_events) == 1
@@ -176,8 +179,8 @@ async def test_reregistration_with_updated_metadata(
         )
         await joint_fixture.file_registry.register_file(
             file_without_object_id=file_update,
-            staging_object_id=EXAMPLE_METADATA.object_id,
-            staging_bucket_id=joint_fixture.staging_bucket,
+            staging_object_id=EXAMPLE_ACCESSIONED_FILE.object_id,
+            staging_bucket_id=joint_fixture.interrogation_bucket,
         )
         assert len(caplog.messages) == 1
         assert expected_message in caplog.messages
@@ -194,8 +197,8 @@ async def test_stage_non_existing_file(joint_fixture: JointFixture, caplog):
     await joint_fixture.file_registry.stage_registered_file(
         file_id=file_id,
         decrypted_sha256=EXAMPLE_METADATA_BASE.decrypted_sha256,
-        outbox_object_id=EXAMPLE_METADATA.object_id,
-        outbox_bucket_id=joint_fixture.outbox_bucket,
+        download_object_id=EXAMPLE_ACCESSIONED_FILE.object_id,
+        download_bucket_id=joint_fixture.download_bucket,
     )
     assert len(caplog.records) == 1
     record = caplog.records[0]
@@ -211,17 +214,17 @@ async def test_stage_checksum_mismatch(
     wrong checksum fails with the expected exception.
     """
     # populate the database with a corresponding file metadata entry:
-    await joint_fixture.file_metadata_dao.insert(EXAMPLE_METADATA)
+    await joint_fixture.file_metadata_dao.insert(EXAMPLE_ACCESSIONED_FILE)
 
     storage = joint_fixture.s3
-    storage_alias = joint_fixture.storage_aliases.node1
+    storage_alias = joint_fixture.storage_aliases.node0
 
     bucket_id = joint_fixture.config.object_storages[storage_alias].bucket
     # place the content for an example file in the permanent storage:
     file_object = tmp_file.model_copy(
         update={
             "bucket_id": bucket_id,
-            "object_id": str(EXAMPLE_METADATA.object_id),
+            "object_id": str(EXAMPLE_ACCESSIONED_FILE.object_id),
         }
     )
     await storage.populate_file_objects(file_objects=[file_object])
@@ -233,8 +236,8 @@ async def test_stage_checksum_mismatch(
             decrypted_sha256=(
                 "e6da6d6d05cc057964877aad8a3e9ad712c8abeae279dfa2f89b07eba7ef8abe"
             ),
-            outbox_object_id=EXAMPLE_METADATA.object_id,
-            outbox_bucket_id=joint_fixture.outbox_bucket,
+            download_object_id=EXAMPLE_ACCESSIONED_FILE.object_id,
+            download_bucket_id=joint_fixture.download_bucket,
         )
 
 
@@ -245,15 +248,15 @@ async def test_storage_db_inconsistency(joint_fixture: JointFixture):
     """
     # populate the database with metadata on an example file even though the storage is
     # empty:
-    await joint_fixture.file_metadata_dao.insert(EXAMPLE_METADATA)
+    await joint_fixture.file_metadata_dao.insert(EXAMPLE_ACCESSIONED_FILE)
 
     # request a stage for the registered file by specifying a wrong checksum:
     with pytest.raises(FileRegistryPort.FileInRegistryButNotInStorageError):
         await joint_fixture.file_registry.stage_registered_file(
             file_id=EXAMPLE_METADATA_BASE.file_id,
             decrypted_sha256=EXAMPLE_METADATA_BASE.decrypted_sha256,
-            outbox_object_id=EXAMPLE_METADATA.object_id,
-            outbox_bucket_id=joint_fixture.outbox_bucket,
+            download_object_id=EXAMPLE_ACCESSIONED_FILE.object_id,
+            download_bucket_id=joint_fixture.download_bucket,
         )
 
 
@@ -308,14 +311,16 @@ async def test_error_during_copy(joint_fixture: JointFixture, caplog):
     """Errors during `object_storage.copy_object` should be logged and re-raised."""
     # Insert FileMetadata record into the DB
     dao = joint_fixture.file_metadata_dao
-    await dao.insert(EXAMPLE_METADATA)
+    await dao.insert(EXAMPLE_ACCESSIONED_FILE)
 
-    s3_alias = EXAMPLE_METADATA.storage_alias
+    s3_alias = EXAMPLE_ACCESSIONED_FILE.storage_alias
     source_bucket = joint_fixture.config.object_storages[s3_alias].bucket
     outbox_bucket = "outbox-bucket"
 
     # Upload a matching object to S3
-    with temp_file_object(source_bucket, str(EXAMPLE_METADATA.object_id)) as file:
+    with temp_file_object(
+        source_bucket, str(EXAMPLE_ACCESSIONED_FILE.object_id)
+    ) as file:
         await joint_fixture.s3.populate_file_objects([file])
 
     # Run the file-staging operation to encounter an error (outbox bucket doesn't exist)
@@ -323,10 +328,10 @@ async def test_error_during_copy(joint_fixture: JointFixture, caplog):
     caplog.set_level("CRITICAL")
     with pytest.raises(joint_fixture.file_registry.CopyOperationError):
         await joint_fixture.file_registry.stage_registered_file(
-            file_id=EXAMPLE_METADATA.file_id,
-            decrypted_sha256=EXAMPLE_METADATA.decrypted_sha256,
-            outbox_bucket_id=outbox_bucket,
-            outbox_object_id=EXAMPLE_METADATA.object_id,
+            file_id=EXAMPLE_ACCESSIONED_FILE.file_id,
+            decrypted_sha256=EXAMPLE_ACCESSIONED_FILE.decrypted_sha256,
+            download_bucket_id=outbox_bucket,
+            download_object_id=EXAMPLE_ACCESSIONED_FILE.object_id,
         )
 
     # Verify the log message exists
@@ -338,17 +343,19 @@ async def test_error_during_copy(joint_fixture: JointFixture, caplog):
     )
 
     # Upload the file to the outbox bucket so we trigger ObjectAlreadyExistsError
-    with temp_file_object(outbox_bucket, str(EXAMPLE_METADATA.object_id)) as file:
+    with temp_file_object(
+        outbox_bucket, str(EXAMPLE_ACCESSIONED_FILE.object_id)
+    ) as file:
         await joint_fixture.s3.populate_file_objects([file])
 
     # Run the file-staging operation to encounter the error
     caplog.clear()
     caplog.set_level("INFO")
     await joint_fixture.file_registry.stage_registered_file(
-        file_id=EXAMPLE_METADATA.file_id,
-        decrypted_sha256=EXAMPLE_METADATA.decrypted_sha256,
-        outbox_bucket_id=outbox_bucket,
-        outbox_object_id=EXAMPLE_METADATA.object_id,
+        file_id=EXAMPLE_ACCESSIONED_FILE.file_id,
+        decrypted_sha256=EXAMPLE_ACCESSIONED_FILE.decrypted_sha256,
+        download_bucket_id=outbox_bucket,
+        download_object_id=EXAMPLE_ACCESSIONED_FILE.object_id,
     )
 
     assert caplog.records
@@ -363,16 +370,20 @@ async def test_copy_when_file_exists_in_outbox(joint_fixture: JointFixture, capl
     """
     # Insert FileMetadata record into the DB
     dao = joint_fixture.file_metadata_dao
-    await dao.insert(EXAMPLE_METADATA)
+    await dao.insert(EXAMPLE_ACCESSIONED_FILE)
 
     # Populate the source and dest buckets
-    s3_alias = EXAMPLE_METADATA.storage_alias
+    s3_alias = EXAMPLE_ACCESSIONED_FILE.storage_alias
     source_bucket = joint_fixture.config.object_storages[s3_alias].bucket
     outbox_bucket = "outbox-bucket"
-    with temp_file_object(source_bucket, str(EXAMPLE_METADATA.object_id)) as file:
+    with temp_file_object(
+        source_bucket, str(EXAMPLE_ACCESSIONED_FILE.object_id)
+    ) as file:
         await joint_fixture.s3.populate_file_objects([file])
 
-    with temp_file_object(outbox_bucket, str(EXAMPLE_METADATA.object_id)) as file:
+    with temp_file_object(
+        outbox_bucket, str(EXAMPLE_ACCESSIONED_FILE.object_id)
+    ) as file:
         await joint_fixture.s3.populate_file_objects([file])
 
     # Run the file-staging operation, which should return early (it will catch the
@@ -381,10 +392,10 @@ async def test_copy_when_file_exists_in_outbox(joint_fixture: JointFixture, capl
     caplog.clear()
     caplog.set_level("INFO")
     await joint_fixture.file_registry.stage_registered_file(
-        file_id=EXAMPLE_METADATA.file_id,
-        decrypted_sha256=EXAMPLE_METADATA.decrypted_sha256,
-        outbox_bucket_id=outbox_bucket,
-        outbox_object_id=EXAMPLE_METADATA.object_id,
+        file_id=EXAMPLE_ACCESSIONED_FILE.file_id,
+        decrypted_sha256=EXAMPLE_ACCESSIONED_FILE.decrypted_sha256,
+        download_bucket_id=outbox_bucket,
+        download_object_id=EXAMPLE_ACCESSIONED_FILE.object_id,
     )
 
     # Check the log

@@ -15,8 +15,6 @@
 
 """Tests typical user journeys"""
 
-from typing import cast
-
 import pytest
 import requests
 from hexkit.providers.akafka.testutils import ExpectedEvent
@@ -25,10 +23,11 @@ from hexkit.providers.s3.testutils import (
     tmp_file,  # noqa: F401
 )
 
-from tests_ifrs.fixtures.example_data import EXAMPLE_METADATA, EXAMPLE_METADATA_BASE
+from tests_ifrs.fixtures.example_data import EXAMPLE_ACCESSIONED_FILE
 from tests_ifrs.fixtures.joint import JointFixture
+from tests_ifrs.fixtures.utils import INTERROGATION_BUCKET, PERMANENT_BUCKET
 
-pytestmark = pytest.mark.asyncio()
+pytestmark = pytest.mark.asyncio
 
 
 async def test_happy_journey(
@@ -36,49 +35,53 @@ async def test_happy_journey(
     tmp_file: FileObject,  # noqa: F811
 ):
     """Simulates a typical, successful journey for upload, download, and deletion"""
-    storage = joint_fixture.s3
-    storage_alias = joint_fixture.storage_aliases.node1
+    storage_alias = joint_fixture.storage_aliases.node0
+    storage = joint_fixture.federated_s3.storages[storage_alias]
 
     bucket_id = joint_fixture.config.object_storages[storage_alias].bucket
-    # place example content in the staging:
+    # place example content in the Koeln interrogation bucket:
     file_object = tmp_file.model_copy(
         update={
-            "bucket_id": joint_fixture.staging_bucket,
-            "object_id": str(EXAMPLE_METADATA.object_id),
+            "bucket_id": joint_fixture.interrogation_bucket,
+            "object_id": str(EXAMPLE_ACCESSIONED_FILE.id),
         }
     )
-    await storage.populate_file_objects(file_objects=[file_object])
 
-    # register new file from the staging:
-    # (And check if an event informing about the new registration has been published.)
-    file_metadata_base = EXAMPLE_METADATA_BASE.model_copy(
-        update={"storage_alias": storage_alias}, deep=True
+    await storage.populate_file_objects(file_objects=[file_object])
+    actual_size = await storage.storage.get_object_size(
+        bucket_id=INTERROGATION_BUCKET, object_id=file_object.object_id
     )
+
+    # register new file from the interrogation bucket and make sure event is published
+    accessioned_file = EXAMPLE_ACCESSIONED_FILE.model_copy(
+        update={"storage_alias": storage_alias, "encrypted_size": actual_size},
+        deep=True,
+    )
+    assert accessioned_file.bucket_id == INTERROGATION_BUCKET  # just double checking
 
     async with joint_fixture.kafka.record_events(
         in_topic=joint_fixture.config.file_internally_registered_topic,
     ) as recorder:
-        await joint_fixture.file_registry.register_file(
-            file_without_object_id=file_metadata_base,
-            staging_object_id=EXAMPLE_METADATA.object_id,
-            staging_bucket_id=joint_fixture.staging_bucket,
-        )
+        await joint_fixture.file_registry.register_file(file=accessioned_file)
 
     stored_metadata = await joint_fixture.file_metadata_dao.get_by_id(
-        EXAMPLE_METADATA.file_id
+        EXAMPLE_ACCESSIONED_FILE.id
     )
     assert len(recorder.recorded_events) == 1
     event = recorder.recorded_events[0]
-    assert event.payload["object_id"] != ""
-    assert event.payload["encrypted_size"] == stored_metadata.object_size
     assert event.type_ == joint_fixture.config.file_internally_registered_type
+    # TODO: Test for key once it's decided if key should be accession or file ID
+    assert stored_metadata.bucket_id != accessioned_file.bucket_id
+    assert stored_metadata.bucket_id == PERMANENT_BUCKET
+    stored_dumped = stored_metadata.model_dump(mode="json")
+    event_payload = dict(event.payload)
+    assert event_payload.pop("file_id") == stored_dumped.pop("id")
 
-    object_id = cast(str, event.payload["object_id"])
-
-    # check that the file content is now in both the staging and the permanent storage:
+    # check that the file content is now in both the interrogation and permanent buckets
+    object_id = str(EXAMPLE_ACCESSIONED_FILE.id)
     assert await storage.storage.does_object_exist(
-        bucket_id=joint_fixture.staging_bucket,
-        object_id=str(EXAMPLE_METADATA.object_id),
+        bucket_id=accessioned_file.bucket_id,
+        object_id=object_id,
     )
     assert await storage.storage.does_object_exist(
         bucket_id=bucket_id,
@@ -86,46 +89,32 @@ async def test_happy_journey(
     )
 
     # request a stage to the outbox:
-    async with joint_fixture.kafka.expect_events(
-        events=[
-            ExpectedEvent(
-                payload={
-                    "file_id": file_metadata_base.file_id,
-                    "decrypted_sha256": file_metadata_base.decrypted_sha256,
-                    "target_object_id": EXAMPLE_METADATA.object_id,
-                    "target_bucket_id": joint_fixture.outbox_bucket,
-                    "s3_endpoint_alias": storage_alias,
-                },
-                type_=joint_fixture.config.file_staged_type,
-                key=file_metadata_base.file_id,
-            )
-        ],
-        in_topic=joint_fixture.config.file_staged_topic,
-    ):
-        await joint_fixture.file_registry.stage_registered_file(
-            file_id=file_metadata_base.file_id,
-            decrypted_sha256=file_metadata_base.decrypted_sha256,
-            outbox_object_id=EXAMPLE_METADATA.object_id,
-            outbox_bucket_id=joint_fixture.outbox_bucket,
-        )
+    await joint_fixture.file_registry.stage_registered_file(
+        accession=accessioned_file.accession,
+        decrypted_sha256=accessioned_file.decrypted_sha256,
+        download_object_id=EXAMPLE_ACCESSIONED_FILE.id,
+        download_bucket_id=joint_fixture.download_bucket,
+    )
 
     # check that the file content is now in all three storage entities:
     assert await storage.storage.does_object_exist(
-        bucket_id=joint_fixture.staging_bucket,
-        object_id=str(EXAMPLE_METADATA.object_id),
+        bucket_id=joint_fixture.interrogation_bucket,
+        object_id=str(EXAMPLE_ACCESSIONED_FILE.id),
     )
     assert await storage.storage.does_object_exist(
         bucket_id=bucket_id,
         object_id=object_id,
     )
     assert await storage.storage.does_object_exist(
-        bucket_id=joint_fixture.outbox_bucket, object_id=str(EXAMPLE_METADATA.object_id)
+        bucket_id=joint_fixture.download_bucket,
+        object_id=str(EXAMPLE_ACCESSIONED_FILE.id),
     )
 
-    # check that the file content in the outbox is identical to the content in the
-    # staging:
+    # check that the file content in the download bucket is identical to the content in
+    # the interrogation bucket.
     download_url = await storage.storage.get_object_download_url(
-        bucket_id=joint_fixture.outbox_bucket, object_id=str(EXAMPLE_METADATA.object_id)
+        bucket_id=joint_fixture.download_bucket,
+        object_id=str(EXAMPLE_ACCESSIONED_FILE.id),
     )
     response = requests.get(download_url, timeout=60)
     response.raise_for_status()
@@ -135,14 +124,14 @@ async def test_happy_journey(
     async with joint_fixture.kafka.expect_events(
         events=[
             ExpectedEvent(
-                payload={"file_id": file_metadata_base.file_id},
+                payload={"file_id": accessioned_file.accession},
                 type_=joint_fixture.config.file_deleted_type,
             )
         ],
         in_topic=joint_fixture.config.file_deleted_topic,
     ):
         await joint_fixture.file_registry.delete_file(
-            file_id=file_metadata_base.file_id,
+            accession=accessioned_file.accession
         )
 
     assert not await storage.storage.does_object_exist(

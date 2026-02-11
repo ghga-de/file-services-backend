@@ -104,12 +104,17 @@ Accession = Annotated[str, StringConstraints(pattern=r"^GHGA.+")]
 AccessionMap = RootModel[dict[Accession, UUID4]]
 
 
-class FileMetadata(PendingFileUpload):
-    """A file upload with an assigned accession number"""
+class AccessionedFileUpload(PendingFileUpload):
+    """PendingFileUpload data plus an accession number"""
 
     accession: Accession = Field(
         default=..., description="The accession number assigned to this file."
     )
+
+
+class FileMetadata(AccessionedFileUpload):
+    """An AccessionedFileUpload with an archival timestamp"""
+
     archive_date: UTCDatetime = Field(
         default=..., description="The date and time when this file was archived."
     )
