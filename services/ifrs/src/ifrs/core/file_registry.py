@@ -237,7 +237,7 @@ class FileRegistry(FileRegistryPort):
                 bucket.
         """
         # TODO: If we decide that object_id/file_id should always be the same across
-        #  file services, then we would remove outbox_object_id. There is currently
+        #  file services, then we would remove download_object_id. There is currently
         #  no mandate for this though.
         try:
             file = await self._file_metadata_dao.get_by_id(file_id)
