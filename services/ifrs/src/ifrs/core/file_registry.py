@@ -177,8 +177,8 @@ class FileRegistry(FileRegistryPort):
         *,
         accession: str,
         decrypted_sha256: str,
-        outbox_object_id: UUID4,
-        outbox_bucket_id: str,
+        download_object_id: UUID4,
+        download_bucket_id: str,
     ) -> None:
         """Stage a registered file to the outbox.
 
@@ -188,10 +188,10 @@ class FileRegistry(FileRegistryPort):
             decrypted_sha256:
                 The checksum of the decrypted content. This is used to make sure that
                 this service and the outside client are talking about the same file.
-            outbox_object_id:
-                The UUID4 S3 object ID for the outbox bucket.
-            outbox_bucket_id:
-                The S3 bucket ID for the outbox.
+            download_object_id:
+                The UUID4 S3 object ID for the download bucket.
+            download_bucket_id:
+                The S3 bucket ID for the download bucket.
 
         Raises:
             self.ChecksumMismatchError:
@@ -201,10 +201,11 @@ class FileRegistry(FileRegistryPort):
                 the permanent storage. This is an internal service error, which should
                 not happen, and not the fault of the client.
             self.CopyOperationError:
-                When an error occurs while attempting to copy the object to the outbox.
+                When an error occurs while attempting to copy the object to the download
+                bucket.
         """
         # TODO: If we decide that object_id/file_id should always be the same across
-        #  file services, then we would remove outbox_object_id. There is currently
+        #  file services, then we would remove download_object_id. There is currently
         #  no mandate for this though.
         try:
             file = await self._file_metadata_dao.find_one(
@@ -241,8 +242,8 @@ class FileRegistry(FileRegistryPort):
             await object_storage.copy_object(
                 source_bucket_id=permanent_bucket_id,
                 source_object_id=str(file.id),
-                dest_bucket_id=outbox_bucket_id,
-                dest_object_id=str(outbox_object_id),
+                dest_bucket_id=download_bucket_id,
+                dest_object_id=str(download_object_id),
             )
         except object_storage.ObjectAlreadyExistsError:
             # the content is already where it should go, there is nothing to do
@@ -252,8 +253,8 @@ class FileRegistry(FileRegistryPort):
                 extra={
                     "file_id": file.id,
                     "accession": accession,
-                    "outbox_bucket_id": outbox_bucket_id,
-                    "outbox_object_id": outbox_object_id,
+                    "outbox_bucket_id": download_bucket_id,
+                    "outbox_object_id": download_object_id,
                 },
             )
             return
@@ -275,7 +276,7 @@ class FileRegistry(FileRegistryPort):
         except Exception as exc:
             # Irreconcilable object error -- event needs investigation
             obj_error = self.CopyOperationError(
-                file_id=file.id, dest_bucket_id=outbox_bucket_id, exc_text=str(exc)
+                file_id=file.id, dest_bucket_id=download_bucket_id, exc_text=str(exc)
             )
             log.critical(
                 obj_error,
@@ -293,11 +294,11 @@ class FileRegistry(FileRegistryPort):
             + " the object ID '%s'.",
             file.id,
             accession,
-            outbox_object_id,
+            download_object_id,
             extra={
                 "file_id": file.id,
                 "accession": accession,
-                "outbox_object_id": outbox_object_id,
+                "outbox_object_id": download_object_id,
             },
         )
 

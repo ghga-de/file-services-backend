@@ -144,8 +144,8 @@ class FileRegistryPort(ABC):
         *,
         accession: str,
         decrypted_sha256: str,
-        outbox_object_id: UUID4,
-        outbox_bucket_id: str,
+        download_object_id: UUID4,
+        download_bucket_id: str,
     ) -> None:
         """Stage a registered file to the outbox.
 
@@ -155,10 +155,10 @@ class FileRegistryPort(ABC):
             decrypted_sha256:
                 The checksum of the decrypted content. This is used to make sure that
                 this service and the outside client are talking about the same file.
-            outbox_object_id:
-                The UUID4 S3 object ID for the outbox bucket.
-            outbox_bucket_id:
-                The S3 bucket ID for the outbox.
+            download_object_id:
+                The UUID4 S3 object ID for the download bucket.
+            download_bucket_id:
+                The S3 bucket ID for the download bucket.
 
         Raises:
             self.ChecksumMismatchError:
@@ -168,7 +168,8 @@ class FileRegistryPort(ABC):
                 the permanent storage. This is an internal service error, which should
                 not happen, and not the fault of the client.
             self.CopyOperationError:
-                When an error occurs while attempting to copy the object to the outbox.
+                When an error occurs while attempting to copy the object to the download
+                bucket.
         """
         ...
 

@@ -66,7 +66,7 @@ class EventSubTranslator(EventSubscriberProtocol):
 
     @TRACER.start_as_current_span("EventSubTranslator._consume_file_staging_request")
     async def _consume_file_staging_request(self, *, payload: JsonObject):
-        """Consume an event requesting a file to be staged to the outbox bucket"""
+        """Consume an event requesting a file to be staged to the download bucket"""
         validated_payload = get_validated_payload(
             payload, event_schemas.NonStagedFileRequested
         )
@@ -74,8 +74,8 @@ class EventSubTranslator(EventSubscriberProtocol):
         await self._file_registry.stage_registered_file(
             accession=validated_payload.file_id,
             decrypted_sha256=validated_payload.decrypted_sha256,
-            outbox_object_id=validated_payload.target_object_id,
-            outbox_bucket_id=validated_payload.target_bucket_id,
+            download_object_id=validated_payload.target_object_id,
+            download_bucket_id=validated_payload.target_bucket_id,
         )
 
     @TRACER.start_as_current_span("EventSubTranslator._consume_file_deletion_request")
