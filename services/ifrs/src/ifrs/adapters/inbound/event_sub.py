@@ -16,7 +16,6 @@
 """Adapter for receiving events providing metadata on files"""
 
 import logging
-from uuid import UUID
 
 from ghga_event_schemas.configs import (
     FileDeletionRequestEventsConfig,
@@ -44,17 +43,6 @@ class EventSubTranslatorConfig(
 ):
     """Config for the event subscriber"""
 
-    accession_map_topic: str = Field(
-        default=...,
-        description="The name of the topic used for file accession map events",
-        examples=["accession-maps", "file-accession-maps"],
-    )
-    accession_map_type: str = Field(
-        default=...,
-        description="The event type to use for file accession map events",
-        examples=["accession_map", "file_accession_map"],
-    )
-
 
 class EventSubTranslator(EventSubscriberProtocol):
     """An event sub translator"""
@@ -68,13 +56,11 @@ class EventSubTranslator(EventSubscriberProtocol):
             config.files_to_stage_topic,
             config.file_deletion_request_topic,
             config.file_interrogations_topic,
-            config.accession_map_topic,
         ]
         self.types_of_interest = [
             config.files_to_stage_type,
             config.file_deletion_request_type,
             config.interrogation_success_type,
-            config.accession_map_type,
         ]
 
     @TRACER.start_as_current_span("EventSubTranslator._consume_file_staging_request")
@@ -83,7 +69,7 @@ class EventSubTranslator(EventSubscriberProtocol):
         validated_payload = get_validated_payload(payload, NonStagedFileRequested)
 
         await self._file_registry.stage_registered_file(
-            file_id=validated_payload.file_id,
+            accession=validated_payload.file_id,
             decrypted_sha256=validated_payload.decrypted_sha256,
             download_object_id=validated_payload.target_object_id,
             download_bucket_id=validated_payload.target_bucket_id,
@@ -111,6 +97,12 @@ class EventSubTranslator(EventSubscriberProtocol):
 
 class OutboxSubConfig(FileUploadEventsConfig):
     """Configuration for the outbox sub translator"""
+
+    accession_map_topic: str = Field(
+        default=...,
+        description="The name of the topic used for file accession map events",
+        examples=["accession-maps", "file-accession-maps"],
+    )
 
 
 class FileUploadOutboxTranslator(DaoSubscriberProtocol[FileUpload]):
@@ -145,3 +137,40 @@ class FileUploadOutboxTranslator(DaoSubscriberProtocol[FileUpload]):
         """
         log.error("Received deletion outbox event for FileUpload %s.", resource_id)
         raise RuntimeError(f"Unexpected deletion event for FileUpload {resource_id}.")
+
+
+class AccessionMapOutboxTranslator(DaoSubscriberProtocol[AccessionMap]):
+    """An outbox subscriber event translator for AccessionMap outbox events."""
+
+    event_topic: str
+    dto_model = AccessionMap
+
+    def __init__(self, *, config: OutboxSubConfig, file_registry: FileRegistryPort):
+        """Initialize the outbox subscriber"""
+        self.event_topic = config.accession_map_topic
+        self._file_registry = file_registry
+
+    @TRACER.start_as_current_span("AccessionMapOutboxTranslator.changed")
+    async def changed(self, resource_id: str, update: AccessionMap) -> None:
+        """Process a AccessionMap event."""
+        log.info(
+            "Received upsertion outbox event for AccessionMap for box ID %s.",
+            resource_id,
+        )
+        await self._file_registry.store_accessions(accession_map=update)
+
+    @TRACER.start_as_current_span("AccessionMapOutboxTranslator.deleted")
+    async def deleted(self, resource_id: str) -> None:
+        """This should not be hit.
+
+        AccessionMap objects are inserted, modified, but not deleted. If we receive a
+        deletion event for an AccessionMap, there is an inconsistency in implementation
+        between services. The event should be sent to the DLQ.
+        """
+        log.error(
+            "Received deletion outbox event for AccessionMap for box ID %s.",
+            resource_id,
+        )
+        raise RuntimeError(
+            f"Unexpected deletion event for AccessionMap for box ID {resource_id}."
+        )
