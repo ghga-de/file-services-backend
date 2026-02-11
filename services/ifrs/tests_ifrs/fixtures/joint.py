@@ -89,7 +89,7 @@ async def joint_fixture(
             bucket=PERMANENT_BUCKET, credentials=s3_credential_configs[storage_alias]
         )
 
-    storage_aliases = StorageAliases()
+    storage_aliases = StorageAliases()  # TODO: Delete this if not needed
 
     object_storage_config = S3ObjectStoragesConfig(object_storages=object_storages)
 

@@ -21,7 +21,6 @@ from ghga_event_schemas.configs import (
     FileStagedEventsConfig,
 )
 from hexkit.protocols.eventpub import EventPublisherProtocol
-from hexkit.utils import now_utc_ms_prec
 
 from ifrs.constants import TRACER
 from ifrs.core import models
