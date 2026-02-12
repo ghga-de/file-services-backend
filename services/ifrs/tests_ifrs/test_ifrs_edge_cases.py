@@ -22,6 +22,7 @@ from uuid import UUID, uuid4
 
 import pytest
 from hexkit.custom_types import JsonObject
+from hexkit.protocols.dao import ResourceNotFoundError
 from hexkit.providers.s3.testutils import (
     FileObject,
     S3Fixture,  # noqa: F401
@@ -256,6 +257,12 @@ async def test_storage_db_inconsistency(joint_fixture: JointFixture):
             "files_to_stage_type",
             "stage_registered_file",
         ),
+        (
+            {"GHGA001": str(uuid4()), "GHGA002": str(uuid4())},
+            "accession_map_topic",
+            "upserted",
+            "store_accessions",
+        ),
     ],
 )
 async def test_event_subscriber_routing(
@@ -268,7 +275,11 @@ async def test_event_subscriber_routing(
 ):
     """Make sure the event subscriber calls the correct method on the file registry."""
     topic = getattr(joint_fixture.config, topic_config_name)
-    type_ = getattr(joint_fixture.config, type_config_name)
+    type_ = (
+        getattr(joint_fixture.config, type_config_name)
+        if type_config_name != "upserted"
+        else "upserted"
+    )
     mock = AsyncMock()
     monkeypatch.setattr(joint_fixture.file_registry, method_name, mock)
     await joint_fixture.kafka.publish_event(
