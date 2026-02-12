@@ -29,9 +29,9 @@ from ifrs.core import models
 from ifrs.ports.inbound.file_registry import FileRegistryPort
 from ifrs.ports.outbound.dao import (
     FileAccessionDao,
+    FileMetadataDao,
     PendingFileDao,
     ResourceNotFoundError,
-    file_dao,
 )
 from ifrs.ports.outbound.event_pub import EventPublisherPort
 
@@ -44,7 +44,7 @@ class FileRegistry(FileRegistryPort):
     def __init__(  # noqa: PLR0913
         self,
         *,
-        file_metadata_dao: file_dao,
+        file_metadata_dao: FileMetadataDao,
         pending_file_dao: PendingFileDao,
         file_accession_dao: FileAccessionDao,
         event_publisher: EventPublisherPort,
@@ -383,7 +383,30 @@ class FileRegistry(FileRegistryPort):
                 )
                 await self.register_file(file=file)
 
-    async def handle_file_upload(
+    async def handle_file_upload(self, *, file_upload: models.FileUpload) -> None:
+        """Decide what to do with a FileUpload"""
+        match file_upload.state:
+            case "awaiting_archival":
+                pending_file = models.PendingFileUpload(**file_upload.model_dump())
+                await self._handle_pending_file_upload(pending_file=pending_file)
+            case "cancelled" | "failed":
+                try:
+                    await self._pending_file_dao.delete(file_upload.id)
+                except ResourceNotFoundError:
+                    log.info(
+                        "Removed pending file information for file %s because the"
+                        + " state is %s.",
+                        file_upload.id,
+                        file_upload.state,
+                    )
+            case _:
+                log.info(
+                    "Ignoring FileUpload %s because the state is %s.",
+                    file_upload.id,
+                    file_upload.state,
+                )
+
+    async def _handle_pending_file_upload(
         self, *, pending_file: models.PendingFileUpload
     ) -> None:
         """Store a file upload which is set to the 'awaiting_archival' state.

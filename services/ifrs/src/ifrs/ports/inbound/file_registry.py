@@ -193,13 +193,6 @@ class FileRegistryPort(ABC):
         ...
 
     @abstractmethod
-    async def handle_file_upload(
-        self, *, pending_file: models.PendingFileUpload
-    ) -> None:
-        """Store a file upload which is set to the 'awaiting_archival' state.
-
-        If a matching accession number is already stored in the database for this file,
-        then archival will begin immediately. Otherwise, the file data will be stored
-        until the accession number is received.
-        """
+    async def handle_file_upload(self, *, file_upload: models.FileUpload) -> None:
+        """Decide what to do with a FileUpload"""
         ...

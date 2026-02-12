@@ -31,7 +31,7 @@ from hexkit.protocols.eventsub import EventSubscriberProtocol
 from pydantic import UUID4, Field
 
 from ifrs.constants import TRACER
-from ifrs.core.models import AccessionMap, FileUpload, PendingFileUpload
+from ifrs.core.models import AccessionMap, FileUpload
 from ifrs.ports.inbound.file_registry import FileRegistryPort
 
 log = logging.getLogger(__name__)
@@ -129,15 +129,7 @@ class FileUploadOutboxTranslator(DaoSubscriberProtocol[FileUpload]):
     @TRACER.start_as_current_span("FileUploadOutboxTranslator.changed")
     async def changed(self, resource_id: str, update: FileUpload) -> None:
         """Process a FileUpload event if the state is 'awaiting_archival'."""
-        if update.state == "awaiting_archival":
-            pending_file = PendingFileUpload(**update.model_dump())
-            await self._file_registry.handle_file_upload(pending_file=pending_file)
-        else:
-            log.info(
-                "Ignoring event for FileUpload %s because the state is %s.",
-                resource_id,
-                update.state,
-            )
+        await self._file_registry.handle_file_upload(file_upload=update)
 
     @TRACER.start_as_current_span("FileUploadOutboxTranslator.deleted")
     async def deleted(self, resource_id: str) -> None:
