@@ -381,6 +381,9 @@ class FileRegistry(FileRegistryPort):
         )
         await self._event_publisher.file_deleted(file_id=file_id)
 
+                # Remove pending file data now that the file has been registered
+                await self._pending_file_dao.delete(file_id)
+
     async def handle_file_upload(self, *, file_upload: models.FileUpload) -> None:
         """Decide what to do with a FileUpload"""
         if file_upload.state != "awaiting_archival":
