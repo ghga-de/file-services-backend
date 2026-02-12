@@ -31,7 +31,7 @@ from hexkit.providers.s3.testutils import (
 )
 from hexkit.utils import now_utc_ms_prec
 
-from ifrs.core.models import FileMetadata, PendingFileUpload
+from ifrs.core.models import AccessionMap, FileMetadata, PendingFileUpload
 from ifrs.ports.inbound.file_registry import FileRegistryPort
 from tests_ifrs.fixtures.example_data import (
     EXAMPLE_ACCESSIONED_FILE,
@@ -65,7 +65,6 @@ async def test_register_when_file_not_in_interrogation(joint_fixture: JointFixtu
     """Test registration of a file when the file content is missing from the
     interrogation bucket.
     """
-    # TODO: Is there anywhere in the core where the file object is modified directly?
     file = EXAMPLE_ACCESSIONED_FILE.model_copy(update={"id": uuid4()})
     with pytest.raises(FileRegistryPort.FileNotInInterrogationError):
         await joint_fixture.file_registry.register_file(file=file)
@@ -260,12 +259,6 @@ async def test_storage_db_inconsistency(joint_fixture: JointFixture):
             "files_to_stage_type",
             "stage_registered_file",
         ),
-        (
-            {"GHGA001": str(uuid4()), "GHGA002": str(uuid4())},
-            "accession_map_topic",
-            "upserted",
-            "store_accessions",
-        ),
     ],
 )
 async def test_event_subscriber_routing(
@@ -278,11 +271,7 @@ async def test_event_subscriber_routing(
 ):
     """Make sure the event subscriber calls the correct method on the file registry."""
     topic = getattr(joint_fixture.config, topic_config_name)
-    type_ = (
-        getattr(joint_fixture.config, type_config_name)
-        if type_config_name != "upserted"
-        else "upserted"
-    )
+    type_ = getattr(joint_fixture.config, type_config_name)
     mock = AsyncMock()
     monkeypatch.setattr(joint_fixture.file_registry, method_name, mock)
     await joint_fixture.kafka.publish_event(
@@ -419,3 +408,92 @@ async def test_error_during_copy_to_download_bucket(
     assert caplog.records[0].getMessage() == (
         f"File with ID '{file_metadata.id}' is already in the outbox."
     )
+
+
+async def test_store_accessions_without_pending_file(joint_fixture: JointFixture):
+    """Test storing accessions when pending file data has not yet been received.
+
+    When an accession arrives before the corresponding file upload data, it should
+    be stored in the database.
+    """
+    # Create an accession map with a file ID that doesn't have pending data yet
+    file_id = uuid4()
+    accession = "GHGA001"
+    accession_map = AccessionMap({accession: file_id})
+
+    # Store the accessions
+    await joint_fixture.file_registry.store_accessions(accession_map=accession_map)
+
+    # Verify the accession was stored in the file_accession_dao
+    stored_accession = await joint_fixture.file_accession_dao.get_by_id(file_id)
+    assert stored_accession.file_id == file_id
+    assert stored_accession.accession == accession
+
+    # Verify no file metadata was created (file not registered yet)
+    with pytest.raises(ResourceNotFoundError):
+        await joint_fixture.file_metadata_dao.get_by_id(file_id)
+
+
+async def test_store_accessions_with_pending_file(
+    joint_fixture: JointFixture,
+    tmp_file: FileObject,  # noqa: F811
+):
+    """Test storing accessions when pending file data already exists.
+
+    When an accession arrives and a matching pending file upload already exists,
+    the file should be immediately registered and archived.
+    """
+    # Create a pending file upload
+    accession = "GHGA002"
+    storage_alias = joint_fixture.storage_aliases.node0
+    pending_file = EXAMPLE_ARCHIVABLE_FILE.model_copy(
+        update={"storage_alias": storage_alias, "encrypted_size": len(tmp_file.content)}
+    )
+
+    # Place the file content in the interrogation bucket
+    storage = joint_fixture.federated_s3.storages[storage_alias]
+    file_object = tmp_file.model_copy(
+        update={
+            "bucket_id": INTERROGATION_BUCKET,
+            "object_id": str(pending_file.id),
+        }
+    )
+    await storage.populate_file_objects([file_object])
+
+    # TODO: remove parameter from earlier test if still there
+    # Store the pending file in the database
+    await joint_fixture.kafka.publish_event(
+        payload=pending_file.model_dump(mode="json"),
+        topic=joint_fixture.config.file_upload_topic,
+        type_="upserted",
+        key=str(pending_file.id),
+    )
+    await joint_fixture.event_subscriber.run(forever=False)
+
+    # Create accession map
+    accession_map = AccessionMap({accession: pending_file.id})
+    await joint_fixture.kafka.publish_event(
+        payload=accession_map.model_dump(mode="json"),
+        topic=joint_fixture.config.accession_map_topic,
+        type_="upserted",
+        key=str(uuid4()),  # key is the research data upload box ID
+    )
+
+    # Store the accessions and expect a file registration event
+    async with joint_fixture.kafka.record_events(
+        in_topic=joint_fixture.config.file_internally_registered_topic
+    ) as recorder:
+        await joint_fixture.event_subscriber.run(forever=False)
+
+    # Verify the file was registered (metadata exists)
+    file_metadata = await joint_fixture.file_metadata_dao.get_by_id(pending_file.id)
+    assert file_metadata.id == pending_file.id
+    assert file_metadata.accession == accession
+    assert file_metadata.bucket_id == PERMANENT_BUCKET
+
+    # Verify the file registration event was published
+    assert len(recorder.recorded_events) == 1
+    event = recorder.recorded_events[0]
+    assert event.type_ == joint_fixture.config.file_internally_registered_type
+    assert event.payload["file_id"] == str(pending_file.id)
+    assert event.payload["accession"] == accession
