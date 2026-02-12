@@ -25,7 +25,11 @@ from hexkit.providers.s3.testutils import (
 
 from tests_ifrs.fixtures.example_data import EXAMPLE_ACCESSIONED_FILE
 from tests_ifrs.fixtures.joint import JointFixture
-from tests_ifrs.fixtures.utils import INTERROGATION_BUCKET, PERMANENT_BUCKET
+from tests_ifrs.fixtures.utils import (
+    DOWNLOAD_BUCKET,
+    INTERROGATION_BUCKET,
+    PERMANENT_BUCKET,
+)
 
 pytestmark = pytest.mark.asyncio
 
@@ -42,23 +46,23 @@ async def test_happy_journey(
     # place example content in the Koeln interrogation bucket:
     file_object = tmp_file.model_copy(
         update={
-            "bucket_id": joint_fixture.interrogation_bucket,
+            "bucket_id": INTERROGATION_BUCKET,
             "object_id": str(EXAMPLE_ACCESSIONED_FILE.id),
         }
     )
 
+    # Populate test object, get the object size, and create the AccessionedFileUpload
     await storage.populate_file_objects(file_objects=[file_object])
-    actual_size = await storage.storage.get_object_size(
-        bucket_id=INTERROGATION_BUCKET, object_id=file_object.object_id
-    )
-
-    # register new file from the interrogation bucket and make sure event is published
     accessioned_file = EXAMPLE_ACCESSIONED_FILE.model_copy(
-        update={"storage_alias": storage_alias, "encrypted_size": actual_size},
+        update={
+            "storage_alias": storage_alias,
+            "encrypted_size": len(tmp_file.content),
+        },
         deep=True,
     )
     assert accessioned_file.bucket_id == INTERROGATION_BUCKET  # just double checking
 
+    # register new file from the interrogation bucket and make sure event is published
     async with joint_fixture.kafka.record_events(
         in_topic=joint_fixture.config.file_internally_registered_topic,
     ) as recorder:
@@ -93,12 +97,12 @@ async def test_happy_journey(
         accession=accessioned_file.accession,
         decrypted_sha256=accessioned_file.decrypted_sha256,
         download_object_id=EXAMPLE_ACCESSIONED_FILE.id,
-        download_bucket_id=joint_fixture.download_bucket,
+        download_bucket_id=DOWNLOAD_BUCKET,
     )
 
     # check that the file content is now in all three storage entities:
     assert await storage.storage.does_object_exist(
-        bucket_id=joint_fixture.interrogation_bucket,
+        bucket_id=INTERROGATION_BUCKET,
         object_id=str(EXAMPLE_ACCESSIONED_FILE.id),
     )
     assert await storage.storage.does_object_exist(
@@ -106,14 +110,14 @@ async def test_happy_journey(
         object_id=object_id,
     )
     assert await storage.storage.does_object_exist(
-        bucket_id=joint_fixture.download_bucket,
+        bucket_id=DOWNLOAD_BUCKET,
         object_id=str(EXAMPLE_ACCESSIONED_FILE.id),
     )
 
     # check that the file content in the download bucket is identical to the content in
     # the interrogation bucket.
     download_url = await storage.storage.get_object_download_url(
-        bucket_id=joint_fixture.download_bucket,
+        bucket_id=DOWNLOAD_BUCKET,
         object_id=str(EXAMPLE_ACCESSIONED_FILE.id),
     )
     response = requests.get(download_url, timeout=60)

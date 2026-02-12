@@ -15,17 +15,31 @@
 
 """Example data used for testing."""
 
+from datetime import timedelta
 from uuid import uuid4
 
-from ifrs.core.models import AccessionedFileUpload
+from hexkit.utils import now_utc_ms_prec
+
+from ifrs.core.models import AccessionedFileUpload, FileUpload, PendingFileUpload
 from tests_ifrs.fixtures.joint import INTERROGATION_BUCKET
 
-# This file data represents an object *before* it has been completely registered.
-#  Note the bucket ID
-EXAMPLE_ACCESSIONED_FILE = AccessionedFileUpload(
+EXAMPLE_FILE_UPLOAD_INBOX = FileUpload(
     id=uuid4(),
-    accession="GHGA001",
     storage_alias="HD01",
+    bucket_id="inbox",
+    state="inbox",
+    state_updated=now_utc_ms_prec() - timedelta(hours=1),
+    decrypted_size=64 * 1024**2,
+    encrypted_size=64 * 1024**2 + 1234567,
+    part_size=16 * 1024**2,
+)
+
+# This is the event received by the outbox subscriber when the file is ready
+EXAMPLE_ARCHIVABLE_FILE = FileUpload(
+    id=EXAMPLE_FILE_UPLOAD_INBOX.id,
+    storage_alias="HD01",
+    state="awaiting_archival",
+    state_updated=now_utc_ms_prec() - timedelta(hours=1),
     bucket_id=INTERROGATION_BUCKET,
     secret_id="some-secret-id",
     decrypted_size=64 * 1024**2,
@@ -43,4 +57,15 @@ EXAMPLE_ACCESSIONED_FILE = AccessionedFileUpload(
         "62c298fd987a6bac2066e4dbed274879247b3edd816c8351dc22ada6d37b24b0",
         "45cccbdfc4bfe2aa7f17428a087282d71be917ef059cac15a161284340840957",
     ],
+)
+
+# This file data represents an object *before* it has been registered.
+#  Note the bucket ID
+EXAMPLE_PENDING_FILE = PendingFileUpload(**EXAMPLE_ARCHIVABLE_FILE.model_dump())
+
+# This file data represents an object *before* it has been completely registered.
+#  Note the bucket ID
+EXAMPLE_ACCESSIONED_FILE = AccessionedFileUpload(
+    accession="GHGA001",
+    **EXAMPLE_PENDING_FILE.model_dump(),
 )

@@ -35,11 +35,11 @@ from hexkit.providers.akafka.testutils import KafkaFixture
 from hexkit.providers.mongodb.testutils import MongoDbFixture
 from hexkit.providers.s3.testutils import FederatedS3Fixture
 
-from ifrs.adapters.outbound.dao import get_file_dao
+from ifrs.adapters.outbound.dao import get_file_dao, get_pending_file_dao
 from ifrs.config import Config
 from ifrs.inject import prepare_core, prepare_event_subscriber
 from ifrs.ports.inbound.file_registry import FileRegistryPort
-from ifrs.ports.outbound.dao import file_dao
+from ifrs.ports.outbound.dao import FileMetadataDao, PendingFileDao
 from tests_ifrs.fixtures.config import get_config
 from tests_ifrs.fixtures.utils import (
     DOWNLOAD_BUCKET,
@@ -64,11 +64,10 @@ class JointFixture:
     config: Config
     mongodb: MongoDbFixture
     federated_s3: FederatedS3Fixture
-    file_metadata_dao: file_dao
+    file_metadata_dao: FileMetadataDao
+    pending_file_dao: PendingFileDao
     file_registry: FileRegistryPort
     kafka: KafkaFixture
-    interrogation_bucket: str
-    download_bucket: str
     storage_aliases: StorageAliases
     event_subscriber: KafkaEventSubscriber
 
@@ -91,13 +90,14 @@ async def joint_fixture(
             bucket=PERMANENT_BUCKET, credentials=s3_credential_configs[storage_alias]
         )
 
-    storage_aliases = StorageAliases()  # TODO: Delete this if not needed
+    storage_aliases = StorageAliases()
 
     object_storage_config = S3ObjectStoragesConfig(object_storages=object_storages)
 
     # merge configs from different sources with the default one:
     config = get_config(sources=[mongodb.config, object_storage_config, kafka.config])
     file_metadata_dao = await get_file_dao(dao_factory=mongodb.dao_factory)
+    pending_file_dao = await get_pending_file_dao(dao_factory=mongodb.dao_factory)
 
     # Prepare the file registry (core)
     async with (
@@ -112,10 +112,9 @@ async def joint_fixture(
             mongodb=mongodb,
             federated_s3=federated_s3,
             file_metadata_dao=file_metadata_dao,
+            pending_file_dao=pending_file_dao,
             file_registry=file_registry,
             kafka=kafka,
             event_subscriber=event_subscriber,
-            interrogation_bucket=INTERROGATION_BUCKET,
-            download_bucket=DOWNLOAD_BUCKET,
             storage_aliases=storage_aliases,
         )
