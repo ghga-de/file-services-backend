@@ -185,7 +185,7 @@ class FileRegistryPort(ABC):
         ...
 
     @abstractmethod
-    async def store_accessions(self, *, accession_map: models.AccessionMap) -> None:
+    async def handle_accession_map(self, *, accession_map: models.AccessionMap) -> None:
         """Handle an accession map by storing it in the database and, if possible,
         archiving files for which the corresponding File Upload data has already
         been received.

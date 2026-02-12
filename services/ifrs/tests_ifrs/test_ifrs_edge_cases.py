@@ -422,7 +422,7 @@ async def test_store_accessions_without_pending_file(joint_fixture: JointFixture
     accession_map = AccessionMap({accession: file_id})
 
     # Store the accessions
-    await joint_fixture.file_registry.store_accessions(accession_map=accession_map)
+    await joint_fixture.file_registry.handle_accession_map(accession_map=accession_map)
 
     # Verify the accession was stored in the file_accession_dao
     stored_accession = await joint_fixture.file_accession_dao.get_by_id(file_id)

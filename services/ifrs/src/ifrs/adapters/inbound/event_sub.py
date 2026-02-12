@@ -162,7 +162,7 @@ class AccessionMapOutboxTranslator(DaoSubscriberProtocol[AccessionMap]):
             "Received upsertion outbox event for AccessionMap for box ID %s.",
             resource_id,
         )
-        await self._file_registry.store_accessions(accession_map=update)
+        await self._file_registry.handle_accession_map(accession_map=update)
 
     @TRACER.start_as_current_span("AccessionMapOutboxTranslator.deleted")
     async def deleted(self, resource_id: str) -> None:
