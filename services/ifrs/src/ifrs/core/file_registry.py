@@ -383,6 +383,9 @@ class FileRegistry(FileRegistryPort):
                 )
                 await self.register_file(file=file)
 
+                # Remove pending file data now that the file has been registered
+                await self._pending_file_dao.delete(file_id)
+
     async def handle_file_upload(self, *, file_upload: models.FileUpload) -> None:
         """Decide what to do with a FileUpload"""
         match file_upload.state:
@@ -434,3 +437,6 @@ class FileRegistry(FileRegistryPort):
                 accession=file_accession.accession, **pending_file.model_dump()
             )
             await self.register_file(file=file)
+
+            # Remove file accessoin data now that the file has been registered
+            await self._file_accession_dao.delete(pending_file.id)

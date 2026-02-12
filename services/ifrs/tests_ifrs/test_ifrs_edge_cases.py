@@ -410,6 +410,65 @@ async def test_error_during_copy_to_download_bucket(
     )
 
 
+async def test_file_upload_with_stored_accession(
+    joint_fixture: JointFixture,
+    tmp_file: FileObject,  # noqa: F811
+):
+    """Test handling a file upload when the file accession data already exists.
+
+    When a file upload arrives and a matching accession already exists, the file
+    should be immediately registered and archived.
+    """
+    storage_alias = joint_fixture.storage_aliases.node0
+    pending_file = EXAMPLE_ARCHIVABLE_FILE.model_copy(
+        update={"storage_alias": storage_alias, "encrypted_size": len(tmp_file.content)}
+    )
+
+    # Place the file content in the interrogation bucket
+    storage = joint_fixture.federated_s3.storages[storage_alias]
+    file_object = tmp_file.model_copy(
+        update={
+            "bucket_id": INTERROGATION_BUCKET,
+            "object_id": str(pending_file.id),
+        }
+    )
+    await storage.populate_file_objects([file_object])
+
+    # Publish/consume the accession map
+    accession = "GHGA002"
+    accession_map = AccessionMap({accession: pending_file.id})
+    await joint_fixture.kafka.publish_event(
+        payload=accession_map.model_dump(mode="json"),
+        topic=joint_fixture.config.accession_map_topic,
+        type_="upserted",
+        key=str(uuid4()),  # key is the research data upload box ID
+    )
+    await joint_fixture.event_subscriber.run(forever=False)
+
+    # Make sure the accession map is in the database
+    stored_map = await joint_fixture.file_accession_dao.get_by_id(pending_file.id)
+    assert stored_map.accession == accession
+    assert stored_map.file_id == pending_file.id
+
+    # Publish/consume the file upload
+    await joint_fixture.kafka.publish_event(
+        payload=pending_file.model_dump(mode="json"),
+        topic=joint_fixture.config.file_upload_topic,
+        type_="upserted",
+        key=str(pending_file.id),
+    )
+    await joint_fixture.event_subscriber.run(forever=False)
+
+    # Verify the file accession data was removed
+    with pytest.raises(ResourceNotFoundError):
+        await joint_fixture.file_accession_dao.get_by_id(pending_file.id)
+
+    # Verify the content is now in the permanent bucket
+    assert await storage.storage.does_object_exist(
+        bucket_id=file_object.bucket_id, object_id=file_object.object_id
+    )
+
+
 async def test_store_accessions_without_pending_file(joint_fixture: JointFixture):
     """Test storing accessions when pending file data has not yet been received.
 
@@ -460,7 +519,6 @@ async def test_store_accessions_with_pending_file(
     )
     await storage.populate_file_objects([file_object])
 
-    # TODO: remove parameter from earlier test if still there
     # Store the pending file in the database
     await joint_fixture.kafka.publish_event(
         payload=pending_file.model_dump(mode="json"),
@@ -497,3 +555,7 @@ async def test_store_accessions_with_pending_file(
     assert event.type_ == joint_fixture.config.file_internally_registered_type
     assert event.payload["file_id"] == str(pending_file.id)
     assert event.payload["accession"] == accession
+
+    # Verify the pending file data was removed
+    with pytest.raises(ResourceNotFoundError):
+        await joint_fixture.pending_file_dao.get_by_id(pending_file.id)
