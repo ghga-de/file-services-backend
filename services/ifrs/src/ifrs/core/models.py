@@ -42,9 +42,6 @@ class CoreFileMetadata(BaseModel):
         default=...,
         description="The name of the bucket where the file is currently stored",
     )
-    secret_id: str = Field(
-        default=..., description="The ID of the file decryption secret."
-    )
     decrypted_size: int = Field(..., description="The size of the unencrypted file")
     part_size: int = Field(
         default=...,
@@ -63,6 +60,9 @@ class FileUpload(CoreFileMetadata):
     )
     state_updated: UTCDatetime = Field(
         default=..., description="Timestamp of when state was updated"
+    )
+    secret_id: str | None = Field(
+        default=None, description="The ID of the file decryption secret."
     )
     encrypted_size: int | None = Field(
         default=None, description="The encrypted size of the file before re-encryption"
@@ -84,6 +84,9 @@ class PendingFileUpload(CoreFileMetadata):
     archive a file, minus the accession.
     """
 
+    secret_id: str = Field(
+        default=..., description="The ID of the file decryption secret."
+    )
     encrypted_size: int = Field(
         default=..., description="The encrypted size of the file before re-encryption"
     )
