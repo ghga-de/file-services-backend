@@ -19,10 +19,10 @@ from hexkit.protocols.dao import DaoFactoryProtocol
 from hexkit.providers.mongodb import MongoDbIndex
 
 from ifrs.core.models import FileIdToAccession, FileMetadata, PendingFileUpload
-from ifrs.ports.outbound.dao import FileAccessionDao, PendingFileDao, file_dao
+from ifrs.ports.outbound.dao import FileAccessionDao, FileMetadataDao, PendingFileDao
 
 
-async def get_file_dao(*, dao_factory: DaoFactoryProtocol) -> file_dao:
+async def get_file_dao(*, dao_factory: DaoFactoryProtocol) -> FileMetadataDao:
     """Setup the DAOs using the specified provider of the DaoFactoryProtocol."""
     return await dao_factory.get_dao(
         name="file_metadata",
