@@ -77,11 +77,11 @@ async def test_list_uploads(
     """Test the GET /storages/{storage_alias}/uploads endpoint"""
     url = f"/storages/{HUB1}/uploads"
 
-    # Assert no auth returns a 403 (this is a known bug with fastapi)
+    # Assert no auth returns a 401
     response = await rest_client.get(url)
-    assert response.status_code == 403
+    assert response.status_code == 401
 
-    # Assert improper auth returns a 403 too
+    # Assert improper auth returns a 403
     wrong_hub_headers = jwt_factory.auth_header(HUB2)
     response = await rest_client.get(url, headers=wrong_hub_headers)
     assert response.status_code == 403
@@ -132,11 +132,11 @@ async def test_get_removable_files(
     # Test data: list of file IDs to check
     file_ids = [file_removable.id, file_not_removable.id, non_existent_id]
 
-    # Assert no auth returns a 403
+    # Assert no auth returns a 401
     response = await rest_client.post(url, json=[str(id) for id in file_ids])
-    assert response.status_code == 403
+    assert response.status_code == 401
 
-    # Assert improper auth returns a 403 too
+    # Assert improper auth returns a 403
     wrong_hub_headers = jwt_factory.auth_header(HUB2)
     response = await rest_client.post(
         url, json=[str(id) for id in file_ids], headers=wrong_hub_headers
@@ -198,11 +198,11 @@ async def test_post_interrogation_report(
         "encrypted_parts_sha256": ["sha256_1", "sha256_2"],
     }
 
-    # Make sure that not supplying auth headers returns 403
+    # Make sure that not supplying auth headers returns 401
     response = await rest_client.post(url, json=success_report)
-    assert response.status_code == 403
+    assert response.status_code == 401
 
-    # Make sure that supplying an token for another hub returns 403
+    # Make sure that supplying an invalid token for another hub returns 403
     wrong_hub_headers = jwt_factory.auth_header(HUB2)
     response = await rest_client.post(
         url, json=success_report, headers=wrong_hub_headers
