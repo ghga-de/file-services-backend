@@ -212,7 +212,7 @@ class FileRegistry(FileRegistryPort):
                 bucket.
         """
         # TODO: If we decide that object_id/file_id should always be the same across
-        #  file services, then we would remove download_object_id. There is currently
+        #  file services, then we could remove download_object_id. There is currently
         #  no mandate for this though.
         try:
             file = await self._file_metadata_dao.find_one(
@@ -438,5 +438,5 @@ class FileRegistry(FileRegistryPort):
             )
             await self.register_file(file=file)
 
-            # Remove file accessoin data now that the file has been registered
+            # Remove file accession data now that the file has been registered
             await self._file_accession_dao.delete(pending_file.id)

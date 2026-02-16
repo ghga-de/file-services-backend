@@ -99,8 +99,13 @@ class V3Migration(MigrationDefinition, Reversible):
             del payload["content_offset"]
             # payload points to doc["payload"], so no need to reassign the payload field
 
+            # Set the published flag to False, and replace the accession number with the
+            #  file ID in both the key and _id fields.
             doc["published"] = False
-
+            doc["key"] = str(payload["file_id"])
+            doc["_id"] = doc["_id"].replace(
+                payload["accession"], str(payload["file_id"])
+            )
             # Don't change the key or compaction_key fields
 
             return doc
@@ -161,6 +166,11 @@ class V3Migration(MigrationDefinition, Reversible):
             payload["encrypted_part_size"] = payload.pop("part_size")
             payload["content_offset"] = 0
             # payload points to doc["payload"], so no need to reassign the payload field
+
+            doc["key"] = payload["file_id"]
+            doc["_id"] = doc["_id"].replace(
+                str(payload["object_id"]), payload["file_id"]
+            )
 
             doc["published"] = False
 

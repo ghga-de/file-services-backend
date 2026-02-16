@@ -74,7 +74,7 @@ async def test_happy_journey(
     assert len(recorder.recorded_events) == 1
     event = recorder.recorded_events[0]
     assert event.type_ == joint_fixture.config.file_internally_registered_type
-    # TODO: Test for key once it's decided if key should be accession or file ID
+    assert event.key == str(stored_metadata.id)
     assert stored_metadata.bucket_id != accessioned_file.bucket_id
     assert stored_metadata.bucket_id == PERMANENT_BUCKET
     stored_dumped = stored_metadata.model_dump(mode="json")

@@ -70,16 +70,13 @@ class EventPubTranslator(EventPublisherPort):
             payload=payload.model_dump(mode="json"),
             type_=self._config.file_internally_registered_type,
             topic=self._config.file_internally_registered_topic,
-            key=str(file.id),  # TODO: Is there any reason this should remain accession?
+            key=str(file.id),
         )
 
     @TRACER.start_as_current_span("EventPubTranslator.file_deleted")
     async def file_deleted(self, *, accession: str) -> None:
         """Communicates the event that a file has been successfully deleted."""
         payload = event_schemas.FileDeletionSuccess(file_id=accession)
-
-        # TODO: Are files meant to be specified by non-file-services by accession, or
-        #   is there to be a service that translates between accession and file ID?
 
         await self._provider.publish(
             payload=payload.model_dump(),

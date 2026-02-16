@@ -101,10 +101,10 @@ async def test_v3_migration(mongodb: MongoDbFixture):
 
     old_events = [
         {
-            "_id": "test-topic:key0",
+            "_id": "test-topic:GHGA001",
             "topic": "test-topic",
             "payload": affected_payload,
-            "key": "key0",
+            "key": "GHGA001",
             "type_": "file_internally_registered",
             "headers": {},
             "correlation_id": uuid4(),
@@ -113,10 +113,10 @@ async def test_v3_migration(mongodb: MongoDbFixture):
             "event_id": uuid4(),
         },
         {
-            "_id": "test-topic:key1",
-            "topic": "test-topic",
+            "_id": "test-topic:GHGA007",
+            "topic": "other-topic",
             "payload": unaffected_payload,
-            "key": "key1",
+            "key": "GHGA007",
             "type_": "other_event_type",
             "headers": {},
             "correlation_id": uuid4(),
@@ -161,11 +161,17 @@ async def test_v3_migration(mongodb: MongoDbFixture):
         events_collection.find({}).to_list(), key=lambda d: d["_id"]
     )
     assert len(migrated_events) == 2
-    assert migrated_events[0]["payload"] == expected_migrated_payload
-    assert migrated_events[0]["published"] == False
-    # Second event not touched
-    assert migrated_events[1]["payload"] == unaffected_payload
-    assert migrated_events[1]["published"] == True
+    for event in migrated_events:
+        if event["topic"] == "other-topic":
+            # Make sure the other event wasn't migrated
+            assert event["payload"] == unaffected_payload
+            assert event["published"] == True
+        else:
+            # Verify the migration updated the payload, id, key, and published flag
+            assert event["payload"] == expected_migrated_payload
+            assert event["published"] == False
+            assert event["_id"] == f"test-topic:{affected_payload['object_id']}"
+            assert event["key"] == str(affected_payload["object_id"])
 
     # Run the reverse migration
     await run_db_migrations(config=config, target_version=2)
@@ -179,6 +185,8 @@ async def test_v3_migration(mongodb: MongoDbFixture):
 
     # Verify events reversion
     reverted_events = sorted(events_collection.find().to_list(), key=lambda d: d["_id"])
+    assert reverted_events[0]["_id"] == "test-topic:GHGA001"
+    assert reverted_events[0]["key"] == "GHGA001"
     reverted_payload = reverted_events[0]["payload"]
     assert reverted_payload["content_offset"] == 0
     assert reverted_payload["file_id"] == affected_payload["file_id"]
