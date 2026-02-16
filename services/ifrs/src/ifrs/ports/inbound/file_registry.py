@@ -171,6 +171,7 @@ class FileRegistryPort(ABC):
         """
         ...
 
+    # TODO: Change accession to file ID and commit to context boundary
     @abstractmethod
     async def delete_file(self, *, file_id: UUID4) -> None:
         """Deletes a file from the permanent storage and the internal database.
