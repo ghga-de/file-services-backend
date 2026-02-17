@@ -31,7 +31,7 @@ from hexkit.protocols.eventsub import EventSubscriberProtocol
 from pydantic import UUID4, Field
 
 from ifrs.constants import TRACER
-from ifrs.core.models import AccessionMap, FileUpload
+from ifrs.core.models import AccessionMap, FileUpload, NonStagedFileRequested
 from ifrs.ports.inbound.file_registry import FileRegistryPort
 
 log = logging.getLogger(__name__)
@@ -67,12 +67,10 @@ class EventSubTranslator(EventSubscriberProtocol):
     @TRACER.start_as_current_span("EventSubTranslator._consume_file_staging_request")
     async def _consume_file_staging_request(self, *, payload: JsonObject):
         """Consume an event requesting a file to be staged to the download bucket"""
-        validated_payload = get_validated_payload(
-            payload, event_schemas.NonStagedFileRequested
-        )
+        validated_payload = get_validated_payload(payload, NonStagedFileRequested)
 
         await self._file_registry.stage_registered_file(
-            accession=validated_payload.file_id,
+            accession=validated_payload.accession,
             decrypted_sha256=validated_payload.decrypted_sha256,
             download_object_id=validated_payload.target_object_id,
             download_bucket_id=validated_payload.target_bucket_id,

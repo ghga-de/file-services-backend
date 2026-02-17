@@ -18,7 +18,7 @@
 from typing import Annotated, Literal
 
 from ghga_service_commons.utils.utc_dates import UTCDatetime
-from pydantic import UUID4, BaseModel, Field, RootModel, StringConstraints
+from pydantic import UUID4, BaseModel, ConfigDict, Field, RootModel, StringConstraints
 
 FileUploadState = Literal[
     "init",
@@ -176,3 +176,32 @@ class FileInternallyRegistered(BaseModel):
         default=...,
         description="The number of bytes in each file part (last part is likely smaller)",
     )
+
+
+class NonStagedFileRequested(BaseModel):
+    """
+    This event type is triggered when a user requests to download a file that is not
+    yet present in the download bucket and needs to be staged.
+
+    This local definition will be replaced by the `ghga-event-schemas` definition
+    once implemented there.
+    """
+
+    accession: Accession = Field(
+        default=..., description="The accession number assigned to this file."
+    )
+    storage_alias: str = Field(
+        default=..., description="The storage alias of the Data Hub housing the file"
+    )
+    target_object_id: UUID4 = Field(
+        ..., description="The ID of the file in the specific S3 bucket."
+    )
+    target_bucket_id: str = Field(
+        ...,
+        description="The ID/name of the S3 bucket in which the object was expected.",
+    )
+    decrypted_sha256: str = Field(
+        ...,
+        description="The SHA-256 checksum of the entire decrypted file content.",
+    )
+    model_config = ConfigDict(title="non_staged_file_requested")

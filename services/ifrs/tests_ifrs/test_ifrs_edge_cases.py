@@ -31,7 +31,12 @@ from hexkit.providers.s3.testutils import (
 )
 from hexkit.utils import now_utc_ms_prec
 
-from ifrs.core.models import AccessionMap, FileMetadata, PendingFileUpload
+from ifrs.core.models import (
+    AccessionMap,
+    FileMetadata,
+    NonStagedFileRequested,
+    PendingFileUpload,
+)
 from ifrs.ports.inbound.file_registry import FileRegistryPort
 from tests_ifrs.fixtures.example_data import (
     EXAMPLE_ACCESSIONED_FILE,
@@ -47,11 +52,11 @@ from tests_ifrs.fixtures.utils import (
 pytestmark = pytest.mark.asyncio
 
 TEST_ACCESSION = "GHGA00TEST"
-TEST_NONSTAGED_FILE_REQUESTED = event_schemas.NonStagedFileRequested(
-    file_id=TEST_ACCESSION,
+TEST_NONSTAGED_FILE_REQUESTED = NonStagedFileRequested(
+    accession=TEST_ACCESSION,
     target_object_id=uuid4(),
     target_bucket_id="",
-    s3_endpoint_alias="",
+    storage_alias="",
     decrypted_sha256="",
 )
 

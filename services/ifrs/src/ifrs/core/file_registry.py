@@ -187,7 +187,7 @@ class FileRegistry(FileRegistryPort):
         download_object_id: UUID4,
         download_bucket_id: str,
     ) -> None:
-        """Stage a registered file to the outbox.
+        """Stage a registered file to the download bucket.
 
         Args:
             accession:
@@ -211,9 +211,6 @@ class FileRegistry(FileRegistryPort):
                 When an error occurs while attempting to copy the object to the download
                 bucket.
         """
-        # TODO: If we decide that object_id/file_id should always be the same across
-        #  file services, then we could remove download_object_id. There is currently
-        #  no mandate for this though.
         try:
             file = await self._file_metadata_dao.find_one(
                 mapping={"accession": accession}

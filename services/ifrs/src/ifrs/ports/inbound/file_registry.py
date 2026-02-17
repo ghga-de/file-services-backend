@@ -147,7 +147,7 @@ class FileRegistryPort(ABC):
         download_object_id: UUID4,
         download_bucket_id: str,
     ) -> None:
-        """Stage a registered file to the outbox.
+        """Stage a registered file to the download bucket.
 
         Args:
             accession:
