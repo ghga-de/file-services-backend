@@ -69,7 +69,7 @@ class EventSubTranslator(EventSubscriberProtocol):
         validated_payload = get_validated_payload(payload, NonStagedFileRequested)
 
         await self._file_registry.stage_registered_file(
-            accession=validated_payload.file_id,
+            accession=validated_payload.accession,
             decrypted_sha256=validated_payload.decrypted_sha256,
             download_object_id=validated_payload.target_object_id,
             download_bucket_id=validated_payload.target_bucket_id,
