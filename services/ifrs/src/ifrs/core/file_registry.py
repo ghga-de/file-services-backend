@@ -37,7 +37,7 @@ log = logging.getLogger(__name__)
 class FileRegistry(FileRegistryPort):
     """A service that manages a registry files stored on a permanent object storage."""
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         *,
         file_metadata_dao: FileMetadataDao,
@@ -48,8 +48,6 @@ class FileRegistry(FileRegistryPort):
         """Initialize with essential config params and outbound adapters."""
         self._event_publisher = event_publisher
         self._file_metadata_dao = file_metadata_dao
-        self._pending_file_dao = pending_file_dao
-        self._file_accession_dao = file_accession_dao
         self._object_storages = object_storages
         self._config = config
 
@@ -245,15 +243,14 @@ class FileRegistry(FileRegistryPort):
 
         if decrypted_sha256 != file.decrypted_sha256:
             checksum_error = self.ChecksumMismatchError(
-                file_id=file.id,
+                file_id=file_id,
                 provided_checksum=decrypted_sha256,
                 expected_checksum=file.decrypted_sha256,
             )
             log.error(
                 checksum_error,
                 extra={
-                    "file_id": file.id,
-                    "accession": accession,
+                    "file_id": file_id,
                     "provided_checksum": decrypted_sha256,
                     "expected_checksum": file.decrypted_sha256,
                 },
@@ -288,7 +285,7 @@ class FileRegistry(FileRegistryPort):
             # file does not exist in permanent storage
             # copy_object fetches the source object size, which checks for existence first
             not_in_storage_error = self.FileInRegistryButNotInStorageError(
-                file_id=file.id
+                file_id=file_id
             )
             log.critical(
                 msg=not_in_storage_error,
@@ -346,13 +343,11 @@ class FileRegistry(FileRegistryPort):
                 The unique identifier for the file that needs to be deleted.
         """
         try:
-            file = await self._file_metadata_dao.find_one(
-                mapping={"accession": accession}
-            )
+            file = await self._file_metadata_dao.get_by_id(file_id)
         except ResourceNotFoundError:
             log.info(
-                "File with accession '%s' was not found in the database. Deletion cancelled.",
-                accession,
+                "File with ID '%s' was not found in the database. Deletion cancelled.",
+                file_id,
             )
             return
 
@@ -369,7 +364,7 @@ class FileRegistry(FileRegistryPort):
         # Try to remove file from database
         with suppress(ResourceNotFoundError):
             # If file does not exist anyways, we are done.
-            await self._file_metadata_dao.delete(id_=file.id)
+            await self._file_metadata_dao.delete(id_=file_id)
 
         log.info(
             "Finished object storage and metadata deletion for '%s'",

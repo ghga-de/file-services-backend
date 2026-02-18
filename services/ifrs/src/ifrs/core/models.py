@@ -190,35 +190,11 @@ class NonStagedFileRequested(BaseModel):
     )
 
 
-Accession = Annotated[str, StringConstraints(pattern=r"^GHGA.+")]
-
-AccessionMap = RootModel[dict[Accession, UUID4]]
-
-
-class AccessionedFileUpload(PendingFileUpload):
-    """PendingFileUpload data plus an accession number"""
-
-    accession: Accession = Field(
-        default=..., description="The accession number assigned to this file."
-    )
-
-
-class FileMetadata(AccessionedFileUpload):
-    """An AccessionedFileUpload with an archival timestamp"""
+class FileMetadata(ArchivableFileUpload):
+    """An ArchivableFileUpload with an archival timestamp"""
 
     archive_date: UTCDatetime = Field(
         default=..., description="The date and time when this file was archived."
-    )
-
-
-class FileIdToAccession(BaseModel):
-    """A class used to tie a file ID to an accession number"""
-
-    file_id: UUID4 = Field(
-        default=..., description="Unique identifier for the file upload"
-    )
-    accession: Accession = Field(
-        default=..., description="The accession number assigned to this file."
     )
 
 
@@ -230,9 +206,6 @@ class FileInternallyRegistered(BaseModel):
     """
 
     file_id: UUID4 = Field(..., description="Unique identifier for the file upload")
-    accession: Accession = Field(
-        default=..., description="The accession number assigned to this file."
-    )
     archive_date: UTCDatetime = Field(
         ...,
         description="The date and time when this file was archived.",
