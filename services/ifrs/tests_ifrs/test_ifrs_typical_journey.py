@@ -15,15 +15,18 @@
 
 """Tests typical user journeys"""
 
+from uuid import uuid4
+
 import pytest
 import requests
+from hexkit.protocols.dao import ResourceNotFoundError
 from hexkit.providers.akafka.testutils import ExpectedEvent
 from hexkit.providers.s3.testutils import (
     FileObject,
     tmp_file,  # noqa: F401
 )
 
-from tests_ifrs.fixtures.example_data import EXAMPLE_ACCESSIONED_FILE
+from tests_ifrs.fixtures.example_data import EXAMPLE_ARCHIVABLE_FILE
 from tests_ifrs.fixtures.joint import JointFixture
 from tests_ifrs.fixtures.utils import (
     DOWNLOAD_BUCKET,
@@ -42,83 +45,84 @@ async def test_happy_journey(
     storage_alias = joint_fixture.storage_aliases.node0
     storage = joint_fixture.federated_s3.storages[storage_alias]
 
-    bucket_id = joint_fixture.config.object_storages[storage_alias].bucket
-    # place example content in the Koeln interrogation bucket:
+    permanent_bucket_id = joint_fixture.config.object_storages[storage_alias].bucket
+    # place example content in the interrogation bucket:
     file_object = tmp_file.model_copy(
         update={
             "bucket_id": INTERROGATION_BUCKET,
-            "object_id": str(EXAMPLE_ACCESSIONED_FILE.id),
+            "object_id": str(EXAMPLE_ARCHIVABLE_FILE.object_id),
         }
     )
 
-    # Populate test object, get the object size, and create the AccessionedFileUpload
+    # Populate test object, get the object size, and create the ArchivableFileUpload
     await storage.populate_file_objects(file_objects=[file_object])
-    accessioned_file = EXAMPLE_ACCESSIONED_FILE.model_copy(
+    archivable_file = EXAMPLE_ARCHIVABLE_FILE.model_copy(
         update={
             "storage_alias": storage_alias,
             "encrypted_size": len(tmp_file.content),
         },
         deep=True,
     )
-    assert accessioned_file.bucket_id == INTERROGATION_BUCKET  # just double checking
+    assert archivable_file.bucket_id == INTERROGATION_BUCKET  # just double checking
 
     # register new file from the interrogation bucket and make sure event is published
     async with joint_fixture.kafka.record_events(
         in_topic=joint_fixture.config.file_internally_registered_topic,
     ) as recorder:
-        await joint_fixture.file_registry.register_file(file=accessioned_file)
+        await joint_fixture.file_registry.register_file(file=archivable_file)
 
     stored_metadata = await joint_fixture.file_metadata_dao.get_by_id(
-        EXAMPLE_ACCESSIONED_FILE.id
+        archivable_file.id
     )
     assert len(recorder.recorded_events) == 1
     event = recorder.recorded_events[0]
     assert event.type_ == joint_fixture.config.file_internally_registered_type
     assert event.key == str(stored_metadata.id)
-    assert stored_metadata.bucket_id != accessioned_file.bucket_id
-    assert stored_metadata.bucket_id == PERMANENT_BUCKET
+    assert stored_metadata.bucket_id != archivable_file.bucket_id
+    assert stored_metadata.bucket_id == permanent_bucket_id == PERMANENT_BUCKET
+    assert stored_metadata.object_id != archivable_file.object_id
     stored_dumped = stored_metadata.model_dump(mode="json")
     event_payload = dict(event.payload)
     assert event_payload.pop("file_id") == stored_dumped.pop("id")
 
     # check that the file content is now in both the interrogation and permanent buckets
-    object_id = str(EXAMPLE_ACCESSIONED_FILE.id)
     assert await storage.storage.does_object_exist(
-        bucket_id=accessioned_file.bucket_id,
-        object_id=object_id,
+        bucket_id=archivable_file.bucket_id,
+        object_id=str(archivable_file.object_id),
     )
     assert await storage.storage.does_object_exist(
-        bucket_id=bucket_id,
-        object_id=object_id,
+        bucket_id=permanent_bucket_id,
+        object_id=str(stored_metadata.object_id),
     )
 
-    # request a stage to the outbox:
+    # request a stage to the download bucket:
+    download_object_id = uuid4()
     await joint_fixture.file_registry.stage_registered_file(
-        accession=accessioned_file.accession,
-        decrypted_sha256=accessioned_file.decrypted_sha256,
-        download_object_id=EXAMPLE_ACCESSIONED_FILE.id,
+        file_id=archivable_file.id,
+        decrypted_sha256=archivable_file.decrypted_sha256,
+        download_object_id=download_object_id,
         download_bucket_id=DOWNLOAD_BUCKET,
     )
 
     # check that the file content is now in all three storage entities:
     assert await storage.storage.does_object_exist(
         bucket_id=INTERROGATION_BUCKET,
-        object_id=str(EXAMPLE_ACCESSIONED_FILE.id),
+        object_id=str(archivable_file.object_id),
     )
     assert await storage.storage.does_object_exist(
-        bucket_id=bucket_id,
-        object_id=object_id,
+        bucket_id=permanent_bucket_id,
+        object_id=str(stored_metadata.object_id),
     )
     assert await storage.storage.does_object_exist(
         bucket_id=DOWNLOAD_BUCKET,
-        object_id=str(EXAMPLE_ACCESSIONED_FILE.id),
+        object_id=str(download_object_id),
     )
 
     # check that the file content in the download bucket is identical to the content in
     # the interrogation bucket.
     download_url = await storage.storage.get_object_download_url(
         bucket_id=DOWNLOAD_BUCKET,
-        object_id=str(EXAMPLE_ACCESSIONED_FILE.id),
+        object_id=str(download_object_id),
     )
     response = requests.get(download_url, timeout=60)
     response.raise_for_status()
@@ -128,17 +132,20 @@ async def test_happy_journey(
     async with joint_fixture.kafka.expect_events(
         events=[
             ExpectedEvent(
-                payload={"file_id": accessioned_file.accession},
+                payload={"file_id": archivable_file.id},
                 type_=joint_fixture.config.file_deleted_type,
             )
         ],
         in_topic=joint_fixture.config.file_deleted_topic,
     ):
-        await joint_fixture.file_registry.delete_file(
-            accession=accessioned_file.accession
-        )
+        await joint_fixture.file_registry.delete_file(file_id=archivable_file.id)
 
+    # Verify that the file is no longer in the permanent bucket
     assert not await storage.storage.does_object_exist(
-        bucket_id=bucket_id,
-        object_id=object_id,
+        bucket_id=permanent_bucket_id,
+        object_id=str(stored_metadata.object_id),
     )
+
+    # Verify that the metadata has also been removed
+    with pytest.raises(ResourceNotFoundError):
+        _ = await joint_fixture.file_metadata_dao.get_by_id(archivable_file.id)

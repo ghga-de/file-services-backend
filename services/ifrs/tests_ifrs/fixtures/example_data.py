@@ -20,13 +20,14 @@ from uuid import uuid4
 
 from hexkit.utils import now_utc_ms_prec
 
-from ifrs.core.models import AccessionedFileUpload, FileUpload, PendingFileUpload
+from ifrs.core.models import ArchivableFileUpload, FileUpload
 from tests_ifrs.fixtures.joint import INTERROGATION_BUCKET
 
 EXAMPLE_FILE_UPLOAD_INBOX = FileUpload(
     id=uuid4(),
     storage_alias="HD01",
     bucket_id="inbox",
+    object_id=uuid4(),
     state="inbox",
     state_updated=now_utc_ms_prec() - timedelta(hours=1),
     decrypted_size=64 * 1024**2,
@@ -35,16 +36,17 @@ EXAMPLE_FILE_UPLOAD_INBOX = FileUpload(
 )
 
 # This is the event received by the outbox subscriber when the file is ready
-EXAMPLE_ARCHIVABLE_FILE = FileUpload(
+EXAMPLE_AWAITING_ARCHIVAL = FileUpload(
     id=EXAMPLE_FILE_UPLOAD_INBOX.id,
-    storage_alias="HD01",
+    storage_alias=EXAMPLE_FILE_UPLOAD_INBOX.storage_alias,
     state="awaiting_archival",
     state_updated=now_utc_ms_prec() - timedelta(hours=1),
     bucket_id=INTERROGATION_BUCKET,
+    object_id=uuid4(),
     secret_id="some-secret-id",
-    decrypted_size=64 * 1024**2,
-    encrypted_size=64 * 1024**2 + 1234567,
-    part_size=16 * 1024**2,
+    decrypted_size=EXAMPLE_FILE_UPLOAD_INBOX.decrypted_size,
+    encrypted_size=EXAMPLE_FILE_UPLOAD_INBOX.decrypted_size - 1000,
+    part_size=EXAMPLE_FILE_UPLOAD_INBOX.part_size,
     # The checksums are only examples, they don't correspond to a particular file:
     decrypted_sha256="0677de3685577a06862f226bb1bfa8f889e96e59439d915543929fb4f011d096",
     encrypted_parts_md5=[
@@ -59,13 +61,4 @@ EXAMPLE_ARCHIVABLE_FILE = FileUpload(
     ],
 )
 
-# This file data represents an object *before* it has been registered.
-#  Note the bucket ID
-EXAMPLE_PENDING_FILE = PendingFileUpload(**EXAMPLE_ARCHIVABLE_FILE.model_dump())
-
-# This file data represents an object *before* it has been completely registered.
-#  Note the bucket ID
-EXAMPLE_ACCESSIONED_FILE = AccessionedFileUpload(
-    accession="GHGA001",
-    **EXAMPLE_PENDING_FILE.model_dump(),
-)
+EXAMPLE_ARCHIVABLE_FILE = ArchivableFileUpload(**EXAMPLE_AWAITING_ARCHIVAL.model_dump())

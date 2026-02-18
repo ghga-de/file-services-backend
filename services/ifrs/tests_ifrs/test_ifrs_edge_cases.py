@@ -18,12 +18,10 @@
 import logging
 from datetime import datetime
 from unittest.mock import AsyncMock
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
-from ghga_event_schemas import pydantic_ as event_schemas
 from hexkit.custom_types import JsonObject
-from hexkit.protocols.dao import ResourceNotFoundError
 from hexkit.providers.s3.testutils import (
     FileObject,
     S3Fixture,  # noqa: F401
@@ -31,16 +29,11 @@ from hexkit.providers.s3.testutils import (
 )
 from hexkit.utils import now_utc_ms_prec
 
-from ifrs.core.models import (
-    AccessionMap,
-    FileMetadata,
-    NonStagedFileRequested,
-    PendingFileUpload,
-)
+from ifrs.core.models import FileDeletionRequested, FileMetadata, NonStagedFileRequested
 from ifrs.ports.inbound.file_registry import FileRegistryPort
 from tests_ifrs.fixtures.example_data import (
-    EXAMPLE_ACCESSIONED_FILE,
     EXAMPLE_ARCHIVABLE_FILE,
+    EXAMPLE_AWAITING_ARCHIVAL,
 )
 from tests_ifrs.fixtures.joint import JointFixture
 from tests_ifrs.fixtures.utils import (
@@ -51,26 +44,24 @@ from tests_ifrs.fixtures.utils import (
 
 pytestmark = pytest.mark.asyncio
 
-TEST_ACCESSION = "GHGA00TEST"
+TEST_FILE_ID = UUID("a8470191-77b1-4e74-bf63-e5db3b39e84a")
 TEST_NONSTAGED_FILE_REQUESTED = NonStagedFileRequested(
-    accession=TEST_ACCESSION,
+    file_id=TEST_FILE_ID,
     target_object_id=uuid4(),
-    target_bucket_id="",
-    storage_alias="",
+    target_bucket_id=DOWNLOAD_BUCKET,
+    storage_alias="HD01",
     decrypted_sha256="",
 )
 
 
-TEST_FILE_DELETION_REQUESTED = event_schemas.FileDeletionRequested(
-    file_id=TEST_ACCESSION
-)
+TEST_FILE_DELETION_REQUESTED = FileDeletionRequested(file_id=TEST_FILE_ID)
 
 
 async def test_register_when_file_not_in_interrogation(joint_fixture: JointFixture):
     """Test registration of a file when the file content is missing from the
     interrogation bucket.
     """
-    file = EXAMPLE_ACCESSIONED_FILE.model_copy(update={"id": uuid4()})
+    file = EXAMPLE_ARCHIVABLE_FILE.model_copy(update={"id": uuid4()})
     with pytest.raises(FileRegistryPort.FileNotInInterrogationError):
         await joint_fixture.file_registry.register_file(file=file)
 
@@ -80,19 +71,19 @@ async def test_registration_idempotence(
     tmp_file: FileObject,  # noqa F811
 ):
     """Test the re-registration of a file that has already been registered."""
-    # place example content in the staging bucket:
+    # place example content in the interrogation bucket:
     file_object = tmp_file.model_copy(
         update={
             "bucket_id": INTERROGATION_BUCKET,
-            "object_id": str(EXAMPLE_ACCESSIONED_FILE.id),
+            "object_id": str(EXAMPLE_ARCHIVABLE_FILE.object_id),
         }
     )
     storage_alias = joint_fixture.storage_aliases.node0
     storage = joint_fixture.federated_s3.storages[storage_alias]
     await storage.populate_file_objects([file_object])
 
-    # Get the size of the tmp_file and make the accessioned file object
-    accessioned_file = EXAMPLE_ACCESSIONED_FILE.model_copy(
+    # Get the size of the tmp_file and make the archivable file object
+    archivable_file = EXAMPLE_ARCHIVABLE_FILE.model_copy(
         update={"storage_alias": storage_alias, "encrypted_size": len(tmp_file.content)}
     )
 
@@ -100,11 +91,11 @@ async def test_registration_idempotence(
     async with joint_fixture.kafka.record_events(
         in_topic=joint_fixture.config.file_internally_registered_topic
     ) as recorder:
-        await joint_fixture.file_registry.register_file(file=accessioned_file)
+        await joint_fixture.file_registry.register_file(file=archivable_file)
 
     assert len(recorder.recorded_events) == 1
     event = recorder.recorded_events[0]
-    assert event.payload["file_id"] == str(accessioned_file.id)
+    assert event.payload["file_id"] == str(archivable_file.id)
     archive_date = datetime.fromisoformat(event.payload["archive_date"])
     assert (now_utc_ms_prec() - archive_date).seconds < 5
     assert event.type_ == joint_fixture.config.file_internally_registered_type
@@ -114,7 +105,7 @@ async def test_registration_idempotence(
         events=[],
         in_topic=joint_fixture.config.file_internally_registered_topic,
     ):
-        await joint_fixture.file_registry.register_file(file=accessioned_file)
+        await joint_fixture.file_registry.register_file(file=archivable_file)
 
 
 async def test_reregistration_with_updated_metadata(
@@ -129,7 +120,7 @@ async def test_reregistration_with_updated_metadata(
     file_object = tmp_file.model_copy(
         update={
             "bucket_id": INTERROGATION_BUCKET,
-            "object_id": str(EXAMPLE_ACCESSIONED_FILE.id),
+            "object_id": str(EXAMPLE_ARCHIVABLE_FILE.object_id),
         }
     )
     storage_alias = joint_fixture.storage_aliases.node0
@@ -138,29 +129,29 @@ async def test_reregistration_with_updated_metadata(
 
     # register new file from the interrogation bucket:
     # (And check if an event informing about the new registration has been published.)
-    accessioned_file = EXAMPLE_ACCESSIONED_FILE.model_copy(
+    archivable_file = EXAMPLE_ARCHIVABLE_FILE.model_copy(
         update={"storage_alias": storage_alias, "encrypted_size": len(tmp_file.content)}
     )
 
     async with joint_fixture.kafka.record_events(
         in_topic=joint_fixture.config.file_internally_registered_topic,
     ) as recorder:
-        await joint_fixture.file_registry.register_file(file=accessioned_file)
+        await joint_fixture.file_registry.register_file(file=archivable_file)
 
     assert len(recorder.recorded_events) == 1
     event = recorder.recorded_events[0]
-    assert event.payload["file_id"] == str(accessioned_file.id)
+    assert event.payload["file_id"] == str(archivable_file.id)
     assert event.type_ == joint_fixture.config.file_internally_registered_type
 
     # try to re-register the same file with updated metadata:
     # Check for correct logging
-    file_update = accessioned_file.model_copy(update={"decrypted_size": 4321})
+    file_update = archivable_file.model_copy(update={"decrypted_size": 4321})
 
     caplog.clear()
 
     with caplog.at_level(level=logging.WARNING, logger="ifrs.core.file_registry"):
         expected_message = str(
-            FileRegistryPort.FileUpdateError(file_id=accessioned_file.id)
+            FileRegistryPort.FileUpdateError(file_id=archivable_file.id)
         )
         await joint_fixture.file_registry.register_file(file=file_update)
         assert len(caplog.messages) == 1
@@ -171,15 +162,15 @@ async def test_stage_non_existing_file(joint_fixture: JointFixture, caplog):
     """Check that requesting to stage a non-registered file fails with the expected
     exception.
     """
-    accession = "notregisteredfile001"
-    error = joint_fixture.file_registry.FileNotInRegistryError(accession=accession)
+    file_id = uuid4()
+    error = joint_fixture.file_registry.FileNotInRegistryError(file_id=file_id)
 
     caplog.clear()
     await joint_fixture.file_registry.stage_registered_file(
-        accession=accession,
-        decrypted_sha256=EXAMPLE_ACCESSIONED_FILE.decrypted_sha256,
-        download_object_id=EXAMPLE_ACCESSIONED_FILE.id,
+        file_id=file_id,
+        decrypted_sha256=EXAMPLE_ARCHIVABLE_FILE.decrypted_sha256,
         download_bucket_id=DOWNLOAD_BUCKET,
+        download_object_id=EXAMPLE_ARCHIVABLE_FILE.id,
     )
     assert len(caplog.records) == 1
     record = caplog.records[0]
@@ -198,7 +189,8 @@ async def test_stage_checksum_mismatch(
     file_metadata = FileMetadata(
         archive_date=now_utc_ms_prec(),
         encrypted_size=len(tmp_file.content),
-        **EXAMPLE_ACCESSIONED_FILE.model_dump(exclude={"encrypted_size"}),
+        object_id=uuid4(),
+        **EXAMPLE_ARCHIVABLE_FILE.model_dump(exclude={"encrypted_size", "object_id"}),
     )
     await joint_fixture.file_metadata_dao.insert(file_metadata)
 
@@ -209,7 +201,7 @@ async def test_stage_checksum_mismatch(
     file_object = tmp_file.model_copy(
         update={
             "bucket_id": bucket_id,
-            "object_id": str(file_metadata.id),
+            "object_id": str(file_metadata.object_id),
         }
     )
     await storage.populate_file_objects([file_object])
@@ -218,11 +210,11 @@ async def test_stage_checksum_mismatch(
     #  specify the wrong checksum
     with pytest.raises(FileRegistryPort.ChecksumMismatchError):
         await joint_fixture.file_registry.stage_registered_file(
-            accession=file_metadata.accession,
+            file_id=file_metadata.id,
             decrypted_sha256=(
                 "e6da6d6d05cc057964877aad8a3e9ad712c8abeae279dfa2f89b07eba7ef8abe"
             ),
-            download_object_id=file_metadata.id,
+            download_object_id=file_metadata.object_id,
             download_bucket_id=DOWNLOAD_BUCKET,
         )
 
@@ -235,16 +227,16 @@ async def test_storage_db_inconsistency(joint_fixture: JointFixture):
     # populate the database with metadata on an example file that doesn't exist
     file_metadata = FileMetadata(
         archive_date=now_utc_ms_prec(),
-        **EXAMPLE_ACCESSIONED_FILE.model_dump(),
+        **EXAMPLE_ARCHIVABLE_FILE.model_dump(),
     )
     await joint_fixture.file_metadata_dao.insert(file_metadata)
 
     # request a stage for the registered file by specifying a wrong checksum:
     with pytest.raises(FileRegistryPort.FileInRegistryButNotInStorageError):
         await joint_fixture.file_registry.stage_registered_file(
-            accession=file_metadata.accession,
+            file_id=file_metadata.id,
             decrypted_sha256=file_metadata.decrypted_sha256,
-            download_object_id=file_metadata.id,
+            download_object_id=file_metadata.object_id,
             download_bucket_id=DOWNLOAD_BUCKET,
         )
 
@@ -283,7 +275,7 @@ async def test_event_subscriber_routing(
         payload=event,
         type_=type_,
         topic=topic,
-        key=TEST_ACCESSION,
+        key=str(TEST_FILE_ID),
     )
 
     await joint_fixture.event_subscriber.run(forever=False)
@@ -307,44 +299,27 @@ async def test_handle_file_upload(
 ):
     """Test the behavior of the core's .handle_file_upload() method.
 
-    The ._handle_pending_file_upload() method is only called when the
-    state is "awaiting_archival".
-
-    If the state is "cancelled" or "failed", then it should try to delete the pending
-    file upload data from the database if it exists.
+    The .register_file() method is only called when the state is "awaiting_archival".
 
     In other cases, the data should be ignored (with a log).
     """
     mock = AsyncMock()
-    if state not in ["cancelled", "failed", "awaiting_archival"]:
-        monkeypatch.setattr(
-            joint_fixture.file_registry, "_handle_pending_file_upload", mock
-        )
+    monkeypatch.setattr(joint_fixture.file_registry, "register_file", mock)
 
     # This example model will work for all states, even if it's not "realistic"
-    event = EXAMPLE_ARCHIVABLE_FILE.model_copy(update={"state": state})
+    event = EXAMPLE_AWAITING_ARCHIVAL.model_copy(update={"state": state})
 
     await joint_fixture.kafka.publish_event(
         payload=event.model_dump(mode="json"),
         type_="upserted",
         topic=joint_fixture.config.file_upload_topic,
-        key=str(EXAMPLE_ARCHIVABLE_FILE.id),
+        key=str(EXAMPLE_AWAITING_ARCHIVAL.id),
     )
 
+    await joint_fixture.event_subscriber.run(forever=False)
     if state == "awaiting_archival":
-        await joint_fixture.event_subscriber.run(forever=False)
-        # Verify the pending file is now in the database
-        file = await joint_fixture.pending_file_dao.get_by_id(event.id)
-        assert file.model_dump() == event.model_dump(exclude={"state", "state_updated"})
-    elif state in ["cancelled", "failed"]:
-        # Insert the pending file document so we can verify that it gets removed
-        pending_file = PendingFileUpload(**event.model_dump())
-        await joint_fixture.pending_file_dao.insert(pending_file)
-        await joint_fixture.event_subscriber.run(forever=False)
-        with pytest.raises(ResourceNotFoundError):
-            assert await joint_fixture.pending_file_dao.get_by_id(pending_file.id)
+        mock.assert_awaited()
     else:
-        await joint_fixture.event_subscriber.run(forever=False)
         mock.assert_not_awaited()
 
 
@@ -355,19 +330,23 @@ async def test_error_during_copy_to_download_bucket(
 ):
     """Errors during `object_storage.copy_object` should be logged and re-raised."""
     # Insert FileMetadata record into the DB
+    permanent_object_id = uuid4()
     file_metadata = FileMetadata(
         archive_date=now_utc_ms_prec(),
         encrypted_size=len(tmp_file.content),
+        object_id=permanent_object_id,
         bucket_id=PERMANENT_BUCKET,
-        **EXAMPLE_ACCESSIONED_FILE.model_dump(exclude={"encrypted_size", "bucket_id"}),
+        **EXAMPLE_ARCHIVABLE_FILE.model_dump(
+            exclude={"encrypted_size", "bucket_id", "object_id"}
+        ),
     )
     await joint_fixture.file_metadata_dao.insert(file_metadata)
 
-    # place example content in the interrogation bucket:
+    # place example content in the permanent bucket:
     file_object = tmp_file.model_copy(
         update={
             "bucket_id": PERMANENT_BUCKET,
-            "object_id": str(EXAMPLE_ACCESSIONED_FILE.id),
+            "object_id": str(permanent_object_id),
         }
     )
     storage_alias = joint_fixture.storage_aliases.node0
@@ -379,10 +358,10 @@ async def test_error_during_copy_to_download_bucket(
     caplog.set_level("CRITICAL")
     with pytest.raises(joint_fixture.file_registry.CopyOperationError):
         await joint_fixture.file_registry.stage_registered_file(
-            accession=file_metadata.accession,
+            file_id=file_metadata.id,
             decrypted_sha256=file_metadata.decrypted_sha256,
             download_bucket_id="does-not-exist",
-            download_object_id=file_metadata.id,
+            download_object_id=uuid4(),
         )
 
     # Verify the log message is correct
@@ -394,8 +373,10 @@ async def test_error_during_copy_to_download_bucket(
     )
 
     # Upload the file to the outbox bucket so we trigger ObjectAlreadyExistsError
+    download_object_id = uuid4()
     staged_object = file_object.model_copy(
-        deep=True, update={"bucket_id": DOWNLOAD_BUCKET}
+        deep=True,
+        update={"bucket_id": DOWNLOAD_BUCKET, "object_id": str(download_object_id)},
     )
     await storage.populate_file_objects([staged_object])
 
@@ -403,164 +384,13 @@ async def test_error_during_copy_to_download_bucket(
     caplog.clear()
     caplog.set_level("INFO")
     await joint_fixture.file_registry.stage_registered_file(
-        accession=file_metadata.accession,
+        file_id=file_metadata.id,
         decrypted_sha256=file_metadata.decrypted_sha256,
         download_bucket_id=DOWNLOAD_BUCKET,
-        download_object_id=file_metadata.id,
+        download_object_id=download_object_id,
     )
 
     assert caplog.records
     assert caplog.records[0].getMessage() == (
-        f"File with ID '{file_metadata.id}' is already in the outbox."
+        f"File with ID '{file_metadata.id}' is already in the download bucket."
     )
-
-
-async def test_file_upload_with_stored_accession(
-    joint_fixture: JointFixture,
-    tmp_file: FileObject,  # noqa: F811
-):
-    """Test handling a file upload when the file accession data already exists.
-
-    When a file upload arrives and a matching accession already exists, the file
-    should be immediately registered and archived.
-    """
-    storage_alias = joint_fixture.storage_aliases.node0
-    pending_file = EXAMPLE_ARCHIVABLE_FILE.model_copy(
-        update={"storage_alias": storage_alias, "encrypted_size": len(tmp_file.content)}
-    )
-
-    # Place the file content in the interrogation bucket
-    storage = joint_fixture.federated_s3.storages[storage_alias]
-    file_object = tmp_file.model_copy(
-        update={
-            "bucket_id": INTERROGATION_BUCKET,
-            "object_id": str(pending_file.id),
-        }
-    )
-    await storage.populate_file_objects([file_object])
-
-    # Publish/consume the accession map
-    accession = "GHGA002"
-    accession_map = AccessionMap({accession: pending_file.id})
-    await joint_fixture.kafka.publish_event(
-        payload=accession_map.model_dump(mode="json"),
-        topic=joint_fixture.config.accession_map_topic,
-        type_="upserted",
-        key=str(uuid4()),  # key is the research data upload box ID
-    )
-    await joint_fixture.event_subscriber.run(forever=False)
-
-    # Make sure the accession map is in the database
-    stored_map = await joint_fixture.file_accession_dao.get_by_id(pending_file.id)
-    assert stored_map.accession == accession
-    assert stored_map.file_id == pending_file.id
-
-    # Publish/consume the file upload
-    await joint_fixture.kafka.publish_event(
-        payload=pending_file.model_dump(mode="json"),
-        topic=joint_fixture.config.file_upload_topic,
-        type_="upserted",
-        key=str(pending_file.id),
-    )
-    await joint_fixture.event_subscriber.run(forever=False)
-
-    # Verify the file accession data was removed
-    with pytest.raises(ResourceNotFoundError):
-        await joint_fixture.file_accession_dao.get_by_id(pending_file.id)
-
-    # Verify the content is now in the permanent bucket
-    assert await storage.storage.does_object_exist(
-        bucket_id=file_object.bucket_id, object_id=file_object.object_id
-    )
-
-
-async def test_store_accessions_without_pending_file(joint_fixture: JointFixture):
-    """Test storing accessions when pending file data has not yet been received.
-
-    When an accession arrives before the corresponding file upload data, it should
-    be stored in the database.
-    """
-    # Create an accession map with a file ID that doesn't have pending data yet
-    file_id = uuid4()
-    accession = "GHGA001"
-    accession_map = AccessionMap({accession: file_id})
-
-    # Store the accessions
-    await joint_fixture.file_registry.handle_accession_map(accession_map=accession_map)
-
-    # Verify the accession was stored in the file_accession_dao
-    stored_accession = await joint_fixture.file_accession_dao.get_by_id(file_id)
-    assert stored_accession.file_id == file_id
-    assert stored_accession.accession == accession
-
-    # Verify no file metadata was created (file not registered yet)
-    with pytest.raises(ResourceNotFoundError):
-        await joint_fixture.file_metadata_dao.get_by_id(file_id)
-
-
-async def test_store_accessions_with_pending_file(
-    joint_fixture: JointFixture,
-    tmp_file: FileObject,  # noqa: F811
-):
-    """Test storing accessions when pending file data already exists.
-
-    When an accession arrives and a matching pending file upload already exists,
-    the file should be immediately registered and archived.
-    """
-    # Create a pending file upload
-    accession = "GHGA002"
-    storage_alias = joint_fixture.storage_aliases.node0
-    pending_file = EXAMPLE_ARCHIVABLE_FILE.model_copy(
-        update={"storage_alias": storage_alias, "encrypted_size": len(tmp_file.content)}
-    )
-
-    # Place the file content in the interrogation bucket
-    storage = joint_fixture.federated_s3.storages[storage_alias]
-    file_object = tmp_file.model_copy(
-        update={
-            "bucket_id": INTERROGATION_BUCKET,
-            "object_id": str(pending_file.id),
-        }
-    )
-    await storage.populate_file_objects([file_object])
-
-    # Store the pending file in the database
-    await joint_fixture.kafka.publish_event(
-        payload=pending_file.model_dump(mode="json"),
-        topic=joint_fixture.config.file_upload_topic,
-        type_="upserted",
-        key=str(pending_file.id),
-    )
-    await joint_fixture.event_subscriber.run(forever=False)
-
-    # Create accession map
-    accession_map = AccessionMap({accession: pending_file.id})
-    await joint_fixture.kafka.publish_event(
-        payload=accession_map.model_dump(mode="json"),
-        topic=joint_fixture.config.accession_map_topic,
-        type_="upserted",
-        key=str(uuid4()),  # key is the research data upload box ID
-    )
-
-    # Store the accessions and expect a file registration event
-    async with joint_fixture.kafka.record_events(
-        in_topic=joint_fixture.config.file_internally_registered_topic
-    ) as recorder:
-        await joint_fixture.event_subscriber.run(forever=False)
-
-    # Verify the file was registered (metadata exists)
-    file_metadata = await joint_fixture.file_metadata_dao.get_by_id(pending_file.id)
-    assert file_metadata.id == pending_file.id
-    assert file_metadata.accession == accession
-    assert file_metadata.bucket_id == PERMANENT_BUCKET
-
-    # Verify the file registration event was published
-    assert len(recorder.recorded_events) == 1
-    event = recorder.recorded_events[0]
-    assert event.type_ == joint_fixture.config.file_internally_registered_type
-    assert event.payload["file_id"] == str(pending_file.id)
-    assert event.payload["accession"] == accession
-
-    # Verify the pending file data was removed
-    with pytest.raises(ResourceNotFoundError):
-        await joint_fixture.pending_file_dao.get_by_id(pending_file.id)

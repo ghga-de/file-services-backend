@@ -127,21 +127,6 @@ The service requires the following configuration parameters:
   ```
 
 
-- <a id="properties/accession_map_topic"></a>**`accession_map_topic`** *(string, required)*: The name of the topic used for file accession map events.
-
-
-  Examples:
-
-  ```json
-  "accession-maps"
-  ```
-
-
-  ```json
-  "file-accession-maps"
-  ```
-
-
 - <a id="properties/file_internally_registered_topic"></a>**`file_internally_registered_topic`** *(string, required)*: Name of the topic used for events indicating that a file has been registered for download.
 
 

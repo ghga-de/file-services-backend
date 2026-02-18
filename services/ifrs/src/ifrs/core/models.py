@@ -15,10 +15,10 @@
 
 """Defines dataclasses for holding business-logic data"""
 
-from typing import Annotated, Literal
+from typing import Literal
 
 from ghga_service_commons.utils.utc_dates import UTCDatetime
-from pydantic import UUID4, BaseModel, ConfigDict, Field, RootModel, StringConstraints
+from pydantic import UUID4, BaseModel, ConfigDict, Field
 
 FileUploadState = Literal[
     "init",
@@ -41,6 +41,9 @@ class CoreFileMetadata(BaseModel):
     bucket_id: str = Field(
         default=...,
         description="The name of the bucket where the file is currently stored",
+    )
+    object_id: UUID4 = Field(
+        ..., description="The ID of the file specific to its S3 bucket."
     )
     decrypted_size: int = Field(..., description="The size of the unencrypted file")
     part_size: int = Field(
@@ -79,9 +82,9 @@ class FileUpload(CoreFileMetadata):
     )
 
 
-class PendingFileUpload(CoreFileMetadata):
+class ArchivableFileUpload(CoreFileMetadata):
     """A view of a FileUpload event which contains all the information necessary to
-    archive a file, minus the accession.
+    archive a file
     """
 
     secret_id: str = Field(
@@ -102,35 +105,11 @@ class PendingFileUpload(CoreFileMetadata):
     )
 
 
-Accession = Annotated[str, StringConstraints(pattern=r"^GHGA.+")]
-
-AccessionMap = RootModel[dict[Accession, UUID4]]
-
-
-class AccessionedFileUpload(PendingFileUpload):
-    """PendingFileUpload data plus an accession number"""
-
-    accession: Accession = Field(
-        default=..., description="The accession number assigned to this file."
-    )
-
-
-class FileMetadata(AccessionedFileUpload):
-    """An AccessionedFileUpload with an archival timestamp"""
+class FileMetadata(ArchivableFileUpload):
+    """An ArchivableFileUpload with an archival timestamp"""
 
     archive_date: UTCDatetime = Field(
         default=..., description="The date and time when this file was archived."
-    )
-
-
-class FileIdToAccession(BaseModel):
-    """A class used to tie a file ID to an accession number"""
-
-    file_id: UUID4 = Field(
-        default=..., description="Unique identifier for the file upload"
-    )
-    accession: Accession = Field(
-        default=..., description="The accession number assigned to this file."
     )
 
 
@@ -142,9 +121,6 @@ class FileInternallyRegistered(BaseModel):
     """
 
     file_id: UUID4 = Field(..., description="Unique identifier for the file upload")
-    accession: Accession = Field(
-        default=..., description="The accession number assigned to this file."
-    )
     archive_date: UTCDatetime = Field(
         ...,
         description="The date and time when this file was archived.",
@@ -187,21 +163,43 @@ class NonStagedFileRequested(BaseModel):
     once implemented there.
     """
 
-    accession: Accession = Field(
-        default=..., description="The accession number assigned to this file."
-    )
+    file_id: UUID4 = Field(..., description="Unique identifier for the file upload")
     storage_alias: str = Field(
         default=..., description="The storage alias of the Data Hub housing the file"
-    )
-    target_object_id: UUID4 = Field(
-        ..., description="The ID of the file in the specific S3 bucket."
     )
     target_bucket_id: str = Field(
         ...,
         description="The ID/name of the S3 bucket in which the object was expected.",
+    )
+    target_object_id: UUID4 = Field(
+        ..., description="The ID to use for the file in the download bucket."
     )
     decrypted_sha256: str = Field(
         ...,
         description="The SHA-256 checksum of the entire decrypted file content.",
     )
     model_config = ConfigDict(title="non_staged_file_requested")
+
+
+class FileDeletionRequested(BaseModel):
+    """
+    This event is emitted when a request to delete a certain file from the file
+    backend has been made.
+
+    This local definition will be replaced by the `ghga-event-schemas` definition
+    once implemented there.
+    """
+
+    file_id: UUID4 = Field(..., description="Unique identifier for the file")
+
+
+class FileDeletionSuccess(BaseModel):
+    """
+    This event is emitted when a service has deleted a file from its database as well
+    as the S3 buckets it controls.
+
+    This local definition will be replaced by the `ghga-event-schemas` definition
+    once implemented there.
+    """
+
+    file_id: UUID4 = Field(..., description="Unique identifier for the file")

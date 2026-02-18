@@ -90,10 +90,8 @@ class FileRegistryPort(ABC):
     class FileNotInRegistryError(InvalidRequestError):
         """Thrown when a file is requested that has not (yet) been registered."""
 
-        def __init__(self, accession: str):
-            message = (
-                f"No file with the accession '{accession}' has yet been registered."
-            )
+        def __init__(self, file_id: UUID4):
+            message = f"No file with the ID '{file_id}' has yet been registered."
             super().__init__(message)
 
     class FileInRegistryButNotInStorageError(FatalError):
@@ -119,7 +117,7 @@ class FileRegistryPort(ABC):
             super().__init__(message)
 
     @abstractmethod
-    async def register_file(self, *, file: models.AccessionedFileUpload) -> None:
+    async def register_file(self, *, file: models.ArchivableFileUpload) -> None:
         """Registers a file and moves its content from the interrogation bucket into
         permanent storage. If the file with that exact metadata has already been
         registered, nothing is done.
@@ -142,7 +140,7 @@ class FileRegistryPort(ABC):
     async def stage_registered_file(
         self,
         *,
-        accession: str,
+        file_id: UUID4,
         decrypted_sha256: str,
         download_object_id: UUID4,
         download_bucket_id: str,
@@ -150,13 +148,13 @@ class FileRegistryPort(ABC):
         """Stage a registered file to the download bucket.
 
         Args:
-            accession:
-                The accession number assigned to the file.
+            file_id:
+                The unique identifier for the file that needs to be staged.
             decrypted_sha256:
                 The checksum of the decrypted content. This is used to make sure that
                 this service and the outside client are talking about the same file.
             download_object_id:
-                The UUID4 S3 object ID for the download bucket.
+                The UUID4 object ID to use when copying the file to the download bucket.
             download_bucket_id:
                 The S3 bucket ID for the download bucket.
 
@@ -173,23 +171,14 @@ class FileRegistryPort(ABC):
         """
         ...
 
-    # TODO: Change accession to file ID and commit to context boundary
     @abstractmethod
-    async def delete_file(self, *, accession: str) -> None:
+    async def delete_file(self, *, file_id: UUID4) -> None:
         """Deletes a file from the permanent storage and the internal database.
-        If no file with that accession exists, do nothing.
+        If no file with that ID exists, do nothing.
 
         Args:
-            accession:
-                The accession number of the file that needs to be deleted.
-        """
-        ...
-
-    @abstractmethod
-    async def handle_accession_map(self, *, accession_map: models.AccessionMap) -> None:
-        """Handle an accession map by storing it in the database and, if possible,
-        archiving files for which the corresponding File Upload data has already
-        been received.
+            file_id:
+                The unique identifier for the file that needs to be deleted.
         """
         ...
 

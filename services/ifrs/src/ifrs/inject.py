@@ -28,7 +28,6 @@ from hexkit.providers.mongodb import MongoDbDaoFactory
 from hexkit.providers.mongokafka import PersistentKafkaPublisher
 
 from ifrs.adapters.inbound.event_sub import (
-    AccessionMapOutboxTranslator,
     EventSubTranslator,
     FileUploadOutboxTranslator,
 )
@@ -76,15 +75,11 @@ async def prepare_core(*, config: Config) -> AsyncGenerator[FileRegistryPort]:
         ) as persistent_kafka_publisher,
     ):
         file_metadata_dao = await dao.get_file_dao(dao_factory=dao_factory)
-        file_accession_dao = await dao.get_file_accession_dao(dao_factory=dao_factory)
-        pending_file_dao = await dao.get_pending_file_dao(dao_factory=dao_factory)
         event_publisher = EventPubTranslator(
             config=config, provider=persistent_kafka_publisher
         )
         file_registry = FileRegistry(
             file_metadata_dao=file_metadata_dao,
-            file_accession_dao=file_accession_dao,
-            pending_file_dao=pending_file_dao,
             event_publisher=event_publisher,
             object_storages=object_storages,
             config=config,
@@ -120,14 +115,10 @@ async def prepare_event_subscriber(
         file_upload_outbox_translator = FileUploadOutboxTranslator(
             config=config, file_registry=file_registry
         )
-        accession_map_outbox_translator = AccessionMapOutboxTranslator(
-            config=config, file_registry=file_registry
-        )
         translator = ComboTranslator(
             translators=[
                 event_sub_translator,
                 file_upload_outbox_translator,
-                accession_map_outbox_translator,
             ]
         )
         async with (

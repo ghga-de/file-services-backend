@@ -15,13 +15,13 @@
 
 """Adapter for publishing events to other services."""
 
-from ghga_event_schemas import pydantic_ as event_schemas
 from ghga_event_schemas.configs import (
     FileDeletedEventsConfig,
     FileInternallyRegisteredEventsConfig,
     FileStagedEventsConfig,
 )
 from hexkit.protocols.eventpub import EventPublisherProtocol
+from pydantic import UUID4
 
 from ifrs.constants import TRACER
 from ifrs.core import models
@@ -53,7 +53,6 @@ class EventPubTranslator(EventPublisherPort):
         """Communicates the event that a new file has been internally registered."""
         payload = models.FileInternallyRegistered(
             file_id=file.id,
-            accession=file.accession,
             archive_date=file.archive_date,
             storage_alias=file.storage_alias,
             bucket_id=file.bucket_id,
@@ -74,13 +73,13 @@ class EventPubTranslator(EventPublisherPort):
         )
 
     @TRACER.start_as_current_span("EventPubTranslator.file_deleted")
-    async def file_deleted(self, *, accession: str) -> None:
+    async def file_deleted(self, *, file_id: UUID4) -> None:
         """Communicates the event that a file has been successfully deleted."""
-        payload = event_schemas.FileDeletionSuccess(file_id=accession)
+        payload = models.FileDeletionSuccess(file_id=file_id)
 
         await self._provider.publish(
-            payload=payload.model_dump(),
+            payload=payload.model_dump(mode="json"),
             type_=self._config.file_deleted_type,
             topic=self._config.file_deleted_topic,
-            key=accession,
+            key=str(file_id),
         )

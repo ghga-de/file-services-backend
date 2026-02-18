@@ -15,11 +15,13 @@
 
 """Test to make sure that the DLQ is correctly set up for this service."""
 
+from uuid import uuid4
+
 import pytest
-from ghga_event_schemas import pydantic_ as event_schemas
 from hexkit.providers.akafka.testutils import KafkaFixture
 from hexkit.providers.mongodb.testutils import MongoDbFixture
 
+from ifrs.core.models import FileDeletionRequested
 from ifrs.inject import prepare_event_subscriber
 from tests_ifrs.fixtures.config import get_config
 
@@ -54,7 +56,7 @@ async def test_consume_from_retry(kafka: KafkaFixture, mongodb: MongoDbFixture):
     config = get_config(sources=[kafka.config, mongodb.config], kafka_enable_dlq=True)
     assert config.kafka_enable_dlq
 
-    payload = event_schemas.FileDeletionRequested(file_id="123")
+    payload = FileDeletionRequested(file_id=uuid4())
 
     # Publish an event with a proper payload to a topic/type this service expects
     await kafka.publish_event(
