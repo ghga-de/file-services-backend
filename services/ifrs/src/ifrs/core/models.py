@@ -169,7 +169,7 @@ class NonStagedFileRequested(BaseModel):
     )
     target_bucket_id: str = Field(
         ...,
-        description="The ID/name of the S3 bucket in which the object was expected.",
+        description="The ID of the S3 bucket to which the object should be copied.",
     )
     target_object_id: UUID4 = Field(
         ..., description="The ID to use for the file in the download bucket."

@@ -372,7 +372,7 @@ async def test_error_during_copy_to_download_bucket(
         + " with ID 'does-not-exist' does not exist."
     )
 
-    # Upload the file to the outbox bucket so we trigger ObjectAlreadyExistsError
+    # Upload the file to the download bucket so we trigger ObjectAlreadyExistsError
     download_object_id = uuid4()
     staged_object = file_object.model_copy(
         deep=True,
