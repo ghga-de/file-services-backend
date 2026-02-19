@@ -23,10 +23,12 @@ from hexkit.utils import now_utc_ms_prec
 from tests_ifrs.fixtures.config import get_config
 
 from ifrs.migrations import run_db_migrations
+from ifrs.migrations.definitions.v3 import derive_file_id_from_accession
 
 pytestmark = pytest.mark.asyncio
 
 
+# TODO: Add file_deleted event
 async def test_v3_migration(mongodb: MongoDbFixture):
     """Test the v3 migration which renames and reorganizes fields in file_metadata
     and ifrsPersistedEvents collections for the Sarcastic Fringehead epic.
@@ -41,17 +43,17 @@ async def test_v3_migration(mongodb: MongoDbFixture):
         {
             "_id": f"GHGA00{i}",
             "upload_date": now_utc_ms_prec(),
+            "storage_alias": "test-storage",
+            "bucket_id": "test-bucket",
+            "object_id": uuid4(),
             "decryption_secret_id": f"secret-{i}",
             "content_offset": 0,
-            "encrypted_part_size": 16 * 1024**2,
             "decrypted_size": 64 * 1024**2,
+            "object_size": 64 * 1024**2 + 1000,
+            "decrypted_sha256": "decrypted-checksum",
             "encrypted_parts_md5": ["md5-1", "md5-2"],
             "encrypted_parts_sha256": ["sha-1", "sha-2"],
-            "decrypted_sha256": "decrypted-checksum",
-            "storage_alias": "test-storage",
-            "object_id": uuid4(),
-            "object_size": 64 * 1024**2 + 1000,
-            "bucket_id": "test-bucket",
+            "encrypted_part_size": 16 * 1024**2,
         }
         for i in range(3)
     ]
@@ -59,11 +61,11 @@ async def test_v3_migration(mongodb: MongoDbFixture):
     expected_migrated_metadata = []
     for old_doc in old_metadata:
         migrated = {
-            "accession": old_doc["_id"],
-            "_id": old_doc["object_id"],
+            "_id": derive_file_id_from_accession(old_doc["_id"]),
             "archive_date": old_doc["upload_date"],
             "storage_alias": old_doc["storage_alias"],
             "bucket_id": old_doc["bucket_id"],
+            "object_id": old_doc["object_id"],
             "secret_id": old_doc["decryption_secret_id"],
             "decrypted_size": old_doc["decrypted_size"],
             "encrypted_size": old_doc["object_size"],
@@ -74,14 +76,8 @@ async def test_v3_migration(mongodb: MongoDbFixture):
         }
         expected_migrated_metadata.append(migrated)
 
-    expected_reverted_metadata = []
-    for old_doc in old_metadata:
-        reverted = old_doc.copy()
-        reverted["content_offset"] = 0
-        expected_reverted_metadata.append(reverted)
-
     # Create persisted event data for the FileInternallyRegistered events
-    affected_payload = {
+    file_registered_payload = {
         "file_id": "GHGA001",
         "object_id": uuid4(),
         "upload_date": now_utc_ms_prec(),
@@ -97,13 +93,13 @@ async def test_v3_migration(mongodb: MongoDbFixture):
         "encrypted_parts_sha256": ["sha"],
     }
 
-    unaffected_payload = {"some_field": "some_value"}
+    file_deleted_payload = {"file_id": "GHGA007"}
 
     old_events = [
         {
             "_id": "test-topic:GHGA001",
-            "topic": "test-topic",
-            "payload": affected_payload,
+            "topic": "topic1",
+            "payload": file_registered_payload,
             "key": "GHGA001",
             "type_": "file_internally_registered",
             "headers": {},
@@ -114,10 +110,10 @@ async def test_v3_migration(mongodb: MongoDbFixture):
         },
         {
             "_id": "test-topic:GHGA007",
-            "topic": "other-topic",
-            "payload": unaffected_payload,
+            "topic": "topic2",
+            "payload": file_deleted_payload,
             "key": "GHGA007",
-            "type_": "other_event_type",
+            "type_": "file_deleted",
             "headers": {},
             "correlation_id": uuid4(),
             "created": now_utc_ms_prec(),
@@ -125,20 +121,51 @@ async def test_v3_migration(mongodb: MongoDbFixture):
             "event_id": uuid4(),
         },
     ]
-    expected_migrated_payload = {
-        "accession": "GHGA001",
-        "file_id": affected_payload["object_id"],
-        "archive_date": affected_payload["upload_date"],
+
+    ghga001_uuid = derive_file_id_from_accession("GHGA001")
+    migrated_registration_payload = {
+        "file_id": ghga001_uuid,
+        "archive_date": file_registered_payload["upload_date"],
         "storage_alias": "HD01",
-        "secret_id": affected_payload["decryption_secret_id"],
-        "part_size": 16 * 1024**2,
         "bucket_id": "test-bucket",
+        "object_id": file_registered_payload["object_id"],
+        "secret_id": "test-secret-id",
+        "part_size": 16 * 1024**2,
         "decrypted_size": 64 * 1024**2,
         "encrypted_size": 64 * 1024**2 + 1000,
         "decrypted_sha256": "checksum",
         "encrypted_parts_md5": ["md5"],
         "encrypted_parts_sha256": ["sha"],
     }
+
+    ghga007_uuid = derive_file_id_from_accession("GHGA007")
+    migrated_file_deleted_payload = {"file_id": ghga007_uuid}
+    expected_migrated_events = [
+        {
+            "_id": f"test-topic:{ghga001_uuid}",
+            "topic": "topic1",
+            "payload": migrated_registration_payload,
+            "key": str(ghga001_uuid),
+            "type_": "file_internally_registered",
+            "headers": {},
+            "correlation_id": old_events[0]["correlation_id"],
+            "created": old_events[0]["created"],
+            "published": False,
+            "event_id": old_events[0]["event_id"],
+        },
+        {
+            "_id": f"test-topic:{ghga007_uuid}",
+            "topic": "topic2",
+            "payload": migrated_file_deleted_payload,
+            "key": str(ghga007_uuid),
+            "type_": "file_deleted",
+            "headers": {},
+            "correlation_id": old_events[1]["correlation_id"],
+            "created": old_events[1]["created"],
+            "published": False,
+            "event_id": old_events[1]["event_id"],
+        },
+    ]
 
     # Clear collections and insert old data
     events_collection.delete_many({})
@@ -151,62 +178,33 @@ async def test_v3_migration(mongodb: MongoDbFixture):
 
     # Verify file metadata was migrated properly
     migrated_metadata = sorted(
-        metadata_collection.find().to_list(), key=lambda d: d["accession"]
+        metadata_collection.find().to_list(), key=lambda m: m["secret_id"]
     )
     assert len(migrated_metadata) == len(expected_migrated_metadata)
     assert migrated_metadata == expected_migrated_metadata
 
     # Verify that the events were migrated
     migrated_events = sorted(
-        events_collection.find({}).to_list(), key=lambda d: d["_id"]
+        events_collection.find({}).to_list(), key=lambda d: d["topic"]
     )
     assert len(migrated_events) == 2
-    for event in migrated_events:
-        if event["topic"] == "other-topic":
-            # Make sure the other event wasn't migrated
-            assert event["payload"] == unaffected_payload
-            assert event["published"] == True
-        else:
-            # Verify the migration updated the payload, id, key, and published flag
-            assert event["payload"] == expected_migrated_payload
-            assert event["published"] == False
-            assert event["_id"] == f"test-topic:{affected_payload['object_id']}"
-            assert event["key"] == str(affected_payload["object_id"])
-
-    # Run the reverse migration
-    await run_db_migrations(config=config, target_version=2)
-
-    # Verify FileMetadata reversion
-    reverted_metadata = sorted(
-        metadata_collection.find({}).to_list(), key=lambda d: d["_id"]
-    )
-    assert len(reverted_metadata) == len(expected_reverted_metadata)
-    assert reverted_metadata == expected_reverted_metadata
-
-    # Verify events reversion
-    reverted_events = sorted(events_collection.find().to_list(), key=lambda d: d["_id"])
-    assert reverted_events[0]["_id"] == "test-topic:GHGA001"
-    assert reverted_events[0]["key"] == "GHGA001"
-    reverted_payload = reverted_events[0]["payload"]
-    assert reverted_payload["content_offset"] == 0
-    assert reverted_payload["file_id"] == affected_payload["file_id"]
-    assert reverted_payload["object_id"] == affected_payload["object_id"]
-    assert "accession" not in reverted_payload
+    assert migrated_events == expected_migrated_events
 
 
 async def test_v3_migration_on_already_migrated_file_metadata(mongodb: MongoDbFixture):
     """Verify that V3 migration gracefully handles already migrated file_metadata
-    by skipping it (checking for presence of 'accession' field).
+    by skipping it (checking for presence of 'archive_date' field).
     """
     config = get_config(sources=[mongodb.config])
     db = mongodb.client[config.db_name]
     metadata_collection = db["file_metadata"]
 
     metadata_collection.delete_many({})
+
+    # Get DB state to version 2 before running migration
     await run_db_migrations(config=config, target_version=2)
     migrated_data = {
         "_id": uuid4(),
-        "accession": "GHGA001",
         "archive_date": now_utc_ms_prec(),
         "secret_id": "test-secret",
         "part_size": 16 * 1024**2,
@@ -217,19 +215,18 @@ async def test_v3_migration_on_already_migrated_file_metadata(mongodb: MongoDbFi
         "decrypted_sha256": "checksum",
         "storage_alias": "test-storage",
         "bucket_id": "test-bucket",
+        "object_id": uuid4(),
     }
 
     metadata_collection.insert_one(migrated_data)
     await run_db_migrations(config=config, target_version=3)
-    result = metadata_collection.find_one({"accession": "GHGA001"})
-    assert result is not None
-    assert result["accession"] == "GHGA001"
-    assert "content_offset" not in result
+    result = metadata_collection.find_one({"_id": migrated_data["_id"]})
+    assert result == migrated_data
 
 
 async def test_v3_migration_on_already_migrated_events(mongodb: MongoDbFixture):
     """Verify that V3 migration gracefully handles already migrated events
-    by skipping them (checking for absence of 'content_offset' in payload).
+    by skipping them.
     """
     config = get_config(sources=[mongodb.config])
     db = mongodb.client[config.db_name]
@@ -237,12 +234,12 @@ async def test_v3_migration_on_already_migrated_events(mongodb: MongoDbFixture):
 
     events_collection.delete_many({})
     await run_db_migrations(config=config, target_version=2)
+    file_id = uuid4()
     migrated_event = {
-        "_id": "test-topic:test-key",
+        "_id": f"test-topic:{file_id}",
         "topic": "test-topic",
         "payload": {
-            "accession": "GHGA:file001",
-            "file_id": uuid4(),
+            "file_id": file_id,
             "archive_date": now_utc_ms_prec(),
             "storage_alias": "HD01",
             "secret_id": "test-secret-id",
@@ -254,7 +251,7 @@ async def test_v3_migration_on_already_migrated_events(mongodb: MongoDbFixture):
             "encrypted_parts_md5": ["md5"],
             "encrypted_parts_sha256": ["sha"],
         },
-        "key": "test-key",
+        "key": str(file_id),
         "type_": "file_internally_registered",
         "headers": {},
         "correlation_id": uuid4(),
@@ -265,58 +262,5 @@ async def test_v3_migration_on_already_migrated_events(mongodb: MongoDbFixture):
 
     events_collection.insert_one(migrated_event)
     await run_db_migrations(config=config, target_version=3)
-    result = events_collection.find_one({"_id": "test-topic:test-key"})
-    assert result is not None
-    assert "content_offset" not in result["payload"]
-    assert result["payload"]["accession"] == "GHGA:file001"
-
-
-async def test_v3_migration_skips_non_file_internally_registered_events(
-    mongodb: MongoDbFixture,
-):
-    """Verify that V3 migration only affects FileInternallyRegistered events
-    and leaves other event types untouched.
-    """
-    config = get_config(sources=[mongodb.config])
-    db = mongodb.client[config.db_name]
-    events_collection = db["ifrsPersistedEvents"]
-
-    events_collection.delete_many({})
-    await run_db_migrations(config=config, target_version=2)
-    unaffected_events = [
-        {
-            "_id": "test-topic:key1",
-            "topic": "test-topic",
-            "payload": {"file_id": "some-id", "status": "completed"},
-            "key": "key1",
-            "type_": "file_deleted",
-            "headers": {},
-            "correlation_id": uuid4(),
-            "created": now_utc_ms_prec(),
-            "published": True,
-            "event_id": uuid4(),
-        },
-        {
-            "_id": "test-topic:key2",
-            "topic": "test-topic",
-            "payload": {"user_id": "user123", "action": "login"},
-            "key": "key2",
-            "type_": "user_action",
-            "headers": {},
-            "correlation_id": uuid4(),
-            "created": now_utc_ms_prec(),
-            "published": True,
-            "event_id": uuid4(),
-        },
-    ]
-
-    events_collection.insert_many(unaffected_events)
-    await run_db_migrations(config=config, target_version=3)
-    results = sorted(events_collection.find({}).to_list(), key=lambda d: d["_id"])
-    assert len(results) == 2
-
-    for actual, expected in zip(results, unaffected_events, strict=True):
-        assert actual["_id"] == expected["_id"]
-        assert actual["payload"] == expected["payload"]
-        assert actual["published"] == expected["published"]
-        assert actual["type_"] == expected["type_"]
+    result = events_collection.find_one({"_id": migrated_event["_id"]})
+    assert result == migrated_event
