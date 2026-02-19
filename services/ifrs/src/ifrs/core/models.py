@@ -181,6 +181,16 @@ class NonStagedFileRequested(BaseModel):
     model_config = ConfigDict(title="non_staged_file_requested")
 
 
+class FileStagedForDownload(NonStagedFileRequested):
+    """This event type is triggered when a file is staged to the download bucket.
+
+    This local definition will be replaced by the `ghga-event-schemas` definition
+    once implemented there.
+    """
+
+    model_config = ConfigDict(title="file_staged_for_download")
+
+
 class FileDeletionRequested(BaseModel):
     """
     This event is emitted when a request to delete a certain file from the file

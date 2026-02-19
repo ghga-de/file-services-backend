@@ -314,6 +314,13 @@ class FileRegistry(FileRegistryPort):
             )
             raise obj_error from exc
 
+        await self._event_publisher.file_staged_for_download(
+            file_id=file_id,
+            storage_alias=file.storage_alias,
+            target_bucket_id=download_bucket_id,
+            target_object_id=download_object_id,
+            decrypted_sha256=file.decrypted_sha256,
+        )
         log.info(
             "File with ID '%s' has been staged to the download bucket with"
             + " the object ID '%s'.",

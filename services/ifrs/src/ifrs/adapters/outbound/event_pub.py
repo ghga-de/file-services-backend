@@ -83,3 +83,29 @@ class EventPubTranslator(EventPublisherPort):
             topic=self._config.file_deleted_topic,
             key=str(file_id),
         )
+
+    @TRACER.start_as_current_span("EventPubTranslator.file_staged_for_download")
+    async def file_staged_for_download(
+        self,
+        *,
+        file_id: UUID4,
+        storage_alias: str,
+        target_bucket_id: str,
+        target_object_id: UUID4,
+        decrypted_sha256: str,
+    ) -> None:
+        """Communicates the event that a file has been staged for download."""
+        payload = models.FileStagedForDownload(
+            file_id=file_id,
+            storage_alias=storage_alias,
+            target_bucket_id=target_bucket_id,
+            target_object_id=target_object_id,
+            decrypted_sha256=decrypted_sha256,
+        )
+
+        await self._provider.publish(
+            payload=payload.model_dump(mode="json"),
+            type_=self._config.file_staged_type,
+            topic=self._config.file_staged_topic,
+            key=str(file_id),
+        )

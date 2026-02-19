@@ -95,14 +95,28 @@ async def test_happy_journey(
         object_id=str(stored_metadata.object_id),
     )
 
-    # request a stage to the download bucket:
+    # request a stage to the download bucket and check for the "file staged" event:
     download_object_id = uuid4()
-    await joint_fixture.file_registry.stage_registered_file(
-        file_id=archivable_file.id,
-        decrypted_sha256=archivable_file.decrypted_sha256,
-        download_object_id=download_object_id,
-        download_bucket_id=DOWNLOAD_BUCKET,
-    )
+    async with joint_fixture.kafka.record_events(
+        in_topic=joint_fixture.config.file_staged_topic,
+    ) as recorder:
+        await joint_fixture.file_registry.stage_registered_file(
+            file_id=archivable_file.id,
+            decrypted_sha256=archivable_file.decrypted_sha256,
+            download_object_id=download_object_id,
+            download_bucket_id=DOWNLOAD_BUCKET,
+        )
+    events = recorder.recorded_events
+    assert len(events) == 1
+    assert events[0].type_ == joint_fixture.config.file_staged_type
+    assert events[0].key == str(archivable_file.id)
+    assert events[0].payload == {
+        "file_id": events[0].key,
+        "storage_alias": storage_alias,
+        "target_bucket_id": DOWNLOAD_BUCKET,
+        "target_object_id": str(download_object_id),
+        "decrypted_sha256": archivable_file.decrypted_sha256,
+    }
 
     # check that the file content is now in all three storage entities:
     assert await storage.storage.does_object_exist(

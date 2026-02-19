@@ -34,3 +34,16 @@ class EventPublisherPort(ABC):
     async def file_deleted(self, *, file_id: UUID4) -> None:
         """Communicates the event that a file has been successfully deleted."""
         ...
+
+    @abstractmethod
+    async def file_staged_for_download(
+        self,
+        *,
+        file_id: UUID4,
+        storage_alias: str,
+        target_bucket_id: str,
+        target_object_id: UUID4,
+        decrypted_sha256: str,
+    ) -> None:
+        """Communicates the event that a file has been staged for download"""
+        ...
