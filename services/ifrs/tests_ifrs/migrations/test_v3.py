@@ -28,6 +28,7 @@ from ifrs.migrations.definitions.v3 import derive_file_id_from_accession
 pytestmark = pytest.mark.asyncio
 
 
+# TODO: Add file_deleted event
 async def test_v3_migration(mongodb: MongoDbFixture):
     """Test the v3 migration which renames and reorganizes fields in file_metadata
     and ifrsPersistedEvents collections for the Sarcastic Fringehead epic.
