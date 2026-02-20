@@ -32,7 +32,6 @@ from uuid import UUID
 
 import httpx
 import pytest_asyncio
-from ghga_event_schemas import pydantic_ as event_schemas
 from ghga_service_commons.api.testing import AsyncTestClient
 from ghga_service_commons.utils import utc_dates
 from ghga_service_commons.utils.multinode_storage import (
@@ -75,9 +74,9 @@ EXAMPLE_FILE = models.AccessTimeDrsObject(
     decrypted_sha256="0677de3685577a06862f226bb1bfa8f889e96e59439d915543929fb4f011d096",
     creation_date=now_utc_ms_prec(),
     decrypted_size=12345,
-    decryption_secret_id="some-secret",
+    secret_id="some-secret",
     encrypted_size=23456,
-    s3_endpoint_alias=STORAGE_ALIAS,
+    storage_alias=STORAGE_ALIAS,
     last_accessed=now_utc_ms_prec(),
 )
 
@@ -190,20 +189,18 @@ async def populated_fixture(
 ) -> AsyncGenerator[PopulatedFixture]:
     """Prepopulate state for an existing DRS object"""
     # publish an event to register a new file for download:
-    file_to_register_event = event_schemas.FileInternallyRegistered(
-        s3_endpoint_alias=joint_fixture.endpoint_aliases.valid_node,
-        file_id=EXAMPLE_FILE.file_id,
-        object_id=EXAMPLE_FILE.object_id,
+    file_to_register_event = models.FileInternallyRegistered(
+        file_id=EXAMPLE_FILE.object_id,
+        storage_alias=joint_fixture.endpoint_aliases.valid_node,
         bucket_id=joint_fixture.bucket_id,
-        upload_date=EXAMPLE_FILE.creation_date,
+        archive_date=EXAMPLE_FILE.creation_date,
         decrypted_size=EXAMPLE_FILE.decrypted_size,
         decrypted_sha256=EXAMPLE_FILE.decrypted_sha256,
         encrypted_size=1234567,
-        encrypted_part_size=1,
+        part_size=1,
         encrypted_parts_md5=["some", "checksum"],
         encrypted_parts_sha256=["some", "checksum"],
-        content_offset=1234,
-        decryption_secret_id="some-secret",
+        secret_id="some-secret",
     )
 
     await joint_fixture.kafka.publish_event(
@@ -225,12 +222,12 @@ async def populated_fixture(
         == joint_fixture.config.file_registered_for_download_type
     )
 
-    file_registered_event = event_schemas.FileRegisteredForDownload(
+    file_registered_event = models.FileRegisteredForDownload(
         **recorder.recorded_events[0].payload
     )
     assert file_registered_event.file_id == EXAMPLE_FILE.file_id
     assert file_registered_event.decrypted_sha256 == EXAMPLE_FILE.decrypted_sha256
-    assert file_registered_event.upload_date == EXAMPLE_FILE.creation_date
+    assert file_registered_event.archive_date == EXAMPLE_FILE.creation_date
 
     dao = await get_drs_dao(dao_factory=joint_fixture.mongodb.dao_factory)
 

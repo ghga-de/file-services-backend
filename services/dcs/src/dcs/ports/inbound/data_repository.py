@@ -92,7 +92,9 @@ class DataRepositoryPort(ABC):
             super().__init__(message)
 
     @abstractmethod
-    async def access_drs_object(self, *, drs_id: str) -> models.DrsObjectResponseModel:
+    async def access_drs_object(
+        self, *, accession: str, file_id: UUID4
+    ) -> models.DrsObjectResponseModel:
         """
         Serve the specified DRS object with access information.
         If it does not exists in the outbox, yet, a RetryAccessLaterError is raised that
@@ -124,7 +126,7 @@ class DataRepositoryPort(ABC):
         ...
 
     @abstractmethod
-    async def serve_envelope(self, *, drs_id: str, public_key: str) -> str:
+    async def serve_envelope(self, *, file_id: UUID4, public_key: str) -> str:
         """
         Retrieve envelope for the object with the given DRS ID
 
@@ -134,11 +136,11 @@ class DataRepositoryPort(ABC):
 
     @abstractmethod
     async def delete_file(self, *, file_id: str) -> None:
-        """Deletes a file from the outbox storage, the internal database and the
-        corresponding secret from the secrets store.
-        If no file or secret with that id exists, do nothing.
+        """Delete a file from the download bucket and database, and the corresponding
+        secret from the secrets store. If no file or secret with that id exists,
+        does nothing.
 
         Args:
-            file_id: id for the file to delete.
+            file_id: The UUID4 used to identify the file to delete.
         """
         ...

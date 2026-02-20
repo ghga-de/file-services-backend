@@ -47,12 +47,12 @@ async def test_migration_v2_drs_objects(mongodb: MongoDbFixture):
     for i in range(3):
         old_drs_object = AccessTimeDrsObject(
             file_id=f"GHGAFile{i}",
-            decryption_secret_id="abc123",
+            secret_id="abc123",
             decrypted_sha256="some-stuff",
             decrypted_size=100,
             encrypted_size=128,
             creation_date=now_as_utc(),
-            s3_endpoint_alias="HD01",
+            storage_alias="HD01",
             object_id=uuid4(),
             last_accessed=now_as_utc(),
         ).model_dump()

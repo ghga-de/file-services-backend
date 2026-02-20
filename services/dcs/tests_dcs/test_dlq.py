@@ -68,7 +68,7 @@ async def test_consume_from_retry(joint_fixture: JointFixture):
         upload_date=upload_date,
         file_id="",
         object_id=uuid4(),
-        s3_endpoint_alias="",
+        storage_alias="",
         decrypted_size=12345678,
         decrypted_sha256="fake-checksum",
         encrypted_size=123456789,
@@ -76,7 +76,7 @@ async def test_consume_from_retry(joint_fixture: JointFixture):
         encrypted_parts_md5=["some", "checksum"],
         encrypted_parts_sha256=["some", "checksum"],
         content_offset=1234,
-        decryption_secret_id="some-secret",
+        secret_id="some-secret",
     )
 
     # Publish the outbox event

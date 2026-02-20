@@ -17,12 +17,14 @@
 
 import re
 from dataclasses import dataclass
+from uuid import uuid4
 
 import httpx
 import pytest
 import pytest_asyncio
 from fastapi import status
 from hexkit.utils import now_utc_ms_prec
+from pydantic import UUID4
 from pytest_httpx import HTTPXMock, httpx_mock  # noqa: F401
 
 from dcs.core import models
@@ -43,15 +45,15 @@ class StorageUnavailableFixture:
 
     mongodb_dao: DrsObjectDaoPort
     joint: JointFixture
-    file_id: str
+    file_id: UUID4
 
 
 @pytest_asyncio.fixture
 async def storage_unavailable_fixture(joint_fixture: JointFixture):
     """Set up file with unavailable storage alias"""
     test_file = EXAMPLE_FILE.model_copy(deep=True)
-    test_file.file_id = "some_random_accession"
-    test_file.s3_endpoint_alias = joint_fixture.endpoint_aliases.fake_node
+    test_file.file_id = uuid4()
+    test_file.storage_alias = joint_fixture.endpoint_aliases.fake_node
 
     # populate DB entry
     mongodb_dao = await joint_fixture.mongodb.dao_factory.get_dao(
@@ -176,12 +178,12 @@ async def test_register_file_twice(populated_fixture: PopulatedFixture, caplog):
 
     file = models.DrsObjectBase(
         file_id=example_file.file_id,
-        decryption_secret_id=example_file.decryption_secret_id,
+        secret_id=example_file.secret_id,
         decrypted_sha256=example_file.decrypted_sha256,
         decrypted_size=example_file.decrypted_size,
         creation_date=now_utc_ms_prec(),
         encrypted_size=example_file.encrypted_size,
-        s3_endpoint_alias=example_file.s3_endpoint_alias,
+        storage_alias=example_file.storage_alias,
     )
 
     caplog.clear()

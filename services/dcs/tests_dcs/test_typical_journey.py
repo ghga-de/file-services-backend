@@ -27,6 +27,7 @@ from hexkit.providers.akafka.testutils import ExpectedEvent
 from hexkit.providers.s3.testutils import FileObject
 from pytest_httpx import HTTPXMock, httpx_mock  # noqa: F401
 
+from dcs.core.models import FileDownloadServed
 from tests_dcs.fixtures.joint import (
     CleanupFixture,
     PopulatedFixture,
@@ -119,8 +120,8 @@ async def test_happy_journey(
 
     # retry the access request:
     # (An check that an event is published indicating that a download was served.)
-    download_served_event = event_schemas.FileDownloadServed(
-        s3_endpoint_alias=endpoint_alias,
+    download_served_event = FileDownloadServed(
+        storage_alias=endpoint_alias,
         file_id=example_file.file_id,
         target_object_id=object_id,
         target_bucket_id=joint_fixture.bucket_id,
