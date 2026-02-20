@@ -15,6 +15,7 @@
 """DAO translators for accessing the database."""
 
 from hexkit.protocols.dao import DaoFactoryProtocol
+from hexkit.providers.mongodb import MongoDbIndex
 
 from fis.core.models import FileUnderInterrogation
 from fis.ports.outbound.dao import FileDao
@@ -26,4 +27,5 @@ async def get_file_dao(*, dao_factory: DaoFactoryProtocol) -> FileDao:
         name="interrogatedFiles",
         dto_model=FileUnderInterrogation,
         id_field="id",
+        indexes=[MongoDbIndex(fields="object_id")],
     )

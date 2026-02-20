@@ -120,6 +120,6 @@ async def test_typical_journey(joint_fixture: JointFixture, httpx_mock: HTTPXMoc
 
     # Assert that check_if_removable() returns True for this file
     can_remove = await joint_fixture.interrogation_handler.check_if_removable(
-        file_id=file.id
+        object_id=file.object_id
     )
     assert can_remove is True

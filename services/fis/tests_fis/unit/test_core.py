@@ -38,14 +38,23 @@ async def test_check_if_removable(rig: JointRig):
     """Test the `.check_if_removable()` method"""
     # A non-existent file should net us a return value of True
     file = create_file_under_interrogation(HUB1)
-    assert await rig.interrogation_handler.check_if_removable(file_id=file.id) == True
+    assert (
+        await rig.interrogation_handler.check_if_removable(object_id=file.object_id)
+        == True
+    )
 
     await rig.dao.insert(file)
-    assert await rig.interrogation_handler.check_if_removable(file_id=file.id) == False
+    assert (
+        await rig.interrogation_handler.check_if_removable(object_id=file.object_id)
+        == False
+    )
 
     file.can_remove = True
     await rig.dao.update(file)
-    assert await rig.interrogation_handler.check_if_removable(file_id=file.id) == True
+    assert (
+        await rig.interrogation_handler.check_if_removable(object_id=file.object_id)
+        == True
+    )
 
 
 async def test_report_handling_successful(rig: JointRig, httpx_mock: HTTPXMock):

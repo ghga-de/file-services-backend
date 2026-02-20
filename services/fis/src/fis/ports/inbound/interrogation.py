@@ -49,8 +49,8 @@ class InterrogationHandlerPort(ABC):
             super().__init__(msg)
 
     @abstractmethod
-    async def check_if_removable(self, *, file_id: UUID4) -> bool:
-        """Return `True` if a file can be removed from the interrogation bucket and
+    async def check_if_removable(self, *, object_id: UUID4) -> bool:
+        """Return `True` if an object can be removed from the interrogation bucket and
         `False` otherwise.
         """
 

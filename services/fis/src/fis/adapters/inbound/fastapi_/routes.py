@@ -68,7 +68,7 @@ async def list_uploads(
 
 @router.post(
     "/storages/{storage_alias}/uploads/can_remove",
-    summary="Returns a list of IDs indicating which files can be removed from the interrogation bucket",
+    summary="Returns a list of IDs indicating which objects can be removed from the interrogation bucket",
     operation_id="getRemovableFiles",
     tags=["FileIngestService"],
     status_code=status.HTTP_200_OK,
@@ -78,13 +78,15 @@ async def get_removable_files(
     storage_alias: str,
     interrogator: dummies.InterrogatorPort,
     _token: Annotated[JWT, require_data_hub_jwt],
-    file_ids: list[UUID4] = Body(),
+    object_ids: list[UUID4] = Body(),
 ) -> list[UUID4]:
-    """Returns a subset of the provided file ID list containing the IDs of all files
-    which may be now removed from the interrogation bucket.
+    """Returns a subset of the provided object ID list containing the IDs of all S3
+    objects which may be now removed from the interrogation bucket.
     """
     try:
-        return [f for f in file_ids if await interrogator.check_if_removable(file_id=f)]
+        return [
+            o for o in object_ids if await interrogator.check_if_removable(object_id=o)
+        ]
     except Exception as err:
         error = HTTPException(status_code=500, detail="Something went wrong.")
         log.error(error, exc_info=True)

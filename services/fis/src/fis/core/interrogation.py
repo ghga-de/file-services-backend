@@ -31,6 +31,8 @@ from fis.core import models
 from fis.ports.inbound.interrogation import InterrogationHandlerPort
 from fis.ports.outbound.dao import (
     FileDao,
+    MultipleHitsFoundError,
+    NoHitsFoundError,
     ResourceAlreadyExistsError,
     ResourceNotFoundError,
 )
@@ -63,17 +65,23 @@ class InterrogationHandler(InterrogationHandlerPort):
             )
         )
 
-    async def check_if_removable(self, *, file_id: UUID4) -> bool:
-        """Return `True` if a file can be removed from the interrogation bucket and
+    async def check_if_removable(self, *, object_id: UUID4) -> bool:
+        """Return `True` if an object can be removed from the interrogation bucket and
         `False` otherwise.
         """
         try:
-            file = await self._dao.get_by_id(file_id)
-        except ResourceNotFoundError:
+            file = await self._dao.find_one(mapping={"object_id": object_id})
+        except NoHitsFoundError:
             # If not found, log a warning, but indicate the file is removable
-            log.warning("Did not find a record of a file with ID %s.", file_id)
+            log.warning("Did not find a record of a file with ID %s.", object_id)
             return True
-        return file.can_remove
+        except MultipleHitsFoundError as err:
+            # This should never happen, and if it does then we need eyes on it.
+            msg = f"Found multiple files with the same object_id of {object_id}"
+            log.critical(msg, extra={"object_id": object_id})
+            raise RuntimeError(msg) from err
+        else:
+            return file.can_remove
 
     async def handle_interrogation_report(self, *, report: models.InterrogationReport):
         """Handle an interrogation report and publish the appropriate event.

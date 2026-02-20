@@ -16,6 +16,8 @@
 
 from hexkit.protocols.dao import (  # noqa: F401
     Dao,
+    MultipleHitsFoundError,
+    NoHitsFoundError,
     ResourceAlreadyExistsError,
     ResourceNotFoundError,
 )

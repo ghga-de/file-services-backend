@@ -31,6 +31,7 @@ def create_file_under_interrogation(storage_alias: str):
         id=uuid4(),
         storage_alias=storage_alias,
         bucket_id="inbox1",
+        object_id=uuid4(),
         decrypted_sha256="",
         decrypted_size=123456789,
         encrypted_size=123466789,

@@ -40,6 +40,9 @@ class BaseFileInformation(BaseModel):
     bucket_id: str = Field(
         ..., description="The name of the bucket where the file is currently stored"
     )
+    object_id: UUID4 = Field(
+        ..., description="The ID of the file specific to its S3 bucket."
+    )
     decrypted_sha256: str = Field(
         ..., description="SHA-256 checksum of the entire unencrypted file content"
     )
@@ -71,6 +74,7 @@ class FileUnderInterrogation(BaseFileInformation):
     )
 
 
+# TODO: Update reports to have object ID (and update that in dhfs too)
 class InterrogationSuccess(BaseModel):
     """Event model informing services that file interrogation succeeded"""
 

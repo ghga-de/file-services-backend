@@ -24,6 +24,11 @@ components:
           format: uuid4
           title: Id
           type: string
+        object_id:
+          description: The ID of the file specific to its S3 bucket.
+          format: uuid4
+          title: Object Id
+          type: string
         part_size:
           description: The number of bytes in each file part (last part is likely
             smaller)
@@ -37,6 +42,7 @@ components:
       - id
       - storage_alias
       - bucket_id
+      - object_id
       - decrypted_sha256
       - decrypted_size
       - encrypted_size
@@ -237,10 +243,10 @@ paths:
       - FileIngestService
   /storages/{storage_alias}/uploads/can_remove:
     post:
-      description: 'Returns a subset of the provided file ID list containing the IDs
-        of all files
+      description: 'Returns a subset of the provided object ID list containing the
+        IDs of all S3
 
-        which may be now removed from the interrogation bucket.'
+        objects which may be now removed from the interrogation bucket.'
       operationId: getRemovableFiles
       parameters:
       - in: path
@@ -256,7 +262,7 @@ paths:
               items:
                 format: uuid4
                 type: string
-              title: File Ids
+              title: Object Ids
               type: array
         required: true
       responses:
@@ -278,8 +284,8 @@ paths:
           description: Validation Error
       security:
       - HTTPBearer: []
-      summary: Returns a list of IDs indicating which files can be removed from the
-        interrogation bucket
+      summary: Returns a list of IDs indicating which objects can be removed from
+        the interrogation bucket
       tags:
       - FileIngestService
 tags:

@@ -130,7 +130,7 @@ async def test_get_removable_files(
     non_existent_id = uuid4()
 
     # Test data: list of file IDs to check
-    file_ids = [file_removable.id, file_not_removable.id, non_existent_id]
+    file_ids = [file_removable.object_id, file_not_removable.object_id, non_existent_id]
 
     # Assert no auth returns a 401
     response = await rest_client.post(url, json=[str(id) for id in file_ids])
@@ -153,9 +153,9 @@ async def test_get_removable_files(
     # Should return only the removable file and the non-existent one
     removable_ids = response.json()
     assert len(removable_ids) == 2
-    assert str(file_removable.id) in removable_ids
+    assert str(file_removable.object_id) in removable_ids
     assert str(non_existent_id) in removable_ids
-    assert str(file_not_removable.id) not in removable_ids
+    assert str(file_not_removable.object_id) not in removable_ids
 
     # Test with empty list
     response = await rest_client.post(url, json=[], headers=correct_headers)
