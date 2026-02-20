@@ -32,6 +32,7 @@ class EventPubTranslatorPort(ABC):
         secret_id: str,
         storage_alias: str,
         bucket_id: str,
+        object_id: UUID4,
         interrogated_at: UTCDatetime,
         encrypted_parts_md5: list[str],
         encrypted_parts_sha256: list[str],

@@ -17,7 +17,6 @@
 
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass
-from uuid import UUID
 
 import httpx
 import pytest
@@ -41,8 +40,6 @@ from tests_fis.fixtures.config import get_config
 
 __all__ = ["JointFixture", "joint_fixture"]
 
-# TODO: Rename & Reuse or delete
-TEST_OBJECT_ID = UUID("794fa7ab-fa80-493b-a08d-a6be41a07cde")
 InMemFileDao: type[FileDao] = new_mock_dao_class(
     dto_model=FileUnderInterrogation, id_field="id"
 )

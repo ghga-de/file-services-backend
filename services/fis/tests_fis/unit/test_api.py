@@ -191,6 +191,7 @@ async def test_post_interrogation_report(
         "file_id": str(file.id),
         "storage_alias": file.storage_alias,
         "bucket_id": "interrogation1",
+        "object_id": str(file.object_id),
         "interrogated_at": now_utc_ms_prec().isoformat(),
         "passed": True,
         "secret": "c2VjcmV0X2RhdGFfaGVyZQ==",
@@ -218,6 +219,7 @@ async def test_post_interrogation_report(
     updated_file = await rig.dao.get_by_id(file.id)
     assert updated_file.interrogated is True
     assert updated_file.state == "interrogated"
+
     # Create another file for failed interrogation
     file2 = create_file_under_interrogation(HUB1)
     await rig.dao.insert(file2)

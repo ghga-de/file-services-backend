@@ -94,6 +94,14 @@ components:
           format: date-time
           title: Interrogated At
           type: string
+        object_id:
+          anyOf:
+          - format: uuid4
+            type: string
+          - type: 'null'
+          description: The ID of the file specific to its S3 bucket, if the interrogation
+            was successful.
+          title: Object Id
         passed:
           description: Whether the interrogation was a success
           title: Passed

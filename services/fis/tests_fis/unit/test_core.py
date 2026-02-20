@@ -64,6 +64,7 @@ async def test_report_handling_successful(rig: JointRig, httpx_mock: HTTPXMock):
         file_id=file.id,
         storage_alias=file.storage_alias,
         bucket_id="interrogation1",
+        object_id=file.object_id,
         interrogated_at=now_utc_ms_prec(),
         passed=True,
         secret=b"secret_data_here",
