@@ -33,25 +33,29 @@ FileUploadState = Literal[
 class BaseFileInformation(BaseModel):
     """Basic file information - all that is needed for interrogation."""
 
-    id: UUID4 = Field(..., description="Unique identifier for the file upload")
+    id: UUID4 = Field(default=..., description="Unique identifier for the file upload")
     storage_alias: str = Field(
-        ..., description="The storage alias of the Data Hub housing the file"
+        default=..., description="The storage alias of the Data Hub housing the file"
     )
     bucket_id: str = Field(
-        ..., description="The name of the bucket where the file is currently stored"
+        default=...,
+        description="The name of the bucket where the file is currently stored",
     )
     object_id: UUID4 = Field(
-        ..., description="The ID of the file specific to its S3 bucket."
+        default=..., description="The ID of the file specific to its S3 bucket."
     )
     decrypted_sha256: str = Field(
-        ..., description="SHA-256 checksum of the entire unencrypted file content"
+        default=...,
+        description="SHA-256 checksum of the entire unencrypted file content",
     )
-    decrypted_size: int = Field(..., description="The size of the unencrypted file")
+    decrypted_size: int = Field(
+        default=..., description="The size of the unencrypted file"
+    )
     encrypted_size: int = Field(
-        ..., description="The encrypted size of the file before re-encryption"
+        default=..., description="The encrypted size of the file before re-encryption"
     )
     part_size: int = Field(
-        ...,
+        default=...,
         description="The number of bytes in each file part (last part is likely smaller)",
     )
 
@@ -63,7 +67,7 @@ class FileUnderInterrogation(BaseFileInformation):
         default="init", description="The state of the FileUpload"
     )
     state_updated: UTCDatetime = Field(
-        ..., description="Timestamp of when state was updated"
+        default=..., description="Timestamp of when state was updated"
     )
     interrogated: bool = Field(
         default=False, description="Indicates whether interrogation has been completed"
@@ -74,56 +78,66 @@ class FileUnderInterrogation(BaseFileInformation):
     )
 
 
-# TODO: Update reports to have object ID (and update that in dhfs too)
 class InterrogationSuccess(BaseModel):
     """Event model informing services that file interrogation succeeded"""
 
-    file_id: UUID4 = Field(..., description="Unique identifier for the file upload")
+    file_id: UUID4 = Field(
+        default=..., description="Unique identifier for the file upload"
+    )
     secret_id: str | None = Field(
         default=None,
         description="The internal ID of the Data Hub-generated decryption secret",
     )
     storage_alias: str = Field(
-        ..., description="The storage alias of the Data Hub housing the file"
+        default=..., description="The storage alias of the Data Hub housing the file"
     )
     bucket_id: str = Field(
-        ..., description="The name of the interrogation bucket the file is stored in"
+        default=...,
+        description="The name of the interrogation bucket the file is stored in",
+    )
+    object_id: UUID4 = Field(
+        default=..., description="The ID of the file specific to its S3 bucket."
     )
     interrogated_at: UTCDatetime = Field(
-        ..., description="Time that the report was generated"
+        default=..., description="Time that the report was generated"
     )
     encrypted_parts_md5: list[str] = Field(
-        ..., description="The MD5 checksum for each file part, in sequence"
+        default=..., description="The MD5 checksum for each file part, in sequence"
     )
     encrypted_parts_sha256: list[str] = Field(
-        ..., description="The SHA256 checksum for each file part, in sequence"
+        default=..., description="The SHA256 checksum for each file part, in sequence"
     )
 
 
 class InterrogationFailure(BaseModel):
     """Event model informing services that file interrogation failed"""
 
-    file_id: UUID4 = Field(..., description="Unique identifier for the file upload")
+    file_id: UUID4 = Field(
+        default=..., description="Unique identifier for the file upload"
+    )
     storage_alias: str = Field(
-        ..., description="The storage alias of the Data Hub housing the file"
+        default=..., description="The storage alias of the Data Hub housing the file"
     )
     interrogated_at: UTCDatetime = Field(
-        ..., description="Time that the report was generated"
+        default=..., description="Time that the report was generated"
     )
     reason: str = Field(
-        ..., description="The text of the error that caused interrogation to fail"
+        default=...,
+        description="The text of the error that caused interrogation to fail",
     )
 
 
 class InterrogationReport(BaseModel):
     """Contains the results of file interrogation"""
 
-    file_id: UUID4 = Field(..., description="Unique identifier for the file upload")
+    file_id: UUID4 = Field(
+        default=..., description="Unique identifier for the file upload"
+    )
     storage_alias: str = Field(
-        ..., description="The storage alias of the Data Hub housing the file"
+        default=..., description="The storage alias of the Data Hub housing the file"
     )
     interrogated_at: UTCDatetime = Field(
-        ..., description="Timestamp showing when interrogation finished"
+        default=..., description="Timestamp showing when interrogation finished"
     )
     passed: bool = Field(..., description="Whether the interrogation was a success")
     bucket_id: str | None = Field(
@@ -131,6 +145,13 @@ class InterrogationReport(BaseModel):
         description=(
             "The name of the interrogation bucket the file is stored in, if the"
             + " interrogation was successful"
+        ),
+    )
+    object_id: UUID4 | None = Field(
+        default=None,
+        description=(
+            "The ID of the file specific to its S3 bucket, if the interrogation was"
+            + " successful."
         ),
     )
     secret: SecretBytes | None = Field(
