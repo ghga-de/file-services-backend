@@ -25,6 +25,8 @@ from tests_ifrs.fixtures.joint import INTERROGATION_BUCKET
 
 EXAMPLE_FILE_UPLOAD_INBOX = FileUpload(
     id=uuid4(),
+    box_id=uuid4(),
+    alias="testfile",
     storage_alias="HD01",
     bucket_id="inbox",
     object_id=uuid4(),
@@ -38,6 +40,8 @@ EXAMPLE_FILE_UPLOAD_INBOX = FileUpload(
 # This is the event received by the outbox subscriber when the file is ready
 EXAMPLE_AWAITING_ARCHIVAL = FileUpload(
     id=EXAMPLE_FILE_UPLOAD_INBOX.id,
+    box_id=uuid4(),
+    alias="testfile",
     storage_alias=EXAMPLE_FILE_UPLOAD_INBOX.storage_alias,
     state="awaiting_archival",
     state_updated=now_utc_ms_prec() - timedelta(hours=1),

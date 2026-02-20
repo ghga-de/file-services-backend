@@ -58,6 +58,13 @@ class FileUpload(CoreFileMetadata):
     This form of the data might or might not have the following fields populated.
     """
 
+    box_id: UUID4 = Field(
+        default=..., description="The ID of the FileUploadBox this file belongs to."
+    )
+    alias: str = Field(
+        default=...,
+        description="The filename or other alias which links it to study metadata",
+    )
     state: FileUploadState = Field(
         default="init", description="The state of the FileUpload"
     )
