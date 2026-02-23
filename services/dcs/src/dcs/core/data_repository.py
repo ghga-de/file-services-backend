@@ -33,15 +33,12 @@ from pydantic import UUID4, Field, PositiveInt, field_validator
 from pydantic_settings import BaseSettings
 
 from dcs.adapters.outbound.http import exceptions
-from dcs.adapters.outbound.http.api_calls import (
-    delete_secret_from_ekss,
-    get_envelope_from_ekss,
-)
 from dcs.constants import TRACER
 from dcs.core import models
 from dcs.ports.inbound.data_repository import DataRepositoryPort
 from dcs.ports.outbound.dao import DrsObjectDaoPort
 from dcs.ports.outbound.event_pub import EventPublisherPort
+from dcs.ports.outbound.secrets import SecretsClientPort
 
 log = logging.getLogger(__name__)
 
@@ -77,23 +74,11 @@ class DataRepositoryConfig(BaseSettings):
         title="Maximum retry time in seconds when staging",
         examples=[30, 300],
     )
-    ekss_base_url: str = Field(
-        ...,
-        description="URL containing host and port of the EKSS endpoint to retrieve"
-        + " personalized envelope from",
-        title="EKSS base URL",
-        examples=["http://ekss:8080/"],
-    )
     presigned_url_expires_after: PositiveInt = Field(
         ...,
         description="Expiration time in seconds for presigned URLS. Positive integer required",
         title="Presigned URL expiration time in seconds",
         examples=[30, 60],
-    )
-    http_call_timeout: PositiveInt = Field(
-        default=3,
-        description="Time in seconds after which http calls from this service should timeout",
-        examples=[1, 5, 60],
     )
     outbox_cache_timeout: int = Field(
         default=7,
@@ -127,12 +112,14 @@ class DataRepository(DataRepositoryPort):
         drs_object_dao: DrsObjectDaoPort,
         object_storages: S3ObjectStorages,
         event_publisher: EventPublisherPort,
+        secrets_client: SecretsClientPort,
     ):
         """Initialize with essential config params and outbound adapters."""
         self._config = config
         self._event_publisher = event_publisher
         self._drs_object_dao = drs_object_dao
         self._object_storages = object_storages
+        self._secrets_client = secrets_client
 
     def _get_drs_uri(self, *, drs_id: str) -> str:
         """Construct DRS URI for the given DRS ID."""
@@ -389,11 +376,9 @@ class DataRepository(DataRepositoryPort):
 
         log.info(f"Retrieving file envelope for DRS id '{file_id}'.")
         try:
-            envelope = get_envelope_from_ekss(
+            envelope = await self._secrets_client.get_envelope(
                 secret_id=drs_object.secret_id,
                 receiver_public_key=public_key,
-                api_base=self._config.ekss_base_url,
-                timeout=self._config.http_call_timeout,
             )
         except (
             exceptions.BadResponseCodeError,
@@ -432,11 +417,7 @@ class DataRepository(DataRepositoryPort):
 
         # call EKSS to remove file secret from vault
         with contextlib.suppress(exceptions.SecretNotFoundError):
-            delete_secret_from_ekss(
-                secret_id=drs_object.secret_id,
-                api_base=self._config.ekss_base_url,
-                timeout=self._config.http_call_timeout,
-            )
+            await self._secrets_client.delete_secret(secret_id=drs_object.secret_id)
             log.debug(f"Successfully deleted secret for '{file_id}' from EKSS.")
 
         # At this point the alias is contained in the database and this is not a user

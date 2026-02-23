@@ -74,6 +74,40 @@ dcs --help
 ### Parameters
 
 The service requires the following configuration parameters:
+- <a id="properties/client_cache_capacity"></a>**`client_cache_capacity`** *(integer)*: Maximum number of entries to store in the cache. Older entries are evicted once this limit is reached. Exclusive minimum: `0`. Default: `128`.
+
+- <a id="properties/client_cache_ttl"></a>**`client_cache_ttl`** *(integer)*: Number of seconds after which a stored response is considered stale. Minimum: `0`. Default: `60`.
+
+- <a id="properties/client_cacheable_methods"></a>**`client_cacheable_methods`** *(array)*: HTTP methods for which responses are allowed to be cached. Default: `["POST", "GET"]`.
+
+  - <a id="properties/client_cacheable_methods/items"></a>**Items** *(string)*
+
+- <a id="properties/client_exponential_backoff_max"></a>**`client_exponential_backoff_max`** *(integer)*: Maximum number of seconds to wait between retries when using exponential backoff retry strategies. The client timeout might need to be adjusted accordingly. Minimum: `0`. Default: `60`.
+
+- <a id="properties/client_num_retries"></a>**`client_num_retries`** *(integer)*: Number of times to retry failed API calls. Minimum: `0`. Default: `3`.
+
+- <a id="properties/client_retry_status_codes"></a>**`client_retry_status_codes`** *(array)*: List of status codes that should trigger retrying a request. Default: `[408, 429, 500, 502, 503, 504]`.
+
+  - <a id="properties/client_retry_status_codes/items"></a>**Items** *(integer)*: Minimum: `0`.
+
+- <a id="properties/client_reraise_from_retry_error"></a>**`client_reraise_from_retry_error`** *(boolean)*: Specifies if the exception wrapped in the final RetryError is reraised or the RetryError is returned as is. Default: `true`.
+
+- <a id="properties/per_request_jitter"></a>**`per_request_jitter`** *(number)*: Max amount of jitter (in seconds) to add to each request. Minimum: `0`. Default: `0.0`.
+
+- <a id="properties/retry_after_applicable_for_num_requests"></a>**`retry_after_applicable_for_num_requests`** *(integer)*: Amount of requests after which the stored delay from a 429 response is ignored again. Can be useful to adjust if concurrent requests are fired in quick succession. Exclusive minimum: `0`. Default: `1`.
+
+- <a id="properties/http_request_timeout_seconds"></a>**`http_request_timeout_seconds`** *(number)*: Request timeout setting in seconds. Default: `60.0`.
+
+- <a id="properties/ekss_base_url"></a>**`ekss_base_url`** *(string, required)*: URL containing host and port of the EKSS endpoint to retrieve personalized envelope from.
+
+
+  Examples:
+
+  ```json
+  "http://ekss:8080/"
+  ```
+
+
 - <a id="properties/enable_opentelemetry"></a>**`enable_opentelemetry`** *(boolean)*: If set to true, this will run necessary setup code.If set to false, environment variables are set that should also effectively disable autoinstrumentation. Default: `false`.
 
 - <a id="properties/otel_trace_sampling_rate"></a>**`otel_trace_sampling_rate`** *(number)*: Determines which proportion of spans should be sampled. A value of 1.0 means all and is equivalent to the previous behaviour. Setting this to 0 will result in no spans being sampled, but this does not automatically set `enable_opentelemetry` to False. Minimum: `0`. Maximum: `1`. Default: `1.0`.
@@ -586,16 +620,6 @@ The service requires the following configuration parameters:
   ```
 
 
-- <a id="properties/ekss_base_url"></a>**`ekss_base_url`** *(string, required)*: URL containing host and port of the EKSS endpoint to retrieve personalized envelope from.
-
-
-  Examples:
-
-  ```json
-  "http://ekss:8080/"
-  ```
-
-
 - <a id="properties/presigned_url_expires_after"></a>**`presigned_url_expires_after`** *(integer, required)*: Expiration time in seconds for presigned URLS. Positive integer required. Exclusive minimum: `0`.
 
 
@@ -603,26 +627,6 @@ The service requires the following configuration parameters:
 
   ```json
   30
-  ```
-
-
-  ```json
-  60
-  ```
-
-
-- <a id="properties/http_call_timeout"></a>**`http_call_timeout`** *(integer)*: Time in seconds after which http calls from this service should timeout. Exclusive minimum: `0`. Default: `3`.
-
-
-  Examples:
-
-  ```json
-  1
-  ```
-
-
-  ```json
-  5
   ```
 
 
