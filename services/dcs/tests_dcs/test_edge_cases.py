@@ -82,22 +82,27 @@ async def test_access_non_existing(joint_fixture: JointFixture):
     """Checks that requesting access to a non-existing DRS object fails with the
     expected exception.
     """
-    file_id = "my-non-existing-id"
+    accession = "GHGADoesNotExist"
+    file_id = uuid4()
 
-    work_order_token = generate_work_order_token(file_id=file_id, jwk=joint_fixture.jwk)
+    work_order_token = generate_work_order_token(
+        file_id=file_id, accession=accession, jwk=joint_fixture.jwk
+    )
     wrong_jwk = generate_token_signing_keys()
-    wrong_work_order_token = generate_work_order_token(file_id=file_id, jwk=wrong_jwk)
+    wrong_work_order_token = generate_work_order_token(
+        file_id=file_id, accession=accession, jwk=wrong_jwk
+    )
 
     # test with missing authorization header
     # (should not expose whether the file with the given id exists or not)
     response = await joint_fixture.rest_client.get(
-        f"/objects/{file_id}",
+        f"/objects/{accession}",
     )
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     # test with authorization header but wrong pubkey
     response = await joint_fixture.rest_client.get(
-        f"/objects/{file_id}",
+        f"/objects/{accession}",
         timeout=5,
         headers={"Authorization": f"Bearer {wrong_work_order_token}"},
     )
@@ -105,14 +110,14 @@ async def test_access_non_existing(joint_fixture: JointFixture):
 
     # test with correct authorization header but wrong object_id
     response = await joint_fixture.rest_client.get(
-        f"/objects/{file_id}",
+        f"/objects/{accession}",
         timeout=5,
         headers={"Authorization": f"Bearer {work_order_token}"},
     )
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
     response = await joint_fixture.rest_client.get(
-        f"/objects/{file_id}/envelopes",
+        f"/objects/{accession}/envelopes",
         timeout=5,
         headers={"Authorization": f"Bearer {work_order_token}"},
     )
@@ -147,7 +152,9 @@ async def test_drs_config_error(
 ):
     """Test DRS endpoint for a storage alias that is not configured"""
     # generate work order token
+    accession = "GHGA001"
     work_order_token = generate_work_order_token(
+        accession=accession,
         file_id=storage_unavailable_fixture.file_id,
         jwk=storage_unavailable_fixture.joint.jwk,
         valid_seconds=120,
@@ -164,9 +171,8 @@ async def test_drs_config_error(
         url=re.compile(rf"^{storage_unavailable_fixture.joint.config.ekss_base_url}.*"),
     )
 
-    drs_id = storage_unavailable_fixture.file_id
     response = await storage_unavailable_fixture.joint.rest_client.get(
-        f"/objects/{drs_id}", timeout=5
+        f"/objects/{accession}", timeout=5
     )
     assert response.status_code == 500
 
