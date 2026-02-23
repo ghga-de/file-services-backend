@@ -28,7 +28,7 @@ import json
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field
 from datetime import timedelta
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import httpx
 import pytest_asyncio
@@ -44,16 +44,12 @@ from hexkit.providers.mongodb.testutils import MongoDbFixture
 from hexkit.providers.s3.testutils import S3Fixture, temp_file_object
 from hexkit.utils import now_utc_ms_prec
 from jwcrypto.jwk import JWK
-from pydantic_settings import BaseSettings
+from pydantic import UUID4
 
 from dcs.adapters.outbound.dao import get_drs_dao
 from dcs.config import Config, WorkOrderTokenConfig
 from dcs.core import models
-from dcs.inject import (
-    prepare_core,
-    prepare_event_subscriber,
-    prepare_rest_app,
-)
+from dcs.inject import prepare_core, prepare_event_subscriber, prepare_rest_app
 from dcs.ports.inbound.data_repository import DataRepositoryPort
 from dcs.ports.outbound.dao import DrsObjectDaoPort
 from tests_dcs.fixtures.config import get_config
@@ -69,7 +65,7 @@ CACHED_OBJECT_ID = UUID("038dfa61-19f6-4279-a894-4e8794013c44")
 EXPIRED_OBJECT_ID = UUID("9c8f2155-1fbe-418e-8159-274a4dfc6d8a")
 
 EXAMPLE_FILE = models.AccessTimeDrsObject(
-    file_id="examplefile001",
+    file_id=uuid4(),
     object_id=EXAMPLE_OBJECT_ID,
     decrypted_sha256="0677de3685577a06862f226bb1bfa8f889e96e59439d915543929fb4f011d096",
     creation_date=now_utc_ms_prec(),
@@ -85,12 +81,6 @@ EXAMPLE_FILE = models.AccessTimeDrsObject(
 class EndpointAliases:
     valid_node: str = STORAGE_ALIAS
     fake_node: str = f"{STORAGE_ALIAS}_fake"
-
-
-class EKSSBaseInjector(BaseSettings):
-    """Dynamically inject ekss url"""
-
-    ekss_base_url: str
 
 
 @dataclass
@@ -121,14 +111,11 @@ async def joint_fixture(
 
     # merge configs from different sources with the default one:
     auth_config = WorkOrderTokenConfig(auth_key=auth_key)
-    ekss_config = EKSSBaseInjector(ekss_base_url="http://ekss")
 
     bucket_id = "test-outbox"
 
     node_config = S3ObjectStorageNodeConfig(bucket=bucket_id, credentials=s3.config)
-
     endpoint_aliases = EndpointAliases()
-
     object_storage_config = S3ObjectStoragesConfig(
         object_storages={
             endpoint_aliases.valid_node: node_config,
@@ -136,13 +123,7 @@ async def joint_fixture(
     )
 
     config = get_config(
-        sources=[
-            mongodb.config,
-            object_storage_config,
-            kafka.config,
-            ekss_config,
-            auth_config,
-        ],
+        sources=[mongodb.config, object_storage_config, kafka.config, auth_config],
         kafka_enable_dlq=True,
     )
 
@@ -190,7 +171,7 @@ async def populated_fixture(
     """Prepopulate state for an existing DRS object"""
     # publish an event to register a new file for download:
     file_to_register_event = models.FileInternallyRegistered(
-        file_id=EXAMPLE_FILE.object_id,
+        file_id=EXAMPLE_FILE.file_id,
         storage_alias=joint_fixture.endpoint_aliases.valid_node,
         bucket_id=joint_fixture.bucket_id,
         archive_date=EXAMPLE_FILE.creation_date,
@@ -231,10 +212,7 @@ async def populated_fixture(
 
     dao = await get_drs_dao(dao_factory=joint_fixture.mongodb.dao_factory)
 
-    yield PopulatedFixture(
-        mongodb_dao=dao,
-        joint_fixture=joint_fixture,
-    )
+    yield PopulatedFixture(mongodb_dao=dao, joint_fixture=joint_fixture)
 
 
 @dataclass
@@ -243,8 +221,8 @@ class CleanupFixture:
 
     mongodb_dao: DrsObjectDaoPort
     joint: JointFixture
-    cached_file_id: str
-    expired_file_id: str
+    cached_file_id: UUID4
+    expired_file_id: UUID4
 
 
 @pytest_asyncio.fixture
@@ -263,15 +241,14 @@ async def cleanup_fixture(
     file = EXAMPLE_FILE
 
     # create AccessTimeDrsObjects for valid cached and expired cached file
-    cached_file_id = file.file_id + "_cached"
 
+    cached_file_id = uuid4()
     test_file_cached = file.model_copy(deep=True)
     test_file_cached.file_id = cached_file_id
     test_file_cached.object_id = CACHED_OBJECT_ID
     test_file_cached.last_accessed = utc_dates.now_as_utc()
 
-    expired_file_id = file.file_id + "_expired"
-
+    expired_file_id = uuid4()
     test_file_expired = file.model_copy(deep=True)
     test_file_expired.file_id = expired_file_id
     test_file_expired.object_id = EXPIRED_OBJECT_ID

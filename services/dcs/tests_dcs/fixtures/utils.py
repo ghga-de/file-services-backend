@@ -48,7 +48,7 @@ def generate_work_order_token(
         accession=accession,
         user_public_crypt4gh_key=user_pubkey,
     )
-    claims = wot.model_dump()
+    claims = wot.model_dump(mode="json")
 
     signed_token = jwt_helpers.sign_and_serialize_token(
         claims=claims, key=jwk, valid_seconds=valid_seconds
