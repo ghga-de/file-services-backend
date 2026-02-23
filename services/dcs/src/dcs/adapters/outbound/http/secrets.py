@@ -16,6 +16,7 @@
 """Secrets API client class implementation"""
 
 import base64
+import logging
 
 import httpx
 from pydantic import Field
@@ -25,6 +26,8 @@ from dcs.adapters.outbound.http import exceptions
 from dcs.adapters.outbound.http.exception_translation import ResponseExceptionTranslator
 from dcs.constants import TRACER
 from dcs.ports.outbound.secrets import SecretsClientPort
+
+log = logging.getLogger(__name__)
 
 
 class SecretsClientConfig(BaseSettings):
@@ -54,6 +57,11 @@ class SecretsClient(SecretsClientPort):
     async def get_envelope(self, *, secret_id: str, receiver_public_key: str) -> str:
         """Call the Secrets API to get an envelope for an encrypted file, using the
         receiver's public key as well as the id of the file secret.
+
+        Raises:
+            RequestFailedError: if an error prevents obtaining a response.
+            BadResponseCodeError: if a response is received but the status code
+                indicates that the request was unsuccessful.
         """
         receiver_public_key_base64 = base64.urlsafe_b64encode(
             base64.b64decode(receiver_public_key)
@@ -61,8 +69,16 @@ class SecretsClient(SecretsClientPort):
         api_url = f"{self._api_base}/secrets/{secret_id}/envelopes/{receiver_public_key_base64}"
         try:
             response = httpx.get(url=api_url)
-        except httpx.RequestError as request_error:
-            raise exceptions.RequestFailedError(url=api_url) from request_error
+        except httpx.RequestError as err:
+            request_failed_error = exceptions.RequestFailedError(url=api_url)
+            log.error(
+                request_failed_error,
+                extra={
+                    "secret_id": secret_id,
+                    "receiver_public_key": receiver_public_key,
+                },
+            )
+            raise request_failed_error from err
 
         status_code = response.status_code
         # implement httpyexpect error conversion
@@ -75,9 +91,14 @@ class SecretsClient(SecretsClientPort):
                 },
             }
             ResponseExceptionTranslator(spec=spec).handle(response=response)
-            raise exceptions.BadResponseCodeError(
+            bad_code_error = exceptions.BadResponseCodeError(
                 url=self._api_base, response_code=status_code
             )
+            log.error(
+                bad_code_error,
+                extra={"response_code": status_code, "secret_id": secret_id},
+            )
+            raise bad_code_error
 
         body = response.json()
         content = body["content"]
@@ -87,13 +108,24 @@ class SecretsClient(SecretsClientPort):
     # The method name no longer references EKSS, but we'll leave it in the span name
     @TRACER.start_as_current_span("api_calls.delete_secret_from_ekss")
     async def delete_secret(self, *, secret_id: str) -> None:
-        """Call the Secrets API to delete a file secret"""
+        """Call the Secrets API to delete a file secret
+
+        Raises:
+            RequestFailedError: if an error prevents obtaining a response.
+            BadResponseCodeError: if a response is received but the status code
+                indicates that the request was unsuccessful.
+        """
         api_url = f"{self._api_base}/secrets/{secret_id}"
 
         try:
             response = await self._httpx_client.delete(url=api_url)
-        except httpx.RequestError as request_error:
-            raise exceptions.RequestFailedError(url=api_url) from request_error
+        except httpx.RequestError as err:
+            request_failed_error = exceptions.RequestFailedError(url=api_url)
+            log.error(
+                request_failed_error,
+                extra={"secret_id": secret_id},
+            )
+            raise request_failed_error from err
 
         status_code = response.status_code
 
@@ -107,6 +139,11 @@ class SecretsClient(SecretsClientPort):
                 },
             }
             ResponseExceptionTranslator(spec=spec).handle(response=response)
-            raise exceptions.BadResponseCodeError(
+            bad_code_error = exceptions.BadResponseCodeError(
                 url=self._api_base, response_code=status_code
             )
+            log.error(
+                bad_code_error,
+                extra={"response_code": status_code, "secret_id": secret_id},
+            )
+            raise bad_code_error

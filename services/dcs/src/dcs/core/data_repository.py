@@ -171,7 +171,7 @@ class DataRepository(DataRepositoryPort):
             stopped = perf_counter() - started
             log.debug("Fetched DRS object model in %.3f seconds.", stopped)
         except ResourceNotFoundError as error:
-            drs_object_not_found = self.DrsObjectNotFoundError(drs_id=accession)
+            drs_object_not_found = self.DrsObjectNotFoundError(file_id=accession)
             log.error(drs_object_not_found, extra=log_extra)
             raise drs_object_not_found from error
 
@@ -359,9 +359,7 @@ class DataRepository(DataRepositoryPort):
         await self._event_publisher.file_registered(drs_object=drs_object)
         log.info(f"Sent successful registration event for file id '{file.file_id}'.")
 
-    async def serve_envelope(
-        self, *, file_id: UUID4, accession: str, public_key: str
-    ) -> str:
+    async def serve_envelope(self, *, file_id: UUID4, public_key: str) -> str:
         """
         Retrieve envelope for the object with the given DRS ID
 
@@ -370,7 +368,7 @@ class DataRepository(DataRepositoryPort):
         try:
             drs_object = await self._drs_object_dao.get_by_id(file_id)
         except ResourceNotFoundError as error:
-            drs_object_not_found = self.DrsObjectNotFoundError(drs_id=accession)
+            drs_object_not_found = self.DrsObjectNotFoundError(file_id=file_id)
             log.error(drs_object_not_found)
             raise drs_object_not_found from error
 
@@ -384,15 +382,11 @@ class DataRepository(DataRepositoryPort):
             exceptions.BadResponseCodeError,
             exceptions.RequestFailedError,
         ) as error:
-            api_communication_error = self.APICommunicationError(
-                api_url=self._config.ekss_base_url
-            )
-            log.error(api_communication_error)
+            # The error is logged at the source, in the SecretsClient
+            api_communication_error = self.APICommunicationError()
             raise api_communication_error from error
         except exceptions.SecretNotFoundError as error:
-            envelope_not_found = self.EnvelopeNotFoundError(
-                object_id=drs_object.object_id
-            )
+            envelope_not_found = self.EnvelopeNotFoundError(file_id=file_id)
             log.error(envelope_not_found)
             raise envelope_not_found from error
 
@@ -417,8 +411,16 @@ class DataRepository(DataRepositoryPort):
 
         # call EKSS to remove file secret from vault
         with contextlib.suppress(exceptions.SecretNotFoundError):
-            await self._secrets_client.delete_secret(secret_id=drs_object.secret_id)
-            log.debug(f"Successfully deleted secret for '{file_id}' from EKSS.")
+            try:
+                await self._secrets_client.delete_secret(secret_id=drs_object.secret_id)
+                log.debug(f"Successfully deleted secret for '{file_id}' from EKSS.")
+            except (
+                exceptions.BadResponseCodeError,
+                exceptions.RequestFailedError,
+            ) as error:
+                # The error is logged at the source, in the SecretsClient
+                api_communication_error = self.APICommunicationError()
+                raise api_communication_error from error
 
         # At this point the alias is contained in the database and this is not a user
         # error, but a configuration issue. Is crashing the REST service ok here or do we

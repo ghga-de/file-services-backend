@@ -25,8 +25,19 @@ class SecretsClientPort(ABC):
     async def get_envelope(self, *, secret_id: str, receiver_public_key: str) -> str:
         """Call the Secrets API to get an envelope for an encrypted file, using the
         receiver's public key as well as the id of the file secret.
+
+        Raises:
+            RequestFailedError: if an error prevents obtaining a response.
+            BadResponseCodeError: if a response is received but the status code
+                indicates that the request was unsuccessful.
         """
 
     @abstractmethod
     async def delete_secret(self, *, secret_id: str) -> None:
-        """Call the Secrets API to delete a file secret"""
+        """Call the Secrets API to delete a file secret
+
+        Raises:
+            RequestFailedError: if an error prevents obtaining a response.
+            BadResponseCodeError: if a response is received but the status code
+                indicates that the request was unsuccessful.
+        """
