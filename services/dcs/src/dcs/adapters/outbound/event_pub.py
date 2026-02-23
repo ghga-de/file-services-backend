@@ -81,10 +81,10 @@ class EventPubTranslator(EventPublisherPort):
         auditing purposes.
         """
         payload = models.FileDownloadServed(
-            storage_alias=drs_object.storage_alias,
             file_id=drs_object.file_id,
-            target_object_id=drs_object.object_id,
+            storage_alias=drs_object.storage_alias,
             target_bucket_id=target_bucket_id,
+            target_object_id=drs_object.object_id,
             decrypted_sha256=drs_object.decrypted_sha256,
             context="unknown",
         )
