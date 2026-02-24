@@ -24,7 +24,7 @@ from fis.ports.outbound.dao import FileDao
 async def get_file_dao(*, dao_factory: DaoFactoryProtocol) -> FileDao:
     """Setup the DAOs using the specified provider of the DaoFactoryProtocol."""
     return await dao_factory.get_dao(
-        name="interrogatedFiles",
+        name="files",
         dto_model=FileUnderInterrogation,
         id_field="id",
         indexes=[MongoDbIndex(fields="object_id")],
