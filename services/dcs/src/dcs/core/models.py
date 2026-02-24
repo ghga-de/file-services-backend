@@ -74,7 +74,6 @@ class DrsObjectWithUri(DrsObject):
     self_uri: str
 
 
-# TODO: Remove DRS URI from stored DB objects
 class DrsObjectWithAccess(DrsObject):
     """A model for describing DRS object metadata including information on how to access
     its content.

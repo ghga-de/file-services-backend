@@ -21,24 +21,33 @@ from uuid import UUID
 
 from hexkit.providers.mongodb.migrations import Document, MigrationDefinition
 from hexkit.providers.mongokafka.provider.persistent_pub import PersistentKafkaEvent
+from pydantic import UUID4
+from tenacity import RetryError
 
+from dcs.adapters.outbound.http.api_calls import get_configured_httpx_client
+from dcs.config import Config
 from dcs.core.models import AccessTimeDrsObject
 
 __all__ = ["DCS_PERSISTED_EVENTS", "DRS_OBJECTS", "V3Migration"]
 
 DRS_OBJECTS = "drs_objects"
 DCS_PERSISTED_EVENTS = "dcsPersistedEvents"
+CONVERSION_MAP: dict[str, UUID4] = {}
 
 
 def derive_file_id_from_accession(accession: str) -> UUID:
     """Use the first portion of the SHA256 hash of an accession to derive a UUID4"""
     hash = sha256(accession.encode()).hexdigest()
     uuid_str = f"{hash[0:8]}-{hash[8:12]}-4{hash[13:16]}-a{hash[17:20]}-{hash[20:32]}"
-    return UUID(uuid_str)
+    new_uuid = UUID(uuid_str)
+
+    # Store the accession's new file ID in the global conversion map
+    CONVERSION_MAP[accession] = new_uuid
+    return new_uuid
 
 
-async def rename_drs_object_fields(doc: Document) -> Document:
-    """Rename fields in DRS object documents."""
+async def convert_drs_object_fields(doc: Document) -> Document:
+    """Convert DRS object documents."""
     if "decryption_secret_id" in doc:
         doc["secret_id"] = doc.pop("decryption_secret_id")
         doc["storage_alias"] = doc.pop("s3_endpoint_alias")
@@ -46,10 +55,10 @@ async def rename_drs_object_fields(doc: Document) -> Document:
     return doc
 
 
-async def rename_persisted_event_fields(doc: Document) -> Document:
-    """Rename fields in persisted event payload where applicable."""
+async def convert_event(doc: Document) -> Document:
+    """Convert persisted events."""
     accession = doc["key"]  # all events in DCS have accession for key
-    uuid4_file_id = derive_file_id_from_accession(accession)
+    uuid4_file_id = CONVERSION_MAP[accession]  # this should be completely populated now
 
     # Update the compaction_key field (_id). All stored topics here are compacted.
     doc["_id"] = doc["_id"].replace(accession, str(uuid4_file_id))
@@ -63,8 +72,10 @@ async def rename_persisted_event_fields(doc: Document) -> Document:
     payload: dict[str, Any] = doc.get("payload", {})
     if "s3_endpoint_alias" in payload:
         payload["storage_alias"] = payload.pop("s3_endpoint_alias")
-    if "object_id" in payload:
-        payload["file_id"] = payload.pop("object_id")
+    if "file_id" in payload:
+        payload["file_id"] = uuid4_file_id
+    if "upload_date" in payload:
+        payload["archive_date"] = payload.pop("upload_date")
     # Get rid of the DRS URI in the drs_object_registered event (not helpful anyway)
     _ = payload.pop("drs_uri", None)
 
@@ -89,8 +100,8 @@ class V3Migration(MigrationDefinition):
             - set published to False
             - in payload, set file_id to the new uuid4 ID (all stored events have it)
         - Where type_ == 'drs_object_registered':
-            - rename `upload_date` to `archive_date`
-            - remove `drs_uri`  (accession isn't known to DCS at that point in the flow)
+            - In payload, rename `upload_date` to `archive_date`
+            - In payload, remove `drs_uri` (accession isn't known to DCS at that point)
         - Where type_ == 'drs_object_served':
             - In payload, rename `s3_endpoint_alias` to `storage_alias`
     This migration is not reversible.
@@ -100,22 +111,52 @@ class V3Migration(MigrationDefinition):
 
     async def apply(self):
         """Perform the migration."""
-        # First ascertain whether the Study Repository is online. Cannot proceed until then.
-        # TODO: Do that ^
+        config = Config()
+        CONVERSION_MAP.clear()  # simplifies testing and prevents any weirdness
 
-        async with self.auto_finalize(
-            coll_names=[DRS_OBJECTS, DCS_PERSISTED_EVENTS], copy_indexes=True
+        async with (
+            self.auto_finalize(
+                coll_names=[DRS_OBJECTS, DCS_PERSISTED_EVENTS], copy_indexes=True
+            ),
+            get_configured_httpx_client(config=config) as client,
         ):
+            # Before starting, make sure SRS is alive & ready to receive accession maps
+            health_url = f"{config.srs_base_url}/health"
+            try:
+                response = await client.get(f"{config.srs_base_url}/health")
+            except RetryError as err:
+                if err.last_attempt.exception() is not None:
+                    err.reraise()
+                response = err.last_attempt.result()
+            if response.status_code != 200:
+                raise RuntimeError(
+                    f"Can't migrate to V3 - unable to reach service at {health_url}"
+                )
+
             await self.migrate_docs_in_collection(
                 coll_name=DRS_OBJECTS,
-                change_function=rename_drs_object_fields,
+                change_function=convert_drs_object_fields,
                 validation_model=AccessTimeDrsObject,
-                id_field="accession",
+                id_field="file_id",
             )
 
             await self.migrate_docs_in_collection(
                 coll_name=DCS_PERSISTED_EVENTS,
-                change_function=rename_persisted_event_fields,
+                change_function=convert_event,
                 validation_model=PersistentKafkaEvent,
                 id_field="compaction_key",
             )
+
+            # Send the maps to the SRS in batches
+            print(config.srs_base_url)
+            url = f"{config.srs_base_url}/accession-maps"
+            batch_size = 500
+            items = list(CONVERSION_MAP.items())
+            for i in range(0, len(items), batch_size):
+                batch = {k: str(v) for k, v in items[i : i + batch_size]}
+                response = await client.post(url, json=batch)
+                if response.status_code != 204:
+                    raise RuntimeError(
+                        f"Failed to post accession map to {url}. Status code"
+                        + f" was {response.status_code}"
+                    )

@@ -64,3 +64,9 @@ class Config(
     """Config parameters and their defaults."""
 
     service_name: str = SERVICE_NAME
+    srs_base_url: str = Field(
+        default=...,
+        description="Base URL of the Study Repository Service for the V3 Migration.",
+        title="SRS base URL",
+        examples=["http://srs:8080/"],
+    )

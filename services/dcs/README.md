@@ -802,6 +802,16 @@ The service requires the following configuration parameters:
 
 - <a id="properties/api_route"></a>**`api_route`** *(string)*: DRS API route. Default: `"/ga4gh/drs/v1"`.
 
+- <a id="properties/srs_base_url"></a>**`srs_base_url`** *(string, required)*: Base URL of the Study Repository Service for the V3 Migration.
+
+
+  Examples:
+
+  ```json
+  "http://srs:8080/"
+  ```
+
+
 ## Definitions
 
 

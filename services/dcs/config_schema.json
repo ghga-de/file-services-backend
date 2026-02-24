@@ -831,6 +831,14 @@
       "description": "DRS API route",
       "title": "Api Route",
       "type": "string"
+    },
+    "srs_base_url": {
+      "description": "Base URL of the Study Repository Service for the V3 Migration.",
+      "examples": [
+        "http://srs:8080/"
+      ],
+      "title": "SRS base URL",
+      "type": "string"
     }
   },
   "required": [
@@ -856,7 +864,8 @@
     "migration_wait_sec",
     "drs_server_uri",
     "presigned_url_expires_after",
-    "auth_key"
+    "auth_key",
+    "srs_base_url"
   ],
   "title": "ModSettings",
   "type": "object"

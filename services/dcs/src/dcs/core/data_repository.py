@@ -171,7 +171,7 @@ class DataRepository(DataRepositoryPort):
             stopped = perf_counter() - started
             log.debug("Fetched DRS object model in %.3f seconds.", stopped)
         except ResourceNotFoundError as error:
-            drs_object_not_found = self.DrsObjectNotFoundError(file_id=accession)
+            drs_object_not_found = self.DrsObjectNotFoundError(file_id=file_id)
             log.error(drs_object_not_found, extra=log_extra)
             raise drs_object_not_found from error
 
