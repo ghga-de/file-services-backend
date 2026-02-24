@@ -59,7 +59,11 @@ class InterrogationHandlerPort(ABC):
         """Handle an interrogation report and publish the appropriate event.
 
         If the report relays a success, then deposit the secret with EKSS and publish
-        an InterrogationSuccess event. Otherwise, publish an InterrogationFailure event.
+        an InterrogationSuccess event. Also updates the file in the database with the
+        new object ID, bucket ID, and encrypted_size.
+
+        If the report relays a failure, publish an InterrogationFailure event.
+
         In both cases, set `interrogated=True`, `state="interrogated"`, and
         `state_updated=now()` for the `FileUnderInterrogation` event. In the case of
         interrogation failure, also set `can_remove=True`.

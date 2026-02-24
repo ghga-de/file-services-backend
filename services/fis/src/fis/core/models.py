@@ -107,6 +107,10 @@ class InterrogationSuccess(BaseModel):
     encrypted_parts_sha256: list[str] = Field(
         default=..., description="The SHA256 checksum for each file part, in sequence"
     )
+    encrypted_size: int = Field(
+        default=...,
+        description=("The size of the encrypted file content without envelope."),
+    )
 
 
 class InterrogationFailure(BaseModel):
@@ -163,6 +167,13 @@ class InterrogationReport(BaseModel):
     encrypted_parts_sha256: list[str] | None = Field(
         default=None, description="Conditional upon success"
     )
+    encrypted_size: int | None = Field(
+        default=None,
+        description=(
+            "The size of the encrypted file content without envelope, if interrogation"
+            + " is successful."
+        ),
+    )
     reason: str | None = Field(
         default=None,
         description="Conditional upon failure, contains reason for failure",
@@ -172,18 +183,16 @@ class InterrogationReport(BaseModel):
     def validate_conditional_fields(self) -> "InterrogationReport":
         """Validate that conditional fields are set based on passed status."""
         if self.passed:
-            if self.bucket_id is None:
-                raise ValueError("bucket_id must not be None when passed is True")
-            if self.encrypted_parts_md5 is None:
-                raise ValueError(
-                    "encrypted_parts_md5 must not be None when passed is True"
-                )
-            if self.encrypted_parts_sha256 is None:
-                raise ValueError(
-                    "encrypted_parts_sha256 must not be None when passed is True"
-                )
-            if self.secret is None:
-                raise ValueError("secret must not be None when passed is True")
+            for attr in [
+                "bucket_id",
+                "encrypted_parts_md5",
+                "encrypted_parts_sha256",
+                "secret",
+                "encrypted_size",
+            ]:
+                if getattr(self, attr) is None:
+                    raise ValueError(f"{attr} must not be None when passed is True")
+
         elif self.reason is None:
             raise ValueError("reason must not be None when passed is False")
         return self

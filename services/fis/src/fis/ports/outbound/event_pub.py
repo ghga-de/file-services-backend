@@ -36,6 +36,7 @@ class EventPubTranslatorPort(ABC):
         interrogated_at: UTCDatetime,
         encrypted_parts_md5: list[str],
         encrypted_parts_sha256: list[str],
+        encrypted_size: int,
     ):
         """Publish a file interrogation success event"""
         ...

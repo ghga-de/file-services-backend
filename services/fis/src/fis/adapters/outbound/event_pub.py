@@ -73,6 +73,7 @@ class EventPubTranslator(EventPubTranslatorPort):
         interrogated_at: UTCDatetime,
         encrypted_parts_md5: list[str],
         encrypted_parts_sha256: list[str],
+        encrypted_size: int,
     ):
         """Publish a file interrogation success event"""
         payload = models.InterrogationSuccess(
@@ -84,6 +85,7 @@ class EventPubTranslator(EventPubTranslatorPort):
             interrogated_at=interrogated_at,
             encrypted_parts_md5=encrypted_parts_md5,
             encrypted_parts_sha256=encrypted_parts_sha256,
+            encrypted_size=encrypted_size,
         )
         await self._provider.publish(
             payload=payload.model_dump(mode="json"),

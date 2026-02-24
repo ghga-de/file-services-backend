@@ -75,6 +75,7 @@ async def test_typical_journey(joint_fixture: JointFixture, httpx_mock: HTTPXMoc
             secret=b"secret_data_here",
             encrypted_parts_md5=["abc123", "def456"],
             encrypted_parts_sha256=["sha256_1", "sha256_2"],
+            encrypted_size=1234,
         )
         await joint_fixture.interrogation_handler.handle_interrogation_report(
             report=success_report

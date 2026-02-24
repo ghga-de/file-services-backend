@@ -16,6 +16,7 @@
 """Unit tests for the core logic"""
 
 from datetime import timedelta
+from uuid import uuid4
 
 import httpx
 import pytest
@@ -64,12 +65,13 @@ async def test_report_handling_successful(rig: JointRig, httpx_mock: HTTPXMock):
         file_id=file.id,
         storage_alias=file.storage_alias,
         bucket_id="interrogation1",
-        object_id=file.object_id,
+        object_id=uuid4(),
         interrogated_at=now_utc_ms_prec(),
         passed=True,
         secret=b"secret_data_here",
         encrypted_parts_md5=["abc123", "def456"],
         encrypted_parts_sha256=["sha256_1", "sha256_2"],
+        encrypted_size=1234,
     )
 
     # Verify that a report for a file we don't have triggers a FileNotFoundError
@@ -104,6 +106,8 @@ async def test_report_handling_successful(rig: JointRig, httpx_mock: HTTPXMock):
     assert event.payload["file_id"] == str(file.id)
     assert event.payload["secret_id"] == secret_id
     assert event.payload["storage_alias"] == file.storage_alias
+    assert event.payload["object_id"] == str(success_report.object_id)
+    assert event.payload["encrypted_size"] == success_report.encrypted_size
 
 
 async def test_report_handling_failure(rig: JointRig):
@@ -165,6 +169,7 @@ async def test_report_handling_ekss_non_201_status(
         secret=b"secret",
         encrypted_parts_md5=["abc"],
         encrypted_parts_sha256=["sha"],
+        encrypted_size=1234,
     )
 
     # The retry transport will retry 500 errors and eventually raise RetryError
@@ -202,6 +207,7 @@ async def test_report_handling_ekss_network_error(rig: JointRig, httpx_mock: HTT
         secret=b"secret",
         encrypted_parts_md5=["abc"],
         encrypted_parts_sha256=["sha"],
+        encrypted_size=1234,
     )
 
     # Connection errors should be retried and eventually raise SecretDepositionError

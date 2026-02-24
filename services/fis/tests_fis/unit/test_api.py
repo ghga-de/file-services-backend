@@ -197,6 +197,7 @@ async def test_post_interrogation_report(
         "secret": "c2VjcmV0X2RhdGFfaGVyZQ==",
         "encrypted_parts_md5": ["abc123", "def456"],
         "encrypted_parts_sha256": ["sha256_1", "sha256_2"],
+        "encrypted_size": 1234,
     }
 
     # Make sure that not supplying auth headers returns 401

@@ -41,6 +41,7 @@ def test_interrogation_report_validator():
         secret=SecretBytes(b"encrypted_secret"),
         encrypted_parts_md5=["abc123"],
         encrypted_parts_sha256=["def456"],
+        encrypted_size=1234,
     )
     assert valid_success.passed is True
 

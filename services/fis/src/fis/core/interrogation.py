@@ -87,7 +87,11 @@ class InterrogationHandler(InterrogationHandlerPort):
         """Handle an interrogation report and publish the appropriate event.
 
         If the report relays a success, then deposit the secret with EKSS and publish
-        an InterrogationSuccess event. Otherwise, publish an InterrogationFailure event.
+        an InterrogationSuccess event. Also updates the file in the database with the
+        new object ID, bucket ID, and encrypted_size.
+
+        If the report relays a failure, publish an InterrogationFailure event.
+
         In both cases, set `interrogated=True`, `state="interrogated"`, and
         `state_updated=now()` for the `FileUnderInterrogation` event. In the case of
         interrogation failure, also set `can_remove=True`.
@@ -107,9 +111,13 @@ class InterrogationHandler(InterrogationHandlerPort):
             raise self.FileNotFoundError(file_id=report.file_id) from err
 
         # See if this is a success report or a failure report
+        updated_file = file.model_copy(deep=True)
         if report.passed:
-            # Update file state
-            file.state = "interrogated"
+            # Update file state, size, and object ID
+            updated_file.state = "interrogated"
+            updated_file.object_id = report.object_id
+            updated_file.bucket_id = report.bucket_id
+            updated_file.encrypted_size = report.encrypted_size
 
             # Deposit the secret with the EKSS
             url = f"{self._config.ekss_api_url}/secrets"
@@ -156,11 +164,12 @@ class InterrogationHandler(InterrogationHandlerPort):
                 interrogated_at=report.interrogated_at,
                 encrypted_parts_md5=report.encrypted_parts_md5,
                 encrypted_parts_sha256=report.encrypted_parts_sha256,
+                encrypted_size=report.encrypted_size,
             )
         else:
             # Update file state
-            file.state = "failed"
-            file.can_remove = True
+            updated_file.state = "failed"
+            updated_file.can_remove = True
 
             # Publish event
             await self._publisher.publish_interrogation_failed(
@@ -171,9 +180,9 @@ class InterrogationHandler(InterrogationHandlerPort):
             )
 
         # Set the 'interrogated' flag and timestamp, and update the FileUnderInterrogation
-        file.interrogated = True
-        file.state_updated = now_utc_ms_prec()
-        await self._dao.update(file)
+        updated_file.interrogated = True
+        updated_file.state_updated = now_utc_ms_prec()
+        await self._dao.update(updated_file)
 
     async def process_file_upload(self, *, file: models.FileUnderInterrogation) -> None:
         """Process a newly received file upload.
