@@ -101,7 +101,7 @@ async def get_removable_files(
     status_code=status.HTTP_201_CREATED,
     responses={status.HTTP_404_NOT_FOUND: {"description": "No such file exists"}},
 )
-@TRACER.start_as_current_span("routes.get_removable_files")
+@TRACER.start_as_current_span("routes.post_interrogation_report")
 async def post_interrogation_report(
     storage_alias: str,
     interrogator: dummies.InterrogatorPort,
