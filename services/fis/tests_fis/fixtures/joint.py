@@ -98,14 +98,12 @@ def rig(config: Config):
     """Produce a populated JointRig instance"""
     config = config
     event_store = InMemEventStore()
+    dao = InMemFileDao()
+    publisher = EventPubTranslator(
+        config=config, provider=InMemEventPublisher(event_store)
+    )
     interrogation_handler = InterrogationHandler(
-        config=config,
-        file_dao=(dao := InMemFileDao()),
-        event_publisher=(
-            publisher := EventPubTranslator(
-                config=config, provider=InMemEventPublisher(event_store)
-            )
-        ),
+        config=config, file_dao=dao, event_publisher=publisher
     )
     return JointRig(
         config=config,
