@@ -33,8 +33,10 @@ from fis.adapters.inbound.event_sub import OutboxSubTranslator
 from fis.adapters.inbound.fastapi_ import dummies
 from fis.adapters.inbound.fastapi_.configure import get_configured_app
 from fis.adapters.inbound.fastapi_.http_authorization import JWT
-from fis.adapters.outbound.dao import get_file_dao
+from fis.adapters.outbound.dao import get_file_dao, get_interrogation_report_dao
 from fis.adapters.outbound.event_pub import EventPubTranslator
+from fis.adapters.outbound.http import get_configured_httpx_client
+from fis.adapters.outbound.secrets import SecretsClient
 from fis.config import Config
 from fis.constants import AUTH_CHECK_CLAIMS
 from fis.core.interrogation import InterrogationHandler, InterrogationHandlerPort
@@ -69,15 +71,22 @@ async def prepare_core(*, config: Config) -> AsyncGenerator[InterrogationHandler
         get_persistent_publisher(
             config=config, dao_factory=dao_factory
         ) as persistent_publisher,
+        get_configured_httpx_client(config=config) as httpx_client,
     ):
         file_dao = await get_file_dao(dao_factory=dao_factory)
+        interrogation_report_dao = await get_interrogation_report_dao(
+            dao_factory=dao_factory
+        )
         event_publisher = EventPubTranslator(
             config=config, provider=persistent_publisher
         )
+        secrets_client = SecretsClient(config=config, httpx_client=httpx_client)
         yield InterrogationHandler(
             config=config,
             file_dao=file_dao,
+            interrogation_report_dao=interrogation_report_dao,
             event_publisher=event_publisher,
+            secrets_client=secrets_client,
         )
 
 

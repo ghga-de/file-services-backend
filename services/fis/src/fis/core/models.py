@@ -132,7 +132,10 @@ class InterrogationFailure(BaseModel):
 
 
 class InterrogationReport(BaseModel):
-    """Contains the results of file interrogation"""
+    """Contains the results of file interrogation.
+
+    This is the model stored in the FIS database.
+    """
 
     file_id: UUID4 = Field(
         default=..., description="Unique identifier for the file upload"
@@ -158,9 +161,7 @@ class InterrogationReport(BaseModel):
             + " successful."
         ),
     )
-    secret: SecretBytes | None = Field(
-        default=None, description="Encrypted file encryption secret"
-    )
+
     encrypted_parts_md5: list[str] | None = Field(
         default=None, description="Conditional upon success"
     )
@@ -179,8 +180,19 @@ class InterrogationReport(BaseModel):
         description="Conditional upon failure, contains reason for failure",
     )
 
+
+class InterrogationReportWithSecret(InterrogationReport):
+    """An InterrogationReport which might contain the file encryption secret.
+
+    This is the model expected by the HTTP API.
+    """
+
+    secret: SecretBytes | None = Field(
+        default=None, description="Encrypted file encryption secret"
+    )
+
     @model_validator(mode="after")
-    def validate_conditional_fields(self) -> "InterrogationReport":
+    def validate_conditional_fields(self) -> "InterrogationReportWithSecret":
         """Validate that conditional fields are set based on passed status."""
         if self.passed:
             for attr in [

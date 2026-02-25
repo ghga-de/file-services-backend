@@ -48,6 +48,16 @@ class InterrogationHandlerPort(ABC):
             )
             super().__init__(msg)
 
+    class InterrogationReportConflict(RuntimeError):
+        """Raised when a submitted InterrogationReport conflicts with the database state."""
+
+        def __init__(self, *, file_id: UUID4):
+            msg = (
+                f"File {file_id} has already been interrogated, but the new"
+                + " InterrogationReport contradicts what is stored in the database."
+            )
+            super().__init__(msg)
+
     @abstractmethod
     async def check_if_removable(self, *, object_id: UUID4) -> bool:
         """Return `True` if an object can be removed from the interrogation bucket and
@@ -55,7 +65,9 @@ class InterrogationHandlerPort(ABC):
         """
 
     @abstractmethod
-    async def handle_interrogation_report(self, *, report: models.InterrogationReport):
+    async def handle_interrogation_report(
+        self, *, report: models.InterrogationReportWithSecret
+    ):
         """Handle an interrogation report and publish the appropriate event.
 
         If the report relays a success, then deposit the secret with EKSS and publish

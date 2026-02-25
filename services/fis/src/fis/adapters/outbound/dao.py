@@ -17,8 +17,8 @@
 from hexkit.protocols.dao import DaoFactoryProtocol
 from hexkit.providers.mongodb import MongoDbIndex
 
-from fis.core.models import FileUnderInterrogation
-from fis.ports.outbound.dao import FileDao
+from fis.core.models import FileUnderInterrogation, InterrogationReport
+from fis.ports.outbound.dao import FileDao, InterrogationReportDao
 
 
 async def get_file_dao(*, dao_factory: DaoFactoryProtocol) -> FileDao:
@@ -28,4 +28,15 @@ async def get_file_dao(*, dao_factory: DaoFactoryProtocol) -> FileDao:
         dto_model=FileUnderInterrogation,
         id_field="id",
         indexes=[MongoDbIndex(fields="object_id")],
+    )
+
+
+async def get_interrogation_report_dao(
+    *, dao_factory: DaoFactoryProtocol
+) -> InterrogationReportDao:
+    """Setup the DAOs using the specified provider of the DaoFactoryProtocol."""
+    return await dao_factory.get_dao(
+        name="reports",
+        dto_model=InterrogationReport,
+        id_field="file_id",
     )

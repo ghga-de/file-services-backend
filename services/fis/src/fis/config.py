@@ -15,16 +15,17 @@
 """Config Parameter Modeling and Parsing"""
 
 from ghga_service_commons.api import ApiConfigBase
-from ghga_service_commons.transports.config import RetryTransportConfig
 from hexkit.config import config_from_yaml
 from hexkit.log import LoggingConfig
 from hexkit.opentelemetry import OpenTelemetryConfig
 from hexkit.providers.mongodb.migrations import MigrationConfig
 from hexkit.providers.mongokafka import MongoKafkaConfig
-from pydantic import Field, HttpUrl
+from pydantic import Field
 
 from fis.adapters.inbound.event_sub import OutboxSubConfig
 from fis.adapters.outbound.event_pub import EventPubConfig
+from fis.adapters.outbound.http import HttpClientConfig
+from fis.adapters.outbound.secrets import SecretsClientConfig
 from fis.constants import SERVICE_NAME
 
 
@@ -37,17 +38,13 @@ class Config(
     LoggingConfig,
     OpenTelemetryConfig,
     OutboxSubConfig,
-    RetryTransportConfig,
+    SecretsClientConfig,
+    HttpClientConfig,
 ):
     """Config parameters and their defaults."""
 
     service_name: str = SERVICE_NAME
 
-    ekss_api_url: HttpUrl = Field(
-        default=...,
-        description="The base URL for the EKSS API",
-        examples=["http://127.0.0.1/ekss"],
-    )
     data_hub_auth_keys: dict[str, str] = Field(
         default=...,
         description=(

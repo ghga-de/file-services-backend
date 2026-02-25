@@ -58,8 +58,12 @@ components:
           type: array
       title: HTTPValidationError
       type: object
-    InterrogationReport:
-      description: Contains the results of file interrogation
+    InterrogationReportWithSecret:
+      description: 'An InterrogationReport which might contain the file encryption
+        secret.
+
+
+        This is the model expected by the HTTP API.'
       properties:
         bucket_id:
           anyOf:
@@ -136,7 +140,7 @@ components:
       - storage_alias
       - interrogated_at
       - passed
-      title: InterrogationReport
+      title: InterrogationReportWithSecret
       type: object
     ValidationError:
       properties:
@@ -203,7 +207,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/InterrogationReport'
+              $ref: '#/components/schemas/InterrogationReportWithSecret'
         required: true
       responses:
         '201':
@@ -213,6 +217,8 @@ paths:
           description: Successful Response
         '404':
           description: No such file exists
+        '409':
+          description: Report conflicts with database
         '422':
           content:
             application/json:

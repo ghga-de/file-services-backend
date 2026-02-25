@@ -99,21 +99,32 @@ async def get_removable_files(
     operation_id="postInterrogationReport",
     tags=["FileIngestService"],
     status_code=status.HTTP_201_CREATED,
-    responses={status.HTTP_404_NOT_FOUND: {"description": "No such file exists"}},
+    responses={
+        status.HTTP_404_NOT_FOUND: {"description": "No such file exists"},
+        status.HTTP_409_CONFLICT: {"description": "Report conflicts with database"},
+    },
 )
 @TRACER.start_as_current_span("routes.post_interrogation_report")
 async def post_interrogation_report(
     storage_alias: str,
     interrogator: dummies.InterrogatorPort,
     _token: Annotated[JWT, require_data_hub_jwt],
-    report: models.InterrogationReport = Body(),
+    report: models.InterrogationReportWithSecret = Body(),
 ) -> None:
     """Post an InterrogationReport"""
     try:
         await interrogator.handle_interrogation_report(report=report)
     except InterrogationHandlerPort.FileNotFoundError as err:
         raise HTTPException(
-            status_code=404, detail=f"File {report.file_id} not found"
+            status_code=404, detail=f"File {report.file_id} not found."
+        ) from err
+    except InterrogationHandlerPort.SecretDepositionError as err:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"Already received an InterrogationReport for file {report.file_id}"
+                + " and this one does not match."
+            ),
         ) from err
     except Exception as err:
         error = HTTPException(status_code=500, detail="Something went wrong.")

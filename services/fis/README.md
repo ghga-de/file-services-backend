@@ -46,6 +46,14 @@ fis --help
 ### Parameters
 
 The service requires the following configuration parameters:
+- <a id="properties/client_cache_capacity"></a>**`client_cache_capacity`** *(integer)*: Maximum number of entries to store in the cache. Older entries are evicted once this limit is reached. Exclusive minimum: `0`. Default: `128`.
+
+- <a id="properties/client_cache_ttl"></a>**`client_cache_ttl`** *(integer)*: Number of seconds after which a stored response is considered stale. Minimum: `0`. Default: `60`.
+
+- <a id="properties/client_cacheable_methods"></a>**`client_cacheable_methods`** *(array)*: HTTP methods for which responses are allowed to be cached. Default: `["POST", "GET"]`.
+
+  - <a id="properties/client_cacheable_methods/items"></a>**Items** *(string)*
+
 - <a id="properties/client_exponential_backoff_max"></a>**`client_exponential_backoff_max`** *(integer)*: Maximum number of seconds to wait between retries when using exponential backoff retry strategies. The client timeout might need to be adjusted accordingly. Minimum: `0`. Default: `60`.
 
 - <a id="properties/client_num_retries"></a>**`client_num_retries`** *(integer)*: Number of times to retry failed API calls. Minimum: `0`. Default: `3`.
@@ -55,6 +63,22 @@ The service requires the following configuration parameters:
   - <a id="properties/client_retry_status_codes/items"></a>**Items** *(integer)*: Minimum: `0`.
 
 - <a id="properties/client_reraise_from_retry_error"></a>**`client_reraise_from_retry_error`** *(boolean)*: Specifies if the exception wrapped in the final RetryError is reraised or the RetryError is returned as is. Default: `true`.
+
+- <a id="properties/per_request_jitter"></a>**`per_request_jitter`** *(number)*: Max amount of jitter (in seconds) to add to each request. Minimum: `0`. Default: `0.0`.
+
+- <a id="properties/retry_after_applicable_for_num_requests"></a>**`retry_after_applicable_for_num_requests`** *(integer)*: Amount of requests after which the stored delay from a 429 response is ignored again. Can be useful to adjust if concurrent requests are fired in quick succession. Exclusive minimum: `0`. Default: `1`.
+
+- <a id="properties/http_request_timeout_seconds"></a>**`http_request_timeout_seconds`** *(number)*: Request timeout setting in seconds. Default: `60.0`.
+
+- <a id="properties/ekss_api_url"></a>**`ekss_api_url`** *(string, format: uri, required)*: The base URL for the EKSS API. Length must be between 1 and 2083 (inclusive).
+
+
+  Examples:
+
+  ```json
+  "http://127.0.0.1/ekss"
+  ```
+
 
 - <a id="properties/file_upload_topic"></a>**`file_upload_topic`** *(string, required)*: Topic containing published FileUpload outbox events.
 
@@ -551,16 +575,6 @@ The service requires the following configuration parameters:
 
   ```json
   3600
-  ```
-
-
-- <a id="properties/ekss_api_url"></a>**`ekss_api_url`** *(string, format: uri, required)*: The base URL for the EKSS API. Length must be between 1 and 2083 (inclusive).
-
-
-  Examples:
-
-  ```json
-  "http://127.0.0.1/ekss"
   ```
 
 
