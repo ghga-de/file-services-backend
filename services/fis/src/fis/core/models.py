@@ -197,6 +197,7 @@ class InterrogationReportWithSecret(InterrogationReport):
         if self.passed:
             for attr in [
                 "bucket_id",
+                "object_id",
                 "encrypted_parts_md5",
                 "encrypted_parts_sha256",
                 "secret",
