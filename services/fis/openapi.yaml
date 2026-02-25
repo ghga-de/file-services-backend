@@ -84,6 +84,13 @@ components:
           - type: 'null'
           description: Conditional upon success
           title: Encrypted Parts Sha256
+        encrypted_size:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          description: The size of the encrypted file content without envelope, if
+            interrogation is successful.
+          title: Encrypted Size
         file_id:
           description: Unique identifier for the file upload
           format: uuid4

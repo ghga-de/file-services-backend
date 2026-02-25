@@ -55,7 +55,8 @@ jobs:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
           COVERALLS_FLAG_NAME: ${{matrix.service}}
           COVERALLS_PARALLEL: true
-          FAIL_ON_ERROR: false
+        with:
+          fail-on-error: false
         run: |
           pip install --upgrade coveralls
           coveralls --service=github
