@@ -21,7 +21,7 @@ import pytest
 from hexkit.utils import now_utc_ms_prec
 from pydantic import SecretBytes, ValidationError
 
-from fis.core.models import InterrogationReport
+from fis.core.models import InterrogationReportWithSecret
 
 
 def test_interrogation_report_validator():
@@ -32,7 +32,7 @@ def test_interrogation_report_validator():
     interrogated_at = now_utc_ms_prec()
 
     # Valid case: passed=True with all required fields
-    valid_success = InterrogationReport(
+    valid_success = InterrogationReportWithSecret(
         file_id=file_id,
         storage_alias=storage_alias,
         bucket_id=bucket_id,
@@ -46,7 +46,7 @@ def test_interrogation_report_validator():
     assert valid_success.passed is True
 
     # Valid case: passed=False with reason
-    valid_failure = InterrogationReport(
+    valid_failure = InterrogationReportWithSecret(
         file_id=file_id,
         storage_alias=storage_alias,
         interrogated_at=interrogated_at,
@@ -57,7 +57,7 @@ def test_interrogation_report_validator():
 
     # Invalid: passed=True but bucket_id is None
     with pytest.raises(ValidationError, match="bucket_id must not be None"):
-        InterrogationReport(
+        InterrogationReportWithSecret(
             file_id=file_id,
             storage_alias=storage_alias,
             interrogated_at=interrogated_at,
@@ -69,7 +69,7 @@ def test_interrogation_report_validator():
 
     # Invalid: passed=True but encrypted_parts_md5 is None
     with pytest.raises(ValidationError, match="encrypted_parts_md5 must not be None"):
-        InterrogationReport(
+        InterrogationReportWithSecret(
             file_id=file_id,
             storage_alias=storage_alias,
             bucket_id=bucket_id,
@@ -84,7 +84,7 @@ def test_interrogation_report_validator():
     with pytest.raises(
         ValidationError, match="encrypted_parts_sha256 must not be None"
     ):
-        InterrogationReport(
+        InterrogationReportWithSecret(
             file_id=file_id,
             storage_alias=storage_alias,
             bucket_id=bucket_id,
@@ -97,7 +97,7 @@ def test_interrogation_report_validator():
 
     # Invalid: passed=True but secret is None
     with pytest.raises(ValidationError, match="secret must not be None"):
-        InterrogationReport(
+        InterrogationReportWithSecret(
             file_id=file_id,
             storage_alias=storage_alias,
             bucket_id=bucket_id,
@@ -110,7 +110,7 @@ def test_interrogation_report_validator():
 
     # Invalid: passed=False but reason is None
     with pytest.raises(ValidationError, match="reason must not be None"):
-        InterrogationReport(
+        InterrogationReportWithSecret(
             file_id=file_id,
             storage_alias=storage_alias,
             interrogated_at=interrogated_at,

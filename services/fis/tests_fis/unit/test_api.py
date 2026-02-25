@@ -22,7 +22,6 @@ from ghga_service_commons.api.testing import AsyncTestClient
 from ghga_service_commons.utils.jwt_helpers import sign_and_serialize_token
 from hexkit.utils import now_utc_ms_prec
 from jwcrypto.jwk import JWK
-from pytest_httpx import HTTPXMock
 
 from fis.constants import GHGA
 from fis.core import models
@@ -96,7 +95,7 @@ async def test_list_uploads(
     files = [create_file_under_interrogation(HUB1) for _ in range(5)]
     files_expected = [models.BaseFileInformation(**file.model_dump()) for file in files]
     for file in files:
-        await rig.dao.insert(file)
+        await rig.file_dao.insert(file)
 
     response = await rest_client.get(url, headers=correct_headers)
     assert response.status_code == 200
@@ -123,8 +122,8 @@ async def test_get_removable_files(
     file_not_removable.can_remove = False
 
     # Insert files into DAO
-    await rig.dao.insert(file_removable)
-    await rig.dao.insert(file_not_removable)
+    await rig.file_dao.insert(file_removable)
+    await rig.file_dao.insert(file_not_removable)
 
     # Create a UUID for a file that doesn't exist
     non_existent_id = uuid4()
@@ -171,20 +170,13 @@ async def test_post_interrogation_report(
     rest_client: AsyncTestClient,
     rig: JointRig,
     jwt_factory: JWTTestFactory,
-    httpx_mock: HTTPXMock,
 ):
     """Test the POST /storages/{storage_alias}/interrogation-reports endpoint"""
     url = f"/storages/{HUB1}/interrogation-reports"
 
-    # Mock the EKSS secret deposition endpoint
-    ekss_url = f"{rig.config.ekss_api_url}/secrets"
-    httpx_mock.add_response(
-        url=ekss_url, method="POST", status_code=201, json="test-secret-id-12345"
-    )
-
     # Create a file in the DAO that we can report on
     file = create_file_under_interrogation(HUB1)
-    await rig.dao.insert(file)
+    await rig.file_dao.insert(file)
 
     # Create a successful interrogation report
     success_report = {
@@ -217,13 +209,13 @@ async def test_post_interrogation_report(
     assert response.status_code == 201
 
     # Verify that FIS updated the state of the FileUnderInterrogation object
-    updated_file = await rig.dao.get_by_id(file.id)
+    updated_file = await rig.file_dao.get_by_id(file.id)
     assert updated_file.interrogated is True
     assert updated_file.state == "interrogated"
 
     # Create another file for failed interrogation
     file2 = create_file_under_interrogation(HUB1)
-    await rig.dao.insert(file2)
+    await rig.file_dao.insert(file2)
 
     # Create a failed interrogation report
     failure_report = {
@@ -239,7 +231,7 @@ async def test_post_interrogation_report(
     assert response.status_code == 201
 
     # Verify file was updated and marked for removal
-    updated_file2 = await rig.dao.get_by_id(file2.id)
+    updated_file2 = await rig.file_dao.get_by_id(file2.id)
     assert updated_file2.interrogated is True
     assert updated_file2.state == "failed"
     assert updated_file2.can_remove is True

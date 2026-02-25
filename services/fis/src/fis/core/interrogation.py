@@ -256,7 +256,7 @@ class InterrogationHandler(InterrogationHandlerPort):
                 encrypted_parts_sha256=report.encrypted_parts_sha256,
                 encrypted_size=report.encrypted_size,
             )
-        except Exception:
+        except Exception as err:
             # If secret deposition or event publish fails, remove the stored report
             # and re-raise
             log.error(
@@ -265,6 +265,10 @@ class InterrogationHandler(InterrogationHandlerPort):
                 report.file_id,
             )
             await self._interrogation_report_dao.delete(file.id)
+            if isinstance(err, SecretsClientPort.SecretsApiError):
+                raise self.SecretDepositionError(
+                    file_id=report.file_id, reason="See logs for details."
+                ) from err
             raise
         else:
             # If everything goes well, update the FileUnderInterrogation in the DB

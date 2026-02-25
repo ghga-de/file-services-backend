@@ -42,7 +42,7 @@ async def test_typical_journey(joint_fixture: JointFixture, httpx_mock: HTTPXMoc
     await joint_fixture.outbox_consumer.run(forever=False)
 
     # Verify that the file was stored in the database
-    _ = await joint_fixture.dao.get_by_id(file.id)
+    _ = await joint_fixture.file_dao.get_by_id(file.id)
 
     # Get a list of files for hub1 that need to be interrogated
     files_to_interrogate = (
@@ -65,7 +65,7 @@ async def test_typical_journey(joint_fixture: JointFixture, httpx_mock: HTTPXMoc
     async with joint_fixture.kafka.record_events(
         in_topic=interrogation_topic
     ) as recorder:
-        success_report = models.InterrogationReport(
+        success_report = models.InterrogationReportWithSecret(
             file_id=file.id,
             storage_alias=file.storage_alias,
             bucket_id="interrogation1",
@@ -89,7 +89,7 @@ async def test_typical_journey(joint_fixture: JointFixture, httpx_mock: HTTPXMoc
     assert event.payload["secret_id"] == secret_id
 
     # Verify that the file in the database now says "interrogated"
-    file_in_db = await joint_fixture.dao.get_by_id(file.id)
+    file_in_db = await joint_fixture.file_dao.get_by_id(file.id)
     assert file_in_db.interrogated
     assert file_in_db.state == "interrogated"
 
@@ -115,7 +115,7 @@ async def test_typical_journey(joint_fixture: JointFixture, httpx_mock: HTTPXMoc
     await joint_fixture.outbox_consumer.run(forever=False)
 
     # Verify that the file in the database now says "archived" and can_remove = True
-    file_in_db = await joint_fixture.dao.get_by_id(file.id)
+    file_in_db = await joint_fixture.file_dao.get_by_id(file.id)
     assert file_in_db.can_remove
     assert file_in_db.interrogated  # triple check that this wasn't overwritten to False
     assert file_in_db.state == "archived"

@@ -18,14 +18,13 @@
 from datetime import timedelta
 from uuid import uuid4
 
-import httpx
 import pytest
 from hexkit.utils import now_utc_ms_prec
-from pytest_httpx import HTTPXMock
 
 from fis.core import models
 from fis.ports.inbound.interrogation import InterrogationHandlerPort
 from fis.ports.outbound.dao import ResourceNotFoundError
+from fis.ports.outbound.secrets import SecretsClientPort
 from tests_fis.fixtures.joint import JointRig
 from tests_fis.fixtures.utils import create_file_under_interrogation
 
@@ -44,24 +43,24 @@ async def test_check_if_removable(rig: JointRig):
         == True
     )
 
-    await rig.dao.insert(file)
+    await rig.file_dao.insert(file)
     assert (
         await rig.interrogation_handler.check_if_removable(object_id=file.object_id)
         == False
     )
 
     file.can_remove = True
-    await rig.dao.update(file)
+    await rig.file_dao.update(file)
     assert (
         await rig.interrogation_handler.check_if_removable(object_id=file.object_id)
         == True
     )
 
 
-async def test_report_handling_successful(rig: JointRig, httpx_mock: HTTPXMock):
+async def test_report_handling_successful(rig: JointRig):
     """Test the `.handle_interrogation_report()` method happy path"""
     file = create_file_under_interrogation(HUB1)
-    success_report = models.InterrogationReport(
+    success_report = models.InterrogationReportWithSecret(
         file_id=file.id,
         storage_alias=file.storage_alias,
         bucket_id="interrogation1",
@@ -83,23 +82,29 @@ async def test_report_handling_successful(rig: JointRig, httpx_mock: HTTPXMock):
     # Insert the test file
     assert not file.can_remove
     assert file.state not in ["interrogated", "failed"]
-    await rig.dao.insert(file)
+    await rig.file_dao.insert(file)
 
-    # Mock the EKSS secret deposition endpoint
-    ekss_url = f"{rig.config.ekss_api_url}/secrets"
     secret_id = "test-secret-id-12345"
-    httpx_mock.add_response(
-        url=ekss_url, method="POST", status_code=201, json=secret_id
-    )
+    rig.secrets_client.deposit_secret.return_value = secret_id
 
     # Submit the report again now that we've inserted the file
     await rig.interrogation_handler.handle_interrogation_report(report=success_report)
 
+    # Verify deposit_secret was called with the report's secret
+    rig.secrets_client.deposit_secret.assert_called_once_with(
+        secret=success_report.secret
+    )
+
     # Verify file was updated
-    updated_file = await rig.dao.get_by_id(file.id)
+    updated_file = await rig.file_dao.get_by_id(file.id)
     assert updated_file.interrogated is True
     assert updated_file.state == "interrogated"
     assert updated_file.can_remove is False
+
+    # Verify the report was persisted
+    stored_report = await rig.interrogation_report_dao.get_by_id(file.id)
+    assert stored_report.file_id == file.id
+    assert stored_report.passed is True
 
     # Verify event was published
     event = rig.event_store.get(rig.config.file_interrogations_topic)
@@ -114,10 +119,10 @@ async def test_report_handling_failure(rig: JointRig):
     """Test the `.handle_interrogation_report()` method for a failed interrogation"""
     # Create a file for failed interrogation
     file = create_file_under_interrogation(HUB1)
-    await rig.dao.insert(file)
+    await rig.file_dao.insert(file)
 
     # Test failed interrogation report
-    failure_report = models.InterrogationReport(
+    failure_report = models.InterrogationReportWithSecret(
         file_id=file.id,
         storage_alias=file.storage_alias,
         interrogated_at=now_utc_ms_prec(),
@@ -127,40 +132,35 @@ async def test_report_handling_failure(rig: JointRig):
     await rig.interrogation_handler.handle_interrogation_report(report=failure_report)
 
     # Verify file was updated and marked for removal
-    updated_file2 = await rig.dao.get_by_id(file.id)
+    updated_file2 = await rig.file_dao.get_by_id(file.id)
     assert updated_file2.interrogated is True
     assert updated_file2.state == "failed"
     assert updated_file2.can_remove is True
 
+    # Verify the report was persisted
+    stored_report = await rig.interrogation_report_dao.get_by_id(file.id)
+    assert stored_report.file_id == file.id
+    assert stored_report.passed is False
+
     # Verify failure event was published
     failure_event = rig.event_store.get(rig.config.file_interrogations_topic)
-    failure_event = failure_event
     assert failure_event.payload["file_id"] == str(file.id)
     assert failure_event.payload["reason"] == "Checksum mismatch detected"
 
 
-@pytest.mark.httpx_mock(can_send_already_matched_responses=True)
-async def test_report_handling_ekss_non_201_status(
-    rig: JointRig, httpx_mock: HTTPXMock
-):
-    """Test handling unsuccessful status codes from EKSS during secret deposition.
+async def test_report_handling_ekss_error(rig: JointRig):
+    """Test that a SecretsApiError from deposit_secret is wrapped in SecretDepositionError.
 
-    500 status codes are retried by AsyncRetryTransport, which eventually raises
-    RetryError after exhausting retries. The error handler catches this and wraps
-    it in SecretDepositionError.
+    The specific HTTP-level cause (bad status code, network error, etc.) is tested
+    in the SecretsClient unit tests. Here we only verify the core's error handling:
+    the exception is wrapped, the stored report is rolled back, and the error propagates.
     """
     file = create_file_under_interrogation(HUB1)
-    await rig.dao.insert(file)
+    await rig.file_dao.insert(file)
 
-    # Mock EKSS to return 500 error (will be retried due to AsyncRetryTransport)
-    ekss_url = f"{rig.config.ekss_api_url}/secrets"
-    httpx_mock.add_response(
-        url=ekss_url,
-        method="POST",
-        status_code=500,
-    )
+    rig.secrets_client.deposit_secret.side_effect = SecretsClientPort.SecretsApiError()
 
-    error_report = models.InterrogationReport(
+    error_report = models.InterrogationReportWithSecret(
         file_id=file.id,
         storage_alias=file.storage_alias,
         bucket_id="interrogation1",
@@ -172,51 +172,14 @@ async def test_report_handling_ekss_non_201_status(
         encrypted_size=1234,
     )
 
-    # The retry transport will retry 500 errors and eventually raise RetryError
     with pytest.raises(rig.interrogation_handler.SecretDepositionError) as exc_info:
         await rig.interrogation_handler.handle_interrogation_report(report=error_report)
 
-    # Verify the error is raised and contains file_id
     assert str(file.id) in str(exc_info.value)
 
-
-@pytest.mark.httpx_mock(can_send_already_matched_responses=True)
-async def test_report_handling_ekss_network_error(rig: JointRig, httpx_mock: HTTPXMock):
-    """Test handling network/connection errors when communicating with EKSS.
-
-    Connection errors like httpx.ConnectError are retried by AsyncRetryTransport
-    and eventually wrapped in tenacity.RetryError after exhausting retries.
-    """
-    file = create_file_under_interrogation(HUB1)
-    await rig.dao.insert(file)
-
-    # Mock EKSS to raise a connection error that will trigger retries and eventually RetryError
-    ekss_url = f"{rig.config.ekss_api_url}/secrets"
-    httpx_mock.add_exception(
-        httpx.ConnectError("Connection failed"),
-        url=ekss_url,
-        method="POST",
-    )
-
-    error_report = models.InterrogationReport(
-        file_id=file.id,
-        storage_alias=file.storage_alias,
-        bucket_id="interrogation1",
-        interrogated_at=now_utc_ms_prec(),
-        passed=True,
-        secret=b"secret",
-        encrypted_parts_md5=["abc"],
-        encrypted_parts_sha256=["sha"],
-        encrypted_size=1234,
-    )
-
-    # Connection errors should be retried and eventually raise SecretDepositionError
-    with pytest.raises(rig.interrogation_handler.SecretDepositionError) as exc_info:
-        await rig.interrogation_handler.handle_interrogation_report(report=error_report)
-
-    # Verify the error message contains the file ID
-    error_msg = str(exc_info.value)
-    assert str(file.id) in error_msg
+    # Verify the report was rolled back (not left in the DAO)
+    with pytest.raises(ResourceNotFoundError):
+        await rig.interrogation_report_dao.get_by_id(file.id)
 
 
 async def test_process_file_upload_insertion(rig: JointRig):
@@ -229,12 +192,12 @@ async def test_process_file_upload_insertion(rig: JointRig):
 
     # Prove that this file is not in the database
     with pytest.raises(ResourceNotFoundError):
-        await rig.dao.get_by_id(file.id)
+        await rig.file_dao.get_by_id(file.id)
 
     # Run it again with the state set to 'inbox' and verify the file gets to the DB
     file.state = "inbox"
     await rig.interrogation_handler.process_file_upload(file=file)
-    assert rig.dao.latest.model_dump() == file.model_dump()
+    assert rig.file_dao.latest.model_dump() == file.model_dump()
 
     # Verify that running the method again doesn't raise an error
     await rig.interrogation_handler.process_file_upload(file=file)
@@ -258,7 +221,7 @@ async def test_process_file_upload_outdated(
     )
 
     # Make sure the local copy wasn't modified
-    db_file = await rig.dao.get_by_id(local_file.id)
+    db_file = await rig.file_dao.get_by_id(local_file.id)
     assert db_file.state != outdated_file.state
     assert db_file.state == local_file.state
     assert db_file.state_updated != outdated_file.state_updated
@@ -276,7 +239,7 @@ async def test_process_file_upload_updates(
     await rig.interrogation_handler.process_file_upload(file=local_file)
 
     # Verify file is in the database
-    db_file = await rig.dao.get_by_id(local_file.id)
+    db_file = await rig.file_dao.get_by_id(local_file.id)
     assert db_file.state == local_file.state
     assert db_file.interrogated is True
     assert not db_file.can_remove
@@ -292,7 +255,7 @@ async def test_process_file_upload_updates(
     await rig.interrogation_handler.process_file_upload(file=updated_file)
 
     # Verify the file was updated in the database
-    db_file_after = await rig.dao.get_by_id(local_file.id)
+    db_file_after = await rig.file_dao.get_by_id(local_file.id)
     assert db_file_after.state == "archived"
     assert db_file_after.can_remove is True
     assert db_file_after.interrogated is True  # Should be preserved
@@ -313,7 +276,7 @@ async def test_process_file_upload_updates(
     caplog.clear()
     await rig.interrogation_handler.process_file_upload(file=failed_file)
 
-    db_file_final = await rig.dao.get_by_id(local_file.id)
+    db_file_final = await rig.file_dao.get_by_id(local_file.id)
     assert db_file_final.state == "failed"
     assert db_file_final.can_remove is True
     assert db_file_final.interrogated is True
@@ -339,7 +302,7 @@ async def test_get_files_not_yet_interrogated(rig: JointRig):
     hub1_files = [create_file_under_interrogation(HUB1) for _ in range(3)]
     hub2_files = [create_file_under_interrogation(HUB2) for _ in range(3)]
     for file in hub2_files + hub1_files:
-        await rig.dao.insert(file)
+        await rig.file_dao.insert(file)
 
     hub1_ids = set(f.id for f in hub1_files)
     hub2_ids = set(f.id for f in hub2_files)
@@ -354,19 +317,19 @@ async def test_get_files_not_yet_interrogated(rig: JointRig):
     hub1_files[0].interrogated = True
     hub1_files[0].can_remove = True
     hub1_files[0].state = "interrogated"
-    await rig.dao.update(hub1_files[0])
+    await rig.file_dao.update(hub1_files[0])
 
     # Set another file to 'failed'
     hub2_files[0].state = "failed"
     hub2_files[0].interrogated = False
     hub2_files[0].can_remove = True
-    await rig.dao.update(hub2_files[0])
+    await rig.file_dao.update(hub2_files[0])
 
     # Set another file to 'cancelled'
     hub2_files[1].state = "cancelled"
     hub2_files[1].interrogated = True
     hub2_files[1].can_remove = True
-    await rig.dao.update(hub2_files[1])
+    await rig.file_dao.update(hub2_files[1])
 
     # Compare Hub 1 results
     hub1_ids.remove(hub1_files[0].id)
@@ -394,13 +357,101 @@ async def test_ack_file_cancellation(rig: JointRig):
     # Insert a file
     file.state = "inbox"
     file.state_updated -= timedelta(hours=1)
-    await rig.dao.insert(file)
+    await rig.file_dao.insert(file)
 
     # Acknowledge the file cancellation
     await rig.interrogation_handler.ack_file_cancellation(file_id=file.id)
 
     # Verify file was updated
-    updated_file = await rig.dao.get_by_id(file.id)
+    updated_file = await rig.file_dao.get_by_id(file.id)
     assert updated_file.state == "cancelled"
     assert updated_file.can_remove is True
     assert updated_file.state_updated >= file.state_updated
+
+
+async def test_report_handling_duplicate(rig: JointRig):
+    """Test that submitting the same InterrogationReport twice is idempotent.
+
+    The second submission should be silently ignored: no second event published,
+    no second DB insert, and no error raised.
+    """
+    file = create_file_under_interrogation(HUB1)
+    await rig.file_dao.insert(file)
+
+    report = models.InterrogationReportWithSecret(
+        file_id=file.id,
+        storage_alias=file.storage_alias,
+        bucket_id="interrogation1",
+        object_id=uuid4(),
+        interrogated_at=now_utc_ms_prec(),
+        passed=True,
+        secret=b"secret",
+        encrypted_parts_md5=["abc"],
+        encrypted_parts_sha256=["sha"],
+        encrypted_size=100,
+    )
+
+    # First submission - processed normally
+    await rig.interrogation_handler.handle_interrogation_report(report=report)
+    stored = await rig.interrogation_report_dao.get_by_id(file.id)
+    assert stored.passed is True
+
+    # Second submission of the same report
+    await rig.interrogation_handler.handle_interrogation_report(report=report)
+
+    # deposit_secret should only have been called once (for the first submission)
+    rig.secrets_client.deposit_secret.assert_called_once()
+
+    # The stored report should be unchanged and there should still only be that one report
+    stored_again = await rig.interrogation_report_dao.get_by_id(file.id)
+    assert stored_again.passed is True
+
+    # The file state should be the same
+    db_file = await rig.file_dao.get_by_id(file.id)
+    assert db_file.interrogated is True
+    assert db_file.state == "interrogated"
+
+
+async def test_report_handling_conflict(rig: JointRig):
+    """Test that a second, contradicting InterrogationReport raises InterrogationReportConflict.
+
+    If a report with different content is submitted for an already-interrogated file,
+    the core should raise InterrogationReportConflict.
+    """
+    file = create_file_under_interrogation(HUB1)
+    await rig.file_dao.insert(file)
+
+    first_report = models.InterrogationReportWithSecret(
+        file_id=file.id,
+        storage_alias=file.storage_alias,
+        bucket_id="interrogation1",
+        object_id=uuid4(),
+        interrogated_at=now_utc_ms_prec(),
+        passed=True,
+        secret=b"secret",
+        encrypted_parts_md5=["abc"],
+        encrypted_parts_sha256=["sha"],
+        encrypted_size=100,
+    )
+
+    # First submission succeeds
+    await rig.interrogation_handler.handle_interrogation_report(report=first_report)
+
+    # Second report for the same file but with different content
+    conflicting_report = models.InterrogationReportWithSecret(
+        file_id=file.id,
+        storage_alias=file.storage_alias,
+        bucket_id=first_report.bucket_id,
+        object_id=uuid4(),  # new object ID like what we'd see in a new interrogation
+        interrogated_at=now_utc_ms_prec(),
+        passed=True,
+        secret=b"new-secret",  # in this scenario you'd also see a different secret
+        encrypted_parts_md5=["abc"],
+        encrypted_parts_sha256=["sha"],
+        encrypted_size=100,
+    )
+
+    with pytest.raises(InterrogationHandlerPort.InterrogationReportConflict):
+        await rig.interrogation_handler.handle_interrogation_report(
+            report=conflicting_report
+        )
