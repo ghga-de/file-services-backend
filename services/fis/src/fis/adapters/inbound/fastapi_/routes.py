@@ -118,7 +118,7 @@ async def post_interrogation_report(
         raise HTTPException(
             status_code=404, detail=f"File {report.file_id} not found."
         ) from err
-    except InterrogationHandlerPort.SecretDepositionError as err:
+    except InterrogationHandlerPort.InterrogationReportConflict as err:
         raise HTTPException(
             status_code=409,
             detail=(
