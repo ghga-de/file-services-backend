@@ -164,6 +164,7 @@ async def test_report_handling_ekss_error(rig: JointRig):
         file_id=file.id,
         storage_alias=file.storage_alias,
         bucket_id="interrogation1",
+        object_id=uuid4(),
         interrogated_at=now_utc_ms_prec(),
         passed=True,
         secret=b"secret",
