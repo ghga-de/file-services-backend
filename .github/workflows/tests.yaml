@@ -51,14 +51,12 @@ jobs:
 
       - name: Upload coverage to coveralls
         id: coveralls
-        env:
-          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-          COVERALLS_FLAG_NAME: ${{matrix.service}}
-          COVERALLS_PARALLEL: true
-          COVERALLS_FAIL_ON_ERROR: false
-        run: |
-          pip install --upgrade coveralls
-          coveralls --service=github
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          flag-name: ${{matrix.service}}
+          file: coverage.xml
+          fail-on-error: false
 
   coveralls:
     name: Indicate completion to coveralls.io
