@@ -49,7 +49,7 @@ EXAMPLE_AWAITING_ARCHIVAL = FileUpload(
     object_id=uuid4(),
     secret_id="some-secret-id",
     decrypted_size=EXAMPLE_FILE_UPLOAD_INBOX.decrypted_size,
-    encrypted_size=EXAMPLE_FILE_UPLOAD_INBOX.decrypted_size - 1000,
+    encrypted_size=EXAMPLE_FILE_UPLOAD_INBOX.encrypted_size + 1000,
     part_size=EXAMPLE_FILE_UPLOAD_INBOX.part_size,
     # The checksums are only examples, they don't correspond to a particular file:
     decrypted_sha256="0677de3685577a06862f226bb1bfa8f889e96e59439d915543929fb4f011d096",
