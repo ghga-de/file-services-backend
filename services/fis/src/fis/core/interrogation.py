@@ -186,7 +186,7 @@ class InterrogationHandler(InterrogationHandlerPort):
 
         # Store DB copy of report
         await self._interrogation_report_dao.insert(
-            models.InterrogationReport(**report.model_dump())
+            models.InterrogationReport(**report.model_dump(exclude={"secret"}))
         )
 
         try:
@@ -237,7 +237,7 @@ class InterrogationHandler(InterrogationHandlerPort):
 
         # Store DB copy of report
         await self._interrogation_report_dao.insert(
-            models.InterrogationReport(**report.model_dump())
+            models.InterrogationReport(**report.model_dump(exclude={"secret"}))
         )
 
         try:
