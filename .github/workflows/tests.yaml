@@ -68,7 +68,6 @@ jobs:
     - name: Install coveralls
       run: pip3 install --upgrade coveralls
     - name: Finished
-      run: coveralls --finish
       uses: coverallsapp/github-action@v2
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
