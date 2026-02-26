@@ -41,7 +41,6 @@ EXAMPLE_FILE_UPLOAD_INBOX = FileUpload(
 EXAMPLE_AWAITING_ARCHIVAL = FileUpload(
     id=EXAMPLE_FILE_UPLOAD_INBOX.id,
     box_id=uuid4(),
-    alias="testfile",
     storage_alias=EXAMPLE_FILE_UPLOAD_INBOX.storage_alias,
     state="awaiting_archival",
     state_updated=now_utc_ms_prec() - timedelta(hours=1),
