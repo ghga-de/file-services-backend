@@ -15,6 +15,7 @@
 
 """Database migration logic for IFRS"""
 
+from contextlib import suppress
 from hashlib import sha256
 from uuid import UUID
 
@@ -58,7 +59,8 @@ async def update_event(doc: Document) -> Document:
     """
     # Both persisted event types used the file accession as the key, so if the key now
     #  contains a UUID4, then we can assume the doc is already up to date
-    if doc["key"].count("-") == 4:
+    with suppress(ValueError):
+        _ = UUID(doc["key"])
         return doc
 
     # payload points to doc["payload"], so no need to reassign the payload field
