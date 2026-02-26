@@ -24,7 +24,7 @@ class SecretsClientPort(ABC):
     """A class that interfaces with the Secrets API"""
 
     class SecretsApiError(RuntimeError):
-        """Raised when upon failure to deposit or delete a file encryption secret."""
+        """Raised upon failure to deposit or delete a file encryption secret."""
 
     @abstractmethod
     async def deposit_secret(self, *, secret: SecretBytes) -> str:
