@@ -104,10 +104,10 @@ class V3Migration(MigrationDefinition):
 
     - `ifrsPersistedEvents` collection:
       - The following are affected for all docs (FileDeleted and FileInternallyRegistered):
-        - `_id`: if accession is contain in the value, it is replaced by derived file ID
+        - `_id`: if value contains accession, accession is replaced by derived file ID
         - `key`: accession replaced by derived file ID
         - `published`: Set to False
-        - `payload.file_id`: value replace with file ID derived from accession
+        - `payload.file_id`: value replaced with file ID derived from accession
       - The following are only for the FileInternallyRegistered events:
         - `payload.upload_date`: renamed to `payload.archive_date`
         - `payload.s3_endpoint_alias`: renamed to `payload.storage_alias`
