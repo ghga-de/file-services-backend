@@ -155,7 +155,6 @@ class InterrogationHandler(InterrogationHandlerPort):
                     file_id,
                     extra={"file_id": file_id, "differing_fields": different_fields},
                 )
-                # Don't `raise...from err` because the above did not actually cause this
                 raise self.InterrogationReportConflict(file_id=file_id)
             else:
                 # We've already seen this report, so don't do anything
