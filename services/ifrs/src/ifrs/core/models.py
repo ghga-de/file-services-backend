@@ -71,7 +71,7 @@ class FileUpload(CoreFileMetadata):
         default=None, description="The ID of the file decryption secret."
     )
     encrypted_size: int | None = Field(
-        default=None, description="The encrypted size of the file before re-encryption"
+        default=None, description="The encrypted size of the file."
     )
     decrypted_sha256: str | None = Field(
         default=None,
@@ -94,7 +94,8 @@ class ArchivableFileUpload(CoreFileMetadata):
         default=..., description="The ID of the file decryption secret."
     )
     encrypted_size: int = Field(
-        default=..., description="The encrypted size of the file before re-encryption"
+        default=...,
+        description="The encrypted size of the file after re-encryption, without envelope.",
     )
     decrypted_sha256: str = Field(
         default=...,
