@@ -214,7 +214,12 @@ class InterrogationHandler(InterrogationHandlerPort):
         the secret is deleted from EKSS.
         """
         # Deposit the secret with the EKSS
-        secret_id = await self._secrets_client.deposit_secret(secret=report.secret)
+        try:
+            secret_id = await self._secrets_client.deposit_secret(secret=report.secret)
+        except Exception as err:
+            raise self.SecretDepositionError(
+                file_id=file.id, reason="See logs for details."
+            ) from err
 
         try:
             # Store DB copy of report
@@ -234,7 +239,7 @@ class InterrogationHandler(InterrogationHandlerPort):
             updated_file.interrogated = True
             await self._file_dao.update(updated_file)
             log.debug("Updated file %s while processing InterrogationReport", file.id)
-        except Exception as err:
+        except Exception:
             # If database operations fail, delete the secret. Interrogation will have to
             #  be performed from scratch. If the service spontaneously dies before deleting
             #  the secret, it's not the end of the world.
@@ -242,16 +247,11 @@ class InterrogationHandler(InterrogationHandlerPort):
                 "An error prevented successful processing of InterrogationReport for file %s",
                 report.file_id,
             )
-            try:
-                await self._secrets_client.delete_secret(secret_id=secret_id)
-                log.info(
-                    "Successfully cleaned out secret for file %s during error handling.",
-                    report.file_id,
-                )
-            except SecretsClientPort.SecretsApiError:
-                raise self.SecretDepositionError(
-                    file_id=report.file_id, reason="See logs for details."
-                ) from err
+            await self._secrets_client.delete_secret(secret_id=secret_id)
+            log.info(
+                "Successfully cleaned out secret for file %s during error handling.",
+                report.file_id,
+            )
             raise
         else:
             # Publish event last. If it fails to publish, we can fire it manually

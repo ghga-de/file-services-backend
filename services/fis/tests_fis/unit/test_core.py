@@ -149,12 +149,7 @@ async def test_report_handling_failure(rig: JointRig):
 
 
 async def test_report_handling_ekss_error(rig: JointRig):
-    """Test that a SecretsApiError from deposit_secret is wrapped in SecretDepositionError.
-
-    The specific HTTP-level cause (bad status code, network error, etc.) is tested
-    in the SecretsClient unit tests. Here we only verify the core's error handling:
-    the exception is wrapped, the stored report is rolled back, and the error propagates.
-    """
+    """Test that a SecretsApiError from deposit_secret is wrapped in SecretDepositionError."""
     file = create_file_under_interrogation(HUB1)
     await rig.file_dao.insert(file)
 
