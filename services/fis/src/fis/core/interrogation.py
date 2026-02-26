@@ -176,41 +176,29 @@ class InterrogationHandler(InterrogationHandlerPort):
         and updates the FileUnderInterrogation state. If the event publish fails,
         the stored report is rolled back and the exception is re-raised.
         """
-        # Update file state
+        # Store DB copy of report
+        await self._interrogation_report_dao.insert(
+            models.InterrogationReport(**report.model_dump(exclude={"secret"}))
+        )
+        log.debug("Stored InterrogationReport for file %s", file.id)
+
+        # If everything goes well, update the FileUnderInterrogation in the DB
         updated_file = file.model_copy(deep=True)
         updated_file.state = "failed"
         updated_file.interrogated = True
         updated_file.state_updated = report.interrogated_at
         updated_file.can_remove = True
+        await self._file_dao.update(updated_file)
+        log.debug("Updated file %s while processing InterrogationReport", file.id)
 
-        # Store DB copy of report
-        await self._interrogation_report_dao.insert(
-            models.InterrogationReport(**report.model_dump(exclude={"secret"}))
+        # Publish event last. If it fails to publish, we can fire it manually
+        await self._publisher.publish_interrogation_failed(
+            file_id=report.file_id,
+            storage_alias=report.storage_alias,
+            interrogated_at=report.interrogated_at,
+            reason=report.reason,
         )
-
-        try:
-            # Publish event
-            await self._publisher.publish_interrogation_failed(
-                file_id=report.file_id,
-                storage_alias=report.storage_alias,
-                interrogated_at=report.interrogated_at,
-                reason=report.reason,
-            )
-        except Exception:
-            # If event publish fails, remove the stored report and re-raise
-            log.error(
-                "Failed to publish InterrogationFailure event for file %s,"
-                " rolling back stored report.",
-                report.file_id,
-            )
-            await self._interrogation_report_dao.delete(file.id)
-            raise
-        else:
-            # If everything goes well, update the FileUnderInterrogation in the DB
-            await self._file_dao.update(updated_file)
-            log.info(
-                "Successfully processed failure report for file %s.", report.file_id
-            )
+        log.info("Successfully processed failure report for file %s.", report.file_id)
 
     async def _handle_successful_report(
         self,
@@ -220,30 +208,53 @@ class InterrogationHandler(InterrogationHandlerPort):
     ) -> None:
         """Handle a successful interrogation report.
 
-        Stores the report in the database, deposits the file encryption secret
-        with EKSS, publishes an InterrogationSuccess event, and updates the
-        FileUnderInterrogation state. If secret deposition or event publish
-        fails, the stored report is rolled back and the exception is re-raised.
+        Stores the report in the database and updates the FileUnderInterrogation state,
+        deposits the file encryption secret with EKSS, and publishes an
+        InterrogationSuccess event. If some error occurs while updating the database,
+        the secret is deleted from EKSS.
         """
-        # Update file state, size, and object ID
-        updated_file = file.model_copy(deep=True)
-        updated_file.state = "interrogated"
-        updated_file.state_updated = report.interrogated_at
-        updated_file.object_id = report.object_id
-        updated_file.bucket_id = report.bucket_id
-        updated_file.encrypted_size = report.encrypted_size
-        updated_file.interrogated = True
-
-        # Store DB copy of report
-        await self._interrogation_report_dao.insert(
-            models.InterrogationReport(**report.model_dump(exclude={"secret"}))
-        )
+        # Deposit the secret with the EKSS
+        secret_id = await self._secrets_client.deposit_secret(secret=report.secret)
 
         try:
-            # Deposit the secret with the EKSS
-            secret_id = await self._secrets_client.deposit_secret(secret=report.secret)
+            # Store DB copy of report
+            await self._interrogation_report_dao.insert(
+                models.InterrogationReport(**report.model_dump(exclude={"secret"}))
+            )
+            log.debug("Stored InterrogationReport for file %s", file.id)
 
-            # Publish event
+            # If everything goes well, update the FileUnderInterrogation in the DB
+            # Update file state, size, and object ID
+            updated_file = file.model_copy(deep=True)
+            updated_file.state = "interrogated"
+            updated_file.state_updated = report.interrogated_at
+            updated_file.object_id = report.object_id
+            updated_file.bucket_id = report.bucket_id
+            updated_file.encrypted_size = report.encrypted_size
+            updated_file.interrogated = True
+            await self._file_dao.update(updated_file)
+            log.debug("Updated file %s while processing InterrogationReport", file.id)
+        except Exception as err:
+            # If database operations fail, delete the secret. Interrogation will have to
+            #  be performed from scratch. If the service spontaneously dies before deleting
+            #  the secret, it's not the end of the world.
+            log.error(
+                "An error prevented successful processing of InterrogationReport for file %s",
+                report.file_id,
+            )
+            try:
+                await self._secrets_client.delete_secret(secret_id=secret_id)
+                log.info(
+                    "Successfully cleaned out secret for file %s during error handling.",
+                    report.file_id,
+                )
+            except SecretsClientPort.SecretsApiError:
+                raise self.SecretDepositionError(
+                    file_id=report.file_id, reason="See logs for details."
+                ) from err
+            raise
+        else:
+            # Publish event last. If it fails to publish, we can fire it manually
             await self._publisher.publish_interrogation_success(
                 file_id=report.file_id,
                 secret_id=secret_id,
@@ -255,23 +266,6 @@ class InterrogationHandler(InterrogationHandlerPort):
                 encrypted_parts_sha256=report.encrypted_parts_sha256,
                 encrypted_size=report.encrypted_size,
             )
-        except Exception as err:
-            # If secret deposition or event publish fails, remove the stored report
-            # and re-raise
-            log.error(
-                "Failed to process success report for file %s,"
-                " rolling back stored report.",
-                report.file_id,
-            )
-            await self._interrogation_report_dao.delete(file.id)
-            if isinstance(err, SecretsClientPort.SecretsApiError):
-                raise self.SecretDepositionError(
-                    file_id=report.file_id, reason="See logs for details."
-                ) from err
-            raise
-        else:
-            # If everything goes well, update the FileUnderInterrogation in the DB
-            await self._file_dao.update(updated_file)
             log.info(
                 "Successfully processed success report for file %s.", report.file_id
             )
