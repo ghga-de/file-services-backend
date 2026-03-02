@@ -16,6 +16,5 @@
 """Database migration logic for DCS"""
 
 from .v2 import V2Migration
-from .v3 import V3Migration
 
-__all__ = ["V2Migration", "V3Migration"]
+__all__ = ["V2Migration"]

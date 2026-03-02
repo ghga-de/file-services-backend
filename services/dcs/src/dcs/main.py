@@ -28,7 +28,7 @@ from dcs.inject import (
 )
 from dcs.migrations import run_db_migrations
 
-DB_VERSION = 3
+DB_VERSION = 2
 
 
 async def run_rest_app():
