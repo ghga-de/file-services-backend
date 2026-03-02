@@ -190,29 +190,6 @@ class NonStagedFileRequested(BaseModel):
     )
 
 
-class FileMetadata(ArchivableFileUpload):
-    """An ArchivableFileUpload with an archival timestamp"""
-
-    archive_date: UTCDatetime = Field(
-        default=..., description="The date and time when this file was archived."
-    )
-
-
-class FileInternallyRegistered(BaseModel):
-    """An event schema communicating that a file has been copied into permanent storage.
-
-    This local definition will be replaced by the `ghga-event-schemas` definition
-    once implemented there.
-    """
-
-    file_id: UUID4 = Field(..., description="Unique identifier for the file upload")
-    archive_date: UTCDatetime = Field(
-        ...,
-        description="The date and time when this file was archived.",
-    )
-    model_config = ConfigDict(title="non_staged_file_requested")
-
-
 class FileStagedForDownload(NonStagedFileRequested):
     """This event type is triggered when a file is staged to the download bucket.
 

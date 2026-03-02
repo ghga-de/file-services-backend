@@ -23,9 +23,6 @@ from hexkit.utils import now_utc_ms_prec
 from ifrs.core.models import ArchivableFileUpload, FileUpload
 from tests_ifrs.fixtures.joint import INTERROGATION_BUCKET
 
-from ifrs.core.models import ArchivableFileUpload, FileUpload
-from tests_ifrs.fixtures.joint import INTERROGATION_BUCKET
-
 EXAMPLE_FILE_UPLOAD_INBOX = FileUpload(
     id=uuid4(),
     box_id=uuid4(),

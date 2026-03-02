@@ -28,12 +28,3 @@ async def get_file_dao(*, dao_factory: DaoFactoryProtocol) -> FileMetadataDao:
         dto_model=FileMetadata,
         id_field="id",
     )
-
-
-async def get_pending_file_dao(*, dao_factory: DaoFactoryProtocol) -> PendingFileDao:
-    """Setup the DAOs using the specified provider of the DaoFactoryProtocol."""
-    return await dao_factory.get_dao(
-        name="pendingFiles",
-        dto_model=PendingFileUpload,
-        id_field="id",
-    )
