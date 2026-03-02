@@ -723,7 +723,14 @@ class UploadController(UploadControllerPort):
                 )
                 return
             case "inbox":
+                # Update the FileUpload's parameters using the InterrogationReport
                 file_upload.state = "interrogated"
+                file_upload.secret_id = report.secret_id
+                file_upload.encrypted_parts_md5 = report.encrypted_parts_md5
+                file_upload.encrypted_parts_sha256 = report.encrypted_parts_sha256
+                file_upload.bucket_id = report.bucket_id
+                file_upload.object_id = report.object_id
+                file_upload.encrypted_size = report.encrypted_size
                 log.debug("Marking FileUpload %s as '%s'", file_id, file_upload.state)
                 await self._file_upload_dao.update(file_upload)
             case _:
