@@ -17,8 +17,10 @@
 
 from abc import ABC, abstractmethod
 
-from ghga_event_schemas.pydantic_ import FileUpload, FileUploadReport
+from ghga_event_schemas.pydantic_ import FileUpload
 from pydantic import UUID4
+
+from ucs.core.models import InterrogationSuccess
 
 
 class UploadControllerPort(ABC):
@@ -243,11 +245,11 @@ class UploadControllerPort(ABC):
         ...
 
     @abstractmethod
-    async def process_file_upload_report(
-        self, *, file_upload_report: FileUploadReport
+    async def process_interrogation_success(
+        self, *, report: InterrogationSuccess
     ) -> None:
-        """Use a file upload report to clean up a file from the inbox bucket and
-        set the FileUpload state to 'archived'.
+        """Update a FileUpload with the information from a corresponding successful
+        interrogation report and remove it from the inbox bucket.
 
         Raises:
         - `S3UploadDetailsNotFoundError` if the S3UploadDetails aren't found.

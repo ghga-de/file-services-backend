@@ -46,8 +46,8 @@ class EventSubTranslator(EventSubscriberProtocol):
     async def _consume_new_report(self, *, payload: JsonObject):
         """Consume a new FileUploadReport"""
         validated_payload = get_validated_payload(payload, FileUploadReport)
-        await self._upload_controller.process_file_upload_report(
-            file_upload_report=validated_payload
+        await self._upload_controller.process_interrogation_success(
+            report=validated_payload
         )
 
     async def _consume_validated(

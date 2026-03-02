@@ -19,12 +19,7 @@ import logging
 from typing import Any
 from uuid import uuid4
 
-from ghga_event_schemas.pydantic_ import (
-    FileUpload,
-    FileUploadBox,
-    FileUploadReport,
-    FileUploadState,
-)
+from ghga_event_schemas.pydantic_ import FileUploadBox
 from ghga_service_commons.utils.multinode_storage import ObjectStorages
 from hexkit.protocols.dao import UniqueConstraintViolationError
 from hexkit.protocols.objstorage import ObjectStorageProtocol
@@ -32,7 +27,7 @@ from hexkit.utils import now_utc_ms_prec
 from pydantic import UUID4
 
 from ucs.config import Config
-from ucs.core.models import S3UploadDetails
+from ucs.core.models import FileUpload, InterrogationSuccess, S3UploadDetails
 from ucs.ports.inbound.controller import UploadControllerPort
 from ucs.ports.outbound.dao import (
     FileUploadBoxDao,
@@ -684,11 +679,11 @@ class UploadController(UploadControllerPort):
         file_uploads.sort(key=lambda x: x.alias)
         return file_uploads
 
-    async def process_file_upload_report(
-        self, *, file_upload_report: FileUploadReport
+    async def process_interrogation_success(
+        self, *, report: InterrogationSuccess
     ) -> None:
-        """Use a file upload report to clean up a file from the inbox bucket and
-        set the FileUpload state to 'archived'.
+        """Update a FileUpload with the information from a corresponding successful
+        interrogation report and remove it from the inbox bucket.
 
         Raises:
         - `S3UploadDetailsNotFoundError` if the S3UploadDetails aren't found.
@@ -696,7 +691,7 @@ class UploadController(UploadControllerPort):
         - `UnknownStorageAliasError` if the storage alias is not known.
         - `UploadAbortError` if there's an error instructing S3 to abort the upload.
         """
-        file_id = file_upload_report.file_id
+        file_id = report.file_id
         try:
             file_upload = await self._file_upload_dao.get_by_id(file_id)
         except ResourceNotFoundError as err:
@@ -705,21 +700,23 @@ class UploadController(UploadControllerPort):
             raise error from err
 
         match file_upload.state:
-            case FileUploadState.INIT:
+            case "init":
                 log.warning(
-                    "Ignoring FileUploadReport for FileUpload %s since it is still in the 'init' state.",
+                    "Ignoring interrogation report for FileUpload %s since it is still"
+                    + " in the 'init' state.",
                     file_id,
                 )
                 return
-            case FileUploadState.INBOX:
-                file_upload.state = FileUploadState.ARCHIVED
-                log.debug("Marking FileUpload %s as 'archived'", file_id)
+            case "inbox":
+                file_upload.state = "interrogated"
+                log.debug("Marking FileUpload %s as '%s'", file_id, file_upload.state)
                 await self._file_upload_dao.update(file_upload)
-            case FileUploadState.ARCHIVED:
-                log.debug(
-                    "FileUpload %s was already marked as 'archived', so it's likely"
-                    + " this FileUploadReport has been processed already.",
+            case _:
+                log.info(
+                    "FileUpload %s was already marked as '%s', so it's likely"
+                    + " this interrogation report has been processed already.",
                     file_id,
+                    file_upload.state,
                 )
 
         # Attempt to delete S3 file even if this event has been processed before

@@ -921,9 +921,7 @@ async def test_file_upload_report_no_file_upload(rig: JointRig):
     )
 
     with pytest.raises(UploadControllerPort.FileUploadNotFound):
-        await rig.controller.process_file_upload_report(
-            file_upload_report=file_upload_report
-        )
+        await rig.controller.process_interrogation_success(report=file_upload_report)
 
 
 @pytest.mark.parametrize(
