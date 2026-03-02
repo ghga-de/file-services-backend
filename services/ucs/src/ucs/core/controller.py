@@ -79,21 +79,24 @@ class UploadController(UploadControllerPort):
 
     async def _insert_file_upload_if_new(
         self, *, box: FileUploadBox, alias: str, size: int
-    ) -> UUID4:
-        """Create a new FileUpload for the provided file alias and return the file_id.
+    ) -> FileUpload:
+        """Create a new FileUpload for the provided file alias and return it.
 
-        This method tries to insert a new FileUpload with a random UUID4 for file_id.
+        This method tries to insert a new FileUpload with random UUID4s for file_id
+        and object_id.
 
         Raises `FileUploadAlreadyExists` if there's already a FileUpload for this alias
         and box_id.
         """
         box_id = box.id
         file_id = uuid4()
+        object_id = uuid4()
 
         try:
             # TODO: Other fields
             file_upload = FileUpload(
                 id=file_id,
+                object_id=object_id,
                 state="init",
                 box_id=box_id,
                 alias=alias,
@@ -102,7 +105,7 @@ class UploadController(UploadControllerPort):
             )
 
             await self._file_upload_dao.insert(file_upload)
-            return file_id
+            return file_upload
         except UniqueConstraintViolationError as err:
             error = self.FileUploadAlreadyExists(alias=alias)
             log.error(
@@ -152,7 +155,7 @@ class UploadController(UploadControllerPort):
         - `UploadAbortError` if there's an error instructing S3 to abort the upload.
           If this occurs, developer intervention might be required.
         """
-        object_id = str(s3_upload_details.file_id)
+        object_id = str(s3_upload_details.object_id)
         storage_alias = s3_upload_details.storage_alias
         s3_upload_id = s3_upload_details.s3_upload_id
         bucket_id, object_storage = self._get_bucket_and_storage(
@@ -229,7 +232,7 @@ class UploadController(UploadControllerPort):
             await object_storage.abort_multipart_upload(
                 upload_id=s3_upload_id,
                 bucket_id=bucket_id,
-                object_id=str(file_id),
+                object_id=str(s3_upload_details.object_id),
             )
             log.info("Successfully aborted S3 upload %s", s3_upload_id)
         except object_storage.MultiPartUploadAbortError as err:
@@ -278,13 +281,17 @@ class UploadController(UploadControllerPort):
         extra["bucked_id"] = bucket_id
 
         initiated = now_utc_ms_prec()  # Generate timestamp early to minimize error risk
-        file_id = await self._insert_file_upload_if_new(box=box, alias=alias, size=size)
+        file_upload = await self._insert_file_upload_if_new(
+            box=box, alias=alias, size=size
+        )
+        file_id = file_upload.id
+        object_id = file_upload.object_id
         log.info("FileUpload %s added for alias %s.", file_id, alias, extra=extra)
 
         # Initiate a new multipart file upload on the S3 instance
         try:
             s3_upload_id = await object_storage.init_multipart_upload(
-                bucket_id=bucket_id, object_id=str(file_id)
+                bucket_id=bucket_id, object_id=str(object_id)
             )
             log.debug(
                 "S3 multipart upload %s created for file ID %s (file alias %s)",
@@ -296,14 +303,15 @@ class UploadController(UploadControllerPort):
         except object_storage.MultiPartUploadAlreadyExistsError as err:
             #  _insert_file_upload_if_new precludes the existence of a FileUpload
             #  with the same `file_id`. If there's no FileUpload with the same file_id,
-            #  then there cannot be an upload for said file_id (in S3, file_id is object_id).
-            #  The most likely cause for this situation is that a crash occurred between
-            #  creating the S3 upload and inserting the S3UploadDetails. We can't assign
-            #  S3 upload IDs, so if that data isn't saved to the DB, it is only preserved
-            #  in the logs. There is no straightforward way to get the upload ID
-            #  programmatically, so we can't auto-abort it, either. In this case a
-            #  developer will have to manually intervene to cancel the upload. We will
-            #  delete the FileUpload, however, so the user can immediately retry.
+            #  then there cannot be an upload for said file_id. Since each FileUpload
+            #  gets a freshly generated object_id, a collision here would be extremely
+            #  unlikely. The most likely cause is a crash between creating the S3 upload
+            #  and inserting the S3UploadDetails. We can't assign S3 upload IDs, so if
+            #  that data isn't saved to the DB, it is only preserved in the logs. There
+            #  is no straightforward way to get the upload ID programmatically, so we
+            #  can't auto-abort it, either. In this case a developer will have to
+            #  manually intervene to cancel the upload. We will delete the FileUpload,
+            #  however, so the user can immediately retry.
             error = self.OrphanedMultipartUploadError(
                 file_id=file_id, bucket_id=bucket_id
             )
@@ -317,6 +325,7 @@ class UploadController(UploadControllerPort):
         #  duplicates is performed in `_insert_validated_file_upload`.
         s3_upload = S3UploadDetails(
             file_id=file_id,
+            object_id=object_id,
             storage_alias=storage_alias,
             s3_upload_id=s3_upload_id,
             initiated=initiated,
@@ -363,7 +372,7 @@ class UploadController(UploadControllerPort):
             return await object_storage.get_part_upload_url(
                 upload_id=s3_upload_id,
                 bucket_id=bucket_id,
-                object_id=str(file_id),
+                object_id=str(s3_upload_details.object_id),
                 part_number=part_no,
             )
         except object_storage.MultiPartUploadNotFoundError as err:
@@ -388,11 +397,12 @@ class UploadController(UploadControllerPort):
         object_storage: ObjectStorageProtocol,
         bucket_id: str,
         file_id: UUID4,
+        object_id: UUID4,
         expected_checksum: str,
     ) -> None:
         """Compare checksums and raise a `ChecksumMismatchError` if they don't match."""
         actual_checksum = await object_storage.get_object_etag(
-            bucket_id=bucket_id, object_id=str(file_id)
+            bucket_id=bucket_id, object_id=str(object_id)
         )
         actual_checksum = actual_checksum.strip('"')
 
@@ -401,6 +411,7 @@ class UploadController(UploadControllerPort):
             extra = {
                 "bucket_id": bucket_id,
                 "file_id": file_id,
+                "object_id": object_id,
                 "expected_checksum": expected_checksum,
                 "actual_checksum": actual_checksum,
             }
@@ -467,6 +478,7 @@ class UploadController(UploadControllerPort):
                 object_storage=object_storage,
                 bucket_id=bucket_id,
                 file_id=file_id,
+                object_id=file_upload.object_id,
                 expected_checksum=encrypted_checksum,
             )
             return
@@ -475,7 +487,7 @@ class UploadController(UploadControllerPort):
             await object_storage.complete_multipart_upload(
                 upload_id=s3_upload_id,
                 bucket_id=bucket_id,
-                object_id=str(file_id),
+                object_id=str(file_upload.object_id),
             )
             log.info(
                 "S3 multipart upload %s completed for file %s",
@@ -492,14 +504,14 @@ class UploadController(UploadControllerPort):
             if isinstance(
                 err, object_storage.MultiPartUploadNotFoundError
             ) and await object_storage.does_object_exist(
-                bucket_id=bucket_id, object_id=str(file_id)
+                bucket_id=bucket_id, object_id=str(file_upload.object_id)
             ):
                 log.info(
                     "S3 multipart upload ID %s seems to have already been completed,"
                     + " since the expected object with ID %s exists. Proceeding to"
                     + " update DB.",
                     s3_upload_id,
-                    file_id,
+                    file_upload.object_id,
                     extra=extra,
                 )
             else:
@@ -515,6 +527,7 @@ class UploadController(UploadControllerPort):
             object_storage=object_storage,
             bucket_id=bucket_id,
             file_id=file_id,
+            object_id=file_upload.object_id,
             expected_checksum=encrypted_checksum,
         )
 

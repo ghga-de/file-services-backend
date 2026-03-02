@@ -26,6 +26,7 @@ class S3UploadDetails(BaseModel):
     """Class for linking a multipart upload to its FileUpload object"""
 
     file_id: UUID4  # the id of the corresponding FileUpload
+    object_id: UUID4  # the S3 object ID (from FileUpload.object_id)
     storage_alias: str
     s3_upload_id: str
     initiated: UTCDatetime
