@@ -179,15 +179,10 @@ class NonStagedFileRequested(BaseModel):
         ..., description="The ID to use for the file in the download bucket."
     )
     decrypted_sha256: str = Field(
-        default=...,
-        description="SHA-256 checksum of the entire unencrypted file content",
+        ...,
+        description="The SHA-256 checksum of the entire decrypted file content.",
     )
-    encrypted_parts_md5: list[str] = Field(
-        default=..., description="The MD5 checksum of each encrypted file part"
-    )
-    encrypted_parts_sha256: list[str] = Field(
-        default=..., description="The SHA-256 checksum of each encrypted file part"
-    )
+    model_config = ConfigDict(title="non_staged_file_requested")
 
 
 class FileStagedForDownload(NonStagedFileRequested):
