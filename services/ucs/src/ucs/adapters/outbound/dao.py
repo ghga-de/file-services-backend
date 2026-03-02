@@ -19,6 +19,7 @@ from ghga_event_schemas.configs import FileUploadBoxEventsConfig, FileUploadEven
 from ghga_event_schemas.pydantic_ import FileUpload, FileUploadBox
 from hexkit.protocols.dao import DaoFactoryProtocol
 from hexkit.protocols.daopub import DaoPublisher, DaoPublisherFactoryProtocol
+from hexkit.providers.mongodb import MongoDbIndex
 
 from ucs.constants import (
     FILE_UPLOAD_BOXES_COLLECTION,
@@ -77,4 +78,9 @@ class UploadDaoPublisherFactory(UploadDaoPublisherFactoryPort):
             dto_to_event=lambda x: x.model_dump(),
             event_topic=self._file_upload_topic,
             autopublish=True,
+            indexes=[
+                MongoDbIndex(
+                    fields={"box_id": 1, "alias": 1}, properties={"unique": True}
+                )
+            ],
         )
