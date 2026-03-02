@@ -27,7 +27,12 @@ from hexkit.utils import now_utc_ms_prec
 from pydantic import UUID4
 
 from ucs.config import Config
-from ucs.core.models import FileUpload, InterrogationSuccess, S3UploadDetails
+from ucs.core.models import (
+    FileUpload,
+    InterrogationFailure,
+    InterrogationSuccess,
+    S3UploadDetails,
+)
 from ucs.ports.inbound.controller import UploadControllerPort
 from ucs.ports.outbound.dao import (
     FileUploadBoxDao,
@@ -737,6 +742,56 @@ class UploadController(UploadControllerPort):
                 log.info(
                     "FileUpload %s was already marked as '%s', so it's likely"
                     + " this interrogation report has been processed already.",
+                    file_id,
+                    file_upload.state,
+                )
+
+        # Attempt to delete S3 file even if this event has been processed before
+        try:
+            s3_upload_details = await self._s3_upload_details_dao.get_by_id(file_id)
+        except ResourceNotFoundError as err:
+            error = self.S3UploadDetailsNotFoundError(file_id=file_id)
+            log.error(error, extra={"file_id": file_id})
+            raise error from err
+
+        await self._remove_completed_file_upload(s3_upload_details=s3_upload_details)
+
+    async def process_interrogation_failure(
+        self, *, report: InterrogationFailure
+    ) -> None:
+        """Update a FileUpload state to 'failed' and remove it from the inbox bucket.
+
+        Raises:
+        - `FileUploadNotFound` if the FileUpload isn't found.
+        - `S3UploadDetailsNotFoundError` if the S3UploadDetails aren't found.
+        - `UnknownStorageAliasError` if the storage alias is not known.
+        - `UploadAbortError` if there's an error instructing S3 to abort the upload.
+        """
+        file_id = report.file_id
+        try:
+            file_upload = await self._file_upload_dao.get_by_id(file_id)
+        except ResourceNotFoundError as err:
+            error = self.FileUploadNotFound(file_id=file_id)
+            log.error(error, extra={"file_id": file_id})
+            raise error from err
+
+        match file_upload.state:
+            case "init":
+                log.warning(
+                    "Ignoring interrogation failure report for FileUpload %s since it"
+                    + " is still in the 'init' state.",
+                    file_id,
+                )
+                return
+            case "inbox":
+                file_upload.state = "failed"
+                file_upload.failure_reason = report.reason
+                log.debug("Marking FileUpload %s as '%s'", file_id, file_upload.state)
+                await self._file_upload_dao.update(file_upload)
+            case _:
+                log.info(
+                    "FileUpload %s was already marked as '%s', so it's likely"
+                    + " this interrogation failure report has been processed already.",
                     file_id,
                     file_upload.state,
                 )

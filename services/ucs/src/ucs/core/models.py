@@ -151,6 +151,10 @@ class FileUpload(BaseModel):
         default=False,
         description="Indicates whether the file has been completely uploaded to the inbox.",
     )
+    failure_reason: str | None = Field(  # TODO: This is a UCS-only field
+        default=None,
+        description="The reason for interrogation failure, if the upload failed.",
+    )
 
 
 class InterrogationSuccess(BaseModel):

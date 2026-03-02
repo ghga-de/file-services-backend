@@ -19,7 +19,7 @@ from abc import ABC, abstractmethod
 
 from pydantic import UUID4
 
-from ucs.core.models import FileUpload, InterrogationSuccess
+from ucs.core.models import FileUpload, InterrogationFailure, InterrogationSuccess
 
 
 class UploadControllerPort(ABC):
@@ -256,3 +256,18 @@ class UploadControllerPort(ABC):
         - `UnknownStorageAliasError` if the storage alias is not known.
         - `UploadAbortError` if there's an error instructing S3 to abort the upload.
         """
+        ...
+
+    @abstractmethod
+    async def process_interrogation_failure(
+        self, *, report: InterrogationFailure
+    ) -> None:
+        """Update a FileUpload state to 'failed' and remove it from the inbox bucket.
+
+        Raises:
+        - `FileUploadNotFound` if the FileUpload isn't found.
+        - `S3UploadDetailsNotFoundError` if the S3UploadDetails aren't found.
+        - `UnknownStorageAliasError` if the storage alias is not known.
+        - `UploadAbortError` if there's an error instructing S3 to abort the upload.
+        """
+        ...
