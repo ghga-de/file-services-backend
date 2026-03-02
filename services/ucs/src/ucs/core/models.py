@@ -146,6 +146,10 @@ class FileUpload(BaseModel):
         default=...,
         description="The number of bytes in each file part (last part is likely smaller)",
     )
+    inbox_upload_completed: bool = Field(  # TODO: This is a UCS-only field
+        default=False,
+        description="Indicates whether the file has been completely uploaded to the inbox.",
+    )
 
 
 class InterrogationSuccess(BaseModel):

@@ -17,10 +17,9 @@
 
 from abc import ABC, abstractmethod
 
-from ghga_event_schemas.pydantic_ import FileUpload
 from pydantic import UUID4
 
-from ucs.core.models import InterrogationSuccess
+from ucs.core.models import FileUpload, InterrogationSuccess
 
 
 class UploadControllerPort(ABC):

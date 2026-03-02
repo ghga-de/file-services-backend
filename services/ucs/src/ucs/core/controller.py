@@ -91,13 +91,14 @@ class UploadController(UploadControllerPort):
         file_id = uuid4()
 
         try:
+            # TODO: Other fields
             file_upload = FileUpload(
                 id=file_id,
-                state=FileUploadState.INIT,
+                state="init",
                 box_id=box_id,
                 alias=alias,
-                size=size,
-                checksum="",  # Checksum is empty until file upload is complete
+                decrypted_size=size,
+                decrypted_sha256="",  # Checksum is empty until file upload is complete
             )
 
             await self._file_upload_dao.insert(file_upload)
@@ -456,7 +457,8 @@ class UploadController(UploadControllerPort):
         extra["bucket_id"] = bucket_id
 
         # Exit early if the FileUpload is complete (already in the inbox or archived)
-        if file_upload.completed:
+        # TODO: What to do here?
+        if file_upload.inbox_upload_completed:
             log.info("FileUpload with ID %s already complete.", file_id)
             # If this method is called but the file is already completed, triple
             #  check that the box is up to date
@@ -517,9 +519,9 @@ class UploadController(UploadControllerPort):
         )
 
         # Update local collections now that S3 upload is successfully completed
-        file_upload.state = FileUploadState.INBOX
-        file_upload.checksum = unencrypted_checksum
-        file_upload.completed = True
+        file_upload.state = "inbox"
+        file_upload.decrypted_sha256 = unencrypted_checksum
+        file_upload.inbox_upload_completed = True
         s3_upload_details.completed = now_utc_ms_prec()
         await self._file_upload_dao.update(file_upload)
         await self._s3_upload_details_dao.update(s3_upload_details)
@@ -555,7 +557,7 @@ class UploadController(UploadControllerPort):
             log.error(error, extra={"box_id": box_id, "file_id": file_id})
             raise error from err
 
-        if file_upload.completed:
+        if file_upload.inbox_upload_completed:
             await self._remove_completed_file_upload(
                 s3_upload_details=s3_upload_details
             )
@@ -579,7 +581,7 @@ class UploadController(UploadControllerPort):
             mapping={"box_id": box.id, "completed": True}
         ):
             file_count += 1
-            total_size += file_upload.size
+            total_size += file_upload.decrypted_size
 
         # Since every update triggers an event, only update if data differs
         if file_count != box.file_count or total_size != box.size:
