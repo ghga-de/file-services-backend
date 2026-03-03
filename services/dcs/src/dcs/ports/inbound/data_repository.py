@@ -38,8 +38,8 @@ class DataRepositoryPort(ABC):
         an underlying issue
         """
 
-        def __init__(self, *, object_id: UUID4, from_error: Exception):
-            message = f"Could not remove object {object_id} from outbox bucket: {str(from_error)}"
+        def __init__(self, *, object_id: UUID4, storage_alias: str, reason: str):
+            message = f"Could not remove object {object_id} from outbox bucket in storage {storage_alias}: {reason}"
             super().__init__(message)
 
     class DrsObjectNotFoundError(RuntimeError):

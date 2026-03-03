@@ -282,7 +282,7 @@ class DataRepository(DataRepositoryPort):
                 alias=storage_alias
             )
             log.critical(storage_alias_not_configured)
-            log.warning(
+            log.info(
                 f"Skipping outbox cleanup for storage {storage_alias} as it is not configured."
             )
             return
@@ -305,12 +305,13 @@ class DataRepository(DataRepositoryPort):
                 drs_object = await self._drs_object_dao.find_one(
                     mapping={"object_id": object_id}
                 )
-            except NoHitsFoundError as error:
-                cleanup_error = self.CleanupError(object_id=object_id, from_error=error)
-                log.critical(cleanup_error)
-                log.warning(
-                    f"Object with id {object_id} in storage {storage_alias} not found in database, skipping."
+            except NoHitsFoundError:
+                cleanup_error = self.CleanupError(
+                    object_id=object_id,
+                    storage_alias=storage_alias,
+                    reason="Object not found in database, skipping.",
                 )
+                log.warning(cleanup_error)
                 continue
 
             # only remove file if last access is later than outbox_cache_timeout days ago
@@ -327,12 +328,11 @@ class DataRepository(DataRepositoryPort):
                     object_storage.ObjectStorageProtocolError,
                 ) as error:
                     cleanup_error = self.CleanupError(
-                        object_id=object_id, from_error=error
+                        object_id=object_id,
+                        storage_alias=storage_alias,
+                        reason=str(error),
                     )
-                    log.critical(cleanup_error)
-                    log.warning(
-                        f"Could not delete object with id {object_id} from storage {storage_alias}."
-                    )
+                    log.error(cleanup_error)
                     continue
 
     async def register_new_file(self, *, file: models.DrsObjectBase):

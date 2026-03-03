@@ -9,10 +9,6 @@
 			"path": "services/ifrs"
 		},
 		{
-			"name":"Interrogation Room",
-			"path": "services/irs"
-		},
-		{
 			"name": "Purge Controller",
 			"path": "services/pcs"
 		},
