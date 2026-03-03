@@ -96,13 +96,17 @@ class UploadControllerPort(ABC):
             message = f"No storage node exists for alias {storage_alias}."
             super().__init__(message)
 
-    class LockedBoxError(UploadError):
-        """Raised when a user tries to perform an action that requires the Box to be
-        unlocked, but the Box is locked.
-        """
+    class BoxStateError(UploadError):
+        """Thrown when the user requests an action FileUploadBox prevented by the box's state."""
 
-        def __init__(self, *, box_id: UUID4):
-            msg = f"Can't perform this action because FileUploadBox with ID {box_id} is locked"
+        box_state: str
+
+        def __init__(self, *, box_id: UUID4, box_state: str):
+            self.box_state = box_state
+            msg = (
+                "Can't perform this action because FileUploadBox with"
+                + f" ID {box_id} is {box_state}"
+            )
             super().__init__(msg)
 
     class FileUploadAlreadyExists(UploadError):
@@ -149,7 +153,7 @@ class UploadControllerPort(ABC):
 
         Raises:
         - `BoxNotFoundError` if the box does not exist.
-        - `LockedBoxError` if the box exists but is locked.
+        - `BoxStateError` if the box exists but is locked.
         - `FileUploadAlreadyExists` if there's already a FileUpload for this alias.
         - `UnknownStorageAliasError` if the storage alias is not known.
         - `OrphanedMultipartUploadError` if an S3 upload is already in progress.
@@ -186,7 +190,7 @@ class UploadControllerPort(ABC):
         - `FileUploadNotFound` if the FileUpload isn't found.
         - `S3UploadDetailsNotFoundError` if the S3UploadDetails aren't found.
         - `BoxNotFoundError` if the FileUploadBox isn't found.
-        - `LockedBoxError` if the box exists but is locked.
+        - `BoxStateError` if the box exists but is locked.
         - `UnknownStorageAliasError` if the storage alias is not known.
         - `UploadCompletionError` if there's an error while telling S3 to complete the upload.
         - `ChecksumMismatchError` if the checksums don't match.
@@ -199,7 +203,7 @@ class UploadControllerPort(ABC):
 
         Raises:
         - `BoxNotFoundError` if the box does not exist.
-        - `LockedBoxError` if the box exists but is locked.
+        - `BoxStateError` if the box exists but is locked.
         - `S3UploadDetailsNotFoundError` if the S3UploadDetails aren't found.
         - `UnknownStorageAliasError` if the storage alias is not known.
         - `UploadAbortError` if there's an error instructing S3 to abort the upload.

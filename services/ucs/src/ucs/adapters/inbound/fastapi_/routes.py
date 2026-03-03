@@ -19,7 +19,6 @@ import logging
 from typing import Annotated
 
 from fastapi import APIRouter, status
-from ghga_event_schemas.pydantic_ import FileUpload
 from pydantic import UUID4
 
 from ucs.adapters.inbound.fastapi_ import (
@@ -29,6 +28,7 @@ from ucs.adapters.inbound.fastapi_ import (
     rest_models,
 )
 from ucs.constants import TRACER
+from ucs.core.models import FileUpload
 from ucs.ports.inbound.controller import UploadControllerPort
 
 router = APIRouter(tags=["UploadControllerService"])
@@ -55,7 +55,7 @@ ERROR_RESPONSES = {
             "Exceptions by ID:"
             + "\n- lockedBox: The FileUploadBox is locked and cannot be modified."
         ),
-        "model": http_exceptions.HttpLockedBoxError.get_body_model(),
+        "model": http_exceptions.HttpBoxStateError.get_body_model(),
     },
     "fileUploadAlreadyExists": {
         "description": (
@@ -291,8 +291,10 @@ async def create_file_upload(
         )
     except UploadControllerPort.BoxNotFoundError as error:
         raise http_exceptions.HttpBoxNotFoundError(box_id=box_id) from error
-    except UploadControllerPort.LockedBoxError as error:
-        raise http_exceptions.HttpLockedBoxError(box_id=box_id) from error
+    except UploadControllerPort.BoxStateError as error:
+        raise http_exceptions.HttpBoxStateError(
+            box_id=box_id, box_state=error.box_state
+        ) from error
     except UploadControllerPort.FileUploadAlreadyExists as error:
         raise http_exceptions.HttpFileUploadAlreadyExistsError(
             alias=file_alias
@@ -412,8 +414,10 @@ async def complete_file_upload(
         )
     except UploadControllerPort.BoxNotFoundError as error:
         raise http_exceptions.HttpBoxNotFoundError(box_id=box_id) from error
-    except UploadControllerPort.LockedBoxError as error:
-        raise http_exceptions.HttpLockedBoxError(box_id=box_id) from error
+    except UploadControllerPort.BoxStateError as error:
+        raise http_exceptions.HttpBoxStateError(
+            box_id=box_id, box_state=error.box_state
+        ) from error
     except UploadControllerPort.FileUploadNotFound as error:
         raise http_exceptions.HttpFileUploadNotFoundError(file_id=file_id) from error
     except UploadControllerPort.S3UploadDetailsNotFoundError as error:
@@ -467,8 +471,10 @@ async def remove_file_upload(
         await upload_controller.remove_file_upload(box_id=box_id, file_id=file_id)
     except UploadControllerPort.BoxNotFoundError as error:
         raise http_exceptions.HttpBoxNotFoundError(box_id=box_id) from error
-    except UploadControllerPort.LockedBoxError as error:
-        raise http_exceptions.HttpLockedBoxError(box_id=box_id) from error
+    except UploadControllerPort.BoxStateError as error:
+        raise http_exceptions.HttpBoxStateError(
+            box_id=box_id, box_state=error.box_state
+        ) from error
     except UploadControllerPort.S3UploadDetailsNotFoundError as error:
         raise http_exceptions.HttpS3UploadDetailsNotFoundError(
             file_id=file_id

@@ -423,8 +423,8 @@ async def test_create_file_upload_when_box_locked(rig: JointRig):
     await controller.lock_file_upload_box(box_id=box_id)
     assert file_upload_box_dao.latest.locked
 
-    # Try to create a FileUpload in the locked box - should raise LockedBoxError
-    with pytest.raises(UploadControllerPort.LockedBoxError) as exc_info:
+    # Try to create a FileUpload in the locked box - should raise BoxStateError
+    with pytest.raises(UploadControllerPort.BoxStateError) as exc_info:
         await controller.initiate_file_upload(
             box_id=box_id, alias="test_file", size=1024
         )
@@ -483,8 +483,8 @@ async def test_delete_file_upload_when_box_locked(rig: JointRig):
     await file_upload_box_dao.update(box)
     assert file_upload_box_dao.latest.locked
 
-    # Try to delete the FileUpload from the locked box - should raise LockedBoxError
-    with pytest.raises(UploadControllerPort.LockedBoxError) as exc_info:
+    # Try to delete the FileUpload from the locked box - should raise BoxStateError
+    with pytest.raises(UploadControllerPort.BoxStateError) as exc_info:
         await controller.remove_file_upload(box_id=box_id, file_id=file_id)
 
     # Verify the exception contains the correct box_id

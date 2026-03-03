@@ -432,8 +432,8 @@ async def test_view_box_endpoint_error_handling(
             http_exceptions.HttpBoxNotFoundError(box_id=TEST_BOX_ID),
         ),
         (
-            UploadControllerPort.LockedBoxError(box_id=TEST_BOX_ID),
-            http_exceptions.HttpLockedBoxError(box_id=TEST_BOX_ID),
+            UploadControllerPort.BoxStateError(box_id=TEST_BOX_ID, box_state="locked"),
+            http_exceptions.HttpBoxStateError(box_id=TEST_BOX_ID, box_state="locked"),
         ),
         (
             UploadControllerPort.FileUploadAlreadyExists(alias="test_file"),
@@ -538,8 +538,8 @@ async def test_get_file_part_upload_url_endpoint_error_handling(
             http_exceptions.HttpBoxNotFoundError(box_id=TEST_BOX_ID),
         ),
         (
-            UploadControllerPort.LockedBoxError(box_id=TEST_BOX_ID),
-            http_exceptions.HttpLockedBoxError(box_id=TEST_BOX_ID),
+            UploadControllerPort.BoxStateError(box_id=TEST_BOX_ID, box_state="locked"),
+            http_exceptions.HttpBoxStateError(box_id=TEST_BOX_ID, box_state="locked"),
         ),
         (
             UploadControllerPort.FileUploadNotFound(file_id=TEST_FILE_ID),
@@ -604,8 +604,8 @@ async def test_complete_file_upload_endpoint_error_handling(
             http_exceptions.HttpBoxNotFoundError(box_id=TEST_BOX_ID),
         ),
         (
-            UploadControllerPort.LockedBoxError(box_id=TEST_BOX_ID),
-            http_exceptions.HttpLockedBoxError(box_id=TEST_BOX_ID),
+            UploadControllerPort.BoxStateError(box_id=TEST_BOX_ID, box_state="locked"),
+            http_exceptions.HttpBoxStateError(box_id=TEST_BOX_ID, box_state="locked"),
         ),
         (
             UploadControllerPort.S3UploadDetailsNotFoundError(file_id=TEST_FILE_ID),

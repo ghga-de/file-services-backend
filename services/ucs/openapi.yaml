@@ -23,45 +23,122 @@ components:
       title: Box Update Request
       type: object
     FileUpload:
-      description: A File Upload.
+      description: 'A FileUpload.
+
+
+        Contains all information required for a file''s journey from upload initiation
+        to
+
+        permanent archival.'
       properties:
         alias:
           description: The submitted alias from the metadata (unique within the box)
           title: Alias
           type: string
         box_id:
-          description: The ID of the FileUploadBox this FileUpload belongs to
+          description: The ID of the FileUploadBox this file is associated with
           format: uuid4
           title: Box Id
           type: string
-        checksum:
-          description: Unencrypted checksum
-          title: Checksum
+        bucket_id:
+          description: The name of the bucket where the file is currently stored
+          title: Bucket Id
           type: string
-        completed:
-          default: false
-          description: Whether or not the file upload has finished
-          title: Completed
-          type: boolean
+        decrypted_sha256:
+          description: SHA-256 checksum of the entire unencrypted file content
+          title: Decrypted Sha256
+          type: string
+        decrypted_size:
+          description: The size of the unencrypted file
+          title: Decrypted Size
+          type: integer
+        encrypted_parts_md5:
+          description: The MD5 checksum for each file part, in sequence
+          items:
+            type: string
+          title: Encrypted Parts Md5
+          type: array
+        encrypted_parts_sha256:
+          description: The SHA256 checksum for each file part, in sequence
+          items:
+            type: string
+          title: Encrypted Parts Sha256
+          type: array
+        encrypted_size:
+          description: The size of the encrypted file content. When the file is in
+            the inbox, this includes the Crypt4GH envelope. After re-encryption, the
+            file no longer contains an envelope, so the value is slightly smaller.
+          title: Encrypted Size
+          type: integer
+        failure_reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: The reason for interrogation failure, if the upload failed.
+          title: Failure Reason
         id:
           description: Unique identifier for the file upload
           format: uuid4
           title: Id
           type: string
-        size:
-          description: File size in bytes
-          title: Size
+        inbox_upload_completed:
+          default: false
+          description: Indicates whether the file has been completely uploaded to
+            the inbox.
+          title: Inbox Upload Completed
+          type: boolean
+        object_id:
+          description: The ID of the file specific to its S3 bucket
+          format: uuid4
+          title: Object Id
+          type: string
+        part_size:
+          description: The number of bytes in each file part (last part is likely
+            smaller)
+          title: Part Size
           type: integer
+        secret_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: The internal ID of the Data Hub-generated decryption secret
+          title: Secret Id
         state:
-          $ref: '#/components/schemas/FileUploadState'
           default: init
           description: The state of the FileUpload
+          enum:
+          - init
+          - inbox
+          - failed
+          - cancelled
+          - interrogated
+          - awaiting_archival
+          - archived
+          title: State
+          type: string
+        state_updated:
+          description: Timestamp of when state was updated
+          format: date-time
+          title: State Updated
+          type: string
+        storage_alias:
+          description: The storage alias of the Data Hub housing the file
+          title: Storage Alias
+          type: string
       required:
       - id
       - box_id
       - alias
-      - checksum
-      - size
+      - state_updated
+      - storage_alias
+      - bucket_id
+      - object_id
+      - decrypted_size
+      - encrypted_size
+      - decrypted_sha256
+      - encrypted_parts_md5
+      - encrypted_parts_sha256
+      - part_size
       title: FileUpload
       type: object
     FileUploadCompletionRequest:
@@ -98,21 +175,6 @@ components:
       - size
       title: File Upload Creation Request
       type: object
-    FileUploadState:
-      description: 'The allowed states for a ResearchDataUploadBox instance.
-
-
-        init: file upload initiated, but not yet finished
-
-        inbox: file upload complete, file in inbox
-
-        archived: file moved out of inbox after completion'
-      enum:
-      - init
-      - inbox
-      - archived
-      title: FileUploadState
-      type: string
     HTTPValidationError:
       properties:
         detail:
@@ -151,6 +213,40 @@ components:
       required:
       - box_id
       title: HttpBoxNotFoundErrorData
+      type: object
+    HttpBoxStateError:
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/HttpBoxStateErrorData'
+        description:
+          description: A human readable message to the client explaining the cause
+            of the exception.
+          title: Description
+          type: string
+        exception_id:
+          const: lockedBox
+          title: Exception Id
+          type: string
+      required:
+      - data
+      - description
+      - exception_id
+      title: HttpBoxStateError
+      type: object
+    HttpBoxStateErrorData:
+      properties:
+        box_id:
+          format: uuid4
+          title: Box Id
+          type: string
+        box_state:
+          title: Box State
+          type: string
+      required:
+      - box_id
+      - box_state
+      title: HttpBoxStateErrorData
       type: object
     HttpChecksumMismatchError:
       additionalProperties: false
@@ -211,36 +307,6 @@ components:
       required:
       - file_id
       title: HttpFileUploadNotFoundErrorData
-      type: object
-    HttpLockedBoxError:
-      additionalProperties: false
-      properties:
-        data:
-          $ref: '#/components/schemas/HttpLockedBoxErrorData'
-        description:
-          description: A human readable message to the client explaining the cause
-            of the exception.
-          title: Description
-          type: string
-        exception_id:
-          const: lockedBox
-          title: Exception Id
-          type: string
-      required:
-      - data
-      - description
-      - exception_id
-      title: HttpLockedBoxError
-      type: object
-    HttpLockedBoxErrorData:
-      properties:
-        box_id:
-          format: uuid4
-          title: Box Id
-          type: string
-      required:
-      - box_id
-      title: HttpLockedBoxErrorData
       type: object
     HttpOrphanedMultipartUploadError:
       additionalProperties: false
@@ -709,7 +775,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HttpLockedBoxError'
+                $ref: '#/components/schemas/HttpBoxStateError'
           description: 'Exceptions by ID:
 
             - lockedBox: The FileUploadBox is locked and cannot be modified.'
@@ -788,7 +854,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HttpLockedBoxError'
+                $ref: '#/components/schemas/HttpBoxStateError'
           description: 'Exceptions by ID:
 
             - lockedBox: The FileUploadBox is locked and cannot be modified.'

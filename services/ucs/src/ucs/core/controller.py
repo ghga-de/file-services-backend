@@ -19,7 +19,6 @@ import logging
 from typing import Any
 from uuid import uuid4
 
-from ghga_event_schemas.pydantic_ import FileUploadBox
 from ghga_service_commons.utils.multinode_storage import ObjectStorages
 from hexkit.protocols.dao import UniqueConstraintViolationError
 from hexkit.protocols.objstorage import ObjectStorageProtocol
@@ -29,6 +28,7 @@ from pydantic import UUID4
 from ucs.config import Config
 from ucs.core.models import (
     FileUpload,
+    FileUploadBox,
     InterrogationFailure,
     InterrogationSuccess,
     S3UploadDetails,
@@ -129,7 +129,7 @@ class UploadController(UploadControllerPort):
 
         Raises:
         - `BoxNotFoundError` if the box does not exist
-        - `LockedBoxError` if the box exists but is locked.
+        - `BoxStateError` if the box exists but is locked or archived.
         """
         # Verify that the box exists
         try:
@@ -140,8 +140,8 @@ class UploadController(UploadControllerPort):
             raise error from err
 
         # Verify that the box is not locked
-        if box.locked:
-            error = self.LockedBoxError(box_id=box_id)
+        if box.state != "open":
+            error = self.BoxStateError(box_id=box_id, box_state=box.state)
             log.error(error)
             raise error
 
@@ -268,7 +268,7 @@ class UploadController(UploadControllerPort):
 
         Raises:
         - `BoxNotFoundError` if the box does not exist.
-        - `LockedBoxError` if the box exists but is locked.
+        - `BoxStateError` if the box exists but is locked.
         - `FileUploadAlreadyExists` if there's already a FileUpload for this alias.
         - `UnknownStorageAliasError` if the storage alias is not known.
         - `OrphanedMultipartUploadError` if an S3 upload is already in progress.
@@ -439,7 +439,7 @@ class UploadController(UploadControllerPort):
         - `FileUploadNotFound` if the FileUpload isn't found.
         - `S3UploadDetailsNotFoundError` if the S3UploadDetails aren't found.
         - `BoxNotFoundError` if the FileUploadBox isn't found.
-        - `LockedBoxError` if the box exists but is locked.
+        - `BoxStateError` if the box exists but is locked.
         - `UnknownStorageAliasError` if the storage alias is not known.
         - `UploadCompletionError` if there's an error while telling S3 to complete the upload.
         - `ChecksumMismatchError` if the checksums don't match.
@@ -553,7 +553,7 @@ class UploadController(UploadControllerPort):
 
         Raises:
         - `BoxNotFoundError` if the box does not exist.
-        - `LockedBoxError` if the box exists but is locked.
+        - `BoxStateError` if the box exists but is locked.
         - `S3UploadDetailsNotFoundError` if the S3UploadDetails aren't found.
         - `UnknownStorageAliasError` if the storage alias is not known.
         - `UploadAbortError` if there's an error instructing S3 to abort the upload.
@@ -617,7 +617,14 @@ class UploadController(UploadControllerPort):
         if storage_alias not in self._config.object_storages:
             raise self.UnknownStorageAliasError(storage_alias=storage_alias)
 
-        box = FileUploadBox(id=uuid4(), storage_alias=storage_alias)
+        box = FileUploadBox(
+            id=uuid4(),
+            version=1,
+            state="open",
+            file_count=0,
+            size=0,
+            storage_alias=storage_alias,
+        )
         await self._file_upload_box_dao.insert(box)
         log.debug(
             "Inserted FileUploadBox %s", box.id, extra={"storage_alias": storage_alias}
@@ -638,7 +645,8 @@ class UploadController(UploadControllerPort):
             log.error(error)
             raise error from err
 
-        if box.locked:
+        if box.state != "open":
+            # This goes for archived boxes too
             log.info("Box with ID %s already locked.", box_id)
             return
 
@@ -651,7 +659,7 @@ class UploadController(UploadControllerPort):
             log.error(error, extra={"box_id": box_id, "file_ids": str(file_ids)})
             raise error
 
-        box.locked = True
+        box.state = "locked"
         await self._file_upload_box_dao.update(box)
         log.info("Locked box with ID %s.", box_id)
 
@@ -668,10 +676,13 @@ class UploadController(UploadControllerPort):
             log.error(error)
             raise error from err
 
-        if box.locked:
-            box.locked = False
+        if box.state == "locked":
+            box.state = "open"
             await self._file_upload_box_dao.update(box)
             log.info("Unlocked box with ID %s", box_id)
+        elif box.state == "archived":
+            log.error("Can't unlock box %s because it's already archived.", box_id)
+            raise self.BoxStateError(box_id=box_id, box_state=box.state)
         else:
             log.debug("Box with ID %s is already unlocked", box_id)
 

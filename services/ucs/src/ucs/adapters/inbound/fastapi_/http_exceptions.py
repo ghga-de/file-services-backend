@@ -52,8 +52,8 @@ class HttpBoxNotFoundError(HttpCustomExceptionBase):
         )
 
 
-class HttpLockedBoxError(HttpCustomExceptionBase):
-    """Thrown when trying to perform an action on a locked FileUploadBox."""
+class HttpBoxStateError(HttpCustomExceptionBase):
+    """Thrown when the user requests an action FileUploadBox prevented by the box's state."""
 
     exception_id = "lockedBox"
 
@@ -61,15 +61,17 @@ class HttpLockedBoxError(HttpCustomExceptionBase):
         """Model for exception data"""
 
         box_id: UUID4
+        box_state: str
 
-    def __init__(self, *, box_id: UUID4, status_code: int = 409):
+    def __init__(self, *, box_id: UUID4, box_state: str, status_code: int = 409):
         """Construct message and init the exception."""
         super().__init__(
             status_code=status_code,
             description=(
-                f"Can't perform this action because the box with ID {box_id} is locked."
+                f"Can't perform this action because the box with ID {box_id} is"
+                + f" {box_state}."
             ),
-            data={"box_id": str(box_id)},
+            data={"box_id": str(box_id), "box_state": box_state},
         )
 
 
