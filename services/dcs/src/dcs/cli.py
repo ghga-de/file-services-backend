@@ -44,9 +44,9 @@ def sync_consume_events(run_forever: bool = True):
 
 
 @cli.command(name="cleanup-outbox")
-def sync_run_cleanup():
+def sync_run_cleanup(remove_dangling_objects: bool = False):
     """Run outbox cleanup"""
-    asyncio.run(run_outbox_cleanup())
+    asyncio.run(run_outbox_cleanup(remove_dangling_objects=remove_dangling_objects))
 
 
 @cli.command(name="publish-events")

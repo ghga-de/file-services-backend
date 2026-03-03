@@ -257,13 +257,18 @@ class DataRepository(DataRepositoryPort):
         self,
         *,
         object_storages_config: S3ObjectStoragesConfig,
+        remove_dangling_objects: bool = False,
     ):
         """Run cleanup task for all outbox buckets configured in the service config."""
         for storage_alias in object_storages_config.object_storages:
-            await self.cleanup_outbox(storage_alias=storage_alias)
+            await self.cleanup_outbox(
+                storage_alias=storage_alias,
+                remove_dangling_objects=remove_dangling_objects,
+            )
 
-    # TODO: future: Rename references to 'outbox/outbox bucket' as 'download bucket'
-    async def cleanup_outbox(self, *, storage_alias: str):
+    async def cleanup_outbox(
+        self, *, storage_alias: str, remove_dangling_objects: bool = False
+    ):
         """
         Check if files present in the outbox have outlived their allocated time and remove
         all that do.
@@ -306,18 +311,19 @@ class DataRepository(DataRepositoryPort):
                     mapping={"object_id": object_id}
                 )
             except NoHitsFoundError:
-                cleanup_error = self.CleanupError(
-                    object_id=object_id,
-                    storage_alias=storage_alias,
-                    reason="Object not found in database, skipping.",
-                )
-                log.warning(cleanup_error)
-                continue
+                if not remove_dangling_objects:
+                    cleanup_error = self.CleanupError(
+                        object_id=object_id,
+                        storage_alias=storage_alias,
+                        reason="Object not found in database, skipping.",
+                    )
+                    log.warning(cleanup_error)
+                    continue
 
             # only remove file if last access is later than outbox_cache_timeout days ago
-            if drs_object.last_accessed <= threshold:
+            if remove_dangling_objects or drs_object.last_accessed <= threshold:
                 log.info(
-                    f"Deleting object {object_id} from bucket {bucket_id} in storage {storage_alias}."
+                    f"Deleting object {object_id} from outbox bucket {bucket_id} in storage {storage_alias}."
                 )
                 try:
                     await object_storage.delete_object(

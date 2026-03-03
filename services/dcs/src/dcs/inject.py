@@ -170,6 +170,7 @@ async def prepare_outbox_cleaner(
     *,
     config: Config,
     data_repo_override: DataRepositoryPort | None = None,
+    remove_dangling_objects: bool = False,
 ) -> AsyncGenerator[OutboxCleaner]:
     """Construct and initialize a coroutine that cleans the outbox once invoked.
     By default, the core dependencies are automatically prepared but you can also
@@ -178,4 +179,7 @@ async def prepare_outbox_cleaner(
     async with prepare_core_with_override(
         config=config, data_repo_override=data_repo_override
     ) as data_repository:
-        yield data_repository.cleanup_outbox_buckets(object_storages_config=config)
+        yield data_repository.cleanup_outbox_buckets(
+            object_storages_config=config,
+            remove_dangling_objects=remove_dangling_objects,
+        )

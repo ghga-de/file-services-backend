@@ -103,7 +103,10 @@ class DataRepositoryPort(ABC):
 
     @abstractmethod
     async def cleanup_outbox_buckets(
-        self, *, object_storages_config: S3ObjectStoragesConfig
+        self,
+        *,
+        object_storages_config: S3ObjectStoragesConfig,
+        remove_dangling_objects: bool = False,
     ):
         """Run cleanup task for all outbox buckets configured in the service config."""
         ...
