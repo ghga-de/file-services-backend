@@ -29,13 +29,19 @@ class UploadControllerPort(ABC):
         """Base error class for all upload errors"""
 
     class IncompleteUploadsError(UploadError):
-        """Raised when trying to lock a FileUploadBox for which at least one incomplete
-        FileUpload exists.
+        """Raised when trying to lock or archive a FileUploadBox for which
+        at least one incomplete FileUpload exists.
         """
 
         def __init__(self, *, box_id: UUID4, file_ids: list[UUID4]):
-            msg = f"Cannot lock box {box_id} because these files are incomplete: {file_ids}"
+            msg = (
+                f"Cannot lock or archive box {box_id} because these"
+                + f" files are incomplete: {file_ids}"
+            )
             super().__init__(msg)
+
+    class FileArchivalError(UploadError):
+        """Raised when there's a problem that prevents archiving a given FileUpload."""
 
     class S3UploadDetailsNotFoundError(UploadError):
         """Raised when the expected S3 upload details aren't found in the local DB.
@@ -248,6 +254,19 @@ class UploadControllerPort(ABC):
         - `BoxNotFoundError` if the FileUploadBox isn't found in the DB.
         - `BoxVersionError` if the supplied version doesn't match the current version.
         - `BoxStateError` if the box is archived and cannot be unlocked.
+        """
+        ...
+
+    @abstractmethod
+    async def archive_file_upload_box(self, *, box_id: UUID4, version: int) -> None:
+        """Archive an existing FileUploadBox.
+
+        Raises:
+        - `BoxNotFoundError` if the FileUploadBox isn't found in the DB.
+        - `BoxVersionError` if the supplied version doesn't match the current version.
+        - `BoxStateError` if the box is open.
+        - `IncompleteUploadsError` if the FileUploadBox has incomplete FileUploads.
+        - `FileArchivalError` if there's a problem archiving a given FileUpload.
         """
         ...
 

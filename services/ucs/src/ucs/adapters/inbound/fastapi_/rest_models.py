@@ -34,7 +34,7 @@ class BoxCreationRequest(BaseModel):
 class BoxUpdateRequest(BaseModel):
     """Request body for updating a FileUploadBox."""
 
-    state: UploadBoxState | None = Field(default=None, description="Updated state")
+    state: UploadBoxState = Field(default=..., description="Updated state")
     version: int = Field(
         ...,
         description="The expected current version of the box (for optimistic locking)",
@@ -65,7 +65,9 @@ class FileUploadCompletionRequest(BaseModel):
     model_config = ConfigDict(title="File Upload Completion Request")
 
 
-WorkType = Literal["create", "lock", "unlock", "view", "upload", "close", "delete"]
+WorkType = Literal[
+    "create", "lock", "unlock", "archive", "view", "upload", "close", "delete"
+]
 
 T = TypeVar("T", bound=WorkType)
 
@@ -80,7 +82,7 @@ class BaseWorkOrderToken[T: WorkType](BaseModel):
 CreateFileBoxWorkOrder = BaseWorkOrderToken[Literal["create"]]
 
 
-class ChangeFileBoxWorkOrder(BaseWorkOrderToken[Literal["lock", "unlock"]]):
+class ChangeFileBoxWorkOrder(BaseWorkOrderToken[Literal["lock", "unlock", "archive"]]):
     """WOT schema authorizing a user to lock or unlock an existing FileUploadBox"""
 
     box_id: UUID4

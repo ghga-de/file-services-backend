@@ -126,6 +126,13 @@ ERROR_RESPONSES = {
     },
 }
 
+# For the update_box endpoint, map the work type required to change to a given box state
+BOX_STATE_TO_WORK_TYPE: dict[str, str] = {
+    "open": "unlock",
+    "locked": "lock",
+    "archived": "archive",
+}
+
 
 @router.get(
     "/health",
@@ -174,13 +181,13 @@ async def create_box(
 
 @router.patch(
     "/boxes/{box_id}",
-    summary="Update a FileUploadBox (lock/unlock)",
+    summary="Update a FileUploadBox (lock/unlock/archive)",
     operation_id="updateBox",
     status_code=status.HTTP_204_NO_CONTENT,
     response_description="FileUploadBox successfully updated",
     responses={
-        status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["boxNotFound"]
-        | ERROR_RESPONSES["boxVersionOutdated"],
+        status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["boxNotFound"],
+        status.HTTP_409_CONFLICT: ERROR_RESPONSES["boxVersionOutdated"],
     },
 )
 @TRACER.start_as_current_span("routes.update_box")
@@ -193,27 +200,35 @@ async def update_box(
     ],
     upload_controller: dummies.UploadControllerDummy,
 ) -> None:
-    """Update a FileUploadBox to lock or unlock it.
+    """Update a FileUploadBox to lock it, unlock it, or archive it.
 
-    Request body must indicate whether the box is meant to be locked or unlocked.
+    Request body must contain a `state` field indicating the target state of the box,
+    as well as a `version` field indicating the expected current version of the box.
     Requires ChangeFileBoxWorkOrder token from the UOS. Users are only allowed to lock
-    the box; a Data Steward role is required to unlock it.
+    the box; a Data Steward role is required to do everything else.
     """
-    required_work_type = "lock" if box_update.lock else "unlock"
-    if work_order.box_id != box_id:
+    required_work_type = BOX_STATE_TO_WORK_TYPE.get(box_update.state)
+    if (
+        work_order.box_id != box_id
+        or not required_work_type
+        or work_order.work_type != required_work_type
+    ):
         raise http_exceptions.HttpNotAuthorizedError()
-    elif work_order.work_type != required_work_type:
-        raise http_exceptions.HttpNotAuthorizedError(status_code=401)
 
     try:
-        if box_update.lock:
-            await upload_controller.lock_file_upload_box(
-                box_id=box_id, version=box_update.version
-            )
-        else:
-            await upload_controller.unlock_file_upload_box(
-                box_id=box_id, version=box_update.version
-            )
+        match box_update.state:
+            case "locked":
+                await upload_controller.lock_file_upload_box(
+                    box_id=box_id, version=box_update.version
+                )
+            case "open":
+                await upload_controller.unlock_file_upload_box(
+                    box_id=box_id, version=box_update.version
+                )
+            case "archived":
+                await upload_controller.archive_file_upload_box(
+                    box_id=box_id, version=box_update.version
+                )
     except UploadControllerPort.BoxNotFoundError as error:
         raise http_exceptions.HttpBoxNotFoundError(box_id=box_id) from error
     except UploadControllerPort.BoxVersionError as error:

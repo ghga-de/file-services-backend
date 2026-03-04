@@ -726,7 +726,80 @@ class UploadController(UploadControllerPort):
             log.error("Can't unlock box %s because it's already archived.", box_id)
             raise self.BoxStateError(box_id=box_id, box_state=box.state)
         else:
-            log.debug("Box with ID %s is already unlocked", box_id)
+            log.info("Box with ID %s is already unlocked", box_id)
+
+    async def archive_file_upload_box(self, *, box_id: UUID4, version: int) -> None:
+        """Archive an existing FileUploadBox.
+
+        Raises:
+        - `BoxNotFoundError` if the FileUploadBox isn't found in the DB.
+        - `BoxVersionError` if the supplied version doesn't match the current version.
+        - `BoxStateError` if the box is open.
+        - `IncompleteUploadsError` if the FileUploadBox has incomplete FileUploads.
+        - `FileArchivalError` if there's a problem archiving a given FileUpload.
+        """
+        try:
+            box = await self._file_upload_box_dao.get_by_id(box_id)
+        except ResourceNotFoundError as err:
+            error = self.BoxNotFoundError(box_id=box_id)
+            log.error(error)
+            raise error from err
+
+        # Check version
+        if box.version != version:
+            error = self.BoxVersionError(box_id=box_id)
+            log.error(error, extra={"box_id": box_id, "version": version})
+            raise error
+
+        # Exit early if already archived, or raise error if unlocked
+        if box.state == "archived":
+            log.info("Box with ID %s is already archived", box_id)
+            return
+        elif box.state == "open":
+            log.error("Can't unlock box %s because it's still open.", box_id)
+            raise self.BoxStateError(box_id=box_id, box_state=box.state)
+
+        # Scan for incomplete files
+        files_not_interrogated_cursor = self._file_upload_dao.find_all(
+            mapping={"box_id": box_id, "state": {"$in": ["init", "inbox"]}}
+        )
+        file_ids = sorted([x.id async for x in files_not_interrogated_cursor])
+        if file_ids:
+            error = self.IncompleteUploadsError(box_id=box_id, file_ids=file_ids)
+            log.error(error, extra={"box_id": box_id, "file_ids": str(file_ids)})
+            raise error
+
+        # Verify that all files are in state 'interrogated' or 'awaiting_archival'.
+        # We include the latter in case an early crash occurred after partial update
+        files_cursor = self._file_upload_dao.find_all(
+            mapping={
+                "box_id": box_id,
+                "state": {"$in": ["interrogated", "awaiting_archival"]},
+            }
+        )
+        async for file in files_cursor:
+            # Check certain FileUpload fields one last time
+            if (
+                not file.encrypted_parts_md5
+                or not file.encrypted_parts_sha256
+                or len(file.encrypted_parts_md5) != len(file.encrypted_parts_sha256)
+            ):
+                raise self.FileArchivalError(
+                    f"File part checksums appear corrupted for file {file.id}."
+                )
+            elif file.failure_reason:
+                raise self.FileArchivalError(
+                    f"The 'failure_reason' for file {file.id} is unexpectedly filled out."
+                )
+            file.state = "awaiting_archival"
+            file.state_updated = now_utc_ms_prec()
+            await self._file_upload_dao.update(file)
+
+        # Update the box last
+        box.version += 1
+        box.state = "archived"
+        await self._file_upload_box_dao.update(box)
+        log.info("Archived box with ID %s", box_id)
 
     async def get_box_file_info(self, *, box_id: UUID4) -> list[FileUpload]:
         """Return the list of FileUploads for a FileUploadBox, sorted by alias.
