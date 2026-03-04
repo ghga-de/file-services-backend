@@ -19,6 +19,8 @@ from typing import Literal, TypeVar
 
 from pydantic import UUID4, BaseModel, ConfigDict, Field
 
+from ucs.core.models import UploadBoxState
+
 
 class BoxCreationRequest(BaseModel):
     """Request body for creating a new FileUploadBox."""
@@ -32,8 +34,10 @@ class BoxCreationRequest(BaseModel):
 class BoxUpdateRequest(BaseModel):
     """Request body for updating a FileUploadBox."""
 
-    lock: bool = Field(
-        ..., description="Whether the box should be locked (true) or unlocked (false)"
+    state: UploadBoxState | None = Field(default=None, description="Updated state")
+    version: int = Field(
+        ...,
+        description="The expected current version of the box (for optimistic locking)",
     )
     model_config = ConfigDict(title="Box Update Request")
 

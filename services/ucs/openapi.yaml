@@ -18,8 +18,13 @@ components:
           description: Whether the box should be locked (true) or unlocked (false)
           title: Lock
           type: boolean
+        version:
+          description: The expected current version of the box (for optimistic locking)
+          title: Version
+          type: integer
       required:
       - lock
+      - version
       title: Box Update Request
       type: object
     FileUpload:
@@ -225,7 +230,7 @@ components:
           title: Description
           type: string
         exception_id:
-          const: lockedBox
+          const: boxStateError
           title: Exception Id
           type: string
       required:
@@ -247,6 +252,36 @@ components:
       - box_id
       - box_state
       title: HttpBoxStateErrorData
+      type: object
+    HttpBoxVersionError:
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/HttpBoxVersionErrorData'
+        description:
+          description: A human readable message to the client explaining the cause
+            of the exception.
+          title: Description
+          type: string
+        exception_id:
+          const: boxVersionOutdated
+          title: Exception Id
+          type: string
+      required:
+      - data
+      - description
+      - exception_id
+      title: HttpBoxVersionError
+      type: object
+    HttpBoxVersionErrorData:
+      properties:
+        box_id:
+          format: uuid4
+          title: Box Id
+          type: string
+      required:
+      - box_id
+      title: HttpBoxVersionErrorData
       type: object
     HttpChecksumMismatchError:
       additionalProperties: false
@@ -594,10 +629,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HttpBoxNotFoundError'
+                $ref: '#/components/schemas/HttpBoxVersionError'
           description: 'Exceptions by ID:
 
-            - boxNotFound: The FileUploadBox with the given ID does not exist.'
+            - boxVersionOutdated: The requested FileUploadBox version is outdated.'
         '422':
           content:
             application/json:
@@ -778,7 +813,7 @@ paths:
                 $ref: '#/components/schemas/HttpBoxStateError'
           description: 'Exceptions by ID:
 
-            - lockedBox: The FileUploadBox is locked and cannot be modified.'
+            - boxStateError: The FileUploadBox''s state precludes the requested action.'
         '422':
           content:
             application/json:
@@ -857,7 +892,7 @@ paths:
                 $ref: '#/components/schemas/HttpBoxStateError'
           description: 'Exceptions by ID:
 
-            - lockedBox: The FileUploadBox is locked and cannot be modified.'
+            - boxStateError: The FileUploadBox''s state precludes the requested action.'
         '422':
           content:
             application/json:

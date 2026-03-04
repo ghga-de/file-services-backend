@@ -55,7 +55,7 @@ class HttpBoxNotFoundError(HttpCustomExceptionBase):
 class HttpBoxStateError(HttpCustomExceptionBase):
     """Thrown when the user requests an action FileUploadBox prevented by the box's state."""
 
-    exception_id = "lockedBox"
+    exception_id = "boxStateError"
 
     class DataModel(BaseModel):
         """Model for exception data"""
@@ -72,6 +72,27 @@ class HttpBoxStateError(HttpCustomExceptionBase):
                 + f" {box_state}."
             ),
             data={"box_id": str(box_id), "box_state": box_state},
+        )
+
+
+class HttpBoxVersionError(HttpCustomExceptionBase):
+    """Thrown when a request referenced an outdated resource state."""
+
+    exception_id = "boxVersionOutdated"
+
+    class DataModel(BaseModel):
+        """Model for exception data"""
+
+        box_id: UUID4
+
+    def __init__(self, *, box_id: UUID4, status_code: int = 404):
+        """Construct message and init the exception."""
+        super().__init__(
+            status_code=status_code,
+            description=(
+                f"Requested version of FileUploadBox with ID {box_id} is outdated."
+            ),
+            data={"box_id": str(box_id)},
         )
 
 

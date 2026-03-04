@@ -50,12 +50,19 @@ ERROR_RESPONSES = {
         ),
         "model": http_exceptions.HttpBoxNotFoundError.get_body_model(),
     },
-    "lockedBox": {
+    "boxStateError": {
         "description": (
             "Exceptions by ID:"
-            + "\n- lockedBox: The FileUploadBox is locked and cannot be modified."
+            + "\n- boxStateError: The FileUploadBox's state precludes the requested action."
         ),
         "model": http_exceptions.HttpBoxStateError.get_body_model(),
+    },
+    "boxVersionOutdated": {
+        "description": (
+            "Exceptions by ID:"
+            + "\n- boxVersionOutdated: The requested FileUploadBox version is outdated."
+        ),
+        "model": http_exceptions.HttpBoxVersionError.get_body_model(),
     },
     "fileUploadAlreadyExists": {
         "description": (
@@ -172,7 +179,8 @@ async def create_box(
     status_code=status.HTTP_204_NO_CONTENT,
     response_description="FileUploadBox successfully updated",
     responses={
-        status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["boxNotFound"],
+        status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["boxNotFound"]
+        | ERROR_RESPONSES["boxVersionOutdated"],
     },
 )
 @TRACER.start_as_current_span("routes.update_box")
@@ -199,11 +207,17 @@ async def update_box(
 
     try:
         if box_update.lock:
-            await upload_controller.lock_file_upload_box(box_id=box_id)
+            await upload_controller.lock_file_upload_box(
+                box_id=box_id, version=box_update.version
+            )
         else:
-            await upload_controller.unlock_file_upload_box(box_id=box_id)
+            await upload_controller.unlock_file_upload_box(
+                box_id=box_id, version=box_update.version
+            )
     except UploadControllerPort.BoxNotFoundError as error:
         raise http_exceptions.HttpBoxNotFoundError(box_id=box_id) from error
+    except UploadControllerPort.BoxVersionError as error:
+        raise http_exceptions.HttpBoxVersionError(box_id=box_id) from error
     except Exception as error:
         log.error(error, exc_info=True)
         raise http_exceptions.HttpInternalError() from error
@@ -258,7 +272,7 @@ async def get_box_uploads(
     responses={
         status.HTTP_400_BAD_REQUEST: ERROR_RESPONSES["noSuchStorage"],
         status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["boxNotFound"],
-        status.HTTP_409_CONFLICT: ERROR_RESPONSES["lockedBox"]
+        status.HTTP_409_CONFLICT: ERROR_RESPONSES["boxStateError"]
         | ERROR_RESPONSES["fileUploadAlreadyExists"]
         | ERROR_RESPONSES["orphanedMultipartUpload"],
     },
@@ -379,7 +393,7 @@ async def get_part_upload_url(
         status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["boxNotFound"]
         | ERROR_RESPONSES["s3UploadDetailsNotFound"]
         | ERROR_RESPONSES["fileUploadNotFound"],
-        status.HTTP_409_CONFLICT: ERROR_RESPONSES["lockedBox"],
+        status.HTTP_409_CONFLICT: ERROR_RESPONSES["boxStateError"],
         status.HTTP_500_INTERNAL_SERVER_ERROR: ERROR_RESPONSES[
             "s3UploadCompletionFailure"
         ],
@@ -445,7 +459,7 @@ async def complete_file_upload(
         status.HTTP_400_BAD_REQUEST: ERROR_RESPONSES["noSuchStorage"],
         status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["boxNotFound"]
         | ERROR_RESPONSES["s3UploadDetailsNotFound"],
-        status.HTTP_409_CONFLICT: ERROR_RESPONSES["lockedBox"],
+        status.HTTP_409_CONFLICT: ERROR_RESPONSES["boxStateError"],
         status.HTTP_500_INTERNAL_SERVER_ERROR: ERROR_RESPONSES["uploadAbortError"],
     },
 )

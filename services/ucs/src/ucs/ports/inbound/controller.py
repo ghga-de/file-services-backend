@@ -96,6 +96,13 @@ class UploadControllerPort(ABC):
             message = f"No storage node exists for alias {storage_alias}."
             super().__init__(message)
 
+    class BoxVersionError(UploadError):
+        """Raised when the supplied box version doesn't match the current version in the DB."""
+
+        def __init__(self, *, box_id: UUID4):
+            msg = f"The supplied version for FileUploadBox {box_id} is outdated."
+            super().__init__(msg)
+
     class BoxStateError(UploadError):
         """Thrown when the user requests an action FileUploadBox prevented by the box's state."""
 
@@ -191,6 +198,7 @@ class UploadControllerPort(ABC):
         - `S3UploadDetailsNotFoundError` if the S3UploadDetails aren't found.
         - `BoxNotFoundError` if the FileUploadBox isn't found.
         - `BoxStateError` if the box exists but is locked.
+        - `BoxVersionError` if the box version changed before stats could be updated.
         - `UnknownStorageAliasError` if the storage alias is not known.
         - `UploadCompletionError` if there's an error while telling S3 to complete the upload.
         - `ChecksumMismatchError` if the checksums don't match.
@@ -204,6 +212,7 @@ class UploadControllerPort(ABC):
         Raises:
         - `BoxNotFoundError` if the box does not exist.
         - `BoxStateError` if the box exists but is locked.
+        - `BoxVersionError` if the box version changed before stats could be updated.
         - `S3UploadDetailsNotFoundError` if the S3UploadDetails aren't found.
         - `UnknownStorageAliasError` if the storage alias is not known.
         - `UploadAbortError` if there's an error instructing S3 to abort the upload.
@@ -221,20 +230,24 @@ class UploadControllerPort(ABC):
         ...
 
     @abstractmethod
-    async def lock_file_upload_box(self, *, box_id: UUID4) -> None:
+    async def lock_file_upload_box(self, *, box_id: UUID4, version: int) -> None:
         """Lock an existing FileUploadBox.
 
         Raises:
         - `BoxNotFoundError` if the FileUploadBox isn't found in the DB.
+        - `BoxVersionError` if the supplied version doesn't match the current version.
+        - `IncompleteUploadsError` if the box has incomplete FileUploads.
         """
         ...
 
     @abstractmethod
-    async def unlock_file_upload_box(self, *, box_id: UUID4) -> None:
+    async def unlock_file_upload_box(self, *, box_id: UUID4, version: int) -> None:
         """Unlock an existing FileUploadBox.
 
         Raises:
         - `BoxNotFoundError` if the FileUploadBox isn't found in the DB.
+        - `BoxVersionError` if the supplied version doesn't match the current version.
+        - `BoxStateError` if the box is archived and cannot be unlocked.
         """
         ...
 
