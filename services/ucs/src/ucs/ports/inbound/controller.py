@@ -55,17 +55,6 @@ class UploadControllerPort(ABC):
             msg = f"Failed to find S3 multipart upload details for file ID {file_id}."
             super().__init__(msg)
 
-    # TODO: Delete this error from here
-    class S3UploadNotFoundError(UploadError):
-        """Raised when the local DB has a record of an S3 multipart upload but S3 itself doesn't."""
-
-        def __init__(self, *, bucket_id: str, s3_upload_id: str):
-            msg = (
-                "S3 object storage does not contain a multipart upload with ID"
-                + f" {s3_upload_id} in bucket ID {bucket_id}."
-            )
-            super().__init__(msg)
-
     class UploadAbortError(UploadError):
         """Raised when aborting an S3 multipart upload results in an error."""
 
@@ -83,17 +72,6 @@ class UploadControllerPort(ABC):
             msg = (
                 f"Failed to complete S3 multipart upload with ID {s3_upload_id} for"
                 + f" file ID {file_id} in bucket ID {bucket_id}."
-            )
-            super().__init__(msg)
-
-    # TODO: Delete this error from here
-    class OrphanedMultipartUploadError(UploadError):
-        """Raised when a pre-existing multipart upload is unexpectedly found"""
-
-        def __init__(self, *, file_id: UUID4, bucket_id: str):
-            msg = (
-                f"An S3 multipart upload already exists for file ID {file_id} and"
-                + f" bucket ID {bucket_id}."
             )
             super().__init__(msg)
 
