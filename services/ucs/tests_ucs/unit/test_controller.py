@@ -22,24 +22,14 @@ from uuid import uuid4
 
 import pytest
 import pytest_asyncio
-from ghga_event_schemas.pydantic_ import (
-    FileUpload,
-    FileUploadBox,
-    FileUploadReport,
-    FileUploadState,
-)
 from ghga_service_commons.utils.multinode_storage import ObjectStorages
+from hexkit.protocols.dao import UniqueConstraintViolationError
 from hexkit.protocols.objstorage import ObjectStorageProtocol
+from hexkit.providers.testing.dao import BaseInMemDao, new_mock_dao_class
 from hexkit.providers.testing.s3 import InMemObjectStorage
 from hexkit.utils import now_utc_ms_prec
 
 from tests_ucs.fixtures import ConfigFixture
-from tests_ucs.fixtures.in_mem_dao import (
-    BaseInMemDao,
-    InMemFileUploadBoxDao,
-    InMemFileUploadDao,
-    InMemS3UploadDetailsDao,
-)
 from tests_ucs.fixtures.in_mem_obj_storage import (
     InMemS3ObjectStorages,
     raise_object_storage_error,
@@ -47,9 +37,21 @@ from tests_ucs.fixtures.in_mem_obj_storage import (
 from ucs.config import Config
 from ucs.core import models
 from ucs.core.controller import UploadController
+from ucs.core.models import (
+    FileUpload,
+    FileUploadBox,
+    InterrogationSuccess,
+    S3UploadDetails,
+)
 from ucs.ports.inbound.controller import UploadControllerPort
 
 pytestmark = pytest.mark.asyncio()
+
+InMemFileUploadBoxDao = new_mock_dao_class(dto_model=FileUploadBox, id_field="id")
+InMemFileUploadDao = new_mock_dao_class(dto_model=FileUpload, id_field="id")
+InMemS3UploadDetailsDao = new_mock_dao_class(
+    dto_model=S3UploadDetails, id_field="file_id"
+)
 
 
 @pytest.fixture()
@@ -104,6 +106,8 @@ async def test_create_new_box(rig: JointRig):
     """Test creating a new FileUploadBox"""
     box_id = await rig.controller.create_file_upload_box(storage_alias="test")
     assert rig.file_upload_box_dao.latest.id == box_id
+    assert rig.file_upload_box_dao.latest.version == 0
+    assert rig.file_upload_box_dao.latest.state == "open"
 
 
 async def test_create_new_file_upload(rig: JointRig):
@@ -115,14 +119,18 @@ async def test_create_new_file_upload(rig: JointRig):
 
     # Then create a FileUpload within the box
     file_id = await controller.initiate_file_upload(
-        box_id=box_id, alias="test_file", size=1024
+        box_id=box_id,
+        alias="test_file",
+        decrypted_size=1024,
+        encrypted_size=1024,
+        part_size=1024,
     )
 
     # Verify the FileUpload was created
     assert file_upload_dao.latest.id == file_id
     assert file_upload_dao.latest.alias == "test_file"
-    assert file_upload_dao.latest.checksum == ""
-    assert file_upload_dao.latest.size == 1024
+    assert file_upload_dao.latest.decrypted_sha256 is None
+    assert file_upload_dao.latest.decrypted_size == 1024
 
     # Verify S3UploadDetails were created
     upload_details = rig.s3_upload_details_dao.latest
@@ -140,7 +148,11 @@ async def test_get_part_url(rig: JointRig):
 
     # Then create a FileUpload within the box
     file_id = await controller.initiate_file_upload(
-        box_id=box_id, alias="test_file", size=1024
+        box_id=box_id,
+        alias="test_file",
+        decrypted_size=1024,
+        encrypted_size=1024,
+        part_size=1024,
     )
 
     # Now get the part upload URL
@@ -159,19 +171,26 @@ async def test_complete_file_upload(rig: JointRig):
 
     # Then create a FileUpload within the box
     file_id = await controller.initiate_file_upload(
-        box_id=box_id, alias="test_file", size=1024
+        box_id=box_id,
+        alias="test_file",
+        decrypted_size=1024,
+        encrypted_size=1024,
+        part_size=1024,
     )
+    file1_object_id = rig.s3_upload_details_dao.latest.object_id
 
     # Now complete the file upload
     await controller.complete_file_upload(
         box_id=box_id,
         file_id=file_id,
         unencrypted_checksum="unencrypted_checksum",
-        encrypted_checksum=f"etag_for_{file_id}",
+        encrypted_checksum=f"etag_for_{file1_object_id}",
+        encrypted_parts_md5=["abc123"],
+        encrypted_parts_sha256=["def456"],
     )
     bucket_id, object_storage = rig.object_storages.for_alias("test")
     assert await object_storage.does_object_exist(
-        bucket_id=bucket_id, object_id=str(file_id)
+        bucket_id=bucket_id, object_id=str(file1_object_id)
     )
 
     # Verify that the S3UploadDetails still exist (they should remain for tracking)
@@ -180,7 +199,7 @@ async def test_complete_file_upload(rig: JointRig):
     assert s3_upload_details_dao.latest.file_id == file_id
     assert s3_upload_details_dao.latest.completed is not None
     assert completed - s3_upload_details_dao.latest.completed < timedelta(seconds=5)
-    assert rig.file_upload_dao.latest.completed
+    assert rig.file_upload_dao.latest.inbox_upload_completed
     file_upload_box_dao = rig.file_upload_box_dao
     assert file_upload_box_dao.latest.size == 1024
     assert file_upload_box_dao.latest.file_count == 1
@@ -188,13 +207,20 @@ async def test_complete_file_upload(rig: JointRig):
     # Now repeat the process to ensure the box stats are incremented, not overwritten
     await sleep(0.1)
     file_id2 = await controller.initiate_file_upload(
-        box_id=box_id, alias="test_file2", size=1000
+        box_id=box_id,
+        alias="test_file2",
+        decrypted_size=1000,
+        encrypted_size=1000,
+        part_size=1000,
     )
+    file2_object_id = rig.s3_upload_details_dao.latest.object_id
     await controller.complete_file_upload(
         box_id=box_id,
         file_id=file_id2,
         unencrypted_checksum="unencrypted_checksum",
-        encrypted_checksum=f"etag_for_{file_id2}",
+        encrypted_checksum=f"etag_for_{file2_object_id}",
+        encrypted_parts_md5=["abc123"],
+        encrypted_parts_sha256=["def456"],
     )
     latest_s3_details = s3_upload_details_dao.latest
     assert latest_s3_details.file_id == file_id2
@@ -218,30 +244,38 @@ async def test_delete_file_upload(rig: JointRig, complete_before_delete: bool):
 
     # Then create a FileUpload within the box
     file_id = await controller.initiate_file_upload(
-        box_id=box_id, alias="test_file", size=1024
+        box_id=box_id,
+        alias="test_file",
+        decrypted_size=1024,
+        encrypted_size=1024,
+        part_size=1024,
     )
+    object_id = str(rig.s3_upload_details_dao.latest.object_id)
 
     if complete_before_delete:
         await controller.complete_file_upload(
             box_id=box_id,
             file_id=file_id,
             unencrypted_checksum="unencrypted_checksum",
-            encrypted_checksum=f"etag_for_{file_id}",
+            encrypted_checksum=f"etag_for_{object_id}",
+            encrypted_parts_md5=["abc123"],
+            encrypted_parts_sha256=["def456"],
         )
         assert file_upload_box_dao.latest.file_count == 1
         assert file_upload_box_dao.latest.size == 1024
         assert await object_storage.does_object_exist(
-            bucket_id=bucket_id, object_id=str(file_id)
+            bucket_id=bucket_id, object_id=object_id
         )
 
     # Now delete the file upload
     await controller.remove_file_upload(box_id=box_id, file_id=file_id)
     assert not await object_storage.does_object_exist(
-        bucket_id=bucket_id, object_id=str(file_id)
+        bucket_id=bucket_id, object_id=object_id
     )
 
-    # Verify that the FileUpload and S3UploadDetails were removed
-    assert not file_upload_dao.resources
+    # FileUpload is set to "cancelled" (not removed from DB); S3UploadDetails are deleted
+    assert len(file_upload_dao.resources) == 1
+    assert file_upload_dao.latest.state == "cancelled"
     assert not s3_upload_details_dao.resources
     assert file_upload_box_dao.latest.file_count == 0
     assert file_upload_box_dao.latest.size == 0
@@ -249,19 +283,19 @@ async def test_delete_file_upload(rig: JointRig, complete_before_delete: bool):
 
 async def test_lock_file_upload_box(rig: JointRig):
     """Test locking an unlocked FileUploadBox"""
-    # First create a FileUploadBox (starts unlocked by default)
+    # First create a FileUploadBox (starts open by default)
     file_upload_box_dao = rig.file_upload_box_dao
     controller = rig.controller
     box_id = await controller.create_file_upload_box(storage_alias="test")
 
-    # Verify the box starts unlocked
-    assert not file_upload_box_dao.latest.locked
+    # Verify the box starts open
+    assert file_upload_box_dao.latest.state == "open"
 
     # Now lock the box
-    await controller.lock_file_upload_box(box_id=box_id)
+    await controller.lock_file_upload_box(box_id=box_id, version=0)
 
     # Verify the box is now locked
-    assert file_upload_box_dao.latest.locked
+    assert file_upload_box_dao.latest.state == "locked"
 
 
 async def test_unlock_file_upload_box(rig: JointRig):
@@ -272,15 +306,42 @@ async def test_unlock_file_upload_box(rig: JointRig):
     # First create a FileUploadBox
     box_id = await controller.create_file_upload_box(storage_alias="test")
 
-    # Lock the box first
-    await controller.lock_file_upload_box(box_id=box_id)
-    assert file_upload_box_dao.latest.locked
+    # Lock the box first (version 0 → 1)
+    await controller.lock_file_upload_box(box_id=box_id, version=0)
+    assert file_upload_box_dao.latest.state == "locked"
 
-    # Now unlock the box
-    await controller.unlock_file_upload_box(box_id=box_id)
+    # Now unlock the box (version 1 → 2)
+    await controller.unlock_file_upload_box(box_id=box_id, version=1)
 
     # Verify the box is now unlocked
-    assert not file_upload_box_dao.latest.locked
+    assert file_upload_box_dao.latest.state == "open"
+
+
+async def test_lock_box_version_error(rig: JointRig):
+    """Test that BoxVersionError is raised when the wrong version is supplied for lock."""
+    controller = rig.controller
+    box_id = await controller.create_file_upload_box(storage_alias="test")
+
+    with pytest.raises(UploadControllerPort.BoxVersionError) as exc_info:
+        await controller.lock_file_upload_box(box_id=box_id, version=99)
+
+    assert str(box_id) in str(exc_info.value)
+    # Box should remain unlocked
+    assert rig.file_upload_box_dao.latest.state == "open"
+
+
+async def test_unlock_box_version_error(rig: JointRig):
+    """Test that BoxVersionError is raised when the wrong version is supplied for unlock."""
+    controller = rig.controller
+    box_id = await controller.create_file_upload_box(storage_alias="test")
+    await controller.lock_file_upload_box(box_id=box_id, version=0)
+
+    with pytest.raises(UploadControllerPort.BoxVersionError) as exc_info:
+        await controller.unlock_file_upload_box(box_id=box_id, version=0)
+
+    assert str(box_id) in str(exc_info.value)
+    # Box should remain locked
+    assert rig.file_upload_box_dao.latest.state == "locked"
 
 
 async def test_get_box_uploads(rig: JointRig):
@@ -290,77 +351,62 @@ async def test_get_box_uploads(rig: JointRig):
     # First create a FileUploadBox
     box_id = await controller.create_file_upload_box(storage_alias="test")
 
-    # Create multiple FileUploads within the box
-    file_uploads: list[FileUpload] = []
+    # Create multiple FileUploads within the box and complete them
+    file_ids = []
     for i in range(3):
         file_id = await controller.initiate_file_upload(
             box_id=box_id,
             alias=f"file{i}",
-            size=1024,
+            decrypted_size=1024,
+            encrypted_size=1024,
+            part_size=1024,
         )
-        file_upload = FileUpload(
-            id=file_id,
+        object_id = rig.s3_upload_details_dao.latest.object_id
+        await controller.complete_file_upload(
             box_id=box_id,
-            state=FileUploadState.INBOX,
-            alias=f"file{i}",
-            size=1024,
-            checksum="unencrypted_checksum",
-            completed=True,
+            file_id=file_id,
+            unencrypted_checksum="unencrypted_checksum",
+            encrypted_checksum=f"etag_for_{object_id}",
+            encrypted_parts_md5=["abc123"],
+            encrypted_parts_sha256=["def456"],
         )
-        file_uploads.append(file_upload)
+        file_ids.append(file_id)
 
     # Create a second box with different files to test isolation
     other_box_id = await controller.create_file_upload_box(storage_alias="test")
-    other_file_uploads: list[FileUpload] = []
+    other_file_ids = []
     for i in range(2):
         other_file_id = await controller.initiate_file_upload(
             box_id=other_box_id,
             alias=f"file{i}",
-            size=1024,
+            decrypted_size=1024,
+            encrypted_size=1024,
+            part_size=1024,
         )
-        file_upload = FileUpload(
-            id=other_file_id,
-            box_id=other_box_id,
-            state=FileUploadState.INBOX,
-            alias=f"file{i}",
-            size=1024,
-            checksum="unencrypted_checksum",
-            completed=True,
-        )
-        other_file_uploads.append(file_upload)
-
-    # Complete the file uploads so they appear in the results
-    for file_upload in file_uploads:
-        await controller.complete_file_upload(
-            box_id=box_id,
-            file_id=file_upload.id,
-            unencrypted_checksum="unencrypted_checksum",
-            encrypted_checksum=f"etag_for_{file_upload.id}",
-        )
-
-    # Complete the uploads in the other box too
-    for file_upload in other_file_uploads:
+        other_object_id = rig.s3_upload_details_dao.latest.object_id
         await controller.complete_file_upload(
             box_id=other_box_id,
-            file_id=file_upload.id,
+            file_id=other_file_id,
             unencrypted_checksum="unencrypted_checksum",
-            encrypted_checksum=f"etag_for_{file_upload.id}",
+            encrypted_checksum=f"etag_for_{other_object_id}",
+            encrypted_parts_md5=["abc123"],
+            encrypted_parts_sha256=["def456"],
         )
+        other_file_ids.append(other_file_id)
 
     # Create a third, empty box
     empty_box_id = await controller.create_file_upload_box(storage_alias="test")
 
-    # Get the file uploads for the first box
+    # Get the file uploads for the first box - should be sorted by alias
     results = await controller.get_box_file_info(box_id=box_id)
+    assert len(results) == 3
+    assert [r.alias for r in results] == ["file0", "file1", "file2"]
+    assert all(r.id in file_ids for r in results)
 
-    # Verify only the files from the first box are returned (not from other_box)
-    expected_file_uploads = [file_uploads[0], file_uploads[1], file_uploads[2]]
-    assert str(results) == str(expected_file_uploads)
-
-    # Also verify the other box returns its own files
+    # Verify the other box returns only its own files
     other_results = await controller.get_box_file_info(box_id=other_box_id)
-    expected_other_file_uploads = [other_results[0], other_results[1]]
-    assert str(other_results) == str(expected_other_file_uploads)
+    assert len(other_results) == 2
+    assert all(r.id in other_file_ids for r in other_results)
 
     # Verify that we get an empty list for the third box
     no_ids = await controller.get_box_file_info(box_id=empty_box_id)
@@ -400,7 +446,9 @@ async def test_create_file_upload_when_box_missing(rig: JointRig):
         await controller.initiate_file_upload(
             box_id=non_existent_box_id,
             alias="test_file",
-            size=1024,
+            decrypted_size=1024,
+            encrypted_size=1024,
+            part_size=1024,
         )
 
     # Verify the exception contains the correct box_id
@@ -418,15 +466,19 @@ async def test_create_file_upload_when_box_locked(rig: JointRig):
     controller = rig.controller
     file_upload_box_dao = rig.file_upload_box_dao
 
-    # First create a FileUploadBox and lock it
+    # First create a FileUploadBox and lock it (version 0 → 1)
     box_id = await controller.create_file_upload_box(storage_alias="test")
-    await controller.lock_file_upload_box(box_id=box_id)
-    assert file_upload_box_dao.latest.locked
+    await controller.lock_file_upload_box(box_id=box_id, version=0)
+    assert file_upload_box_dao.latest.state == "locked"
 
     # Try to create a FileUpload in the locked box - should raise BoxStateError
     with pytest.raises(UploadControllerPort.BoxStateError) as exc_info:
         await controller.initiate_file_upload(
-            box_id=box_id, alias="test_file", size=1024
+            box_id=box_id,
+            alias="test_file",
+            decrypted_size=1024,
+            encrypted_size=1024,
+            part_size=1024,
         )
 
     # Verify the exception contains the correct box_id
@@ -474,14 +526,18 @@ async def test_delete_file_upload_when_box_locked(rig: JointRig):
     # First create a FileUploadBox and FileUpload
     box_id = await controller.create_file_upload_box(storage_alias="test")
     file_id = await controller.initiate_file_upload(
-        box_id=box_id, alias="test_file", size=1024
+        box_id=box_id,
+        alias="test_file",
+        decrypted_size=1024,
+        encrypted_size=1024,
+        part_size=1024,
     )
 
-    # Lock the box manually
+    # Lock the box manually by updating the state
     box = await file_upload_box_dao.get_by_id(box_id)
-    box.locked = True
+    box.state = "locked"
     await file_upload_box_dao.update(box)
-    assert file_upload_box_dao.latest.locked
+    assert file_upload_box_dao.latest.state == "locked"
 
     # Try to delete the FileUpload from the locked box - should raise BoxStateError
     with pytest.raises(UploadControllerPort.BoxStateError) as exc_info:
@@ -520,7 +576,11 @@ async def test_delete_file_upload_with_missing_s3_details(rig: JointRig):
     # Create a FileUploadBox and a FileUpload
     box_id = await controller.create_file_upload_box(storage_alias="test")
     file_id = await controller.initiate_file_upload(
-        box_id=box_id, alias="test_file", size=1024
+        box_id=box_id,
+        alias="test_file",
+        decrypted_size=1024,
+        encrypted_size=1024,
+        part_size=1024,
     )
 
     # Verify both FileUpload and S3UploadDetails were created
@@ -556,7 +616,11 @@ async def test_delete_file_upload_with_s3_error(rig: JointRig):
     # Create a FileUploadBox and a FileUpload
     box_id = await controller.create_file_upload_box(storage_alias="test")
     file_id = await controller.initiate_file_upload(
-        box_id=box_id, alias="test_file", size=1024
+        box_id=box_id,
+        alias="test_file",
+        decrypted_size=1024,
+        encrypted_size=1024,
+        part_size=1024,
     )
 
     # Set the mock to raise a MultiPartUploadAbortError
@@ -590,7 +654,7 @@ async def test_unlock_missing_box(rig: JointRig):
     # Try to unlock a non-existent box
     non_existent_box_id = uuid4()
     with pytest.raises(UploadControllerPort.BoxNotFoundError) as exc_info:
-        await controller.unlock_file_upload_box(box_id=non_existent_box_id)
+        await controller.unlock_file_upload_box(box_id=non_existent_box_id, version=0)
 
     # Verify the exception contains the correct box_id
     assert str(non_existent_box_id) in str(exc_info.value)
@@ -605,7 +669,7 @@ async def test_lock_missing_box(rig: JointRig):
 
     # Should raise BoxNotFoundError
     with pytest.raises(UploadControllerPort.BoxNotFoundError) as exc_info:
-        await controller.lock_file_upload_box(box_id=non_existent_box_id)
+        await controller.lock_file_upload_box(box_id=non_existent_box_id, version=0)
 
     # Verify the exception contains the correct box_id
     assert str(non_existent_box_id) in str(exc_info.value)
@@ -622,25 +686,33 @@ async def test_lock_box_with_incomplete_upload(rig: JointRig):
     box_id = await controller.create_file_upload_box(storage_alias="test")
 
     file_id1 = await controller.initiate_file_upload(
-        box_id=box_id, alias="test_file", size=1024
+        box_id=box_id,
+        alias="test_file",
+        decrypted_size=1024,
+        encrypted_size=1024,
+        part_size=1024,
     )
     file_id2 = await controller.initiate_file_upload(
-        box_id=box_id, alias="test_file2", size=1024
+        box_id=box_id,
+        alias="test_file2",
+        decrypted_size=1024,
+        encrypted_size=1024,
+        part_size=1024,
     )
     file_ids = sorted([file_id1, file_id2])
 
     # Attempt to lock the box while the upload is still incomplete
     with pytest.raises(UploadControllerPort.IncompleteUploadsError) as exc_info:
-        await controller.lock_file_upload_box(box_id=box_id)
+        await controller.lock_file_upload_box(box_id=box_id, version=0)
 
     # Verify the exception is correct
     assert (
         str(exc_info.value)
-        == f"Cannot lock box {box_id} because these files are incomplete: {file_ids}"
+        == f"Cannot lock or archive box {box_id} because these files are incomplete: {file_ids}"
     )
 
-    # Verify that the box is still unlocked
-    assert not file_upload_box_dao.latest.locked
+    # Verify that the box is still open
+    assert file_upload_box_dao.latest.state == "open"
 
 
 async def test_complete_file_upload_when_box_missing(rig: JointRig):
@@ -655,7 +727,11 @@ async def test_complete_file_upload_when_box_missing(rig: JointRig):
     # Create a FileUploadBox and a FileUpload
     box_id = await controller.create_file_upload_box(storage_alias="test")
     file_id = await controller.initiate_file_upload(
-        box_id=box_id, alias="test_file", size=1024
+        box_id=box_id,
+        alias="test_file",
+        decrypted_size=1024,
+        encrypted_size=1024,
+        part_size=1024,
     )
 
     # Manually delete the box (simulating a scenario where the box was deleted
@@ -674,11 +750,13 @@ async def test_complete_file_upload_when_box_missing(rig: JointRig):
             file_id=file_id,
             unencrypted_checksum="sha256:unencrypted_checksum_here",
             encrypted_checksum="sha256:encrypted_checksum_here",
+            encrypted_parts_md5=["abc123"],
+            encrypted_parts_sha256=["def456"],
         )
 
     # Verify the exception contains the correct box_id
     assert str(box_id) in str(exc_info.value)
-    assert not file_upload_dao.latest.completed
+    assert not file_upload_dao.latest.inbox_upload_completed
     assert not s3_upload_details_dao.latest.completed
 
 
@@ -699,6 +777,8 @@ async def test_complete_missing_file_upload(rig: JointRig):
             file_id=non_existent_file_id,
             unencrypted_checksum="sha256:unencrypted_checksum_here",
             encrypted_checksum="sha256:encrypted_checksum_here",
+            encrypted_parts_md5=["abc123"],
+            encrypted_parts_sha256=["def456"],
         )
     assert not rig.file_upload_dao.resources
     assert not rig.s3_upload_details_dao.resources
@@ -717,7 +797,11 @@ async def test_complete_file_upload_with_missing_s3_details(rig: JointRig):
     # Create a FileUploadBox and a FileUpload
     box_id = await controller.create_file_upload_box(storage_alias="test")
     file_id = await controller.initiate_file_upload(
-        box_id=box_id, alias="test_file", size=1024
+        box_id=box_id,
+        alias="test_file",
+        decrypted_size=1024,
+        encrypted_size=1024,
+        part_size=1024,
     )
 
     # Manually delete the S3UploadDetails but leave the FileUpload
@@ -731,13 +815,15 @@ async def test_complete_file_upload_with_missing_s3_details(rig: JointRig):
             file_id=file_id,
             unencrypted_checksum="sha256:unencrypted_checksum_here",
             encrypted_checksum="sha256:encrypted_checksum_here",
+            encrypted_parts_md5=["abc123"],
+            encrypted_parts_sha256=["def456"],
         )
 
     # Verify the exception contains the correct file_id
     assert str(file_id) in str(exc_info.value)
 
     # Verify the FileUpload is still marked as incomplete
-    assert not rig.file_upload_dao.latest.completed
+    assert not rig.file_upload_dao.latest.inbox_upload_completed
     assert rig.file_upload_box_dao.latest.size == 0
     assert rig.file_upload_box_dao.latest.file_count == 0
 
@@ -753,7 +839,11 @@ async def test_complete_file_upload_with_unknown_storage_alias(rig: JointRig):
     # Create a FileUploadBox and a FileUpload with a valid storage alias
     box_id = await controller.create_file_upload_box(storage_alias="test")
     file_id = await controller.initiate_file_upload(
-        box_id=box_id, alias="test_file", size=1024
+        box_id=box_id,
+        alias="test_file",
+        decrypted_size=1024,
+        encrypted_size=1024,
+        part_size=1024,
     )
 
     # Verify both FileUpload and S3UploadDetails were created
@@ -773,11 +863,13 @@ async def test_complete_file_upload_with_unknown_storage_alias(rig: JointRig):
             file_id=file_id,
             unencrypted_checksum="sha256:unencrypted_checksum_here",
             encrypted_checksum="sha256:encrypted_checksum_here",
+            encrypted_parts_md5=["abc123"],
+            encrypted_parts_sha256=["def456"],
         )
 
     # Verify the exception message contains the unknown storage alias
     assert "does_not_exist" in str(exc_info.value)
-    assert not file_upload_dao.latest.completed
+    assert not file_upload_dao.latest.inbox_upload_completed
     assert rig.file_upload_box_dao.latest.size == 0
     assert rig.file_upload_box_dao.latest.file_count == 0
 
@@ -793,7 +885,11 @@ async def test_complete_file_upload_with_s3_error(rig: JointRig):
     # Create a FileUploadBox and a FileUpload
     box_id = await controller.create_file_upload_box(storage_alias="test")
     file_id = await controller.initiate_file_upload(
-        box_id=box_id, alias="test_file", size=1024
+        box_id=box_id,
+        alias="test_file",
+        decrypted_size=1024,
+        encrypted_size=1024,
+        part_size=1024,
     )
 
     # Set the mock to raise a MultiPartUploadConfirmError
@@ -814,12 +910,14 @@ async def test_complete_file_upload_with_s3_error(rig: JointRig):
             file_id=file_id,
             unencrypted_checksum="sha256:unencrypted_checksum_here",
             encrypted_checksum=f"etag_for_{file_id}",
+            encrypted_parts_md5=["abc123"],
+            encrypted_parts_sha256=["def456"],
         )
 
     # Verify the exception contains the S3 upload ID
     s3_upload_id = s3_upload_details_dao.latest.s3_upload_id
     assert s3_upload_id in str(exc_info.value)
-    assert not rig.file_upload_dao.latest.completed
+    assert not rig.file_upload_dao.latest.inbox_upload_completed
     assert not s3_upload_details_dao.latest.completed
     assert file_upload_box_dao.latest.size == 0
     assert file_upload_box_dao.latest.file_count == 0
@@ -833,7 +931,11 @@ async def test_get_part_upload_url_with_missing_file_id(rig: JointRig):
     controller = rig.controller
     box_id = await controller.create_file_upload_box(storage_alias="test")
     file_id = await controller.initiate_file_upload(
-        box_id=box_id, alias="test_file", size=1024
+        box_id=box_id,
+        alias="test_file",
+        decrypted_size=1024,
+        encrypted_size=1024,
+        part_size=1024,
     )
 
     # Manually delete the S3UploadDetails but leave the FileUpload
@@ -857,7 +959,11 @@ async def test_get_part_upload_url_with_unknown_storage_alias(rig: JointRig):
     s3_upload_details_dao = rig.s3_upload_details_dao
     box_id = await controller.create_file_upload_box(storage_alias="test")
     file_id = await controller.initiate_file_upload(
-        box_id=box_id, alias="test_file", size=1024
+        box_id=box_id,
+        alias="test_file",
+        decrypted_size=1024,
+        encrypted_size=1024,
+        part_size=1024,
     )
 
     # Manually modify the S3UploadDetails to have an unknown storage alias
@@ -882,7 +988,11 @@ async def test_get_part_upload_url_when_s3_upload_not_found(rig: JointRig):
     controller = rig.controller
     box_id = await controller.create_file_upload_box(storage_alias="test")
     file_id = await controller.initiate_file_upload(
-        box_id=box_id, alias="test_file", size=1024
+        box_id=box_id,
+        alias="test_file",
+        decrypted_size=1024,
+        encrypted_size=1024,
+        part_size=1024,
     )
 
     # Set the mock to raise a MultiPartUploadNotFoundError
@@ -911,36 +1021,179 @@ async def test_get_file_ids_for_non_existent_box(rig: JointRig):
         await rig.controller.get_box_file_info(box_id=uuid4())
 
 
-async def test_file_upload_report_no_file_upload(rig: JointRig):
+async def test_process_interrogation_success_no_file_upload(rig: JointRig):
     """Test the alt case where the file upload doesn't exist."""
     non_existent_file_id = uuid4()
-    file_upload_report = FileUploadReport(
+    report = InterrogationSuccess(
         file_id=non_existent_file_id,
         secret_id="test-secret-456",
-        passed_inspection=True,
+        storage_alias="test",
+        bucket_id="test-inbox",
+        object_id=uuid4(),
+        interrogated_at=now_utc_ms_prec(),
+        encrypted_parts_md5=["abc123"],
+        encrypted_parts_sha256=["def456"],
+        encrypted_size=1024,
     )
 
     with pytest.raises(UploadControllerPort.FileUploadNotFound):
-        await rig.controller.process_interrogation_success(report=file_upload_report)
+        await rig.controller.process_interrogation_success(report=report)
 
 
-@pytest.mark.parametrize(
-    "completed, state",
-    [
-        (False, "inbox"),
-        (False, "archived"),
-        (True, "init"),
-    ],
-)
-async def test_file_upload_validator(completed: bool, state: FileUploadState):
-    """Make sure the FileUpload model validator works."""
-    with pytest.raises(ValueError):
-        _ = FileUpload(
-            id=uuid4(),
-            completed=completed,
-            state=state,
-            box_id=uuid4(),
-            checksum="test123",
-            alias="test123",
-            size=1024,
+async def test_initiate_upload_after_failed(rig: JointRig):
+    """Re-initiating an upload with the same alias is allowed when the existing
+    FileUpload is in 'failed' state (S3UploadDetails remain in DB for that state).
+    """
+    controller = rig.controller
+    file_upload_dao = rig.file_upload_dao
+    s3_upload_details_dao = rig.s3_upload_details_dao
+
+    box_id = await controller.create_file_upload_box(storage_alias="test")
+    file_id_1 = await controller.initiate_file_upload(
+        box_id=box_id,
+        alias="test_file",
+        decrypted_size=1024,
+        encrypted_size=1024,
+        part_size=1024,
+    )
+
+    # Simulate the "failed" state directly (process_interrogation_failure would also
+    # clean up the S3 object, but we want to verify S3UploadDetails remain in DB)
+    file_upload = await file_upload_dao.get_by_id(file_id_1)
+    file_upload.state = "failed"
+    await file_upload_dao.update(file_upload)
+
+    assert len(s3_upload_details_dao.resources) == 1
+
+    # Patch insert to simulate the MongoDB compound-index constraint violation
+    original_insert = file_upload_dao.insert
+    call_count = 0
+
+    async def patched_insert(dto):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            raise UniqueConstraintViolationError(
+                unique_fields={"box_id": str(box_id), "alias": "test_file"}
+            )
+        return await original_insert(dto)
+
+    file_upload_dao.insert = patched_insert
+
+    file_id_2 = await controller.initiate_file_upload(
+        box_id=box_id,
+        alias="test_file",
+        decrypted_size=2048,
+        encrypted_size=2048,
+        part_size=1024,
+    )
+
+    assert file_id_2 != file_id_1
+    assert len(file_upload_dao.resources) == 1
+    new_upload = await file_upload_dao.get_by_id(file_id_2)
+    assert new_upload.state == "init"
+    assert new_upload.alias == "test_file"
+    # Old S3UploadDetails deleted; new one created for file_id_2
+    assert len(s3_upload_details_dao.resources) == 1
+    assert s3_upload_details_dao.latest.file_id == file_id_2
+
+
+async def test_initiate_upload_after_cancelled(rig: JointRig):
+    """Re-initiating an upload with the same alias is allowed when the existing
+    FileUpload is in 'cancelled' state (S3UploadDetails already deleted for that state).
+    """
+    controller = rig.controller
+    file_upload_dao = rig.file_upload_dao
+    s3_upload_details_dao = rig.s3_upload_details_dao
+
+    box_id = await controller.create_file_upload_box(storage_alias="test")
+    file_id_1 = await controller.initiate_file_upload(
+        box_id=box_id,
+        alias="test_file",
+        decrypted_size=1024,
+        encrypted_size=1024,
+        part_size=1024,
+    )
+    await controller.remove_file_upload(box_id=box_id, file_id=file_id_1)
+
+    cancelled = await file_upload_dao.get_by_id(file_id_1)
+    assert cancelled.state == "cancelled"
+    assert len(s3_upload_details_dao.resources) == 0
+
+    original_insert = file_upload_dao.insert
+    call_count = 0
+
+    async def patched_insert(dto):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            raise UniqueConstraintViolationError(
+                unique_fields={"box_id": str(box_id), "alias": "test_file"}
+            )
+        return await original_insert(dto)
+
+    file_upload_dao.insert = patched_insert
+
+    file_id_2 = await controller.initiate_file_upload(
+        box_id=box_id,
+        alias="test_file",
+        decrypted_size=2048,
+        encrypted_size=2048,
+        part_size=1024,
+    )
+
+    assert file_id_2 != file_id_1
+    assert len(file_upload_dao.resources) == 1
+    new_upload = await file_upload_dao.get_by_id(file_id_2)
+    assert new_upload.state == "init"
+    assert len(s3_upload_details_dao.resources) == 1
+    assert s3_upload_details_dao.latest.file_id == file_id_2
+
+
+async def test_initiate_upload_blocked_for_inbox_state(rig: JointRig):
+    """Re-initiating an upload with the same alias is blocked when the existing
+    FileUpload is in 'inbox' state (active upload, not a retryable terminal state).
+    """
+    controller = rig.controller
+    file_upload_dao = rig.file_upload_dao
+
+    box_id = await controller.create_file_upload_box(storage_alias="test")
+    file_id_1 = await controller.initiate_file_upload(
+        box_id=box_id,
+        alias="test_file",
+        decrypted_size=1024,
+        encrypted_size=1024,
+        part_size=1024,
+    )
+    object_id_1 = rig.s3_upload_details_dao.latest.object_id
+    await controller.complete_file_upload(
+        box_id=box_id,
+        file_id=file_id_1,
+        unencrypted_checksum="unencrypted_checksum",
+        encrypted_checksum=f"etag_for_{object_id_1}",
+        encrypted_parts_md5=["abc123"],
+        encrypted_parts_sha256=["def456"],
+    )
+
+    inbox_upload = await file_upload_dao.get_by_id(file_id_1)
+    assert inbox_upload.state == "inbox"
+
+    async def patched_insert(dto):
+        raise UniqueConstraintViolationError(
+            unique_fields={"box_id": str(box_id), "alias": "test_file"}
         )
+
+    file_upload_dao.insert = patched_insert
+
+    with pytest.raises(UploadControllerPort.FileUploadAlreadyExists):
+        await controller.initiate_file_upload(
+            box_id=box_id,
+            alias="test_file",
+            decrypted_size=2048,
+            encrypted_size=2048,
+            part_size=1024,
+        )
+
+    # Original FileUpload must be untouched
+    assert len(file_upload_dao.resources) == 1
+    assert (await file_upload_dao.get_by_id(file_id_1)).state == "inbox"

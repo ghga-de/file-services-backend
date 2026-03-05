@@ -133,15 +133,15 @@ class FileUpload(BaseModel):
             + " contains an envelope, so the value is slightly smaller."
         ),
     )
-    decrypted_sha256: str = Field(
-        default=...,
+    decrypted_sha256: str | None = Field(
+        default=None,
         description="SHA-256 checksum of the entire unencrypted file content",
     )
-    encrypted_parts_md5: list[str] = Field(
-        default=..., description="The MD5 checksum for each file part, in sequence"
+    encrypted_parts_md5: list[str] | None = Field(
+        default=None, description="The MD5 checksum for each file part, in sequence"
     )
-    encrypted_parts_sha256: list[str] = Field(
-        default=..., description="The SHA256 checksum for each file part, in sequence"
+    encrypted_parts_sha256: list[str] | None = Field(
+        default=None, description="The SHA256 checksum for each file part, in sequence"
     )
     part_size: int = Field(
         default=...,

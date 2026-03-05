@@ -160,7 +160,13 @@ class UploadControllerPort(ABC):
 
     @abstractmethod
     async def initiate_file_upload(
-        self, *, box_id: UUID4, alias: str, size: int
+        self,
+        *,
+        box_id: UUID4,
+        alias: str,
+        decrypted_size: int,
+        encrypted_size: int,
+        part_size: int,
     ) -> UUID4:
         """Initialize a new multipart upload and return the file ID.
 
@@ -187,13 +193,15 @@ class UploadControllerPort(ABC):
         ...
 
     @abstractmethod
-    async def complete_file_upload(
+    async def complete_file_upload(  # noqa: PLR0913
         self,
         *,
         box_id: UUID4,
         file_id: UUID4,
         unencrypted_checksum: str,
         encrypted_checksum: str,
+        encrypted_parts_md5: list[str],
+        encrypted_parts_sha256: list[str],
     ) -> None:
         """Instruct S3 to complete a multipart upload and compares the remote checksum
         with the value provided for `encrypted_checksum`. The `unencrypted_checksum`

@@ -87,27 +87,31 @@ async def test_update_box_endpoint_auth(config: ConfigFixture, app_fixture: AppF
     and a 204 if the token is correct (and request succeeds).
     """
     uos_jwk = config.uos_jwk
-    body = {"lock": True}
+    body = {"state": "locked", "version": 0}
     rest_client = app_fixture.rest_client
 
+    # Missing auth header should result in a 401
     url = f"/boxes/{TEST_BOX_ID}"
     response = await rest_client.patch(url, json=body)
     assert response.status_code == 401
 
+    # Invalid auth header should result in a 401
     response = await rest_client.patch(url, json=body, headers=INVALID_HEADER)
     assert response.status_code == 401
 
+    # Supply a token with the correct work type but the wrong box ID -- should get a 403
     wrong_id_token_header = utils.change_file_box_token_header(jwk=uos_jwk)
     response = await rest_client.patch(url, json=body, headers=wrong_id_token_header)
     assert response.status_code == 403
 
-    # generate a different kind of token with otherwise correct params
+    # Supply the wrong work type for the given state -- should return 403
     wrong_work_token_header = utils.change_file_box_token_header(
         box_id=TEST_BOX_ID, work_type="unlock", jwk=uos_jwk
     )
     response = await rest_client.patch(url, json=body, headers=wrong_work_token_header)
-    assert response.status_code == 401
+    assert response.status_code == 403
 
+    # Now the happy case
     good_token_header = utils.change_file_box_token_header(
         box_id=TEST_BOX_ID, jwk=uos_jwk
     )
@@ -156,7 +160,12 @@ async def test_create_file_upload_endpoint_auth(
     but doesn't match the requested resource, and a 201 if the request succeeds.
     """
     wps_jwk = config.wps_jwk
-    body = {"alias": "test_file", "size": 1024}
+    body = {
+        "alias": "test_file",
+        "decrypted_size": 1024,
+        "encrypted_size": 1024,
+        "part_size": 1024,
+    }
     rest_client = app_fixture.rest_client
     core_mock = app_fixture.core_mock
     core_mock.initiate_file_upload.return_value = TEST_FILE_ID
@@ -250,9 +259,11 @@ async def test_complete_file_upload_endpoint_auth(
     incorrect data, and a 204 if the request succeeds.
     """
     wps_jwk = config.wps_jwk
-    body: dict[str, str] = {
+    body: dict = {
         "unencrypted_checksum": "unencrypted_checksum",
         "encrypted_checksum": "encrypted_checksum",
+        "encrypted_parts_md5": ["abc123"],
+        "encrypted_parts_sha256": ["def456"],
     }
     rest_client = app_fixture.rest_client
     url = f"/boxes/{TEST_BOX_ID}/uploads/{TEST_FILE_ID}"
@@ -369,9 +380,13 @@ async def test_create_box_endpoint_error_handling(
             UploadControllerPort.BoxNotFoundError(box_id=TEST_BOX_ID),
             http_exceptions.HttpBoxNotFoundError(box_id=TEST_BOX_ID),
         ),
+        (
+            UploadControllerPort.BoxVersionError(box_id=TEST_BOX_ID),
+            http_exceptions.HttpBoxVersionError(box_id=TEST_BOX_ID),
+        ),
         (RuntimeError("Random error"), http_exceptions.HttpInternalError()),
     ],
-    ids=["BoxNotFound", "InternalError"],
+    ids=["BoxNotFound", "BoxVersionOutdated", "InternalError"],
 )
 async def test_update_box_endpoint_error_handling(
     config: ConfigFixture,
@@ -381,7 +396,7 @@ async def test_update_box_endpoint_error_handling(
 ):
     """Test that the endpoint correctly translates errors from the core."""
     uos_jwk = config.uos_jwk
-    body = {"lock": True}
+    body = {"state": "locked", "version": 0}
     rest_client = app_fixture.rest_client
     core_mock = app_fixture.core_mock
     core_mock.lock_file_upload_box.side_effect = core_error
@@ -468,7 +483,12 @@ async def test_create_file_upload_endpoint_error_handling(
 ):
     """Test that the endpoint correctly translates errors from the core."""
     wps_jwk = config.wps_jwk
-    body = {"alias": "test_file", "size": 1024}
+    body = {
+        "alias": "test_file",
+        "decrypted_size": 1024,
+        "encrypted_size": 1024,
+        "part_size": 1024,
+    }
     rest_client = app_fixture.rest_client
     core_mock = app_fixture.core_mock
     core_mock.initiate_file_upload.side_effect = core_error
@@ -578,9 +598,11 @@ async def test_complete_file_upload_endpoint_error_handling(
 ):
     """Test that the endpoint correctly translates errors from the core."""
     wps_jwk = config.wps_jwk
-    body: dict[str, str] = {
+    body: dict = {
         "unencrypted_checksum": "unencrypted_checksum",
         "encrypted_checksum": "encrypted_checksum",
+        "encrypted_parts_md5": ["abc123"],
+        "encrypted_parts_sha256": ["def456"],
     }
     rest_client = app_fixture.rest_client
     core_mock = app_fixture.core_mock

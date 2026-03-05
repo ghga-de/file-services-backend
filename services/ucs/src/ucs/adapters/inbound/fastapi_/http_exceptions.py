@@ -85,7 +85,7 @@ class HttpBoxVersionError(HttpCustomExceptionBase):
 
         box_id: UUID4
 
-    def __init__(self, *, box_id: UUID4, status_code: int = 404):
+    def __init__(self, *, box_id: UUID4, status_code: int = 409):
         """Construct message and init the exception."""
         super().__init__(
             status_code=status_code,

@@ -49,7 +49,17 @@ class FileUploadCreationRequest(BaseModel):
         ...,
         description="The alias for the file within the box (must be unique within the box)",
     )
-    size: int = Field(..., description="The size of the file in bytes", ge=1)
+    decrypted_size: int = Field(
+        ..., description="The size of the unencrypted file in bytes", ge=1
+    )
+    encrypted_size: int = Field(
+        ..., description="The size of the encrypted file in bytes", ge=1
+    )
+    part_size: int = Field(
+        ...,
+        description="The number of bytes in each file part (last part may be smaller)",
+        ge=1,
+    )
     model_config = ConfigDict(title="File Upload Creation Request")
 
 
@@ -61,6 +71,13 @@ class FileUploadCompletionRequest(BaseModel):
     )
     encrypted_checksum: str = Field(
         ..., description="The checksum of the encrypted file"
+    )
+    encrypted_parts_md5: list[str] = Field(
+        ..., description="The MD5 checksum for each encrypted file part, in sequence"
+    )
+    encrypted_parts_sha256: list[str] = Field(
+        ...,
+        description="The SHA-256 checksum for each encrypted file part, in sequence",
     )
     model_config = ConfigDict(title="File Upload Completion Request")
 

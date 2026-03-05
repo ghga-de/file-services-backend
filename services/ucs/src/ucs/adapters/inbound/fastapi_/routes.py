@@ -316,7 +316,9 @@ async def create_file_upload(
         file_id = await upload_controller.initiate_file_upload(
             box_id=box_id,
             alias=file_alias,
-            size=file_upload_creation.size,
+            decrypted_size=file_upload_creation.decrypted_size,
+            encrypted_size=file_upload_creation.encrypted_size,
+            part_size=file_upload_creation.part_size,
         )
     except UploadControllerPort.BoxNotFoundError as error:
         raise http_exceptions.HttpBoxNotFoundError(box_id=box_id) from error
@@ -440,6 +442,8 @@ async def complete_file_upload(
             file_id=file_id,
             unencrypted_checksum=file_upload_completion.unencrypted_checksum,
             encrypted_checksum=file_upload_completion.encrypted_checksum,
+            encrypted_parts_md5=file_upload_completion.encrypted_parts_md5,
+            encrypted_parts_sha256=file_upload_completion.encrypted_parts_sha256,
         )
     except UploadControllerPort.BoxNotFoundError as error:
         raise http_exceptions.HttpBoxNotFoundError(box_id=box_id) from error

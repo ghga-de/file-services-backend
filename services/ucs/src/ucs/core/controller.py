@@ -16,11 +16,12 @@
 """Implements the UploadController class to manage file uploads"""
 
 import logging
+from contextlib import suppress
 from typing import Any
 from uuid import uuid4
 
 from ghga_service_commons.utils.multinode_storage import ObjectStorages
-from hexkit.protocols.dao import UniqueConstraintViolationError
+from hexkit.protocols.dao import NoHitsFoundError, UniqueConstraintViolationError
 from hexkit.protocols.objstorage import ObjectStorageProtocol
 from hexkit.utils import now_utc_ms_prec
 from pydantic import UUID4
@@ -82,8 +83,15 @@ class UploadController(UploadControllerPort):
         )
         return bucket_id, object_storage
 
-    async def _insert_file_upload_if_new(
-        self, *, box: FileUploadBox, alias: str, size: int
+    async def _insert_file_upload_if_new(  # noqa: PLR0913
+        self,
+        *,
+        box: FileUploadBox,
+        alias: str,
+        bucket_id: str,
+        decrypted_size: int,
+        encrypted_size: int,
+        part_size: int,
     ) -> FileUpload:
         """Create a new FileUpload for the provided file alias and return it.
 
@@ -98,31 +106,59 @@ class UploadController(UploadControllerPort):
         object_id = uuid4()
 
         try:
-            # TODO: Other fields
             file_upload = FileUpload(
                 id=file_id,
-                object_id=object_id,
-                state="init",
                 box_id=box_id,
                 alias=alias,
-                decrypted_size=size,
-                decrypted_sha256="",  # Checksum is empty until file upload is complete
+                state="init",
+                state_updated=now_utc_ms_prec(),
+                storage_alias=box.storage_alias,
+                bucket_id=bucket_id,
+                object_id=object_id,
+                decrypted_size=decrypted_size,
+                encrypted_size=encrypted_size,
+                part_size=part_size,
             )
 
             await self._file_upload_dao.insert(file_upload)
             return file_upload
         except UniqueConstraintViolationError as err:
-            error = self.FileUploadAlreadyExists(alias=alias)
-            log.error(
-                error,
-                extra={
-                    "box_id": box.id,
-                    "generated_file_id": file_id,
-                    "file_alias": alias,
-                    "size": size,
-                },
+            try:
+                existing = await self._file_upload_dao.find_one(
+                    mapping={"box_id": box_id, "alias": alias}
+                )
+            except NoHitsFoundError:
+                error = self.FileUploadAlreadyExists(alias=alias)
+                log.error(error, extra={"box_id": box.id, "file_alias": alias})
+                raise error from err
+
+            if existing.state not in ("failed", "cancelled"):
+                error = self.FileUploadAlreadyExists(alias=alias)
+                log.error(
+                    error,
+                    extra={
+                        "box_id": box.id,
+                        "generated_file_id": file_id,
+                        "file_alias": alias,
+                        "existing_state": existing.state,
+                    },
+                )
+                raise error from err
+
+            log.info(
+                "Replacing %s FileUpload %s for alias '%s' with new upload %s",
+                existing.state,
+                existing.id,
+                alias,
+                file_id,
+                extra={"box_id": box.id, "file_alias": alias},
             )
-            raise error from err
+            # "failed" state leaves S3UploadDetails in DB; "cancelled" already deleted them
+            with suppress(ResourceNotFoundError):
+                await self._s3_upload_details_dao.delete(existing.id)
+            await self._file_upload_dao.delete(existing.id)
+            await self._file_upload_dao.insert(file_upload)
+            return file_upload
 
     async def _get_unlocked_box(self, *, box_id: UUID4) -> FileUploadBox:
         """Retrieve a FileUploadBox by ID.
@@ -262,7 +298,13 @@ class UploadController(UploadControllerPort):
             pass
 
     async def initiate_file_upload(
-        self, *, box_id: UUID4, alias: str, size: int
+        self,
+        *,
+        box_id: UUID4,
+        alias: str,
+        decrypted_size: int,
+        encrypted_size: int,
+        part_size: int,
     ) -> UUID4:
         """Initialize a new multipart upload and return the file ID.
 
@@ -283,11 +325,16 @@ class UploadController(UploadControllerPort):
             storage_alias=storage_alias
         )
         extra["storage_alias"] = storage_alias
-        extra["bucked_id"] = bucket_id
+        extra["bucket_id"] = bucket_id
 
         initiated = now_utc_ms_prec()  # Generate timestamp early to minimize error risk
         file_upload = await self._insert_file_upload_if_new(
-            box=box, alias=alias, size=size
+            box=box,
+            alias=alias,
+            bucket_id=bucket_id,
+            decrypted_size=decrypted_size,
+            encrypted_size=encrypted_size,
+            part_size=part_size,
         )
         file_id = file_upload.id
         object_id = file_upload.object_id
@@ -423,14 +470,15 @@ class UploadController(UploadControllerPort):
             log.error(error, exc_info=True, extra=extra)
             raise error
 
-    # TODO: Add other things that result from upload (md5 & sha256 list)
-    async def complete_file_upload(
+    async def complete_file_upload(  # noqa: PLR0913
         self,
         *,
         box_id: UUID4,
         file_id: UUID4,
         unencrypted_checksum: str,
         encrypted_checksum: str,
+        encrypted_parts_md5: list[str],
+        encrypted_parts_sha256: list[str],
     ) -> None:
         """Instruct S3 to complete a multipart upload and compares the remote checksum
         with the value provided for `encrypted_checksum`. The `unencrypted_checksum`
@@ -480,6 +528,7 @@ class UploadController(UploadControllerPort):
             log.info("FileUpload with ID %s already complete.", file_id)
             # If this method is called but the file is already completed, triple
             #  check that the box is up to date
+            # TODO: Mark file as failed if the checksums don't match
             await self._compare_checksums(
                 object_storage=object_storage,
                 bucket_id=bucket_id,
@@ -530,6 +579,7 @@ class UploadController(UploadControllerPort):
                 log.error(error, exc_info=True, extra=extra)
                 raise error from err
 
+        # Verify that the md5 checksum calculated by the connector matches the S3 etag
         await self._compare_checksums(
             object_storage=object_storage,
             bucket_id=bucket_id,
@@ -539,10 +589,12 @@ class UploadController(UploadControllerPort):
         )
 
         # Update local collections now that S3 upload is successfully completed
-        # TODO: Add other things that result from upload (md5 & sha256 list)
         file_upload.state = "inbox"
         file_upload.decrypted_sha256 = unencrypted_checksum
+        file_upload.encrypted_parts_md5 = encrypted_parts_md5
+        file_upload.encrypted_parts_sha256 = encrypted_parts_sha256
         file_upload.inbox_upload_completed = True
+        file_upload.state_updated = now_utc_ms_prec()
         s3_upload_details.completed = now_utc_ms_prec()
         await self._file_upload_dao.update(file_upload)
         await self._s3_upload_details_dao.update(s3_upload_details)
@@ -575,6 +627,7 @@ class UploadController(UploadControllerPort):
             await self._update_box_stats(box_id=box_id, version=box_version)
             return
 
+        # Retrieve the S3UploadDetails
         try:
             s3_upload_details = await self._s3_upload_details_dao.get_by_id(file_id)
         except ResourceNotFoundError as err:
@@ -582,6 +635,7 @@ class UploadController(UploadControllerPort):
             log.error(error, extra={"box_id": box_id, "file_id": file_id})
             raise error from err
 
+        # Remove the file from S3 using slightly different approach based on if finished
         if file_upload.inbox_upload_completed:
             await self._remove_completed_file_upload(
                 s3_upload_details=s3_upload_details
@@ -591,7 +645,11 @@ class UploadController(UploadControllerPort):
                 s3_upload_details=s3_upload_details
             )
         await self._s3_upload_details_dao.delete(file_id)
-        await self._file_upload_dao.delete(file_id)
+
+        # Update the file_upload to 'cancelled'
+        file_upload.state = "cancelled"
+        file_upload.state_updated = now_utc_ms_prec()
+        await self._file_upload_dao.update(file_upload)
         await self._update_box_stats(box_id=box_id, version=box_version)
         log.info("File %s deleted from box %s", file_id, box_id)
 
@@ -622,7 +680,7 @@ class UploadController(UploadControllerPort):
         file_count = 0
         total_size = 0
         async for file_upload in self._file_upload_dao.find_all(
-            mapping={"box_id": box_id, "inbox_upload_completed": True}
+            mapping={"box_id": box_id, "state": {"$nin": ["cancelled", "failed"]}}
         ):
             file_count += 1
             total_size += file_upload.decrypted_size
@@ -856,6 +914,7 @@ class UploadController(UploadControllerPort):
             case "inbox":
                 # Update the FileUpload's parameters using the InterrogationReport
                 file_upload.state = "interrogated"
+                file_upload.state_updated = now_utc_ms_prec()
                 file_upload.secret_id = report.secret_id
                 file_upload.encrypted_parts_md5 = report.encrypted_parts_md5
                 file_upload.encrypted_parts_sha256 = report.encrypted_parts_sha256
@@ -911,6 +970,7 @@ class UploadController(UploadControllerPort):
                 return
             case "inbox":
                 file_upload.state = "failed"
+                file_upload.state_updated = now_utc_ms_prec()
                 file_upload.failure_reason = report.reason
                 log.debug("Marking FileUpload %s as '%s'", file_id, file_upload.state)
                 await self._file_upload_dao.update(file_upload)

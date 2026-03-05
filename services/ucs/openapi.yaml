@@ -14,16 +14,20 @@ components:
     BoxUpdateRequest:
       description: Request body for updating a FileUploadBox.
       properties:
-        lock:
-          description: Whether the box should be locked (true) or unlocked (false)
-          title: Lock
-          type: boolean
+        state:
+          description: Updated state
+          enum:
+          - open
+          - locked
+          - archived
+          title: State
+          type: string
         version:
           description: The expected current version of the box (for optimistic locking)
           title: Version
           type: integer
       required:
-      - lock
+      - state
       - version
       title: Box Update Request
       type: object
@@ -50,25 +54,31 @@ components:
           title: Bucket Id
           type: string
         decrypted_sha256:
+          anyOf:
+          - type: string
+          - type: 'null'
           description: SHA-256 checksum of the entire unencrypted file content
           title: Decrypted Sha256
-          type: string
         decrypted_size:
           description: The size of the unencrypted file
           title: Decrypted Size
           type: integer
         encrypted_parts_md5:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
           description: The MD5 checksum for each file part, in sequence
-          items:
-            type: string
           title: Encrypted Parts Md5
-          type: array
         encrypted_parts_sha256:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
           description: The SHA256 checksum for each file part, in sequence
-          items:
-            type: string
           title: Encrypted Parts Sha256
-          type: array
         encrypted_size:
           description: The size of the encrypted file content. When the file is in
             the inbox, this includes the Crypt4GH envelope. After re-encryption, the
@@ -140,9 +150,6 @@ components:
       - object_id
       - decrypted_size
       - encrypted_size
-      - decrypted_sha256
-      - encrypted_parts_md5
-      - encrypted_parts_sha256
       - part_size
       title: FileUpload
       type: object
@@ -153,6 +160,18 @@ components:
           description: The checksum of the encrypted file
           title: Encrypted Checksum
           type: string
+        encrypted_parts_md5:
+          description: The MD5 checksum for each encrypted file part, in sequence
+          items:
+            type: string
+          title: Encrypted Parts Md5
+          type: array
+        encrypted_parts_sha256:
+          description: The SHA-256 checksum for each encrypted file part, in sequence
+          items:
+            type: string
+          title: Encrypted Parts Sha256
+          type: array
         unencrypted_checksum:
           description: The checksum of the unencrypted file
           title: Unencrypted Checksum
@@ -160,6 +179,8 @@ components:
       required:
       - unencrypted_checksum
       - encrypted_checksum
+      - encrypted_parts_md5
+      - encrypted_parts_sha256
       title: File Upload Completion Request
       type: object
     FileUploadCreationRequest:
@@ -170,14 +191,26 @@ components:
             the box)
           title: Alias
           type: string
-        size:
-          description: The size of the file in bytes
+        decrypted_size:
+          description: The size of the unencrypted file in bytes
           minimum: 1.0
-          title: Size
+          title: Decrypted Size
+          type: integer
+        encrypted_size:
+          description: The size of the encrypted file in bytes
+          minimum: 1.0
+          title: Encrypted Size
+          type: integer
+        part_size:
+          description: The number of bytes in each file part (last part may be smaller)
+          minimum: 1.0
+          title: Part Size
           type: integer
       required:
       - alias
-      - size
+      - decrypted_size
+      - encrypted_size
+      - part_size
       title: File Upload Creation Request
       type: object
     HTTPValidationError:
@@ -598,15 +631,19 @@ paths:
       - UploadControllerService
   /boxes/{box_id}:
     patch:
-      description: 'Update a FileUploadBox to lock or unlock it.
+      description: 'Update a FileUploadBox to lock it, unlock it, or archive it.
 
 
-        Request body must indicate whether the box is meant to be locked or unlocked.
+        Request body must contain a `state` field indicating the target state of the
+        box,
+
+        as well as a `version` field indicating the expected current version of the
+        box.
 
         Requires ChangeFileBoxWorkOrder token from the UOS. Users are only allowed
         to lock
 
-        the box; a Data Steward role is required to unlock it.'
+        the box; a Data Steward role is required to do everything else.'
       operationId: updateBox
       parameters:
       - in: path
@@ -629,6 +666,14 @@ paths:
           content:
             application/json:
               schema:
+                $ref: '#/components/schemas/HttpBoxNotFoundError'
+          description: 'Exceptions by ID:
+
+            - boxNotFound: The FileUploadBox with the given ID does not exist.'
+        '409':
+          content:
+            application/json:
+              schema:
                 $ref: '#/components/schemas/HttpBoxVersionError'
           description: 'Exceptions by ID:
 
@@ -641,7 +686,7 @@ paths:
           description: Validation Error
       security:
       - HTTPBearer: []
-      summary: Update a FileUploadBox (lock/unlock)
+      summary: Update a FileUploadBox (lock/unlock/archive)
       tags:
       - UploadControllerService
   /boxes/{box_id}/uploads:
