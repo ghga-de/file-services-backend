@@ -21,7 +21,7 @@ from ghga_service_commons.utils.multinode_storage import ObjectStorages
 from hexkit.protocols.objstorage import ObjectStorageProtocol
 
 from ucs.config import Config
-from ucs.core.models import FileUpload
+from ucs.core.models import FileUpload, S3UploadDetails
 from ucs.ports.outbound.storage import S3ClientPort
 
 log = logging.getLogger(__name__)
@@ -103,4 +103,25 @@ class S3Client(S3ClientPort):
             #  See the long note on UploadController.initiate_file_upload()
             raise self.OrphanedMultipartUploadError(
                 file_id=file_upload.id, bucket_id=bucket_id
+            ) from err
+
+    async def get_part_upload_url(
+        self, *, s3_upload_details: S3UploadDetails, part_no: int
+    ) -> str:
+        """Get a pre-signed upload URL for the file."""
+        # Get the storage
+        object_storage = self._get_storage_for_alias(
+            storage_alias=s3_upload_details.storage_alias
+        )
+        try:
+            return await object_storage.get_part_upload_url(
+                upload_id=s3_upload_details.s3_upload_id,
+                bucket_id=s3_upload_details.bucket_id,
+                object_id=str(s3_upload_details.object_id),
+                part_number=part_no,
+            )
+        except object_storage.MultiPartUploadNotFoundError as err:
+            raise self.S3UploadNotFoundError(
+                s3_upload_id=s3_upload_details.s3_upload_id,
+                bucket_id=s3_upload_details.bucket_id,
             ) from err

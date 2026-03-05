@@ -55,6 +55,7 @@ class UploadControllerPort(ABC):
             msg = f"Failed to find S3 multipart upload details for file ID {file_id}."
             super().__init__(msg)
 
+    # TODO: Delete this error from here
     class S3UploadNotFoundError(UploadError):
         """Raised when the local DB has a record of an S3 multipart upload but S3 itself doesn't."""
 

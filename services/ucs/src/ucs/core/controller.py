@@ -370,8 +370,9 @@ class UploadController(UploadControllerPort):
         #  duplicates is performed in `_insert_validated_file_upload`.
         s3_upload = S3UploadDetails(
             file_id=file_id,
-            object_id=object_id,
             storage_alias=storage_alias,
+            bucket_id=bucket_id,
+            object_id=object_id,
             s3_upload_id=s3_upload_id,
             initiated=initiated,
         )
@@ -406,36 +407,24 @@ class UploadController(UploadControllerPort):
                 extra={"file_id": file_id, "part_no": part_no},
             )
             raise error from err
-        storage_alias = s3_upload_details.storage_alias
+
         s3_upload_id = s3_upload_details.s3_upload_id
-
-        bucket_id, object_storage = self._get_bucket_and_storage(
-            storage_alias=storage_alias
-        )
-
         try:
-            return await object_storage.get_part_upload_url(
-                upload_id=s3_upload_id,
-                bucket_id=bucket_id,
-                object_id=str(s3_upload_details.object_id),
-                part_number=part_no,
+            return await self._s3_client.get_part_upload_url(
+                s3_upload_details=s3_upload_details, part_no=part_no
             )
-        except object_storage.MultiPartUploadNotFoundError as err:
-            error = self.S3UploadNotFoundError(
-                s3_upload_id=s3_upload_id, bucket_id=bucket_id
-            )
+        except S3ClientPort.S3UploadNotFoundError as err:
             log.error(
-                error,
-                exc_info=True,
+                err,
                 extra={
                     "s3_upload_id": s3_upload_id,
-                    "bucket_id": bucket_id,
                     "file_id": file_id,
+                    "bucket_id": s3_upload_details.bucket_id,
                     "part_no": part_no,
-                    "storage_alias": storage_alias,
+                    "storage_alias": s3_upload_details.storage_alias,
                 },
             )
-            raise error from err
+            raise
 
     async def _compare_checksums(
         self,

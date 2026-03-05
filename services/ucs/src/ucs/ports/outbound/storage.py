@@ -22,7 +22,7 @@ from hexkit.protocols.objstorage import (  # noqa: F401
 )
 from pydantic import UUID4
 
-from ucs.core.models import FileUpload
+from ucs.core.models import FileUpload, S3UploadDetails
 
 
 # TODO: Add class comparison script to ucs/scripts
@@ -36,6 +36,16 @@ class S3ClientPort(ABC):
             msg = (
                 f"An S3 multipart upload already exists for file ID {file_id} and"
                 + f" bucket ID {bucket_id}."
+            )
+            super().__init__(msg)
+
+    class S3UploadNotFoundError(RuntimeError):
+        """Raised when the local DB has a record of an S3 multipart upload but S3 itself doesn't."""
+
+        def __init__(self, *, bucket_id: str, s3_upload_id: str):
+            msg = (
+                "S3 object storage does not contain a multipart upload with ID"
+                + f" {s3_upload_id} in bucket ID {bucket_id}."
             )
             super().__init__(msg)
 
@@ -65,3 +75,10 @@ class S3ClientPort(ABC):
             `UnknownStorageAliasError` if the storage alias is not known.
             `OrphanedMultipartUploadError` if an S3 upload is already in progress.
         """
+
+    @abstractmethod
+    async def get_part_upload_url(
+        self, *, s3_upload_details: S3UploadDetails, part_no: int
+    ) -> str:
+        """Get a pre-signed upload URL for the file."""
+        # TODO: ^ update doc string
