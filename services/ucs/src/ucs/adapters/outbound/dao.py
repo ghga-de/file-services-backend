@@ -69,12 +69,15 @@ class UploadDaoPublisherFactory(UploadDaoPublisherFactoryPort):
         )
 
     async def get_file_upload_dao(self) -> DaoPublisher[FileUpload]:
-        """Construct an outbox DAO for FileUpload objects"""
+        """Construct an outbox DAO for FileUpload objects.
+
+        The events published **do not** include the field `inbox_upload_completed`.
+        """
         return await self._dao_publisher_factory.get_dao(
             name=FILE_UPLOADS_COLLECTION,
             id_field="id",
             dto_model=FileUpload,
-            dto_to_event=lambda x: x.model_dump(),
+            dto_to_event=lambda x: x.model_dump(exclude={"inbox_upload_completed"}),
             event_topic=self._file_upload_topic,
             autopublish=True,
             indexes=[

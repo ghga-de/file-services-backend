@@ -148,13 +148,13 @@ class FileUpload(BaseModel):
         default=...,
         description="The number of bytes in each file part (last part is likely smaller)",
     )
+    failure_reason: str | None = Field(
+        default=None,
+        description="The reason for upload or interrogation failure, if applicable.",
+    )
     inbox_upload_completed: bool = Field(  # TODO: This is a UCS-only field
         default=False,
         description="Indicates whether the file has been completely uploaded to the inbox.",
-    )
-    failure_reason: str | None = Field(  # TODO: This is a UCS-only field
-        default=None,
-        description="The reason for interrogation failure, if the upload failed.",
     )
 
 
