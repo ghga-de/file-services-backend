@@ -34,6 +34,7 @@ from tests_ucs.fixtures.in_mem_obj_storage import (
     InMemS3ObjectStorages,
     raise_object_storage_error,
 )
+from ucs.adapters.outbound.s3 import S3Client
 from ucs.config import Config
 from ucs.core import models
 from ucs.core.controller import UploadController
@@ -44,6 +45,7 @@ from ucs.core.models import (
     S3UploadDetails,
 )
 from ucs.ports.inbound.controller import UploadControllerPort
+from ucs.ports.outbound.storage import S3ClientPort
 
 pytestmark = pytest.mark.asyncio()
 
@@ -73,17 +75,26 @@ class JointRig:
     s3_upload_details_dao: BaseInMemDao[models.S3UploadDetails]
     object_storages: ObjectStorages
     controller: UploadController
+    s3_client: S3ClientPort
 
 
 @pytest.fixture()
 def rig(config: ConfigFixture, patch_s3_calls) -> JointRig:
     """Return a joint fixture with in-memory dependency mocks"""
+    _config = config.config
+    file_upload_box_dao = InMemFileUploadBoxDao()
+    file_upload_dao = InMemFileUploadDao()
+    s3_upload_details_dao = InMemS3UploadDetailsDao()
+    object_storages = InMemS3ObjectStorages(config=_config)
+    s3_client = S3Client(config=_config, object_storages=object_storages)
+
     controller = UploadController(
-        config=(_config := config.config),
-        file_upload_box_dao=(file_upload_box_dao := InMemFileUploadBoxDao()),
-        file_upload_dao=(file_upload_dao := InMemFileUploadDao()),
-        s3_upload_details_dao=(s3_upload_details_dao := InMemS3UploadDetailsDao()),
-        object_storages=(object_storages := InMemS3ObjectStorages(config=_config)),
+        config=(_config),
+        file_upload_box_dao=(file_upload_box_dao),
+        file_upload_dao=(file_upload_dao),
+        s3_upload_details_dao=(s3_upload_details_dao),
+        object_storages=(object_storages),
+        s3_client=s3_client,
     )
 
     return JointRig(
@@ -93,6 +104,7 @@ def rig(config: ConfigFixture, patch_s3_calls) -> JointRig:
         s3_upload_details_dao=s3_upload_details_dao,
         object_storages=object_storages,
         controller=controller,
+        s3_client=s3_client,
     )
 
 

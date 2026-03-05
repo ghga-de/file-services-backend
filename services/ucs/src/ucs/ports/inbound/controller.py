@@ -21,6 +21,8 @@ from pydantic import UUID4
 
 from ucs.core.models import FileUpload, InterrogationFailure, InterrogationSuccess
 
+# TODO: Make sure all unused methods and error classes are removed from here
+
 
 class UploadControllerPort(ABC):
     """A class for managing file uploads"""
@@ -83,6 +85,7 @@ class UploadControllerPort(ABC):
             )
             super().__init__(msg)
 
+    # TODO: Delete this error from here
     class OrphanedMultipartUploadError(UploadError):
         """Raised when a pre-existing multipart upload is unexpectedly found"""
 
@@ -93,6 +96,7 @@ class UploadControllerPort(ABC):
             )
             super().__init__(msg)
 
+    # TODO: Delete this error from here
     class UnknownStorageAliasError(UploadError):
         """Thrown when the requested storage location is not configured.
         The given parameter given should be a configured alias, but is not.

@@ -41,14 +41,16 @@ from ucs.ports.outbound.dao import (
     ResourceNotFoundError,
     S3UploadDetailsDao,
 )
+from ucs.ports.outbound.storage import S3ClientPort
 
 log = logging.getLogger(__name__)
 
 
+# TODO: Make sure all unused methods and error classes are removed from here
 class UploadController(UploadControllerPort):
     """A class for managing file uploads"""
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         *,
         config: Config,
@@ -56,12 +58,14 @@ class UploadController(UploadControllerPort):
         file_upload_dao: FileUploadDao,
         s3_upload_details_dao: S3UploadDetailsDao,
         object_storages: ObjectStorages,
+        s3_client: S3ClientPort,
     ):
         self._config = config
         self._file_upload_box_dao = file_upload_box_dao
         self._file_upload_dao = file_upload_dao
         self._s3_upload_details_dao = s3_upload_details_dao
         self._object_storages = object_storages
+        self._s3_client = s3_client
 
     def _get_bucket_and_storage(
         self, storage_alias: str
@@ -297,6 +301,7 @@ class UploadController(UploadControllerPort):
             # resolve this inconsistency, this exception will be ignored.
             pass
 
+    # TODO: Decide if S3Client errors should be funneled or raised as-is and update doc strings accordingly
     async def initiate_file_upload(
         self,
         *,
@@ -321,9 +326,7 @@ class UploadController(UploadControllerPort):
 
         # Get the S3 storage details
         storage_alias = box.storage_alias
-        bucket_id, object_storage = self._get_bucket_and_storage(
-            storage_alias=storage_alias
-        )
+        bucket_id = self._s3_client.get_bucket_id_for_alias(storage_alias=storage_alias)
         extra["storage_alias"] = storage_alias
         extra["bucket_id"] = bucket_id
 
@@ -342,17 +345,10 @@ class UploadController(UploadControllerPort):
 
         # Initiate a new multipart file upload on the S3 instance
         try:
-            s3_upload_id = await object_storage.init_multipart_upload(
-                bucket_id=bucket_id, object_id=str(object_id)
+            s3_upload_id = await self._s3_client.init_multipart_upload(
+                file_upload=file_upload
             )
-            log.debug(
-                "S3 multipart upload %s created for file ID %s (file alias %s)",
-                s3_upload_id,
-                file_id,
-                alias,
-                extra=extra,
-            )
-        except object_storage.MultiPartUploadAlreadyExistsError as err:
+        except S3ClientPort.OrphanedMultipartUploadError as err:
             #  _insert_file_upload_if_new precludes the existence of a FileUpload
             #  with the same `file_id`. If there's no FileUpload with the same file_id,
             #  then there cannot be an upload for said file_id. Since each FileUpload
@@ -364,13 +360,10 @@ class UploadController(UploadControllerPort):
             #  can't auto-abort it, either. In this case a developer will have to
             #  manually intervene to cancel the upload. We will delete the FileUpload,
             #  however, so the user can immediately retry.
-            error = self.OrphanedMultipartUploadError(
-                file_id=file_id, bucket_id=bucket_id
-            )
-            log.critical(str(error), exc_info=True, extra=extra)
+            log.critical(str(err), extra=extra)
             await self._file_upload_dao.delete(file_id)
-            log.debug("Cleanup performed - FileUpload %s deleted.", file_id)
-            raise error from err
+            log.info("Cleanup performed - FileUpload %s deleted.", file_id)
+            raise
 
         # Insert S3UploadDetails. Don't check for duplicate because insert only
         #  occurs in this method and only if the FileUpload alias is new. The check for
