@@ -68,7 +68,7 @@ class SecretsClient(SecretsClientPort):
         ).decode()
         api_url = f"{self._api_base}/secrets/{secret_id}/envelopes/{receiver_public_key_base64}"
         try:
-            response = httpx.get(url=api_url)
+            response = await self._httpx_client.get(url=api_url)
         except httpx.RequestError as err:
             request_failed_error = exceptions.RequestFailedError(url=api_url)
             log.error(
