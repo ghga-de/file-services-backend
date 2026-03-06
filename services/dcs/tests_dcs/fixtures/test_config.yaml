@@ -21,7 +21,6 @@ service_name: dcs
 mongo_dsn: "mongodb://mongodb:27017"
 db_name: "dev"
 ekss_base_url: http://localhost:8000/ekss
-srs_base_url: http://localhost:8000/srs
 service_instance_id: "001"
 kafka_servers: ["kafka:9092"]
 kafka_enable_dlq: True

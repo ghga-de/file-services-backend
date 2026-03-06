@@ -92,7 +92,6 @@ retry_after_max: 300
 retry_after_min: 5
 service_instance_id: '001'
 service_name: dcs
-srs_base_url: http://localhost:8000/srs
 staging_speed: 100
 timeout_keep_alive: 90
 workers: 1
