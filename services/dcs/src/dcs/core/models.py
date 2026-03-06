@@ -198,7 +198,7 @@ class FileDeletionRequested(BaseModel):
     file_id: UUID4 = Field(..., description="Unique identifier for the file")
 
 
-class FileDeletionSuccess(BaseModel):
+class FileDeletionSuccess(FileDeletionRequested):
     """
     This event is emitted when a service has deleted a file from its database as well
     as the S3 buckets it controls.
@@ -206,8 +206,6 @@ class FileDeletionSuccess(BaseModel):
     This local definition will be replaced by the `ghga-event-schemas` definition
     once implemented there.
     """
-
-    file_id: UUID4 = Field(..., description="Unique identifier for the file")
 
 
 class FileRegisteredForDownload(BaseModel):
