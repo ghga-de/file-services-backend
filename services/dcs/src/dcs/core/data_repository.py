@@ -175,10 +175,11 @@ class DataRepository(DataRepositoryPort):
             log.error(drs_object_not_found, extra=log_extra)
             raise drs_object_not_found from error
 
-        # TODO: Add more comments in here
         drs_object = models.DrsObject(
             **drs_object_with_access_time.model_dump(exclude={"last_accessed"})
         )
+
+        # Get the download bucket ID and a reference to the object storage
         storage_alias = drs_object.storage_alias
         try:
             bucket_id, object_storage = self._object_storages.for_alias(storage_alias)
@@ -189,6 +190,7 @@ class DataRepository(DataRepositoryPort):
             log.critical(storage_alias_not_configured, extra=log_extra)
             raise storage_alias_not_configured from exc
 
+        # Fetch a presigned download URL + timestamp in order to make DrsObjectWithAccess
         try:
             started = perf_counter()
             drs_object_with_access = await self._get_access_model(
@@ -243,6 +245,8 @@ class DataRepository(DataRepositoryPort):
             file_id,
             stopped,
         )
+
+        # Convert the DRS object to the format specified by the DRS specification
         return drs_object_with_access.convert_to_drs_response_model(
             size=drs_object.encrypted_size,
             drs_server_uri_base=self._config.drs_server_uri,
