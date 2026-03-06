@@ -121,9 +121,9 @@ class DataRepository(DataRepositoryPort):
         self._object_storages = object_storages
         self._secrets_client = secrets_client
 
-    def _get_drs_uri(self, *, drs_id: str) -> str:
-        """Construct DRS URI for the given DRS ID."""
-        return f"{self._config.drs_server_uri}{drs_id}"
+    def _get_drs_uri(self, *, accession: str) -> str:
+        """Construct DRS URI for the given accession."""
+        return f"{self._config.drs_server_uri}{accession}"
 
     def _get_model_with_self_uri(
         self, *, drs_object: models.DrsObject, accession: str
@@ -131,7 +131,7 @@ class DataRepository(DataRepositoryPort):
         """Add the DRS self URI to an DRS object."""
         return models.DrsObjectWithUri(
             **drs_object.model_dump(),
-            self_uri=self._get_drs_uri(drs_id=accession),
+            self_uri=self._get_drs_uri(accession=accession),
         )
 
     @TRACER.start_as_current_span("DataRepository._get_access_model")
