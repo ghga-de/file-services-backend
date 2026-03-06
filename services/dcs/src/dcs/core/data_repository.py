@@ -262,7 +262,7 @@ class DataRepository(DataRepositoryPort):
         for storage_alias in object_storages_config.object_storages:
             await self.cleanup_outbox(storage_alias=storage_alias)
 
-    # TODO: Either stick with outbox here or rename but be consistent
+    # TODO: future: Rename references to 'outbox/outbox bucket' as 'download bucket'
     async def cleanup_outbox(self, *, storage_alias: str):
         """
         Check if files present in the outbox have outlived their allocated time and remove
