@@ -11,11 +11,6 @@ auth_check_claims:
 auth_key: '{}'
 auth_map_claims: {}
 auto_reload: true
-client_cache_capacity: 128
-client_cache_ttl: 60
-client_cacheable_methods:
-- POST
-- GET
 client_exponential_backoff_max: 60
 client_num_retries: 3
 client_reraise_from_retry_error: true

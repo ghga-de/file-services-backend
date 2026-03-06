@@ -20,7 +20,7 @@ from contextlib import asynccontextmanager
 
 import httpx
 from ghga_service_commons.transports import (
-    CompositeCacheConfig,
+    CompositeConfig,
     CompositeTransportFactory,
     ratelimiting_retry_proxies,
 )
@@ -29,7 +29,7 @@ from pydantic import Field
 __all__ = ["HttpClientConfig", "get_configured_httpx_client"]
 
 
-class HttpClientConfig(CompositeCacheConfig):
+class HttpClientConfig(CompositeConfig):
     """Configuration for HTTP Client functionality in the DCS"""
 
     http_request_timeout_seconds: float = Field(
