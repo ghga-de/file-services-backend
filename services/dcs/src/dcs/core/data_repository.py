@@ -361,7 +361,7 @@ class DataRepository(DataRepositoryPort):
 
         # publish message that the drs file has been registered
         await self._event_publisher.file_registered(drs_object=drs_object)
-        log.info(f"Sent successful registration event for file id '{file.file_id}'.")
+        log.info("Sent successful registration event for file id '%s'.", file.file_id)
 
     async def serve_envelope(self, *, file_id: UUID4, public_key: str) -> str:
         """
@@ -376,7 +376,7 @@ class DataRepository(DataRepositoryPort):
             log.error(drs_object_not_found)
             raise drs_object_not_found from error
 
-        log.info(f"Retrieving file envelope for DRS id '{file_id}'.")
+        log.info("Retrieving file envelope for DRS id '%s'.", file_id)
         try:
             envelope = await self._secrets_client.get_envelope(
                 secret_id=drs_object.secret_id,
@@ -408,7 +408,7 @@ class DataRepository(DataRepositoryPort):
         try:
             drs_object = await self._drs_object_dao.get_by_id(file_id)
         except ResourceNotFoundError:
-            log.info(f"File with ID '{file_id}' has already been deleted.")
+            log.info("File with ID '%s' has already been deleted.", file_id)
             # If the db entry does not exist, we are done, as it is deleted last
             # and has already been deleted before
             return
@@ -417,7 +417,7 @@ class DataRepository(DataRepositoryPort):
         with contextlib.suppress(exceptions.SecretNotFoundError):
             try:
                 await self._secrets_client.delete_secret(secret_id=drs_object.secret_id)
-                log.debug(f"Successfully deleted secret for '{file_id}' from EKSS.")
+                log.info("Successfully deleted secret for '%s' from EKSS.", file_id)
             except (
                 exceptions.BadResponseCodeError,
                 exceptions.RequestFailedError,
@@ -453,4 +453,8 @@ class DataRepository(DataRepositoryPort):
         # Should not fail as we got the DRS object by the same ID
         await self._drs_object_dao.delete(file_id)
         await self._event_publisher.file_deleted(file_id=file_id)
-        log.info(f"Successfully deleted entries for file '{file_id}'.")
+        log.info(
+            "Successfully deleted entries for file '%s'.",
+            file_id,
+            extra={"storage_alias": alias, "bucket_id": bucket_id},
+        )
