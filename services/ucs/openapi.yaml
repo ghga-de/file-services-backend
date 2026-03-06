@@ -89,7 +89,7 @@ components:
           anyOf:
           - type: string
           - type: 'null'
-          description: The reason for interrogation failure, if the upload failed.
+          description: The reason for upload or interrogation failure, if applicable.
           title: Failure Reason
         id:
           description: Unique identifier for the file upload
@@ -156,9 +156,14 @@ components:
     FileUploadCompletionRequest:
       description: Request body for completing a FileUpload.
       properties:
-        encrypted_checksum:
-          description: The checksum of the encrypted file
-          title: Encrypted Checksum
+        decrypted_sha256:
+          description: The checksum of the unencrypted file
+          title: Decrypted Sha256
+          type: string
+        encrypted_md5:
+          description: The checksum of the encrypted file content, calculated from
+            the list of MD5s for each part.
+          title: Encrypted Md5
           type: string
         encrypted_parts_md5:
           description: The MD5 checksum for each encrypted file part, in sequence
@@ -172,13 +177,9 @@ components:
             type: string
           title: Encrypted Parts Sha256
           type: array
-        unencrypted_checksum:
-          description: The checksum of the unencrypted file
-          title: Unencrypted Checksum
-          type: string
       required:
-      - unencrypted_checksum
-      - encrypted_checksum
+      - decrypted_sha256
+      - encrypted_md5
       - encrypted_parts_md5
       - encrypted_parts_sha256
       title: File Upload Completion Request

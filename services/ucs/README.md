@@ -46,28 +46,33 @@ ucs --help
 ### Parameters
 
 The service requires the following configuration parameters:
-- <a id="properties/file_upload_reports_topic"></a>**`file_upload_reports_topic`** *(string, required)*: Name of the topic used for events indicating that a Data Hub has completed re-encryption and inspection of a file.
+- <a id="properties/file_interrogations_topic"></a>**`file_interrogations_topic`** *(string, required)*: The name of the topic use to publish file interrogation outcome events.
 
 
   Examples:
 
   ```json
-  "file-upload-reports"
+  "file-interrogations"
   ```
 
 
-- <a id="properties/file_upload_reports_type"></a>**`file_upload_reports_type`** *(string, required)*: The type used for events indicating that a Data Hub has completed re-encryption and inspection of a file.
+- <a id="properties/interrogation_success_type"></a>**`interrogation_success_type`** *(string, required)*: The type used for events informing about successful file validations.
 
 
   Examples:
 
   ```json
-  "file_upload_report_generated"
+  "interrogation_success"
   ```
 
 
+- <a id="properties/interrogation_failure_type"></a>**`interrogation_failure_type`** *(string, required)*: The type used for events informing about failed file validations.
+
+
+  Examples:
+
   ```json
-  "file_upload_report"
+  "interrogation_failed"
   ```
 
 

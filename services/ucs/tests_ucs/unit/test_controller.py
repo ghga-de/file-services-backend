@@ -91,7 +91,6 @@ def rig(config: ConfigFixture, patch_s3_calls) -> JointRig:
         file_upload_box_dao=(file_upload_box_dao),
         file_upload_dao=(file_upload_dao),
         s3_upload_details_dao=(s3_upload_details_dao),
-        object_storages=(object_storages),
         s3_client=s3_client,
     )
 
@@ -953,6 +952,7 @@ async def test_get_part_upload_url_with_missing_file_id(rig: JointRig):
     assert str(file_id) in str(exc_info.value)
 
 
+# TODO: Move to other module
 async def test_get_part_upload_url_with_unknown_storage_alias(rig: JointRig):
     """Test for error handling when getting a part URL but the storage alias found in
     the relevant S3UploadDetails document is unknown (maybe configuration changed or
@@ -984,7 +984,6 @@ async def test_get_part_upload_url_with_unknown_storage_alias(rig: JointRig):
     assert "unknown_storage_alias" in str(exc_info.value)
 
 
-# TODO: Make this about re-raising the S3Client error
 async def test_get_part_upload_url_when_s3_upload_not_found(rig: JointRig):
     """Test for error handling when getting a part URL but S3 raises an error saying
     that it can't find the corresponding multipart upload on its end.
@@ -1009,7 +1008,7 @@ async def test_get_part_upload_url_when_s3_upload_not_found(rig: JointRig):
         raise ObjectStorageProtocol.MultiPartUploadNotFoundError("", "", "")
 
     storage.get_part_upload_url = do_error  # type: ignore[method-assign]
-    with pytest.raises(S3ClientPort.S3UploadNotFoundError) as exc_info:
+    with pytest.raises(UploadControllerPort.UploadSessionNotFoundError) as exc_info:
         await controller.get_part_upload_url(file_id=file_id, part_no=1)
 
     # Verify the exception contains the S3 upload ID

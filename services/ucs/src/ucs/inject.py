@@ -78,7 +78,6 @@ async def prepare_core(
             file_upload_box_dao=file_upload_box_dao,
             file_upload_dao=file_upload_dao,
             s3_upload_details_dao=s3_upload_details_dao,
-            object_storages=object_storages,
             s3_client=s3_client,
         )
         yield controller

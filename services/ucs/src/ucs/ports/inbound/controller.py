@@ -21,8 +21,6 @@ from pydantic import UUID4
 
 from ucs.core.models import FileUpload, InterrogationFailure, InterrogationSuccess
 
-# TODO: Make sure all unused methods and error classes are removed from here
-
 
 class UploadControllerPort(ABC):
     """A class for managing file uploads"""
@@ -55,35 +53,52 @@ class UploadControllerPort(ABC):
             msg = f"Failed to find S3 multipart upload details for file ID {file_id}."
             super().__init__(msg)
 
-    class UploadAbortError(UploadError):
-        """Raised when aborting an S3 multipart upload results in an error."""
+    class UnknownStorageAliasError(UploadError):
+        """Raised when the requested storage alias is not configured."""
 
-        def __init__(self, *, file_id: UUID4, s3_upload_id: str, bucket_id: str):
+        def __init__(self, *, storage_alias: str):
+            msg = f"No storage node exists for alias {storage_alias}."
+            super().__init__(msg)
+
+    class UploadAlreadyInProgressError(UploadError):
+        """Raised when a file upload is initiated but one is already in progress."""
+
+        def __init__(self, *, file_id: UUID4, bucket_id: str):
             msg = (
-                f"Failed to abort S3 multipart upload with ID {s3_upload_id} for"
-                + f" file ID {file_id} in bucket ID {bucket_id}."
+                f"An upload is already in progress for file ID {file_id} in"
+                + f" bucket ID {bucket_id}."
+            )
+            super().__init__(msg)
+
+    class UploadSessionNotFoundError(UploadError):
+        """Raised when the tracked upload session can no longer be found."""
+
+        def __init__(self, *, bucket_id: str, s3_upload_id: str):
+            msg = (
+                f"Upload session with ID {s3_upload_id} could not be found in"
+                + f" bucket ID {bucket_id}."
             )
             super().__init__(msg)
 
     class UploadCompletionError(UploadError):
-        """Raised when completing an S3 multipart upload results in an error"""
+        """Raised when completing a file upload results in an error."""
 
         def __init__(self, *, file_id: UUID4, s3_upload_id: str, bucket_id: str):
             msg = (
-                f"Failed to complete S3 multipart upload with ID {s3_upload_id} for"
+                f"Failed to complete upload session {s3_upload_id} for"
                 + f" file ID {file_id} in bucket ID {bucket_id}."
             )
             super().__init__(msg)
 
-    # TODO: Delete this error from here
-    class UnknownStorageAliasError(UploadError):
-        """Thrown when the requested storage location is not configured.
-        The given parameter given should be a configured alias, but is not.
-        """
+    class UploadAbortError(UploadError):
+        """Raised when aborting a file upload results in an error."""
 
-        def __init__(self, *, storage_alias: str):
-            message = f"No storage node exists for alias {storage_alias}."
-            super().__init__(message)
+        def __init__(self, *, file_id: UUID4, s3_upload_id: str, bucket_id: str):
+            msg = (
+                f"Failed to abort upload session {s3_upload_id} for"
+                + f" file ID {file_id} in bucket ID {bucket_id}."
+            )
+            super().__init__(msg)
 
     class BoxVersionError(UploadError):
         """Raised when the supplied box version doesn't match the current version in the DB."""
@@ -158,7 +173,7 @@ class UploadControllerPort(ABC):
         - `BoxStateError` if the box exists but is locked.
         - `FileUploadAlreadyExists` if there's already a FileUpload for this alias.
         - `UnknownStorageAliasError` if the storage alias is not known.
-        - `OrphanedMultipartUploadError` if an S3 upload is already in progress.
+        - `UploadAlreadyInProgressError` if an upload is already in progress.
         """
         ...
 
@@ -171,7 +186,7 @@ class UploadControllerPort(ABC):
         Raises:
         - `S3UploadDetailsNotFoundError` if no upload details are found.
         - `UnknownStorageAliasError` if the storage alias is not known.
-        - `S3UploadNotFoundError` if the S3 multipart upload can't be found.
+        - `UploadSessionNotFoundError` if the upload session can't be found.
         """
         ...
 

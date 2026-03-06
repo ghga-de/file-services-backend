@@ -66,11 +66,12 @@ class FileUploadCreationRequest(BaseModel):
 class FileUploadCompletionRequest(BaseModel):
     """Request body for completing a FileUpload."""
 
-    unencrypted_checksum: str = Field(
+    decrypted_sha256: str = Field(
         ..., description="The checksum of the unencrypted file"
     )
-    encrypted_checksum: str = Field(
-        ..., description="The checksum of the encrypted file"
+    encrypted_md5: str = Field(
+        ...,
+        description="The checksum of the encrypted file content, calculated from the list of MD5s for each part.",
     )
     encrypted_parts_md5: list[str] = Field(
         ..., description="The MD5 checksum for each encrypted file part, in sequence"

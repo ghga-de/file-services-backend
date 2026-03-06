@@ -155,8 +155,8 @@ async def test_integrated_aspects(joint_fixture: JointFixture):
                 jwk=wps_jwk, box_id=box_id, file_id=file_id
             )
             body = {
-                "unencrypted_checksum": "abc123",
-                "encrypted_checksum": expected_encrypted_checksum,
+                "decrypted_sha256": "abc123",
+                "encrypted_md5": expected_encrypted_checksum,
                 "encrypted_parts_md5": ["abc123"],
                 "encrypted_parts_sha256": ["def456"],
             }
@@ -265,8 +265,10 @@ async def test_s3_upload_completed_but_db_not_updated(joint_fixture: JointFixtur
     )
     expected_encrypted_checksum = calc_expected_encrypted_checksum(CONTENT)
     body = {
-        "unencrypted_checksum": "abc123",
-        "encrypted_checksum": expected_encrypted_checksum,
+        "decrypted_sha256": "abc123",
+        "encrypted_md5": expected_encrypted_checksum,
+        "encrypted_parts_md5": ["a1", "b2"],
+        "encrypted_parts_sha256": ["a1", "b2"],
     }
     response = await joint_fixture.rest_client.patch(
         f"/boxes/{box_id}/uploads/{file_id}", json=body, headers=close_token_header
@@ -331,8 +333,10 @@ async def test_s3_upload_complete_fails(joint_fixture: JointFixture):
         box_id=box_id, file_id=file_id, jwk=wps_jwk
     )
     body: dict[str, Any] = {
-        "unencrypted_checksum": "abc123",
-        "encrypted_checksum": "abc123",
+        "decrypted_sha256": "abc123",
+        "encrypted_md5": "abc123",
+        "encrypted_parts_md5": ["a1", "b2"],
+        "encrypted_parts_sha256": ["a1", "b2"],
     }
     response = await rest_client.patch(
         f"/boxes/{box_id}/uploads/{file_id}", json=body, headers=close_token_header
@@ -387,8 +391,8 @@ async def test_s3_upload_complete_fails(joint_fixture: JointFixture):
         box_id=box_id, file_id=file_id2, jwk=wps_jwk
     )
     body = {
-        "unencrypted_checksum": "abc123",
-        "encrypted_checksum": expected_encrypted_checksum,
+        "decrypted_sha256": "abc123",
+        "encrypted_md5": expected_encrypted_checksum,
         "encrypted_parts_md5": ["abc123"],
         "encrypted_parts_sha256": ["def456"],
     }
@@ -591,8 +595,8 @@ async def test_file_upload_report_happy(joint_fixture: JointFixture):
 
     await joint_fixture.kafka.publish_event(
         payload=interrogation_success.model_dump(mode="json"),
-        type_=config.file_upload_reports_type,
-        topic=config.file_upload_reports_topic,
+        type_=config.interrogation_success_type,
+        topic=config.file_interrogations_topic,
     )
 
     # Consume the event
@@ -612,8 +616,8 @@ async def test_file_upload_report_happy(joint_fixture: JointFixture):
     # Now test for idempotency by repeating the publish and consume
     await joint_fixture.kafka.publish_event(
         payload=interrogation_success.model_dump(mode="json"),
-        type_=config.file_upload_reports_type,
-        topic=config.file_upload_reports_topic,
+        type_=config.interrogation_success_type,
+        topic=config.file_interrogations_topic,
     )
 
     # Consume the event -- should not receive an error

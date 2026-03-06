@@ -260,8 +260,8 @@ async def test_complete_file_upload_endpoint_auth(
     """
     wps_jwk = config.wps_jwk
     body: dict = {
-        "unencrypted_checksum": "unencrypted_checksum",
-        "encrypted_checksum": "encrypted_checksum",
+        "decrypted_sha256": "unencrypted_checksum",
+        "encrypted_md5": "encrypted_checksum",
         "encrypted_parts_md5": ["abc123"],
         "encrypted_parts_sha256": ["def456"],
     }
@@ -459,7 +459,7 @@ async def test_view_box_endpoint_error_handling(
             http_exceptions.HttpUnknownStorageAliasError(),
         ),
         (
-            UploadControllerPort.OrphanedMultipartUploadError(
+            UploadControllerPort.UploadAlreadyInProgressError(
                 file_id=TEST_FILE_ID, bucket_id="test-bucket"
             ),
             http_exceptions.HttpOrphanedMultipartUploadError(file_alias="test_file"),
@@ -471,7 +471,7 @@ async def test_view_box_endpoint_error_handling(
         "LockedBox",
         "FileUploadAlreadyExists",
         "UnknownStorageAlias",
-        "OrphanedMultipartUploadError",
+        "UploadAlreadyInProgressError",
         "InternalError",
     ],
 )
@@ -515,7 +515,7 @@ async def test_create_file_upload_endpoint_error_handling(
             http_exceptions.HttpUnknownStorageAliasError(),
         ),
         (
-            UploadControllerPort.S3UploadNotFoundError(
+            UploadControllerPort.UploadSessionNotFoundError(
                 bucket_id="test-bucket", s3_upload_id="test-upload-id"
             ),
             http_exceptions.HttpS3UploadNotFoundError(),
@@ -525,7 +525,7 @@ async def test_create_file_upload_endpoint_error_handling(
     ids=[
         "S3UploadDetailsNotFound",
         "UnknownStorageAlias",
-        "S3UploadNotFound",
+        "UploadSessionNotFound",
         "InternalError",
     ],
 )
@@ -599,8 +599,8 @@ async def test_complete_file_upload_endpoint_error_handling(
     """Test that the endpoint correctly translates errors from the core."""
     wps_jwk = config.wps_jwk
     body: dict = {
-        "unencrypted_checksum": "unencrypted_checksum",
-        "encrypted_checksum": "encrypted_checksum",
+        "decrypted_sha256": "unencrypted_checksum",
+        "encrypted_md5": "encrypted_checksum",
         "encrypted_parts_md5": ["abc123"],
         "encrypted_parts_sha256": ["def456"],
     }

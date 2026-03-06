@@ -334,7 +334,7 @@ async def create_file_upload(
         # This should not happen in normal operation since the box was already created
         # with a valid storage alias, but handle it just in case
         raise http_exceptions.HttpUnknownStorageAliasError() from error
-    except UploadControllerPort.OrphanedMultipartUploadError as error:
+    except UploadControllerPort.UploadAlreadyInProgressError as error:
         raise http_exceptions.HttpOrphanedMultipartUploadError(
             file_alias=file_alias
         ) from error
@@ -390,7 +390,7 @@ async def get_part_upload_url(
         ) from error
     except UploadControllerPort.UnknownStorageAliasError as error:
         raise http_exceptions.HttpUnknownStorageAliasError() from error
-    except UploadControllerPort.S3UploadNotFoundError as error:
+    except UploadControllerPort.UploadSessionNotFoundError as error:
         raise http_exceptions.HttpS3UploadNotFoundError() from error
     except Exception as error:
         log.error(error, exc_info=True)
@@ -440,8 +440,8 @@ async def complete_file_upload(
         await upload_controller.complete_file_upload(
             box_id=box_id,
             file_id=file_id,
-            unencrypted_checksum=file_upload_completion.unencrypted_checksum,
-            encrypted_checksum=file_upload_completion.encrypted_checksum,
+            unencrypted_checksum=file_upload_completion.decrypted_sha256,
+            encrypted_checksum=file_upload_completion.encrypted_md5,
             encrypted_parts_md5=file_upload_completion.encrypted_parts_md5,
             encrypted_parts_sha256=file_upload_completion.encrypted_parts_sha256,
         )

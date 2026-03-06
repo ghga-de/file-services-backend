@@ -25,7 +25,6 @@ from pydantic import UUID4
 from ucs.core.models import FileUpload, S3UploadDetails
 
 
-# TODO: Add class comparison script to ucs/scripts
 class S3ClientPort(ABC):
     """A class that isolates S3 logic and error handling from the core"""
 
@@ -58,6 +57,26 @@ class S3ClientPort(ABC):
             message = f"No storage node exists for alias {storage_alias}."
             super().__init__(message)
 
+    class S3UploadCompletionError(RuntimeError):
+        """Raised when completing an S3 multipart upload results in an error."""
+
+        def __init__(self, *, file_id: UUID4, s3_upload_id: str, bucket_id: str):
+            msg = (
+                f"Failed to complete S3 multipart upload with ID {s3_upload_id} for"
+                + f" file ID {file_id} in bucket ID {bucket_id}."
+            )
+            super().__init__(msg)
+
+    class S3UploadAbortError(RuntimeError):
+        """Raised when aborting an S3 multipart upload results in an error."""
+
+        def __init__(self, *, file_id: UUID4, s3_upload_id: str, bucket_id: str):
+            msg = (
+                f"Failed to abort S3 multipart upload with ID {s3_upload_id} for"
+                + f" file ID {file_id} in bucket ID {bucket_id}."
+            )
+            super().__init__(msg)
+
     @abstractmethod
     def get_bucket_id_for_alias(self, *, storage_alias: str) -> str:
         """Retrieve the bucket ID for a given storage alias.
@@ -80,5 +99,55 @@ class S3ClientPort(ABC):
     async def get_part_upload_url(
         self, *, s3_upload_details: S3UploadDetails, part_no: int
     ) -> str:
-        """Get a pre-signed upload URL for the file."""
-        # TODO: ^ update doc string
+        """Get a pre-signed URL to upload a specific part of a multipart upload.
+
+        Raises:
+            `UnknownStorageAliasError` if the storage alias is not known.
+            `S3UploadNotFoundError` if the multipart upload can't be found in S3.
+        """
+
+    @abstractmethod
+    async def complete_multipart_upload(
+        self, *, s3_upload_details: S3UploadDetails
+    ) -> None:
+        """Instruct S3 to assemble all uploaded parts into the final object.
+
+        Recovers idempotently if the upload was already completed (object exists).
+
+        Raises:
+            `UnknownStorageAliasError` if the storage alias is not known.
+            `S3UploadCompletionError` if the upload cannot be completed or found.
+        """
+
+    @abstractmethod
+    async def get_object_etag(
+        self, *, s3_upload_details: S3UploadDetails, object_id: UUID4
+    ) -> str:
+        """Return the ETag of an object in the inbox bucket (quotes stripped).
+
+        Raises:
+            `UnknownStorageAliasError` if the storage alias is not known.
+        """
+
+    @abstractmethod
+    async def delete_inbox_file(self, *, s3_upload_details: S3UploadDetails) -> None:
+        """Delete a fully uploaded file from the inbox, or abort any stale multipart.
+
+        If the object exists it is deleted. If only an in-progress multipart upload
+        exists, that is aborted instead. A missing multipart upload is tolerated.
+
+        Raises:
+            `UnknownStorageAliasError` if the storage alias is not known.
+            `S3UploadAbortError` if an abort is required but fails.
+        """
+
+    @abstractmethod
+    async def abort_multipart_upload(
+        self, *, s3_upload_details: S3UploadDetails
+    ) -> None:
+        """Abort an in-progress multipart upload. Tolerates a missing upload.
+
+        Raises:
+            `UnknownStorageAliasError` if the storage alias is not known.
+            `S3UploadAbortError` if the abort fails.
+        """
