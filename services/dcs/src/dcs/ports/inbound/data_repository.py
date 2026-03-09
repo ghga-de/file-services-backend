@@ -17,7 +17,6 @@
 
 from abc import ABC, abstractmethod
 
-from ghga_service_commons.utils.multinode_storage import S3ObjectStoragesConfig
 from pydantic import UUID4
 
 from dcs.core import models
@@ -31,16 +30,6 @@ class DataRepositoryPort(ABC):
 
         def __init__(self):
             super().__init__("Failed to communicate with the Secrets API")
-
-    class CleanupError(RuntimeError):
-        """
-        Raised when removal of an object from the download bucket could not be performed
-        due to an underlying issue
-        """
-
-        def __init__(self, *, object_id: UUID4, storage_alias: str, reason: str):
-            message = f"Could not remove object {object_id} from download bucket in storage {storage_alias}: {reason}"
-            super().__init__(message)
 
     class DrsObjectNotFoundError(RuntimeError):
         """Raised when no DRS object was found corresponding to the given file ID."""
@@ -71,16 +60,6 @@ class DataRepositoryPort(ABC):
 
             super().__init__(message)
 
-    class StorageAliasNotConfiguredError(RuntimeError):
-        """Raised when looking up an object storage configuration by alias fails."""
-
-        def __init__(self, *, alias: str):
-            message = (
-                f"Could not find a storage configuration for alias {alias}.\n"
-                + "Check íf your multi node configuration contains a corresponding entry."
-            )
-            super().__init__(message)
-
     class UnexpectedAPIResponseError(RuntimeError):
         """Raise when API call returns unexpected return code"""
 
@@ -98,27 +77,6 @@ class DataRepositoryPort(ABC):
         Serve the specified DRS object with access information.
         If it does not exists in the download bucket, yet, a RetryAccessLaterError
         is raised that instructs to retry the call after a specified amount of time.
-        """
-
-    @abstractmethod
-    async def cleanup_download_buckets(
-        self,
-        *,
-        object_storages_config: S3ObjectStoragesConfig,
-        remove_dangling_objects: bool = False,
-    ):
-        """Run cleanup task for all download buckets configured in the service config."""
-
-    @abstractmethod
-    async def cleanup_download_bucket(
-        self, *, storage_alias: str, remove_dangling_objects: bool = False
-    ):
-        """
-        Check if files present in the download bucket have outlived their allocated time
-        and remove all that do.
-        For each file in the download bucket, its 'last_accessed' field is checked and compared
-        to the current datetime. If the threshold configured in the download_bucket_cache_timeout
-        option is met or exceeded, the corresponding file is removed from the download bucket.
         """
 
     @abstractmethod

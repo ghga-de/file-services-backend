@@ -27,6 +27,7 @@ from dcs.adapters.inbound.fastapi_ import (
 )
 from dcs.constants import TRACER
 from dcs.core.auth_policies import WorkOrderContext
+from dcs.core.errors import StorageAliasNotConfiguredError
 from dcs.core.models import DrsObjectResponseModel
 from dcs.ports.inbound.data_repository import DataRepositoryPort
 
@@ -131,7 +132,7 @@ async def get_drs_object(
             object_id=object_id
         ) from object_not_found_error
 
-    except data_repository.StorageAliasNotConfiguredError as configuration_error:
+    except StorageAliasNotConfiguredError as configuration_error:
         raise http_exceptions.HttpInternalServerError() from configuration_error
 
 

@@ -29,8 +29,12 @@ from hexkit.utils import now_utc_ms_prec
 from pytest_httpx import HTTPXMock, httpx_mock  # noqa: F401
 
 from dcs.core import models
+from dcs.core.errors import StorageAliasNotConfiguredError
 from dcs.core.models import FileDownloadServed, NonStagedFileRequested
-from tests_dcs.fixtures.joint import CleanupFixture, JointFixture, PopulatedFixture
+from tests_dcs.fixtures.joint import (
+    CleanupFixture,
+    PopulatedFixture,
+)
 from tests_dcs.fixtures.mock_api.app import router
 from tests_dcs.fixtures.utils import generate_work_order_token
 
@@ -225,62 +229,55 @@ async def test_happy_deletion(
 
 async def test_bucket_cleanup(cleanup_fixture: CleanupFixture, caplog):
     """Test multiple download buckets cleanup handling."""
-    data_repository = cleanup_fixture.joint.data_repository
+    bucket_cleaner = cleanup_fixture.bucket_cleaner
 
-    await data_repository.cleanup_download_buckets(
-        object_storages_config=cleanup_fixture.joint.config
+    await bucket_cleaner.cleanup_download_buckets(
+        object_storages_config=cleanup_fixture.config
     )
 
     cached_id = cleanup_fixture.cached_file_id
     expired_id = cleanup_fixture.expired_file_id
-    s3 = cleanup_fixture.joint.s3
+    s3 = cleanup_fixture.s3
 
     # check if object within threshold is still there
     cached_object = await cleanup_fixture.mongodb_dao.get_by_id(cached_id)
     assert await s3.storage.does_object_exist(
-        bucket_id=cleanup_fixture.joint.bucket_id,
+        bucket_id=cleanup_fixture.bucket_id,
         object_id=str(cached_object.object_id),
     )
 
     # check if expired object has been removed from download bucket
     expired_object = await cleanup_fixture.mongodb_dao.get_by_id(expired_id)
     assert not await s3.storage.does_object_exist(
-        bucket_id=cleanup_fixture.joint.bucket_id,
+        bucket_id=cleanup_fixture.bucket_id,
         object_id=str(expired_object.object_id),
     )
 
     with caplog.at_level(logging.ERROR):
-        await data_repository.cleanup_download_bucket(
-            storage_alias=cleanup_fixture.joint.endpoint_aliases.fake_node
+        await bucket_cleaner.cleanup_download_bucket(
+            storage_alias=cleanup_fixture.endpoint_aliases.fake_node
         )
 
     expected_message = str(
-        data_repository.StorageAliasNotConfiguredError(
-            alias=cleanup_fixture.joint.endpoint_aliases.fake_node
-        )
+        StorageAliasNotConfiguredError(alias=cleanup_fixture.endpoint_aliases.fake_node)
     )
 
     assert expected_message in caplog.records[0].message
 
 
-async def test_bucket_cleanup_dangling_objects(joint_fixture: JointFixture, caplog):
+async def test_bucket_cleanup_dangling_objects(cleanup_fixture: CleanupFixture, caplog):
     """Test that stale objects in the download bucket with no DB entry are handled.
 
     Also verifies that objects with DB entries are handled correctly: expired objects
     (last_accessed beyond the cache timeout) are removed, while objects within the
     threshold are left in place.
     """
-    s3 = joint_fixture.s3
-    bucket_id = joint_fixture.bucket_id
-    data_repository = joint_fixture.data_repository
-    storage_alias = joint_fixture.endpoint_aliases.valid_node
-    timeout_days = joint_fixture.config.download_bucket_cache_timeout
-
-    mongodb_dao = await joint_fixture.mongodb.dao_factory.get_dao(
-        name="drs_objects",
-        dto_model=models.AccessTimeDrsObject,
-        id_field="file_id",
-    )
+    s3 = cleanup_fixture.s3
+    bucket_id = cleanup_fixture.bucket_id
+    bucket_cleaner = cleanup_fixture.bucket_cleaner
+    storage_alias = cleanup_fixture.endpoint_aliases.valid_node
+    timeout_days = cleanup_fixture.config.download_bucket_cache_timeout
+    mongodb_dao = cleanup_fixture.mongodb_dao
 
     # Object with DB entry, within expiration threshold
     cached_object_id = uuid4()
@@ -326,12 +323,12 @@ async def test_bucket_cleanup_dangling_objects(joint_fixture: JointFixture, capl
 
     # first run without remove_dangling_objects
     with caplog.at_level(logging.WARNING):
-        await data_repository.cleanup_download_buckets(
-            object_storages_config=joint_fixture.config
+        await bucket_cleaner.cleanup_download_buckets(
+            object_storages_config=cleanup_fixture.config
         )
 
     expected_warning = str(
-        data_repository.CleanupError(
+        bucket_cleaner.CleanupError(
             object_id=stale_object_id,
             storage_alias=storage_alias,
             reason="Object not found in database, skipping.",
@@ -354,8 +351,8 @@ async def test_bucket_cleanup_dangling_objects(joint_fixture: JointFixture, capl
     )
 
     # second run with remove_dangling_objects
-    await data_repository.cleanup_download_buckets(
-        object_storages_config=joint_fixture.config,
+    await bucket_cleaner.cleanup_download_buckets(
+        object_storages_config=cleanup_fixture.config,
         remove_dangling_objects=True,
     )
 

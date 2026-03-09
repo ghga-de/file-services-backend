@@ -24,7 +24,7 @@ from dcs.main import (
     consume_events,
     migrate_db,
     publish_events,
-    run_download_bucket_cleanup,
+    run_download_bucket_cleaner,
     run_rest_app,
 )
 
@@ -44,10 +44,10 @@ def sync_consume_events(run_forever: bool = True):
 
 
 @cli.command(name="cleanup-download-bucket")
-def sync_run_cleanup(remove_dangling_objects: bool = False):
+def sync_run_cleaner(remove_dangling_objects: bool = False):
     """Run download bucket cleanup"""
     asyncio.run(
-        run_download_bucket_cleanup(remove_dangling_objects=remove_dangling_objects)
+        run_download_bucket_cleaner(remove_dangling_objects=remove_dangling_objects)
     )
 
 

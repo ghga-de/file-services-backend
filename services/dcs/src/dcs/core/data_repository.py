@@ -19,14 +19,12 @@ import contextlib
 import logging
 import re
 import uuid
-from datetime import timedelta
 from time import perf_counter
 
 from ghga_service_commons.utils.multinode_storage import (
     S3ObjectStorages,
-    S3ObjectStoragesConfig,
 )
-from hexkit.protocols.dao import NoHitsFoundError, ResourceNotFoundError
+from hexkit.protocols.dao import ResourceNotFoundError
 from hexkit.protocols.objstorage import ObjectStorageProtocol
 from hexkit.utils import now_utc_ms_prec
 from pydantic import UUID4, Field, PositiveInt, field_validator
@@ -35,6 +33,7 @@ from pydantic_settings import BaseSettings
 from dcs.adapters.outbound.http import exceptions
 from dcs.constants import TRACER
 from dcs.core import models
+from dcs.core.errors import StorageAliasNotConfiguredError
 from dcs.ports.inbound.data_repository import DataRepositoryPort
 from dcs.ports.outbound.dao import DrsObjectDaoPort
 from dcs.ports.outbound.event_pub import EventPublisherPort
@@ -79,13 +78,6 @@ class DataRepositoryConfig(BaseSettings):
         description="Expiration time in seconds for presigned URLS. Positive integer required",
         title="Presigned URL expiration time in seconds",
         examples=[30, 60],
-    )
-    download_bucket_cache_timeout: int = Field(
-        default=7,
-        description="Time in days since last access after which a file present in the "
-        + "download bucket should be unstaged and has to be requested from "
-        + "permanent storage again for the next request.",
-        examples=[7, 30],
     )
 
     @field_validator("drs_server_uri")
@@ -184,7 +176,7 @@ class DataRepository(DataRepositoryPort):
         try:
             bucket_id, object_storage = self._object_storages.for_alias(storage_alias)
         except KeyError as exc:
-            storage_alias_not_configured = self.StorageAliasNotConfiguredError(
+            storage_alias_not_configured = StorageAliasNotConfiguredError(
                 alias=storage_alias
             )
             log.critical(storage_alias_not_configured, extra=log_extra)
@@ -252,100 +244,6 @@ class DataRepository(DataRepositoryPort):
             drs_server_uri_base=self._config.drs_server_uri,
             accession=accession,
         )
-
-    async def cleanup_download_buckets(
-        self,
-        *,
-        object_storages_config: S3ObjectStoragesConfig,
-        remove_dangling_objects: bool = False,
-    ):
-        """Run cleanup task for all download buckets configured in the service config."""
-        for storage_alias in object_storages_config.object_storages:
-            await self.cleanup_download_bucket(
-                storage_alias=storage_alias,
-                remove_dangling_objects=remove_dangling_objects,
-            )
-
-    async def cleanup_download_bucket(
-        self, *, storage_alias: str, remove_dangling_objects: bool = False
-    ):
-        """
-        Check if files present in the download bucket have outlived their allocated time
-        and remove all that do.
-        For each file in the download bucket, its 'last_accessed' field is checked and compared
-        to the current datetime. If the threshold configured in the download_bucket_cache_timeout
-        option is met or exceeded, the corresponding file is removed from the download bucket.
-        """
-        # Run on demand through CLI, so crashing should be ok if the alias is not configured
-        log.info(
-            "Starting download bucket cleanup for storage identified by alias %s.",
-            storage_alias,
-        )
-        try:
-            bucket_id, object_storage = self._object_storages.for_alias(storage_alias)
-        except KeyError:
-            storage_alias_not_configured = self.StorageAliasNotConfiguredError(
-                alias=storage_alias
-            )
-            log.critical(storage_alias_not_configured)
-            log.info(
-                "Skipping download bucket cleanup for storage %s as it is not configured.",
-                storage_alias,
-            )
-            return
-
-        threshold = now_utc_ms_prec() - timedelta(
-            days=self._config.download_bucket_cache_timeout
-        )
-
-        # filter to get all files in download bucket that should be removed
-        object_ids = [
-            uuid.UUID(x)
-            for x in await object_storage.list_all_object_ids(bucket_id=bucket_id)
-        ]
-        log.debug(
-            f"Retrieved list of deletion candidates for storage '{storage_alias}'"
-        )
-
-        for object_id in object_ids:
-            force_removal = False
-            try:
-                drs_object = await self._drs_object_dao.find_one(
-                    mapping={"object_id": object_id}
-                )
-            except NoHitsFoundError:
-                if not remove_dangling_objects:
-                    cleanup_error = self.CleanupError(
-                        object_id=object_id,
-                        storage_alias=storage_alias,
-                        reason="Object not found in database, skipping.",
-                    )
-                    log.warning(cleanup_error)
-                    continue
-                force_removal = True
-
-            # only remove file if last access is later than download bucket_cache_timeout days ago
-            if force_removal or drs_object.last_accessed <= threshold:
-                log.info(
-                    "Deleting object %s from download bucket %s in storage %s.",
-                    object_id,
-                    bucket_id,
-                    storage_alias,
-                )
-                try:
-                    await object_storage.delete_object(
-                        bucket_id=bucket_id, object_id=str(object_id)
-                    )
-                except (
-                    object_storage.ObjectError,
-                    object_storage.ObjectStorageProtocolError,
-                ) as error:
-                    cleanup_error = self.CleanupError(
-                        object_id=object_id,
-                        storage_alias=storage_alias,
-                        reason=str(error),
-                    )
-                    log.error(cleanup_error)
 
     async def register_new_file(self, *, file: models.DrsObjectBase):
         """Register a file as a new DRS Object."""
@@ -445,9 +343,7 @@ class DataRepository(DataRepositoryPort):
         try:
             bucket_id, object_storage = self._object_storages.for_alias(alias)
         except KeyError as exc:
-            storage_alias_not_configured = self.StorageAliasNotConfiguredError(
-                alias=alias
-            )
+            storage_alias_not_configured = StorageAliasNotConfiguredError(alias=alias)
             log.critical(storage_alias_not_configured)
             raise storage_alias_not_configured from exc
 

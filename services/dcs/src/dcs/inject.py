@@ -35,7 +35,9 @@ from dcs.adapters.outbound.http.api_calls import get_configured_httpx_client
 from dcs.adapters.outbound.http.secrets import SecretsClient
 from dcs.config import Config
 from dcs.core.auth_policies import WorkOrderContext
+from dcs.core.bucket_cleanup import DownloadBucketCleaner
 from dcs.core.data_repository import DataRepository
+from dcs.ports.inbound.bucket_cleanup import BucketCleanerPort
 from dcs.ports.inbound.data_repository import DataRepositoryPort
 
 
@@ -89,6 +91,21 @@ async def prepare_core(*, config: Config) -> AsyncGenerator[DataRepositoryPort]:
             object_storages=object_storages,
             event_publisher=event_publisher,
             secrets_client=secrets_client,
+            config=config,
+        )
+
+
+@asynccontextmanager
+async def prepare_cleaner(*, config: Config) -> AsyncGenerator[BucketCleanerPort]:
+    """Constructs and initializes the bucket cleanup service and its dependencies."""
+    object_storages = S3ObjectStorages(config=config)
+
+    async with MongoDbDaoFactory.construct(config=config) as dao_factory:
+        drs_object_dao = await get_drs_dao(dao_factory=dao_factory)
+
+        yield DownloadBucketCleaner(
+            drs_object_dao=drs_object_dao,
+            object_storages=object_storages,
             config=config,
         )
 
