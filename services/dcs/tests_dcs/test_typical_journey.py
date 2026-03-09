@@ -17,6 +17,7 @@
 
 import logging
 import re
+from datetime import timedelta
 from uuid import uuid4
 
 import httpx
@@ -24,8 +25,10 @@ import pytest
 from fastapi import status
 from hexkit.providers.akafka.testutils import ExpectedEvent
 from hexkit.providers.s3.testutils import FileObject, temp_file_object
+from hexkit.utils import now_utc_ms_prec
 from pytest_httpx import HTTPXMock, httpx_mock  # noqa: F401
 
+from dcs.core import models
 from dcs.core.models import FileDownloadServed, NonStagedFileRequested
 from tests_dcs.fixtures.joint import CleanupFixture, JointFixture, PopulatedFixture
 from tests_dcs.fixtures.mock_api.app import router
@@ -260,20 +263,68 @@ async def test_bucket_cleanup(cleanup_fixture: CleanupFixture, caplog):
     assert expected_message in caplog.records[0].message
 
 
-async def test_bucket_cleanup_dangling_object(joint_fixture: JointFixture, caplog):
-    """Test that stale objects in the download bucket with no DB entry are handled."""
+async def test_bucket_cleanup_dangling_objects(joint_fixture: JointFixture, caplog):
+    """Test that stale objects in the download bucket with no DB entry are handled.
+
+    Also verifies that objects with DB entries are handled correctly: expired objects
+    (last_accessed beyond the cache timeout) are removed, while objects within the
+    threshold are left in place.
+    """
+    s3 = joint_fixture.s3
+    bucket_id = joint_fixture.bucket_id
+    data_repository = joint_fixture.data_repository
+    storage_alias = joint_fixture.endpoint_aliases.valid_node
+    timeout_days = joint_fixture.config.download_bucket_cache_timeout
+
+    mongodb_dao = await joint_fixture.mongodb.dao_factory.get_dao(
+        name="drs_objects",
+        dto_model=models.AccessTimeDrsObject,
+        id_field="file_id",
+    )
+
+    # Object with DB entry, within expiration threshold
+    cached_object_id = uuid4()
+    cached_db_entry = models.AccessTimeDrsObject(
+        file_id=uuid4(),
+        object_id=cached_object_id,
+        decrypted_sha256="0" * 64,
+        creation_date=now_utc_ms_prec(),
+        decrypted_size=1,
+        secret_id="cached-secret",
+        encrypted_size=1,
+        storage_alias=storage_alias,
+        last_accessed=now_utc_ms_prec(),
+    )
+    await mongodb_dao.insert(cached_db_entry)
+    with temp_file_object(bucket_id=bucket_id, object_id=str(cached_object_id)) as f:
+        await s3.populate_file_objects([f])
+
+    # Object with DB entry, beyond expiration threshold
+    expired_object_id = uuid4()
+    expired_db_entry = models.AccessTimeDrsObject(
+        file_id=uuid4(),
+        object_id=expired_object_id,
+        decrypted_sha256="0" * 64,
+        creation_date=now_utc_ms_prec(),
+        decrypted_size=1,
+        secret_id="expired-secret",
+        encrypted_size=1,
+        storage_alias=storage_alias,
+        last_accessed=now_utc_ms_prec() - timedelta(days=timeout_days),
+    )
+    await mongodb_dao.insert(expired_db_entry)
+    with temp_file_object(bucket_id=bucket_id, object_id=str(expired_object_id)) as f:
+        await s3.populate_file_objects([f])
+
+    # Object with no DB entry
     stale_object_id = uuid4()
     with temp_file_object(
-        bucket_id=joint_fixture.bucket_id,
+        bucket_id=bucket_id,
         object_id=str(stale_object_id),
     ) as stale_file:
-        await joint_fixture.s3.populate_file_objects([stale_file])
+        await s3.populate_file_objects([stale_file])
 
-    data_repository = joint_fixture.data_repository
-    s3 = joint_fixture.s3
-    storage_alias = joint_fixture.endpoint_aliases.valid_node
-
-    # First run: without remove_dangling_objects, stale object should be logged and skipped
+    # first run without remove_dangling_objects
     with caplog.at_level(logging.WARNING):
         await data_repository.cleanup_download_buckets(
             object_storages_config=joint_fixture.config
@@ -288,20 +339,32 @@ async def test_bucket_cleanup_dangling_object(joint_fixture: JointFixture, caplo
     )
     assert any(expected_warning in record.message for record in caplog.records)
 
-    # Stale object should still be present in the download bucket
+    # only expired object must have been removed, cached and dangling remain
     assert await s3.storage.does_object_exist(
-        bucket_id=joint_fixture.bucket_id,
+        bucket_id=bucket_id,
+        object_id=str(cached_object_id),
+    )
+    assert not await s3.storage.does_object_exist(
+        bucket_id=bucket_id,
+        object_id=str(expired_object_id),
+    )
+    assert await s3.storage.does_object_exist(
+        bucket_id=bucket_id,
         object_id=str(stale_object_id),
     )
 
-    # Second run: with remove_dangling_objects=True, stale object should be deleted
+    # second run with remove_dangling_objects
     await data_repository.cleanup_download_buckets(
         object_storages_config=joint_fixture.config,
         remove_dangling_objects=True,
     )
 
-    # Verify stale object has been removed from the download bucket
+    # stale object must have been removed, cached object must still be in place
     assert not await s3.storage.does_object_exist(
-        bucket_id=joint_fixture.bucket_id,
+        bucket_id=bucket_id,
         object_id=str(stale_object_id),
+    )
+    assert await s3.storage.does_object_exist(
+        bucket_id=bucket_id,
+        object_id=str(cached_object_id),
     )

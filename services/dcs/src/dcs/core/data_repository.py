@@ -308,6 +308,7 @@ class DataRepository(DataRepositoryPort):
         )
 
         for object_id in object_ids:
+            force_removal = False
             try:
                 drs_object = await self._drs_object_dao.find_one(
                     mapping={"object_id": object_id}
@@ -321,9 +322,10 @@ class DataRepository(DataRepositoryPort):
                     )
                     log.warning(cleanup_error)
                     continue
+                force_removal = True
 
             # only remove file if last access is later than download bucket_cache_timeout days ago
-            if remove_dangling_objects or drs_object.last_accessed <= threshold:
+            if force_removal or drs_object.last_accessed <= threshold:
                 log.info(
                     "Deleting object %s from download bucket %s in storage %s.",
                     object_id,
@@ -344,7 +346,6 @@ class DataRepository(DataRepositoryPort):
                         reason=str(error),
                     )
                     log.error(cleanup_error)
-                    continue
 
     async def register_new_file(self, *, file: models.DrsObjectBase):
         """Register a file as a new DRS Object."""
