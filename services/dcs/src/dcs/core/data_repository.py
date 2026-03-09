@@ -288,7 +288,8 @@ class DataRepository(DataRepositoryPort):
             )
             log.critical(storage_alias_not_configured)
             log.info(
-                f"Skipping download bucket cleanup for storage {storage_alias} as it is not configured."
+                "Skipping download bucket cleanup for storage %s as it is not configured.",
+                storage_alias,
             )
             return
 
