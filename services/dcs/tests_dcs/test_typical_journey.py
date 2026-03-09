@@ -27,11 +27,7 @@ from hexkit.providers.s3.testutils import FileObject, temp_file_object
 from pytest_httpx import HTTPXMock, httpx_mock  # noqa: F401
 
 from dcs.core.models import FileDownloadServed, NonStagedFileRequested
-from tests_dcs.fixtures.joint import (
-    CleanupFixture,
-    JointFixture,
-    PopulatedFixture,
-)
+from tests_dcs.fixtures.joint import CleanupFixture, JointFixture, PopulatedFixture
 from tests_dcs.fixtures.mock_api.app import router
 from tests_dcs.fixtures.utils import generate_work_order_token
 

@@ -325,7 +325,10 @@ class DataRepository(DataRepositoryPort):
             # only remove file if last access is later than download bucket_cache_timeout days ago
             if remove_dangling_objects or drs_object.last_accessed <= threshold:
                 log.info(
-                    f"Deleting object {object_id} from download bucket {bucket_id} in storage {storage_alias}."
+                    "Deleting object %s from download bucket %s in storage %s.",
+                    object_id,
+                    bucket_id,
+                    storage_alias,
                 )
                 try:
                     await object_storage.delete_object(

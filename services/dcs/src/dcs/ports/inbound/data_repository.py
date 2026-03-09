@@ -110,7 +110,9 @@ class DataRepositoryPort(ABC):
         """Run cleanup task for all download buckets configured in the service config."""
 
     @abstractmethod
-    async def cleanup_download_bucket(self, *, storage_alias: str):
+    async def cleanup_download_bucket(
+        self, *, storage_alias: str, remove_dangling_objects: bool = False
+    ):
         """
         Check if files present in the download bucket have outlived their allocated time
         and remove all that do.
