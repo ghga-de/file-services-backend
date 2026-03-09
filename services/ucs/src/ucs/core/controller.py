@@ -102,13 +102,21 @@ class UploadController(UploadControllerPort):
             await self._file_upload_dao.insert(file_upload)
             return file_upload
         except UniqueConstraintViolationError as err:
+            # If there's already a FileUpload in the box with this alias, retrieve it
             try:
                 existing = await self._file_upload_dao.find_one(
                     mapping={"box_id": box_id, "alias": alias}
                 )
             except NoHitsFoundError:
-                error = self.FileUploadAlreadyExists(alias=alias)
-                log.error(error, extra={"box_id": box.id, "file_alias": alias})
+                # If we don't get any hits, something weird is going on. This isn't a
+                #  typical error to handle, so raise a RuntimeError
+                msg = (
+                    "Encountered an error indicating this FileUploadBox already"
+                    + f" has a FileUpload for the alias {alias}, but got no results"
+                    + " when trying to retrieve the existing FileUpload."
+                )
+                error = RuntimeError(msg)
+                log.critical(error, extra={"box_id": box.id, "file_alias": alias})
                 raise error from err
 
             if existing.state not in ("failed", "cancelled"):
