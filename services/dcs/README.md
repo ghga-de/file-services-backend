@@ -557,6 +557,21 @@ The service requires the following configuration parameters:
   ```
 
 
+- <a id="properties/download_bucket_cache_timeout"></a>**`download_bucket_cache_timeout`** *(integer)*: Time in days since last access after which a file present in the download bucket should be unstaged and has to be requested from permanent storage again for the next request. Default: `7`.
+
+
+  Examples:
+
+  ```json
+  7
+  ```
+
+
+  ```json
+  30
+  ```
+
+
 - <a id="properties/drs_server_uri"></a>**`drs_server_uri`** *(string, required)*: The base of the DRS URI to access DRS objects. Has to start with 'drs://' and end with '/'.
 
 
@@ -624,21 +639,6 @@ The service requires the following configuration parameters:
 
   ```json
   60
-  ```
-
-
-- <a id="properties/download_bucket_cache_timeout"></a>**`download_bucket_cache_timeout`** *(integer)*: Time in days since last access after which a file present in the download bucket should be unstaged and has to be requested from permanent storage again for the next request. Default: `7`.
-
-
-  Examples:
-
-  ```json
-  7
-  ```
-
-
-  ```json
-  30
   ```
 
 

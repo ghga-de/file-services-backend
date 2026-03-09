@@ -548,6 +548,16 @@
       ],
       "title": "Migration Max Wait Sec"
     },
+    "download_bucket_cache_timeout": {
+      "default": 7,
+      "description": "Time in days since last access after which a file present in the download bucket should be unstaged and has to be requested from permanent storage again for the next request.",
+      "examples": [
+        7,
+        30
+      ],
+      "title": "Download Bucket Cache Timeout",
+      "type": "integer"
+    },
     "drs_server_uri": {
       "description": "The base of the DRS URI to access DRS objects. Has to start with 'drs://' and end with '/'.",
       "examples": [
@@ -594,16 +604,6 @@
       ],
       "exclusiveMinimum": 0,
       "title": "Presigned URL expiration time in seconds",
-      "type": "integer"
-    },
-    "download_bucket_cache_timeout": {
-      "default": 7,
-      "description": "Time in days since last access after which a file present in the download bucket should be unstaged and has to be requested from permanent storage again for the next request.",
-      "examples": [
-        7,
-        30
-      ],
-      "title": "Download Bucket Cache Timeout",
       "type": "integer"
     },
     "auth_key": {
