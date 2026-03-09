@@ -43,7 +43,7 @@ def sync_consume_events(run_forever: bool = True):
     asyncio.run(consume_events(run_forever=run_forever))
 
 
-@cli.command(name="cleanup-donwload-bucket")
+@cli.command(name="cleanup-download-bucket")
 def sync_run_cleanup(remove_dangling_objects: bool = False):
     """Run download bucket cleanup"""
     asyncio.run(
