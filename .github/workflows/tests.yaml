@@ -65,11 +65,10 @@ jobs:
     runs-on: ubuntu-latest
     container: python:3-slim
     steps:
-    - name: Install coveralls
-      run: pip3 install --upgrade coveralls
     - name: Finished
       uses: coverallsapp/github-action@v2
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
+        carryforward: "dcs,ekss,fis,ifrs,pcs,ucs"
         fail-on-error: false
-        parallel: true
+        parallel-finished: true
