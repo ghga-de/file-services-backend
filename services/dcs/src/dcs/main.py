@@ -22,8 +22,8 @@ from hexkit.opentelemetry import configure_opentelemetry
 from dcs.config import Config
 from dcs.inject import (
     get_persistent_publisher,
+    prepare_download_bucket_cleaner,
     prepare_event_subscriber,
-    prepare_outbox_cleaner,
     prepare_rest_app,
 )
 from dcs.migrations import run_db_migrations
@@ -51,16 +51,16 @@ async def consume_events(run_forever: bool = True):
         await event_subscriber.run(forever=run_forever)
 
 
-async def run_outbox_cleanup(remove_dangling_objects: bool = False):
-    """Check if outbox buckets contains files that should be cleaned up and perform clean-up."""
+async def run_download_bucket_cleanup(remove_dangling_objects: bool = False):
+    """Check if download buckets contains files that should be cleaned up and perform clean-up."""
     config = Config()
     configure_logging(config=config)
     configure_opentelemetry(service_name=config.service_name, config=config)
 
-    async with prepare_outbox_cleaner(
+    async with prepare_download_bucket_cleaner(
         config=config, remove_dangling_objects=remove_dangling_objects
-    ) as cleanup_outbox:
-        await cleanup_outbox
+    ) as cleanup_download_bucket:
+        await cleanup_download_bucket
 
 
 async def publish_events(*, all: bool = False):

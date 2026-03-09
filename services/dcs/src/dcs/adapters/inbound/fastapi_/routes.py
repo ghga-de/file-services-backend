@@ -46,7 +46,7 @@ RESPONSES = {
         ),
         "model": http_exceptions.HttpObjectNotFoundError.get_body_model(),
     },
-    "objectNotInOutbox": {
+    "objectNotInDownloadBucket": {
         "description": (
             "The operation is delayed and will continue asynchronously. "
             + "The client should retry this same request after the delay "
@@ -88,7 +88,7 @@ async def health():
     response_model=DrsObjectResponseModel,
     response_description="The DrsObject was found successfully.",
     responses={
-        status.HTTP_202_ACCEPTED: RESPONSES["objectNotInOutbox"],
+        status.HTTP_202_ACCEPTED: RESPONSES["objectNotInDownloadBucket"],
         status.HTTP_403_FORBIDDEN: RESPONSES["wrongFileAuthorizationError"],
         status.HTTP_404_NOT_FOUND: RESPONSES["noSuchObject"],
         status.HTTP_500_INTERNAL_SERVER_ERROR: RESPONSES["internalServerError"],
@@ -120,7 +120,7 @@ async def get_drs_object(
         )
     except data_repository.RetryAccessLaterError as retry_later_error:
         # tell client to retry after 5 minutes
-        response = http_responses.HttpObjectNotInOutboxResponse(
+        response = http_responses.HttpObjectNotInDownloadBucketResponse(
             retry_after=retry_later_error.retry_after
         )
         response.headers["Cache-Control"] = "no-store"

@@ -55,21 +55,21 @@ class DataRepositoryConfig(BaseSettings):
     )
     staging_speed: int = Field(
         default=100,
-        description="When trying to access a DRS object that is not yet in the outbox,"
+        description="When trying to access a DRS object that is not yet in the download bucket,"
         + " assume that this many megabytes can be staged per second.",
         title="Staging speed in MB/s",
         examples=[100, 500],
     )
     retry_after_min: int = Field(
         default=5,
-        description="When trying to access a DRS object that is not yet in the outbox,"
+        description="When trying to access a DRS object that is not yet in the download bucket,"
         + " wait at least this number of seconds before trying again.",
         title="Minimum retry time in seconds when staging",
         examples=[5, 10],
     )
     retry_after_max: int = Field(
         default=300,
-        description="When trying to access a DRS object that is not yet in the outbox,"
+        description="When trying to access a DRS object that is not yet in the download bucket,"
         + " wait at most this number of seconds before trying again.",
         title="Maximum retry time in seconds when staging",
         examples=[30, 300],
@@ -80,11 +80,11 @@ class DataRepositoryConfig(BaseSettings):
         title="Presigned URL expiration time in seconds",
         examples=[30, 60],
     )
-    outbox_cache_timeout: int = Field(
+    download_bucket_cache_timeout: int = Field(
         default=7,
         description="Time in days since last access after which a file present in the "
-        + "outbox should be unstaged and has to be requested from permanent storage again "
-        + "for the next request.",
+        + "download bucket should be unstaged and has to be requested from "
+        + "permanent storage again for the next request.",
         examples=[7, 30],
     )
 
@@ -160,8 +160,8 @@ class DataRepository(DataRepositoryPort):
     ) -> models.DrsObjectResponseModel:
         """
         Serve the specified DRS object with access information.
-        If it does not exists in the outbox, yet, a RetryAccessLaterError is raised that
-        instructs to retry the call after a specified amount of time.
+        If it does not exists in the downloadbucket, yet, a RetryAccessLaterError
+        is raised that instructs to retry the call after a specified amount of time.
         """
         log_extra = {"file_id": file_id, "accession": accession}
         # make sure that metadata for the DRS object exists in the database:
@@ -253,32 +253,32 @@ class DataRepository(DataRepositoryPort):
             accession=accession,
         )
 
-    async def cleanup_outbox_buckets(
+    async def cleanup_download_buckets(
         self,
         *,
         object_storages_config: S3ObjectStoragesConfig,
         remove_dangling_objects: bool = False,
     ):
-        """Run cleanup task for all outbox buckets configured in the service config."""
+        """Run cleanup task for all download buckets configured in the service config."""
         for storage_alias in object_storages_config.object_storages:
-            await self.cleanup_outbox(
+            await self.cleanup_download_bucket(
                 storage_alias=storage_alias,
                 remove_dangling_objects=remove_dangling_objects,
             )
 
-    async def cleanup_outbox(
+    async def cleanup_download_bucket(
         self, *, storage_alias: str, remove_dangling_objects: bool = False
     ):
         """
-        Check if files present in the outbox have outlived their allocated time and remove
-        all that do.
-        For each file in the outbox, its 'last_accessed' field is checked and compared
-        to the current datetime. If the threshold configured in the outbox_cache_timeout
-        option is met or exceeded, the corresponding file is removed from the outbox.
+        Check if files present in the download bucket have outlived their allocated time
+        and remove all that do.
+        For each file in the download bucket, its 'last_accessed' field is checked and compared
+        to the current datetime. If the threshold configured in the download_bucket_cache_timeout
+        option is met or exceeded, the corresponding file is removed from the download bucket.
         """
         # Run on demand through CLI, so crashing should be ok if the alias is not configured
         log.info(
-            f"Starting outbox cleanup for storage identified by alias {storage_alias}."
+            f"Starting download bucket cleanup for storage identified by alias {storage_alias}."
         )
         try:
             bucket_id, object_storage = self._object_storages.for_alias(storage_alias)
@@ -288,15 +288,15 @@ class DataRepository(DataRepositoryPort):
             )
             log.critical(storage_alias_not_configured)
             log.info(
-                f"Skipping outbox cleanup for storage {storage_alias} as it is not configured."
+                f"Skipping download bucket cleanup for storage {storage_alias} as it is not configured."
             )
             return
 
         threshold = now_utc_ms_prec() - timedelta(
-            days=self._config.outbox_cache_timeout
+            days=self._config.download_bucket_cache_timeout
         )
 
-        # filter to get all files in outbox that should be removed
+        # filter to get all files in download bucket that should be removed
         object_ids = [
             uuid.UUID(x)
             for x in await object_storage.list_all_object_ids(bucket_id=bucket_id)
@@ -320,10 +320,10 @@ class DataRepository(DataRepositoryPort):
                     log.warning(cleanup_error)
                     continue
 
-            # only remove file if last access is later than outbox_cache_timeout days ago
+            # only remove file if last access is later than download bucket_cache_timeout days ago
             if remove_dangling_objects or drs_object.last_accessed <= threshold:
                 log.info(
-                    f"Deleting object {object_id} from outbox bucket {bucket_id} in storage {storage_alias}."
+                    f"Deleting object {object_id} from download bucket {bucket_id} in storage {storage_alias}."
                 )
                 try:
                     await object_storage.delete_object(

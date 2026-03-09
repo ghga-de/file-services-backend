@@ -112,7 +112,7 @@ async def joint_fixture(
     # merge configs from different sources with the default one:
     auth_config = WorkOrderTokenConfig(auth_key=auth_key)
 
-    bucket_id = "test-outbox"
+    bucket_id = "test-download"
 
     node_config = S3ObjectStorageNodeConfig(bucket=bucket_id, credentials=s3.config)
     endpoint_aliases = EndpointAliases()
@@ -253,7 +253,7 @@ async def cleanup_fixture(
     test_file_expired.file_id = expired_file_id
     test_file_expired.object_id = EXPIRED_OBJECT_ID
     test_file_expired.last_accessed = utc_dates.now_as_utc() - timedelta(
-        days=joint_fixture.config.outbox_cache_timeout
+        days=joint_fixture.config.download_bucket_cache_timeout
     )
 
     # populate DB entries

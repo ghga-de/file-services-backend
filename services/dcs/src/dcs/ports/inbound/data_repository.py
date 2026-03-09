@@ -34,12 +34,12 @@ class DataRepositoryPort(ABC):
 
     class CleanupError(RuntimeError):
         """
-        Raised when removal of an object from the outbox could not be performed due to
-        an underlying issue
+        Raised when removal of an object from the download bucket could not be performed
+        due to an underlying issue
         """
 
         def __init__(self, *, object_id: UUID4, storage_alias: str, reason: str):
-            message = f"Could not remove object {object_id} from outbox bucket in storage {storage_alias}: {reason}"
+            message = f"Could not remove object {object_id} from download bucket in storage {storage_alias}: {reason}"
             super().__init__(message)
 
     class DrsObjectNotFoundError(RuntimeError):
@@ -57,7 +57,7 @@ class DataRepositoryPort(ABC):
             super().__init__(message)
 
     class RetryAccessLaterError(RuntimeError):
-        """Raised when trying to access a DRS object that is not yet in the outbox.
+        """Raised when trying to access a DRS object that is not yet in the download bucket.
         Instructs to retry later.
         """
 
@@ -96,36 +96,32 @@ class DataRepositoryPort(ABC):
     ) -> models.DrsObjectResponseModel:
         """
         Serve the specified DRS object with access information.
-        If it does not exists in the outbox, yet, a RetryAccessLaterError is raised that
-        instructs to retry the call after a specified amount of time.
+        If it does not exists in the download bucket, yet, a RetryAccessLaterError
+        is raised that instructs to retry the call after a specified amount of time.
         """
-        ...
 
     @abstractmethod
-    async def cleanup_outbox_buckets(
+    async def cleanup_download_buckets(
         self,
         *,
         object_storages_config: S3ObjectStoragesConfig,
         remove_dangling_objects: bool = False,
     ):
-        """Run cleanup task for all outbox buckets configured in the service config."""
-        ...
+        """Run cleanup task for all download buckets configured in the service config."""
 
     @abstractmethod
-    async def cleanup_outbox(self, *, storage_alias: str):
+    async def cleanup_download_bucket(self, *, storage_alias: str):
         """
-        Check if files present in the outbox have outlived their allocated time and remove
-        all that do.
-        For each file in the outbox, its 'last_accessed' field is checked and compared
-        to the current datetime. If the threshold configured in the outbox_cache_timeout option
-        is met or exceeded, the corresponding file is removed from the outbox.
+        Check if files present in the download bucket have outlived their allocated time
+        and remove all that do.
+        For each file in the download bucket, its 'last_accessed' field is checked and compared
+        to the current datetime. If the threshold configured in the download_bucket_cache_timeout
+        option is met or exceeded, the corresponding file is removed from the download bucket.
         """
-        ...
 
     @abstractmethod
     async def register_new_file(self, *, file: models.DrsObjectBase):
         """Register a file as a new DRS Object."""
-        ...
 
     @abstractmethod
     async def serve_envelope(self, *, file_id: UUID4, public_key: str) -> str:
@@ -134,7 +130,6 @@ class DataRepositoryPort(ABC):
 
         :returns: base64 encoded envelope bytes
         """
-        ...
 
     @abstractmethod
     async def delete_file(self, *, file_id: UUID4) -> None:
@@ -145,4 +140,3 @@ class DataRepositoryPort(ABC):
         Args:
             file_id: The UUID4 used to identify the file to delete.
         """
-        ...

@@ -162,24 +162,24 @@ async def prepare_event_subscriber(
             yield event_subscriber
 
 
-OutboxCleaner: TypeAlias = Coroutine[Any, Any, None]
+DownloadBucketCleaner: TypeAlias = Coroutine[Any, Any, None]
 
 
 @asynccontextmanager
-async def prepare_outbox_cleaner(
+async def prepare_download_bucket_cleaner(
     *,
     config: Config,
     data_repo_override: DataRepositoryPort | None = None,
     remove_dangling_objects: bool = False,
-) -> AsyncGenerator[OutboxCleaner]:
-    """Construct and initialize a coroutine that cleans the outbox once invoked.
+) -> AsyncGenerator[DownloadBucketCleaner]:
+    """Construct and initialize a coroutine that cleans the downlaod bucket once invoked.
     By default, the core dependencies are automatically prepared but you can also
     provide them using the data_repo_override parameter.
     """
     async with prepare_core_with_override(
         config=config, data_repo_override=data_repo_override
     ) as data_repository:
-        yield data_repository.cleanup_outbox_buckets(
+        yield data_repository.cleanup_download_buckets(
             object_storages_config=config,
             remove_dangling_objects=remove_dangling_objects,
         )

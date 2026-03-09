@@ -77,7 +77,7 @@ async def test_happy_journey(
 
     # request access to the newly registered file:
     # (An check that an event is published indicating that the file is not in
-    # outbox yet.)
+    # download bucket yet.)
 
     non_staged_requested_event = NonStagedFileRequested(
         file_id=example_file.file_id,
@@ -105,7 +105,7 @@ async def test_happy_journey(
     # the example file is small, so we expect the minimum wait time
     assert retry_after == joint_fixture.config.retry_after_min
 
-    # place the requested file into the outbox bucket (it is not important here that
+    # place the requested file into the download bucket (it is not important here that
     # the file content does not match the announced decrypted_sha256 checksum):
     file_object = tmp_file.model_copy(
         update={
@@ -190,7 +190,7 @@ async def test_happy_deletion(
     drs_object = await populated_fixture.mongodb_dao.get_by_id(file_id)
     object_id = str(drs_object.object_id)
 
-    # place example content in the outbox bucket:
+    # place example content in the download bucket:
     file_object = tmp_file.model_copy(
         update={
             "bucket_id": joint_fixture.bucket_id,
@@ -220,10 +220,10 @@ async def test_happy_deletion(
 
 
 async def test_bucket_cleanup(cleanup_fixture: CleanupFixture, caplog):
-    """Test multiple outbox bucket cleanup handling."""
+    """Test multiple download buckets cleanup handling."""
     data_repository = cleanup_fixture.joint.data_repository
 
-    await data_repository.cleanup_outbox_buckets(
+    await data_repository.cleanup_download_buckets(
         object_storages_config=cleanup_fixture.joint.config
     )
 
@@ -238,7 +238,7 @@ async def test_bucket_cleanup(cleanup_fixture: CleanupFixture, caplog):
         object_id=str(cached_object.object_id),
     )
 
-    # check if expired object has been removed from outbox
+    # check if expired object has been removed from download bucket
     expired_object = await cleanup_fixture.mongodb_dao.get_by_id(expired_id)
     assert not await s3.storage.does_object_exist(
         bucket_id=cleanup_fixture.joint.bucket_id,
@@ -246,7 +246,7 @@ async def test_bucket_cleanup(cleanup_fixture: CleanupFixture, caplog):
     )
 
     with caplog.at_level(logging.ERROR):
-        await data_repository.cleanup_outbox(
+        await data_repository.cleanup_download_bucket(
             storage_alias=cleanup_fixture.joint.endpoint_aliases.fake_node
         )
 
