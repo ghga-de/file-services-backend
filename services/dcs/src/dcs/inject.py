@@ -15,9 +15,8 @@
 
 """Module hosting the dependency injection container."""
 
-from collections.abc import AsyncGenerator, Coroutine
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager, nullcontext
-from typing import Any, TypeAlias
 
 from fastapi import FastAPI
 from ghga_service_commons.auth.jwt_auth import JWTAuthContextProvider
@@ -160,26 +159,3 @@ async def prepare_event_subscriber(
             ) as event_subscriber,
         ):
             yield event_subscriber
-
-
-DownloadBucketCleaner: TypeAlias = Coroutine[Any, Any, None]
-
-
-@asynccontextmanager
-async def prepare_download_bucket_cleaner(
-    *,
-    config: Config,
-    data_repo_override: DataRepositoryPort | None = None,
-    remove_dangling_objects: bool = False,
-) -> AsyncGenerator[DownloadBucketCleaner]:
-    """Construct and initialize a coroutine that cleans the download bucket once invoked.
-    By default, the core dependencies are automatically prepared but you can also
-    provide them using the data_repo_override parameter.
-    """
-    async with prepare_core_with_override(
-        config=config, data_repo_override=data_repo_override
-    ) as data_repository:
-        yield data_repository.cleanup_download_buckets(
-            object_storages_config=config,
-            remove_dangling_objects=remove_dangling_objects,
-        )

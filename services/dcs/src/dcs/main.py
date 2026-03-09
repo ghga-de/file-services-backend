@@ -22,7 +22,7 @@ from hexkit.opentelemetry import configure_opentelemetry
 from dcs.config import Config
 from dcs.inject import (
     get_persistent_publisher,
-    prepare_download_bucket_cleaner,
+    prepare_core,
     prepare_event_subscriber,
     prepare_rest_app,
 )
@@ -57,10 +57,11 @@ async def run_download_bucket_cleanup(remove_dangling_objects: bool = False):
     configure_logging(config=config)
     configure_opentelemetry(service_name=config.service_name, config=config)
 
-    async with prepare_download_bucket_cleaner(
-        config=config, remove_dangling_objects=remove_dangling_objects
-    ) as cleanup_download_bucket:
-        await cleanup_download_bucket
+    async with prepare_core(config=config) as data_repository:
+        await data_repository.cleanup_download_buckets(
+            object_storages_config=config,
+            remove_dangling_objects=remove_dangling_objects,
+        )
 
 
 async def publish_events(*, all: bool = False):
