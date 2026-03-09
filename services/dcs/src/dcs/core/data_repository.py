@@ -160,7 +160,7 @@ class DataRepository(DataRepositoryPort):
     ) -> models.DrsObjectResponseModel:
         """
         Serve the specified DRS object with access information.
-        If it does not exists in the downloadbucket, yet, a RetryAccessLaterError
+        If it does not exists in the download bucket, yet, a RetryAccessLaterError
         is raised that instructs to retry the call after a specified amount of time.
         """
         log_extra = {"file_id": file_id, "accession": accession}
