@@ -172,7 +172,7 @@ async def prepare_download_bucket_cleaner(
     data_repo_override: DataRepositoryPort | None = None,
     remove_dangling_objects: bool = False,
 ) -> AsyncGenerator[DownloadBucketCleaner]:
-    """Construct and initialize a coroutine that cleans the downlaod bucket once invoked.
+    """Construct and initialize a coroutine that cleans the download bucket once invoked.
     By default, the core dependencies are automatically prepared but you can also
     provide them using the data_repo_override parameter.
     """
