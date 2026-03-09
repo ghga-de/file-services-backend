@@ -278,7 +278,8 @@ class DataRepository(DataRepositoryPort):
         """
         # Run on demand through CLI, so crashing should be ok if the alias is not configured
         log.info(
-            f"Starting download bucket cleanup for storage identified by alias {storage_alias}."
+            "Starting download bucket cleanup for storage identified by alias %s.",
+            storage_alias,
         )
         try:
             bucket_id, object_storage = self._object_storages.for_alias(storage_alias)
