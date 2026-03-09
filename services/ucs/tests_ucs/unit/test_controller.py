@@ -1079,7 +1079,7 @@ async def test_initiate_upload_after_failed(rig: JointRig):
             )
         return await original_insert(dto)
 
-    file_upload_dao.insert = patched_insert
+    file_upload_dao.insert = patched_insert  # type: ignore[method-assign]
 
     file_id_2 = await controller.initiate_file_upload(
         box_id=box_id,
@@ -1133,7 +1133,7 @@ async def test_initiate_upload_after_cancelled(rig: JointRig):
             )
         return await original_insert(dto)
 
-    file_upload_dao.insert = patched_insert
+    file_upload_dao.insert = patched_insert  # type: ignore[method-assign]
 
     file_id_2 = await controller.initiate_file_upload(
         box_id=box_id,
@@ -1184,7 +1184,7 @@ async def test_initiate_upload_blocked_for_inbox_state(rig: JointRig):
             unique_fields={"box_id": str(box_id), "alias": "test_file"}
         )
 
-    file_upload_dao.insert = patched_insert
+    file_upload_dao.insert = patched_insert  # type: ignore[method-assign]
 
     with pytest.raises(UploadControllerPort.FileUploadAlreadyExists):
         await controller.initiate_file_upload(
