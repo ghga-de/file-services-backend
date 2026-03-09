@@ -64,6 +64,39 @@ components:
       - size
       title: FileUpload
       type: object
+    FileUploadBox:
+      description: A class representing a box that bundles files belonging to the
+        same upload.
+      properties:
+        file_count:
+          default: 0
+          description: The number of files in the box
+          title: File Count
+          type: integer
+        id:
+          description: Unique identifier for the instance
+          format: uuid4
+          title: Id
+          type: string
+        locked:
+          default: false
+          description: Whether or not changes to the files in the box are allowed
+          title: Locked
+          type: boolean
+        size:
+          default: 0
+          description: The total size of all files in the box
+          title: Size
+          type: integer
+        storage_alias:
+          description: S3 storage alias to use for uploads
+          title: Storage Alias
+          type: string
+      required:
+      - id
+      - storage_alias
+      title: FileUploadBox
+      type: object
     FileUploadCompletionRequest:
       description: Request body for completing a FileUpload.
       properties:
@@ -242,34 +275,47 @@ components:
       - box_id
       title: HttpLockedBoxErrorData
       type: object
-    HttpOrphanedMultipartUploadError:
+    HttpNotEnoughSpaceError:
       additionalProperties: false
       properties:
         data:
-          $ref: '#/components/schemas/HttpOrphanedMultipartUploadErrorData'
+          $ref: '#/components/schemas/HttpNotEnoughSpaceErrorData'
         description:
           description: A human readable message to the client explaining the cause
             of the exception.
           title: Description
           type: string
         exception_id:
-          const: orphanedMultipartUpload
+          const: notEnoughSpace
           title: Exception Id
           type: string
       required:
       - data
       - description
       - exception_id
-      title: HttpOrphanedMultipartUploadError
+      title: HttpNotEnoughSpaceError
       type: object
-    HttpOrphanedMultipartUploadErrorData:
+    HttpNotEnoughSpaceErrorData:
       properties:
+        box_id:
+          format: uuid4
+          title: Box Id
+          type: string
         file_alias:
           title: File Alias
           type: string
+        file_size:
+          title: File Size
+          type: integer
+        remaining_space:
+          title: Remaining Space
+          type: integer
       required:
+      - box_id
       - file_alias
-      title: HttpOrphanedMultipartUploadErrorData
+      - file_size
+      - remaining_space
+      title: HttpNotEnoughSpaceErrorData
       type: object
     HttpS3UploadDetailsNotFoundError:
       additionalProperties: false
@@ -496,6 +542,43 @@ paths:
       tags:
       - UploadControllerService
   /boxes/{box_id}:
+    get:
+      description: Retrieve an existing FileUploadBox
+      operationId: getBox
+      parameters:
+      - in: path
+        name: box_id
+        required: true
+        schema:
+          format: uuid4
+          title: Box Id
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileUploadBox'
+          description: The requested FileUploadBox
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpBoxNotFoundError'
+          description: 'Exceptions by ID:
+
+            - boxNotFound: The FileUploadBox with the given ID does not exist.'
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      security:
+      - HTTPBearer: []
+      summary: Retrieve an existing FileUploadBox
+      tags:
+      - UploadControllerService
     patch:
       description: 'Update a FileUploadBox to lock or unlock it.
 
@@ -644,12 +727,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HttpOrphanedMultipartUploadError'
+                $ref: '#/components/schemas/HttpNotEnoughSpaceError'
           description: 'Exceptions by ID:
 
-            - orphanedMultipartUpload: A multipart upload is already in progress for
-            this file but cannot be aborted. Request file deletion and then attempt
-            the upload again.'
+            - notEnoughSpace: The file size would exceed the remaining space allowed
+            for the FileUploadBox.'
         '422':
           content:
             application/json:

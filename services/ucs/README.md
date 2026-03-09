@@ -562,6 +562,8 @@ The service requires the following configuration parameters:
   ```
 
 
+- <a id="properties/file_box_size_limit"></a>**`file_box_size_limit`** *(integer, required)*: The maximum number of bytes allowed per FileUploadBox across all files.
+
 ## Definitions
 
 

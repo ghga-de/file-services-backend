@@ -23,6 +23,7 @@ from hexkit.log import LoggingConfig
 from hexkit.opentelemetry import OpenTelemetryConfig
 from hexkit.providers.mongodb.migrations import MigrationConfig
 from hexkit.providers.mongokafka import MongoKafkaConfig
+from pydantic import Field
 from pydantic_settings import BaseSettings
 
 from ucs.adapters.inbound.event_sub import EventSubConfig
@@ -52,3 +53,8 @@ class Config(
     """Config parameters and their defaults."""
 
     service_name: str = SERVICE_NAME
+
+    file_box_size_limit: int = Field(
+        ...,
+        description="The maximum number of bytes allowed per FileUploadBox across all files.",
+    )

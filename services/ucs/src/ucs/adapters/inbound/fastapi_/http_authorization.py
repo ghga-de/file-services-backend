@@ -32,7 +32,8 @@ __all__ = [
     "require_create_file_box_work_order",
     "require_create_file_work_order",
     "require_upload_file_work_order",
-    "require_view_file_box_work_order",
+    "require_view_file_box_work_order_uos",
+    "require_view_file_box_work_order_wps",
 ]
 
 CreateFileBoxProvider = JWTAuthContextProvider[models.CreateFileBoxWorkOrder]
@@ -62,8 +63,12 @@ class JWTAuthContextProviderBundle:
             config=self.uos_auth_config,
             context_class=models.ChangeFileBoxWorkOrder,
         )
-        self.view_file_box_provider = JWTAuthContextProvider(
+        self.view_file_box_provider_uos = JWTAuthContextProvider(
             config=self.uos_auth_config,
+            context_class=models.ViewFileBoxWorkOrder,
+        )
+        self.view_file_box_provider_wps = JWTAuthContextProvider(
+            config=self.wps_auth_config,
             context_class=models.ViewFileBoxWorkOrder,
         )
         self.create_file_provider = JWTAuthContextProvider(
@@ -112,14 +117,27 @@ async def _require_change_file_box_work_order(
     )
 
 
-async def _require_view_file_box_work_order(
+async def _require_view_file_box_work_order_uos(
     auth_provider_bundle: Annotated[
         JWTAuthContextProviderBundle, Depends(dummies.auth_provider_bundle)
     ],
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False)),
 ) -> models.ViewFileBoxWorkOrder:
     """Require a "view file box" work order context using FastAPI."""
-    provider = auth_provider_bundle.view_file_box_provider
+    provider = auth_provider_bundle.view_file_box_provider_uos
+    return await require_auth_context_using_credentials(
+        credentials=credentials, auth_provider=provider
+    )
+
+
+async def _require_view_file_box_work_order_wps(
+    auth_provider_bundle: Annotated[
+        JWTAuthContextProviderBundle, Depends(dummies.auth_provider_bundle)
+    ],
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False)),
+) -> models.ViewFileBoxWorkOrder:
+    """Require a "view file box" work order context using FastAPI."""
+    provider = auth_provider_bundle.view_file_box_provider_wps
     return await require_auth_context_using_credentials(
         credentials=credentials, auth_provider=provider
     )
@@ -179,7 +197,8 @@ async def _require_delete_file_work_order(
 
 require_create_file_box_work_order = Security(_require_create_file_box_work_order)
 require_change_file_box_work_order = Security(_require_change_file_box_work_order)
-require_view_file_box_work_order = Security(_require_view_file_box_work_order)
+require_view_file_box_work_order_uos = Security(_require_view_file_box_work_order_uos)
+require_view_file_box_work_order_wps = Security(_require_view_file_box_work_order_wps)
 require_create_file_work_order = Security(_require_create_file_work_order)
 require_upload_file_work_order = Security(_require_upload_file_work_order)
 require_close_file_work_order = Security(_require_close_file_work_order)

@@ -630,6 +630,11 @@
         []
       ],
       "title": "Cors Exposed Headers"
+    },
+    "file_box_size_limit": {
+      "description": "The maximum number of bytes allowed per FileUploadBox across all files.",
+      "title": "File Box Size Limit",
+      "type": "integer"
     }
   },
   "required": [
@@ -645,7 +650,8 @@
     "file_upload_topic",
     "file_upload_box_topic",
     "wps_auth_config",
-    "uos_auth_config"
+    "uos_auth_config",
+    "file_box_size_limit"
   ],
   "title": "ModSettings",
   "type": "object"
