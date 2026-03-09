@@ -17,16 +17,21 @@
 
 import logging
 import re
+from uuid import uuid4
 
 import httpx
 import pytest
 from fastapi import status
 from hexkit.providers.akafka.testutils import ExpectedEvent
-from hexkit.providers.s3.testutils import FileObject
+from hexkit.providers.s3.testutils import FileObject, temp_file_object
 from pytest_httpx import HTTPXMock, httpx_mock  # noqa: F401
 
 from dcs.core.models import FileDownloadServed, NonStagedFileRequested
-from tests_dcs.fixtures.joint import CleanupFixture, PopulatedFixture
+from tests_dcs.fixtures.joint import (
+    CleanupFixture,
+    JointFixture,
+    PopulatedFixture,
+)
 from tests_dcs.fixtures.mock_api.app import router
 from tests_dcs.fixtures.utils import generate_work_order_token
 
@@ -257,3 +262,50 @@ async def test_bucket_cleanup(cleanup_fixture: CleanupFixture, caplog):
     )
 
     assert expected_message in caplog.records[0].message
+
+
+async def test_bucket_cleanup_dangling_object(joint_fixture: JointFixture, caplog):
+    """Test that stale objects in the download bucket with no DB entry are handled."""
+    stale_object_id = uuid4()
+    with temp_file_object(
+        bucket_id=joint_fixture.bucket_id,
+        object_id=str(stale_object_id),
+    ) as stale_file:
+        await joint_fixture.s3.populate_file_objects([stale_file])
+
+    data_repository = joint_fixture.data_repository
+    s3 = joint_fixture.s3
+    storage_alias = joint_fixture.endpoint_aliases.valid_node
+
+    # First run: without remove_dangling_objects, stale object should be logged and skipped
+    with caplog.at_level(logging.WARNING):
+        await data_repository.cleanup_download_buckets(
+            object_storages_config=joint_fixture.config
+        )
+
+    expected_warning = str(
+        data_repository.CleanupError(
+            object_id=stale_object_id,
+            storage_alias=storage_alias,
+            reason="Object not found in database, skipping.",
+        )
+    )
+    assert any(expected_warning in record.message for record in caplog.records)
+
+    # Stale object should still be present in the download bucket
+    assert await s3.storage.does_object_exist(
+        bucket_id=joint_fixture.bucket_id,
+        object_id=str(stale_object_id),
+    )
+
+    # Second run: with remove_dangling_objects=True, stale object should be deleted
+    await data_repository.cleanup_download_buckets(
+        object_storages_config=joint_fixture.config,
+        remove_dangling_objects=True,
+    )
+
+    # Verify stale object has been removed from the download bucket
+    assert not await s3.storage.does_object_exist(
+        bucket_id=joint_fixture.bucket_id,
+        object_id=str(stale_object_id),
+    )

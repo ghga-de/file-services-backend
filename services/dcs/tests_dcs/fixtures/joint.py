@@ -16,6 +16,7 @@
 """Join the functionality of all fixtures for API-level integration testing."""
 
 __all__ = [
+    "CleanupFixture",
     "JointFixture",
     "PopulatedFixture",
     "cleanup_fixture",
