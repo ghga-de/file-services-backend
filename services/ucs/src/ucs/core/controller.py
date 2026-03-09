@@ -119,17 +119,19 @@ class UploadController(UploadControllerPort):
                 log.critical(error, extra={"box_id": box.id, "file_alias": alias})
                 raise error from err
 
+            extra = {  # only for logging
+                "box_id": box.id,
+                "file_alias": alias,
+                "old_file_upload_id": existing.id,
+                "old_state": existing.state,
+                "new_file_upload_id": file_upload.id,
+            }
+
+            # Examine the existing FileUpload - if it's failed cancelled, we can replace
+            #  it with the new submission. If not, we have to raise an error.
             if existing.state not in ("failed", "cancelled"):
                 error = self.FileUploadAlreadyExists(alias=alias)
-                log.error(
-                    error,
-                    extra={
-                        "box_id": box.id,
-                        "generated_file_id": file_id,
-                        "file_alias": alias,
-                        "existing_state": existing.state,
-                    },
-                )
+                log.error(error, extra=extra)
                 raise error from err
 
             log.info(
@@ -138,11 +140,19 @@ class UploadController(UploadControllerPort):
                 existing.id,
                 alias,
                 file_id,
-                extra={"box_id": box.id, "file_alias": alias},
+                extra=extra,
             )
-            # "failed" state leaves S3UploadDetails in DB; "cancelled" already deleted them
+            # Make sure to delete S3UploadDetails for the old FileUpload and log it
             with suppress(ResourceNotFoundError):
                 await self._s3_upload_details_dao.delete(existing.id)
+                log.info(
+                    "Cleaned out S3UploadDetails for old, %s FileUpload %s because it"
+                    + " is being superseded by FileUpload %s.",
+                    existing.state,
+                    existing.id,
+                    file_upload.id,
+                    extra=extra,
+                )
             await self._file_upload_dao.delete(existing.id)
             await self._file_upload_dao.insert(file_upload)
             return file_upload
