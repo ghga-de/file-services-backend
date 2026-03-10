@@ -567,7 +567,7 @@ async def test_delete_file_upload_with_s3_error(rig: JointRig):
     async def do_error(*args, **kwargs):
         raise ObjectStorageProtocol.MultiPartUploadAbortError("", "", "")
 
-    storage.abort_multipart_upload = do_error  # type: ignore[method-assign]
+    storage.abort_multipart_upload = do_error
     with pytest.raises(UploadControllerPort.UploadAbortError) as exc_info:
         await controller.remove_file_upload(box_id=box_id, file_id=file_id)
 
@@ -833,7 +833,7 @@ async def test_complete_file_upload_with_s3_error(rig: JointRig):
     async def do_error(*args, **kwargs):
         raise ObjectStorageProtocol.MultiPartUploadConfirmError("", "", "")
 
-    storage.complete_multipart_upload = do_error  # type: ignore[method-assign]
+    storage.complete_multipart_upload = do_error
     with pytest.raises(UploadControllerPort.UploadCompletionError) as exc_info:
         await controller.complete_file_upload(
             box_id=box_id,
@@ -977,7 +977,7 @@ async def test_get_part_upload_url_when_s3_upload_not_found(rig: JointRig):
     async def do_error(*args, **kwargs):
         raise ObjectStorageProtocol.MultiPartUploadNotFoundError("", "", "")
 
-    storage.get_part_upload_url = do_error  # type: ignore[method-assign]
+    storage.get_part_upload_url = do_error
     with pytest.raises(UploadControllerPort.UploadSessionNotFoundError) as exc_info:
         await controller.get_part_upload_url(file_id=file_id, part_no=1)
 
@@ -1049,7 +1049,7 @@ async def test_initiate_upload_after_failed(rig: JointRig):
             )
         return await original_insert(dto)
 
-    file_upload_dao.insert = patched_insert  # type: ignore[method-assign]
+    file_upload_dao.insert = patched_insert
 
     file_id_2 = await controller.initiate_file_upload(
         box_id=box_id,
@@ -1103,7 +1103,7 @@ async def test_initiate_upload_after_cancelled(rig: JointRig):
             )
         return await original_insert(dto)
 
-    file_upload_dao.insert = patched_insert  # type: ignore[method-assign]
+    file_upload_dao.insert = patched_insert
 
     file_id_2 = await controller.initiate_file_upload(
         box_id=box_id,
@@ -1154,7 +1154,7 @@ async def test_initiate_upload_blocked_for_inbox_state(rig: JointRig):
             unique_fields={"box_id": str(box_id), "alias": "test_file"}
         )
 
-    file_upload_dao.insert = patched_insert  # type: ignore[method-assign]
+    file_upload_dao.insert = patched_insert
 
     with pytest.raises(UploadControllerPort.FileUploadAlreadyExists):
         await controller.initiate_file_upload(
