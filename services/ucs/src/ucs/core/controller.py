@@ -373,11 +373,18 @@ class UploadController(UploadControllerPort):
     async def _compare_checksums(
         self,
         s3_upload_details: S3UploadDetails,
-        file_id: UUID4,
-        object_id: UUID4,
+        file_upload: FileUpload,
         expected_checksum: str,
     ) -> None:
-        """Compare checksums and raise a `ChecksumMismatchError` if they don't match."""
+        """Verify that the S3-calculated object ETag (MD5) matches the submitted MD5
+        checksum of the encrypted file content. This is effectively an integrity check
+        for the file upload itself.
+
+        If the checksums don't match, this function marks the FileUpload as failed and
+        raises a ChecksumMismatchError.
+        """
+        file_id = file_upload.id
+        object_id = file_upload.object_id
         try:
             actual_checksum = await self._s3_client.get_object_etag(
                 s3_upload_details=s3_upload_details, object_id=object_id
@@ -388,6 +395,12 @@ class UploadController(UploadControllerPort):
             ) from err
 
         if actual_checksum != expected_checksum:
+            # Mark upload as failed, then raise an error
+            file_upload.state = "failed"
+            file_upload.state_updated = now_utc_ms_prec()
+            file_upload.failure_reason = "Upload integrity checksum mismatch"
+            await self._file_upload_dao.update(file_upload)
+            log.info("Marked FileUpload %s as 'failed'.", file_id)
             error = self.ChecksumMismatchError(file_id=file_id)
             extra = {
                 "bucket_id": s3_upload_details.bucket_id,
@@ -396,7 +409,7 @@ class UploadController(UploadControllerPort):
                 "expected_checksum": expected_checksum,
                 "actual_checksum": actual_checksum,
             }
-            log.error(error, exc_info=True, extra=extra)
+            log.error(error, extra=extra)
             raise error
 
     async def complete_file_upload(  # noqa: PLR0913
@@ -449,11 +462,9 @@ class UploadController(UploadControllerPort):
             log.info("FileUpload with ID %s already complete.", file_id)
             # If this method is called but the file is already completed, triple
             #  check that the box is up to date
-            # TODO: Mark file as failed if the checksums don't match
             await self._compare_checksums(
                 s3_upload_details=s3_upload_details,
-                file_id=file_id,
-                object_id=file_upload.object_id,
+                file_upload=file_upload,
                 expected_checksum=encrypted_checksum,
             )
             await self._update_box_stats(box_id=box_id, version=box_version)
@@ -477,8 +488,7 @@ class UploadController(UploadControllerPort):
         # Verify that the md5 checksum calculated by the connector matches the S3 etag
         await self._compare_checksums(
             s3_upload_details=s3_upload_details,
-            file_id=file_id,
-            object_id=file_upload.object_id,
+            file_upload=file_upload,
             expected_checksum=encrypted_checksum,
         )
 

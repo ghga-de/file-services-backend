@@ -926,6 +926,50 @@ async def test_complete_file_upload_with_s3_error(rig: JointRig):
     assert file_upload_box_dao.latest.file_count == 0
 
 
+async def test_complete_file_upload_checksum_mismatch(rig: JointRig):
+    """Test to make sure the FileUpload is marked as 'failed' if the UploadController
+    raises a ChecksumMismatchError.
+    """
+    file_upload_box_dao = rig.file_upload_box_dao
+    s3_upload_details_dao = rig.s3_upload_details_dao
+    controller = rig.controller
+
+    # Create a FileUploadBox and a FileUpload
+    box_id = await controller.create_file_upload_box(storage_alias="test")
+    file_id = await controller.initiate_file_upload(
+        box_id=box_id,
+        alias="test_file",
+        decrypted_size=1024,
+        encrypted_size=1024,
+        part_size=1024,
+    )
+
+    file_upload = rig.file_upload_dao.latest
+    assert file_upload.state == "init"
+    state_updated = file_upload.state_updated
+
+    await sleep(0.1)  # short sleep for differentiating timestamps
+
+    # Provide a wrong checksum to trigger a ChecksumMismatchError
+    with pytest.raises(UploadControllerPort.ChecksumMismatchError):
+        await controller.complete_file_upload(
+            box_id=box_id,
+            file_id=file_id,
+            unencrypted_checksum="sha256:unencrypted_checksum_here",
+            encrypted_checksum="wrong_checksum",
+            encrypted_parts_md5=["abc123"],
+            encrypted_parts_sha256=["def456"],
+        )
+
+    file_upload = rig.file_upload_dao.latest
+    assert file_upload.state == "failed"
+    assert file_upload.state_updated > state_updated
+    assert not file_upload.inbox_upload_completed
+    assert not s3_upload_details_dao.latest.completed
+    assert file_upload_box_dao.latest.size == 0
+    assert file_upload_box_dao.latest.file_count == 0
+
+
 async def test_get_part_upload_url_with_missing_file_id(rig: JointRig):
     """Test for error handling when getting a part URL but there's no S3UploadDetails
     document with a matching file_id.
