@@ -923,7 +923,6 @@ async def test_get_part_upload_url_with_missing_file_id(rig: JointRig):
     assert str(file_id) in str(exc_info.value)
 
 
-# TODO: Move to other module
 async def test_get_part_upload_url_with_unknown_storage_alias(rig: JointRig):
     """Test for error handling when getting a part URL but the storage alias found in
     the relevant S3UploadDetails document is unknown (maybe configuration changed or
