@@ -16,93 +16,20 @@
 """Tests for the UploadController class"""
 
 from asyncio import sleep
-from dataclasses import dataclass
 from datetime import timedelta
 from uuid import uuid4
 
 import pytest
 import pytest_asyncio
-from ghga_service_commons.utils.multinode_storage import ObjectStorages
 from hexkit.protocols.dao import UniqueConstraintViolationError
 from hexkit.protocols.objstorage import ObjectStorageProtocol
-from hexkit.providers.testing.dao import BaseInMemDao, new_mock_dao_class
-from hexkit.providers.testing.s3 import InMemObjectStorage
 from hexkit.utils import now_utc_ms_prec
 
-from tests_ucs.fixtures import ConfigFixture
-from tests_ucs.fixtures.in_mem_obj_storage import InMemS3ObjectStorages
-from ucs.adapters.outbound.s3 import S3Client
-from ucs.config import Config
-from ucs.core import models
-from ucs.core.controller import UploadController
-from ucs.core.models import (
-    FileUpload,
-    FileUploadBox,
-    InterrogationSuccess,
-    S3UploadDetails,
-)
+from tests_ucs.fixtures.joint import JointRig
+from ucs.core.models import InterrogationSuccess
 from ucs.ports.inbound.controller import UploadControllerPort
-from ucs.ports.outbound.storage import S3ClientPort
 
 pytestmark = pytest.mark.asyncio()
-
-InMemFileUploadBoxDao = new_mock_dao_class(dto_model=FileUploadBox, id_field="id")
-InMemFileUploadDao = new_mock_dao_class(dto_model=FileUpload, id_field="id")
-InMemS3UploadDetailsDao = new_mock_dao_class(
-    dto_model=S3UploadDetails, id_field="file_id"
-)
-
-
-@pytest.fixture()
-def patch_s3_calls(monkeypatch):
-    """Mocks the object storage provider with an InMemObjectStorage object"""
-    pass
-    monkeypatch.setattr(
-        f"{InMemS3ObjectStorages.__module__}.S3ObjectStorage", InMemObjectStorage
-    )
-
-
-# TODO: Move jointrig to the joint.py module
-@dataclass
-class JointRig:
-    """Test fixture containing all components needed for controller testing."""
-
-    config: Config
-    file_upload_box_dao: BaseInMemDao[FileUploadBox]
-    file_upload_dao: BaseInMemDao[FileUpload]
-    s3_upload_details_dao: BaseInMemDao[models.S3UploadDetails]
-    object_storages: ObjectStorages
-    controller: UploadController
-    s3_client: S3ClientPort
-
-
-@pytest.fixture()
-def rig(config: ConfigFixture, patch_s3_calls) -> JointRig:
-    """Return a joint fixture with in-memory dependency mocks"""
-    _config = config.config
-    file_upload_box_dao = InMemFileUploadBoxDao()
-    file_upload_dao = InMemFileUploadDao()
-    s3_upload_details_dao = InMemS3UploadDetailsDao()
-    object_storages = InMemS3ObjectStorages(config=_config)
-    s3_client = S3Client(config=_config, object_storages=object_storages)
-
-    controller = UploadController(
-        config=(_config),
-        file_upload_box_dao=(file_upload_box_dao),
-        file_upload_dao=(file_upload_dao),
-        s3_upload_details_dao=(s3_upload_details_dao),
-        s3_client=s3_client,
-    )
-
-    return JointRig(
-        config=_config,
-        file_upload_box_dao=file_upload_box_dao,
-        file_upload_dao=file_upload_dao,
-        s3_upload_details_dao=s3_upload_details_dao,
-        object_storages=object_storages,
-        controller=controller,
-        s3_client=s3_client,
-    )
 
 
 @pytest_asyncio.fixture(autouse=True)
