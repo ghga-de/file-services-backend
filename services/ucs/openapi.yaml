@@ -280,6 +280,10 @@ components:
           title: Box Id
           type: string
         box_state:
+          enum:
+          - open
+          - locked
+          - archived
           title: Box State
           type: string
       required:

@@ -63,7 +63,7 @@ class HttpBoxStateError(HttpCustomExceptionBase):
         """Model for exception data"""
 
         box_id: UUID4
-        box_state: str
+        box_state: UploadBoxState
 
     def __init__(
         self, *, box_id: UUID4, box_state: UploadBoxState, status_code: int = 409

@@ -19,7 +19,12 @@ from abc import ABC, abstractmethod
 
 from pydantic import UUID4
 
-from ucs.core.models import FileUpload, InterrogationFailure, InterrogationSuccess
+from ucs.core.models import (
+    FileUpload,
+    InterrogationFailure,
+    InterrogationSuccess,
+    UploadBoxState,
+)
 
 
 class UploadControllerPort(ABC):
@@ -110,9 +115,9 @@ class UploadControllerPort(ABC):
     class BoxStateError(UploadError):
         """Thrown when the user requests an action FileUploadBox prevented by the box's state."""
 
-        box_state: str
+        box_state: UploadBoxState
 
-        def __init__(self, *, box_id: UUID4, box_state: str):
+        def __init__(self, *, box_id: UUID4, box_state: UploadBoxState):
             self.box_state = box_state
             msg = (
                 "Can't perform this action because FileUploadBox with"
