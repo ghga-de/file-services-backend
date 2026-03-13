@@ -62,7 +62,7 @@ def make_file_upload(
 def make_s3_upload_details(
     *,
     file_id: UUID4 | None = None,
-    s3_upload_id: str = "",
+    s3_upload_id: str = "uninitialized",
     object_id: UUID4 | None = None,
 ) -> S3UploadDetails:
     """Make an instance of S3UploadDetails."""
@@ -81,7 +81,6 @@ def make_s3_upload_details(
 @pytest.fixture()
 def patch_s3_calls(monkeypatch):
     """Mocks the object storage provider with an InMemObjectStorage object"""
-    pass
     monkeypatch.setattr(
         f"{InMemS3ObjectStorages.__module__}.S3ObjectStorage", InMemObjectStorage
     )
@@ -103,9 +102,6 @@ def configured_s3_client(config: ConfigFixture, object_storages) -> S3ClientPort
 async def create_default_bucket(object_storages: ObjectStorages):
     """Create the `test-inbox` bucket automatically for tests."""
     await object_storages.for_alias(TEST_STORAGE_ALIAS)[1].create_bucket(TEST_BUCKET)
-
-
-# --- init_multipart_upload ---
 
 
 async def test_init_upload(s3_client: S3ClientPort):
@@ -133,9 +129,6 @@ async def test_init_upload_with_existing_upload_in_progress(s3_client: S3ClientP
 
     with pytest.raises(S3ClientPort.OrphanedMultipartUploadError):
         await s3_client.init_multipart_upload(file_upload=file_upload)
-
-
-# --- get_part_upload_url ---
 
 
 async def test_get_part_upload_url(s3_client: S3ClientPort):
@@ -173,9 +166,6 @@ async def test_get_part_upload_url_when_s3_upload_not_found(s3_client: S3ClientP
         await s3_client.get_part_upload_url(
             s3_upload_details=s3_upload_details, part_no=123
         )
-
-
-# --- complete_multipart_upload ---
 
 
 async def test_complete_multipart_upload(
@@ -233,9 +223,6 @@ async def test_complete_multipart_upload_unknown_alias(s3_client: S3ClientPort):
         await s3_client.complete_multipart_upload(s3_upload_details=s3_upload_details)
 
 
-# --- get_object_etag ---
-
-
 async def test_get_object_etag(s3_client: S3ClientPort):
     """Test that the ETag of a completed upload matches the expected value."""
     file_upload = make_file_upload()
@@ -260,9 +247,6 @@ async def test_get_object_etag_unknown_alias(s3_client: S3ClientPort):
         await s3_client.get_object_etag(
             s3_upload_details=s3_upload_details, object_id=s3_upload_details.object_id
         )
-
-
-# --- delete_inbox_file ---
 
 
 async def test_delete_inbox_file_completed(
@@ -328,9 +312,6 @@ async def test_delete_inbox_file_unknown_alias(s3_client: S3ClientPort):
 
     with pytest.raises(S3ClientPort.UnknownStorageAliasError):
         await s3_client.delete_inbox_file(s3_upload_details=s3_upload_details)
-
-
-# --- abort_multipart_upload ---
 
 
 async def test_abort_multipart_upload(s3_client: S3ClientPort):
