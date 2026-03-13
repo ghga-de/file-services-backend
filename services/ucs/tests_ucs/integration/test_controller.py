@@ -31,7 +31,6 @@ from tests_ucs.fixtures import utils
 from tests_ucs.fixtures.joint import JointFixture
 from ucs.constants import FILE_UPLOADS_COLLECTION, S3_UPLOAD_DETAILS_COLLECTION
 from ucs.core.models import InterrogationSuccess
-from ucs.main import initialize
 from ucs.ports.inbound.controller import UploadControllerPort
 
 pytestmark = pytest.mark.asyncio()
@@ -495,8 +494,6 @@ async def test_file_upload_index(joint_fixture: JointFixture, monkeypatch):
     monkeypatch.setattr("ucs.main.Config", lambda: joint_fixture.config)
 
     async with set_correlation_id(uuid4()):
-        await initialize()
-
         box_id = await joint_fixture.upload_controller.create_file_upload_box(
             storage_alias="test"
         )

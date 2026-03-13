@@ -104,7 +104,7 @@ class UploadController(UploadControllerPort):
         except UniqueConstraintViolationError as err:
             # If there's already a FileUpload in the box with this alias, retrieve it
             try:
-                existing = await self._file_upload_dao.find_one(
+                existing_upload = await self._file_upload_dao.find_one(
                     mapping={"box_id": box_id, "alias": alias}
                 )
             except NoHitsFoundError:
@@ -119,43 +119,70 @@ class UploadController(UploadControllerPort):
                 log.critical(error, extra={"box_id": box.id, "file_alias": alias})
                 raise error from err
 
-            extra = {  # only for logging
+            # If retrieval succeeds, evaluate and attempt to replace the file upload
+            logging_extras = {  # only for logging
                 "box_id": box.id,
-                "file_alias": alias,
-                "old_file_upload_id": existing.id,
-                "old_state": existing.state,
+                "file_alias": file_upload.alias,
+                "old_file_upload_id": existing_upload.id,
+                "old_state": existing_upload.state,
                 "new_file_upload_id": file_upload.id,
             }
-
-            # Examine the existing FileUpload - if it's failed/cancelled, we can replace
-            #  it with the new submission. If not, we have to raise an error.
-            if existing.state not in ("failed", "cancelled"):
+            replaced = await self._try_to_replace_upload(
+                box=box,
+                existing_upload=existing_upload,
+                new_upload=file_upload,
+                logging_extras=logging_extras,
+            )
+            if not replaced:
                 error = self.FileUploadAlreadyExists(alias=alias)
-                log.error(error, extra=extra)
+                log.error(error, extra=logging_extras)
                 raise error from err
 
-            log.info(
-                "Replacing %s FileUpload %s for alias '%s' with new upload %s",
-                existing.state,
-                existing.id,
-                alias,
-                file_id,
-                extra=extra,
-            )
-            # Make sure to delete S3UploadDetails for the old FileUpload and log it
-            with suppress(ResourceNotFoundError):
-                await self._s3_upload_details_dao.delete(existing.id)
-                log.info(
-                    "Cleaned out S3UploadDetails for old, %s FileUpload %s because it"
-                    + " is being superseded by FileUpload %s.",
-                    existing.state,
-                    existing.id,
-                    file_upload.id,
-                    extra=extra,
-                )
-            await self._file_upload_dao.delete(existing.id)
-            await self._file_upload_dao.insert(file_upload)
+            # If successful, return the new file upload instance
             return file_upload
+
+    async def _try_to_replace_upload(
+        self,
+        box: FileUploadBox,
+        existing_upload: FileUpload,
+        new_upload: FileUpload,
+        logging_extras: dict[str, Any],
+    ) -> bool:
+        """Try to replace an existing FileUpload for a given box and alias.
+
+        If successful, this method will delete any existing S3UploadDetails from the
+        database, delete the old FileUpload, and insert the new one.
+        This does result in an outbox deletion event for the old FileUpload.
+
+        Returns a boolean indicating whether replacement was successful.
+        """
+        # Examine the existing FileUpload - it has to be either failed or cancelled to
+        #  be replaced with the new submission. If not, we have to raise an error.
+        if existing_upload.state not in ("failed", "cancelled"):
+            return False
+
+        log.info(
+            "Replacing %s FileUpload %s for alias '%s' with new upload %s",
+            existing_upload.state,
+            existing_upload.id,
+            new_upload.alias,
+            new_upload.id,
+            extra=logging_extras,
+        )
+        # Make sure to delete S3UploadDetails for the old FileUpload and log it
+        with suppress(ResourceNotFoundError):
+            await self._s3_upload_details_dao.delete(existing_upload.id)
+            log.info(
+                "Cleaned out S3UploadDetails for old, %s FileUpload %s because it"
+                + " is being superseded by FileUpload %s.",
+                existing_upload.state,
+                existing_upload.id,
+                new_upload.id,
+                extra=logging_extras,
+            )
+        await self._file_upload_dao.delete(existing_upload.id)
+        await self._file_upload_dao.insert(new_upload)
+        return True
 
     async def _get_unlocked_box(self, *, box_id: UUID4) -> FileUploadBox:
         """Retrieve a FileUploadBox by ID.
