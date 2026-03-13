@@ -66,13 +66,3 @@ async def consume_events(run_forever: bool = True):
 
     async with prepare_event_subscriber(config=config) as event_subscriber:
         await event_subscriber.run(forever=run_forever)
-
-
-async def initialize() -> None:
-    """Operations to be run in an init container before service startup."""
-    config = Config()
-    configure_logging(config=config)
-    configure_opentelemetry(service_name=config.service_name, config=config)
-
-    # This method is where future migrations will be run from
-    log.warning("Nothing currently implemented in `initialize()`")
