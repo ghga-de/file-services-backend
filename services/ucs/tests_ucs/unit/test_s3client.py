@@ -246,22 +246,6 @@ async def test_delete_inbox_file_nothing_exists(s3_client: S3ClientPort):
     await s3_client.delete_inbox_file(s3_upload_details=s3_upload_details)
 
 
-async def test_delete_inbox_file_incomplete_s3_error(
-    s3_client: S3ClientPort, object_storages: ObjectStorages
-):
-    """Test that S3UploadAbortError is raised when aborting an in-progress upload fails."""
-    s3_upload_details = make_s3_upload_details(s3_upload_id="some-upload-id")
-    _, storage = object_storages.for_alias(TEST_STORAGE_ALIAS)
-
-    async def do_error(*args, **kwargs):
-        raise ObjectStorageProtocol.MultiPartUploadAbortError("", "", "")
-
-    storage.abort_multipart_upload = do_error  # type: ignore[method-assign]
-
-    with pytest.raises(S3ClientPort.S3UploadAbortError):
-        await s3_client.delete_inbox_file(s3_upload_details=s3_upload_details)
-
-
 async def test_abort_multipart_upload(s3_client: S3ClientPort):
     """Test the happy case of aborting an in-progress multipart upload."""
     file_upload = make_file_upload()
@@ -283,10 +267,12 @@ async def test_abort_multipart_upload_already_gone(s3_client: S3ClientPort):
     await s3_client.abort_multipart_upload(s3_upload_details=s3_upload_details)
 
 
-async def test_abort_multipart_upload_s3_error(
+async def test_abort_and_delete_raise_s3_upload_abort_error(
     s3_client: S3ClientPort, object_storages: ObjectStorages
 ):
-    """Test that S3UploadAbortError is raised when the underlying abort operation fails."""
+    """S3UploadAbortError is raised by both abort and delete methods when
+    the underlying abort fails.
+    """
     s3_upload_details = make_s3_upload_details(s3_upload_id="some-upload-id")
     _, storage = object_storages.for_alias(TEST_STORAGE_ALIAS)
 
@@ -294,6 +280,9 @@ async def test_abort_multipart_upload_s3_error(
         raise ObjectStorageProtocol.MultiPartUploadAbortError("", "", "")
 
     storage.abort_multipart_upload = do_error  # type: ignore[method-assign]
+
+    with pytest.raises(S3ClientPort.S3UploadAbortError):
+        await s3_client.delete_inbox_file(s3_upload_details=s3_upload_details)
 
     with pytest.raises(S3ClientPort.S3UploadAbortError):
         await s3_client.abort_multipart_upload(s3_upload_details=s3_upload_details)
