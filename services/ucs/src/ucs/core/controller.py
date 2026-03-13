@@ -127,7 +127,7 @@ class UploadController(UploadControllerPort):
                 "new_file_upload_id": file_upload.id,
             }
 
-            # Examine the existing FileUpload - if it's failed cancelled, we can replace
+            # Examine the existing FileUpload - if it's failed/cancelled, we can replace
             #  it with the new submission. If not, we have to raise an error.
             if existing.state not in ("failed", "cancelled"):
                 error = self.FileUploadAlreadyExists(alias=alias)
@@ -293,7 +293,7 @@ class UploadController(UploadControllerPort):
             #  and inserting the S3UploadDetails. We can't assign S3 upload IDs, so if
             #  that data isn't saved to the DB, it is only preserved in the logs. There
             #  is no straightforward way to get the upload ID programmatically, so we
-            #  can't auto-abort it, either. In this case a developer will have to
+            #  can't auto-abort it, either. In this case someone will have to
             #  manually intervene to cancel the upload. We will delete the FileUpload,
             #  however, so the user can immediately retry.
             log.critical(str(err), extra=extra)
@@ -505,7 +505,7 @@ class UploadController(UploadControllerPort):
 
         # Update the FileUploadBox with new size and file count
         await self._update_box_stats(box_id=box_id, version=box_version)
-        log.debug("DB data updated for upload completion of file %s", file_id)
+        log.info("DB data updated for upload completion of file %s", file_id)
 
     async def remove_file_upload(self, *, box_id: UUID4, file_id: UUID4) -> None:
         """Remove a file upload and cancel the ongoing upload if applicable.
