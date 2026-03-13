@@ -512,15 +512,12 @@ class UploadController(UploadControllerPort):
         """
         # Make sure box exists and is unlocked (unless overridden)
         box = await self._get_unlocked_box(box_id=box_id)
-        box_version = box.version
 
         # Retrieve the FileUpload data
         try:
             file_upload = await self._file_upload_dao.get_by_id(file_id)
         except ResourceNotFoundError:
             log.info("File %s not found - presumed already deleted.", file_id)
-            # Call _update_box_stats() to be consistent with complete_file_upload()
-            await self._update_box_stats(box_id=box_id, version=box_version)
             return
 
         # Retrieve the S3UploadDetails
@@ -546,7 +543,7 @@ class UploadController(UploadControllerPort):
         file_upload.state = "cancelled"
         file_upload.state_updated = now_utc_ms_prec()
         await self._file_upload_dao.update(file_upload)
-        await self._update_box_stats(box_id=box_id, version=box_version)
+        await self._update_box_stats(box_id=box_id, version=box.version)
         log.info("File %s deleted from box %s", file_id, box_id)
 
     async def _update_box_stats(self, *, box_id: UUID4, version: int) -> None:
