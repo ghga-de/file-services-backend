@@ -112,16 +112,6 @@ async def test_init_upload(s3_client: S3ClientPort):
     assert upload_id
 
 
-async def test_init_upload_with_unknown_storage_alias(s3_client: S3ClientPort):
-    """Make sure that the appropriate error is raised if the storage doesn't exist."""
-    file_upload = make_file_upload(storage_alias="unknown_storage_alias")
-
-    with pytest.raises(S3ClientPort.UnknownStorageAliasError) as exc_info:
-        await s3_client.init_multipart_upload(file_upload=file_upload)
-
-    assert "unknown_storage_alias" in str(exc_info.value)
-
-
 async def test_init_upload_with_existing_upload_in_progress(s3_client: S3ClientPort):
     """Make sure the appropriate error is raised if there's already an upload in progress."""
     file_upload = make_file_upload()
@@ -143,19 +133,6 @@ async def test_get_part_upload_url(s3_client: S3ClientPort):
     )
     assert str(file_upload.object_id) in url
     assert "part_no_1" in url
-
-
-async def test_get_part_upload_url_with_unknown_storage_alias(s3_client: S3ClientPort):
-    """Test for error handling when the storage alias in S3UploadDetails is unknown."""
-    s3_upload_details = make_s3_upload_details()
-    s3_upload_details.storage_alias = "unknown_storage_alias"
-
-    with pytest.raises(S3ClientPort.UnknownStorageAliasError) as exc_info:
-        await s3_client.get_part_upload_url(
-            s3_upload_details=s3_upload_details, part_no=1
-        )
-
-    assert "unknown_storage_alias" in str(exc_info.value)
 
 
 async def test_get_part_upload_url_when_s3_upload_not_found(s3_client: S3ClientPort):
@@ -214,15 +191,6 @@ async def test_complete_multipart_upload_not_found(s3_client: S3ClientPort):
         await s3_client.complete_multipart_upload(s3_upload_details=s3_upload_details)
 
 
-async def test_complete_multipart_upload_unknown_alias(s3_client: S3ClientPort):
-    """Test for error handling when the storage alias in S3UploadDetails is unknown."""
-    s3_upload_details = make_s3_upload_details()
-    s3_upload_details.storage_alias = "unknown_storage_alias"
-
-    with pytest.raises(S3ClientPort.UnknownStorageAliasError):
-        await s3_client.complete_multipart_upload(s3_upload_details=s3_upload_details)
-
-
 async def test_get_object_etag(s3_client: S3ClientPort):
     """Test that the ETag of a completed upload matches the expected value."""
     file_upload = make_file_upload()
@@ -236,17 +204,6 @@ async def test_get_object_etag(s3_client: S3ClientPort):
         s3_upload_details=s3_upload_details, object_id=file_upload.object_id
     )
     assert etag == f"etag_for_{file_upload.object_id}"
-
-
-async def test_get_object_etag_unknown_alias(s3_client: S3ClientPort):
-    """Test for error handling when the storage alias in S3UploadDetails is unknown."""
-    s3_upload_details = make_s3_upload_details()
-    s3_upload_details.storage_alias = "unknown_storage_alias"
-
-    with pytest.raises(S3ClientPort.UnknownStorageAliasError):
-        await s3_client.get_object_etag(
-            s3_upload_details=s3_upload_details, object_id=s3_upload_details.object_id
-        )
 
 
 async def test_delete_inbox_file_completed(
@@ -305,15 +262,6 @@ async def test_delete_inbox_file_incomplete_s3_error(
         await s3_client.delete_inbox_file(s3_upload_details=s3_upload_details)
 
 
-async def test_delete_inbox_file_unknown_alias(s3_client: S3ClientPort):
-    """Test for error handling when the storage alias in S3UploadDetails is unknown."""
-    s3_upload_details = make_s3_upload_details()
-    s3_upload_details.storage_alias = "unknown_storage_alias"
-
-    with pytest.raises(S3ClientPort.UnknownStorageAliasError):
-        await s3_client.delete_inbox_file(s3_upload_details=s3_upload_details)
-
-
 async def test_abort_multipart_upload(s3_client: S3ClientPort):
     """Test the happy case of aborting an in-progress multipart upload."""
     file_upload = make_file_upload()
@@ -351,10 +299,30 @@ async def test_abort_multipart_upload_s3_error(
         await s3_client.abort_multipart_upload(s3_upload_details=s3_upload_details)
 
 
-async def test_abort_multipart_upload_unknown_alias(s3_client: S3ClientPort):
-    """Test for error handling when the storage alias in S3UploadDetails is unknown."""
+async def test_unknown_storage_alias_raises_error(s3_client: S3ClientPort):
+    """All S3Client methods raise UnknownStorageAliasError for unknown storage aliases."""
+    file_upload = make_file_upload(storage_alias="unknown_storage_alias")
     s3_upload_details = make_s3_upload_details()
     s3_upload_details.storage_alias = "unknown_storage_alias"
+
+    with pytest.raises(S3ClientPort.UnknownStorageAliasError):
+        await s3_client.init_multipart_upload(file_upload=file_upload)
+
+    with pytest.raises(S3ClientPort.UnknownStorageAliasError):
+        await s3_client.get_part_upload_url(
+            s3_upload_details=s3_upload_details, part_no=1
+        )
+
+    with pytest.raises(S3ClientPort.UnknownStorageAliasError):
+        await s3_client.complete_multipart_upload(s3_upload_details=s3_upload_details)
+
+    with pytest.raises(S3ClientPort.UnknownStorageAliasError):
+        await s3_client.get_object_etag(
+            s3_upload_details=s3_upload_details, object_id=s3_upload_details.object_id
+        )
+
+    with pytest.raises(S3ClientPort.UnknownStorageAliasError):
+        await s3_client.delete_inbox_file(s3_upload_details=s3_upload_details)
 
     with pytest.raises(S3ClientPort.UnknownStorageAliasError):
         await s3_client.abort_multipart_upload(s3_upload_details=s3_upload_details)
