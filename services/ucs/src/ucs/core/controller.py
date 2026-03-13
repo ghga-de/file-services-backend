@@ -172,7 +172,7 @@ class UploadController(UploadControllerPort):
             log.error(error)
             raise error from err
 
-        # Verify that the box is not locked
+        # Verify that the box is not locked or archived
         if box.state != "open":
             error = self.BoxStateError(box_id=box_id, box_state=box.state)
             log.error(error)
