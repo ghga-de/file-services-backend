@@ -460,14 +460,6 @@ class UploadController(UploadControllerPort):
         # Exit early if the FileUpload is complete (already in the inbox or archived)
         if file_upload.inbox_upload_completed:
             log.info("FileUpload with ID %s already complete.", file_id)
-            # If this method is called but the file is already completed, triple
-            #  check that the box is up to date
-            await self._compare_checksums(
-                s3_upload_details=s3_upload_details,
-                file_upload=file_upload,
-                expected_checksum=encrypted_checksum,
-            )
-            await self._update_box_stats(box_id=box_id, version=box_version)
             return
 
         try:
