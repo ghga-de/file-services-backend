@@ -50,7 +50,7 @@ def create_file_box_token_header(*, jwk: JWK) -> dict[str, str]:
 def change_file_box_token_header(
     *,
     box_id: UUID = uuid4(),
-    work_type: Literal["lock", "unlock"] = "lock",
+    work_type: Literal["lock", "unlock", "archive"] = "lock",
     jwk: JWK,
 ) -> dict[str, str]:
     """Generate ChangeFileBoxWorkOrder token for testing.
