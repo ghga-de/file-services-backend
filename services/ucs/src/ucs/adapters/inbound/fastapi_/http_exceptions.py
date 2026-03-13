@@ -18,6 +18,8 @@
 from ghga_service_commons.httpyexpect.server import HttpCustomExceptionBase
 from pydantic import UUID4, BaseModel
 
+from ucs.core.models import UploadBoxState
+
 
 class HttpUnknownStorageAliasError(HttpCustomExceptionBase):
     """Thrown when an upload to a storage node that does not exist was requested."""
@@ -63,7 +65,9 @@ class HttpBoxStateError(HttpCustomExceptionBase):
         box_id: UUID4
         box_state: str
 
-    def __init__(self, *, box_id: UUID4, box_state: str, status_code: int = 409):
+    def __init__(
+        self, *, box_id: UUID4, box_state: UploadBoxState, status_code: int = 409
+    ):
         """Construct message and init the exception."""
         super().__init__(
             status_code=status_code,
