@@ -851,7 +851,7 @@ class UploadController(UploadControllerPort):
                     file_upload.state,
                 )
 
-        # Attempt to delete S3 file even if this event has been processed before
+        # Retrieve the S3UploadDetails
         try:
             s3_upload_details = await self._s3_upload_details_dao.get_by_id(file_id)
         except ResourceNotFoundError as err:
@@ -902,7 +902,7 @@ class UploadController(UploadControllerPort):
                     file_upload.state,
                 )
 
-        # Attempt to delete S3 file even if this event has been processed before
+        # Retrieve the S3UploadDetails
         try:
             s3_upload_details = await self._s3_upload_details_dao.get_by_id(file_id)
         except ResourceNotFoundError as err:
