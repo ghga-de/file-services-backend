@@ -40,14 +40,14 @@ def log_user_agent_header(
     """
     raw_user_agent_header = request.headers.get("user-agent")
     extra = {"user_agent": raw_user_agent_header}
-    client_name, _, client_version = (raw_user_agent_header or "").partition("/")
-    has_client = bool(client_name and client_version)
 
-    client_part = "from unknown client"
-    if has_client:
-        extra["client_name"] = client_name
-        extra["client_version"] = client_version
-        client_part = f"from {client_name}, version {client_version}"
+    parts = (raw_user_agent_header or "").split("/")
+
+    client_part = raw_user_agent_header
+    if (len(parts) == 2) and all(parts):
+        extra["client_name"] = parts[0]
+        extra["client_version"] = parts[1]
+        client_part = f"from {parts[0]}, version {parts[1]}"
 
     alias_part = f", originating from {storage_alias}" if storage_alias else ""
     log.info(

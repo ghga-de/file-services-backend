@@ -78,8 +78,8 @@ async def test_health(
 
     # No User-Agent header → logged as unknown client, no storage alias
     with caplog.at_level(logging.INFO, logger=ROUTES_LOGGER):
-        await rest_client.get(url, headers={"User-Agent": "Some other thing"})
-    assert "unknown client" in caplog.text
+        await rest_client.get(url, headers={"User-Agent": "Boto3/1.2.3 Python/3.12"})
+    assert "Boto3/1.2.3 Python/3.12" in caplog.text
     assert "health endpoint" in caplog.text
     assert "originating from" not in caplog.text
     caplog.clear()
