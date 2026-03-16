@@ -55,7 +55,7 @@ async def test_create_new_file_upload(rig: JointRig):
     box_id = await controller.create_file_upload_box(storage_alias="test")
 
     # Then create a FileUpload within the box
-    file_id = await controller.initiate_file_upload(
+    file_id, _ = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
         decrypted_size=DECRYPTED_SIZE,
@@ -84,7 +84,7 @@ async def test_get_part_url(rig: JointRig):
     box_id = await controller.create_file_upload_box(storage_alias="test")
 
     # Then create a FileUpload within the box
-    file_id = await controller.initiate_file_upload(
+    file_id, _ = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
         decrypted_size=DECRYPTED_SIZE,
@@ -107,7 +107,7 @@ async def test_complete_file_upload(rig: JointRig):
     box_id = await controller.create_file_upload_box(storage_alias="test")
 
     # Then create a FileUpload within the box
-    file_id = await controller.initiate_file_upload(
+    file_id, _ = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
         decrypted_size=DECRYPTED_SIZE,
@@ -145,7 +145,7 @@ async def test_complete_file_upload(rig: JointRig):
     await sleep(0.1)
     other_decrypted_size = DECRYPTED_SIZE * 2  # this file is bigger
     other_encrypted_size = int(other_decrypted_size * 1.05)
-    file_id2 = await controller.initiate_file_upload(
+    file_id2, _ = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file2",
         decrypted_size=other_decrypted_size,
@@ -182,7 +182,7 @@ async def test_delete_file_upload(rig: JointRig, complete_before_delete: bool):
     box_id = await controller.create_file_upload_box(storage_alias="test")
 
     # Then create a FileUpload within the box
-    file_id = await controller.initiate_file_upload(
+    file_id, _ = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
         decrypted_size=DECRYPTED_SIZE,
@@ -293,7 +293,7 @@ async def test_get_box_uploads(rig: JointRig):
     # Create multiple FileUploads within the box and complete them
     file_ids = []
     for i in range(3):
-        file_id = await controller.initiate_file_upload(
+        file_id, _ = await controller.initiate_file_upload(
             box_id=box_id,
             alias=f"file{i}",
             decrypted_size=DECRYPTED_SIZE,
@@ -315,7 +315,7 @@ async def test_get_box_uploads(rig: JointRig):
     other_box_id = await controller.create_file_upload_box(storage_alias="test")
     other_file_ids = []
     for i in range(2):
-        other_file_id = await controller.initiate_file_upload(
+        other_file_id, _ = await controller.initiate_file_upload(
             box_id=other_box_id,
             alias=f"file{i}",
             decrypted_size=DECRYPTED_SIZE,
@@ -464,7 +464,7 @@ async def test_delete_file_upload_when_box_locked(rig: JointRig):
 
     # First create a FileUploadBox and FileUpload
     box_id = await controller.create_file_upload_box(storage_alias="test")
-    file_id = await controller.initiate_file_upload(
+    file_id, _ = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
         decrypted_size=DECRYPTED_SIZE,
@@ -514,7 +514,7 @@ async def test_delete_file_upload_with_missing_s3_details(rig: JointRig):
 
     # Create a FileUploadBox and a FileUpload
     box_id = await controller.create_file_upload_box(storage_alias="test")
-    file_id = await controller.initiate_file_upload(
+    file_id, _ = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
         decrypted_size=DECRYPTED_SIZE,
@@ -554,7 +554,7 @@ async def test_delete_file_upload_with_s3_error(rig: JointRig):
 
     # Create a FileUploadBox and a FileUpload
     box_id = await controller.create_file_upload_box(storage_alias="test")
-    file_id = await controller.initiate_file_upload(
+    file_id, _ = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
         decrypted_size=DECRYPTED_SIZE,
@@ -621,14 +621,14 @@ async def test_lock_box_with_incomplete_upload(rig: JointRig):
     # Create a FileUploadBox and a FileUpload
     box_id = await controller.create_file_upload_box(storage_alias="test")
 
-    file_id1 = await controller.initiate_file_upload(
+    file_id1, _ = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
         decrypted_size=DECRYPTED_SIZE,
         encrypted_size=ENCRYPTED_SIZE,
         part_size=PART_SIZE,
     )
-    file_id2 = await controller.initiate_file_upload(
+    file_id2, _ = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file2",
         decrypted_size=DECRYPTED_SIZE,
@@ -662,7 +662,7 @@ async def test_complete_file_upload_when_box_missing(rig: JointRig):
 
     # Create a FileUploadBox and a FileUpload
     box_id = await controller.create_file_upload_box(storage_alias="test")
-    file_id = await controller.initiate_file_upload(
+    file_id, _ = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
         decrypted_size=DECRYPTED_SIZE,
@@ -732,7 +732,7 @@ async def test_complete_file_upload_with_missing_s3_details(rig: JointRig):
 
     # Create a FileUploadBox and a FileUpload
     box_id = await controller.create_file_upload_box(storage_alias="test")
-    file_id = await controller.initiate_file_upload(
+    file_id, _ = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
         decrypted_size=DECRYPTED_SIZE,
@@ -774,7 +774,7 @@ async def test_complete_file_upload_with_unknown_storage_alias(rig: JointRig):
 
     # Create a FileUploadBox and a FileUpload with a valid storage alias
     box_id = await controller.create_file_upload_box(storage_alias="test")
-    file_id = await controller.initiate_file_upload(
+    file_id, _ = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
         decrypted_size=DECRYPTED_SIZE,
@@ -820,7 +820,7 @@ async def test_complete_file_upload_with_s3_error(rig: JointRig):
 
     # Create a FileUploadBox and a FileUpload
     box_id = await controller.create_file_upload_box(storage_alias="test")
-    file_id = await controller.initiate_file_upload(
+    file_id, _ = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
         decrypted_size=DECRYPTED_SIZE,
@@ -866,7 +866,7 @@ async def test_complete_file_upload_checksum_mismatch(rig: JointRig):
 
     # Create a FileUploadBox and a FileUpload
     box_id = await controller.create_file_upload_box(storage_alias="test")
-    file_id = await controller.initiate_file_upload(
+    file_id, _ = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
         decrypted_size=DECRYPTED_SIZE,
@@ -907,7 +907,7 @@ async def test_get_part_upload_url_with_missing_file_id(rig: JointRig):
     # Create a FileUploadBox and a FileUpload
     controller = rig.controller
     box_id = await controller.create_file_upload_box(storage_alias="test")
-    file_id = await controller.initiate_file_upload(
+    file_id, _ = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
         decrypted_size=DECRYPTED_SIZE,
@@ -935,7 +935,7 @@ async def test_get_part_upload_url_with_unknown_storage_alias(rig: JointRig):
     controller = rig.controller
     s3_upload_details_dao = rig.s3_upload_details_dao
     box_id = await controller.create_file_upload_box(storage_alias="test")
-    file_id = await controller.initiate_file_upload(
+    file_id, _ = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
         decrypted_size=DECRYPTED_SIZE,
@@ -964,7 +964,7 @@ async def test_get_part_upload_url_when_s3_upload_not_found(rig: JointRig):
     # Create a FileUploadBox and a FileUpload
     controller = rig.controller
     box_id = await controller.create_file_upload_box(storage_alias="test")
-    file_id = await controller.initiate_file_upload(
+    file_id, _ = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
         decrypted_size=DECRYPTED_SIZE,
@@ -1023,7 +1023,7 @@ async def test_initiate_upload_after_failed(rig: JointRig):
     s3_upload_details_dao = rig.s3_upload_details_dao
 
     box_id = await controller.create_file_upload_box(storage_alias="test")
-    file_id_1 = await controller.initiate_file_upload(
+    file_id_1, _ = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
         decrypted_size=DECRYPTED_SIZE,
@@ -1054,7 +1054,7 @@ async def test_initiate_upload_after_failed(rig: JointRig):
 
     file_upload_dao.insert = patched_insert
 
-    file_id_2 = await controller.initiate_file_upload(
+    file_id_2, _ = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
         decrypted_size=DECRYPTED_SIZE,
@@ -1081,7 +1081,7 @@ async def test_initiate_upload_after_cancelled(rig: JointRig):
     s3_upload_details_dao = rig.s3_upload_details_dao
 
     box_id = await controller.create_file_upload_box(storage_alias="test")
-    file_id_1 = await controller.initiate_file_upload(
+    file_id_1, _ = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
         decrypted_size=DECRYPTED_SIZE,
@@ -1108,7 +1108,7 @@ async def test_initiate_upload_after_cancelled(rig: JointRig):
 
     file_upload_dao.insert = patched_insert
 
-    file_id_2 = await controller.initiate_file_upload(
+    file_id_2, _ = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
         decrypted_size=DECRYPTED_SIZE,
@@ -1132,7 +1132,7 @@ async def test_initiate_upload_blocked_for_inbox_state(rig: JointRig):
     file_upload_dao = rig.file_upload_dao
 
     box_id = await controller.create_file_upload_box(storage_alias="test")
-    file_id_1 = await controller.initiate_file_upload(
+    file_id_1, _ = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
         decrypted_size=DECRYPTED_SIZE,

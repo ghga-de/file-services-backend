@@ -113,7 +113,14 @@ async def test_integrated_aspects(joint_fixture: JointFixture):
                 headers=create_file_token_header,
             )
             assert response.status_code == 201
-            file_id = UUID(response.json())
+            file_creation_response_body = response.json()
+            assert "file_id" in file_creation_response_body
+            assert "alias" in file_creation_response_body
+            assert "storage_alias" in file_creation_response_body
+            file_id = UUID(file_creation_response_body["file_id"])
+            assert "storage_alias" != ""
+            assert file_creation_response_body["alias"] == file_creation_body["alias"]
+
         events = file_recorder.recorded_events
         assert events
         assert len(events) == 1
@@ -230,7 +237,7 @@ async def test_s3_upload_completed_but_db_not_updated(joint_fixture: JointFixtur
     controller = joint_fixture.upload_controller
     async with set_correlation_id(uuid4()):
         box_id = await controller.create_file_upload_box(storage_alias="test")
-        file_id = await controller.initiate_file_upload(
+        file_id, _ = await controller.initiate_file_upload(
             box_id=box_id,
             alias="test-file",
             decrypted_size=utils.DECRYPTED_SIZE,
@@ -300,7 +307,7 @@ async def test_s3_upload_complete_fails(joint_fixture: JointFixture):
     controller = joint_fixture.upload_controller
     async with set_correlation_id(uuid4()):
         box_id = await controller.create_file_upload_box(storage_alias="test")
-        file_id = await controller.initiate_file_upload(
+        file_id, _ = await controller.initiate_file_upload(
             box_id=box_id,
             alias="test-file",
             decrypted_size=utils.DECRYPTED_SIZE,
@@ -368,7 +375,13 @@ async def test_s3_upload_complete_fails(joint_fixture: JointFixture):
         f"/boxes/{box_id}/uploads", headers=create_token_header, json=body
     )
     assert response.status_code == 201
-    file_id2 = UUID(response.json())
+    file_creation_response_body = response.json()
+    assert "file_id" in file_creation_response_body
+    assert "alias" in file_creation_response_body
+    assert "storage_alias" in file_creation_response_body
+    file_id2 = UUID(file_creation_response_body["file_id"])
+    assert "storage_alias" != ""
+    assert file_creation_response_body["alias"] == body["alias"]
 
     upload_token_header = utils.upload_file_token_header(
         box_id=box_id, file_id=file_id2, jwk=wps_jwk
@@ -525,7 +538,7 @@ async def test_file_upload_report_happy(joint_fixture: JointFixture):
     # Create a box and initiate a file upload
     async with set_correlation_id(uuid4()):
         box_id = await controller.create_file_upload_box(storage_alias="test")
-        file_id = await controller.initiate_file_upload(
+        file_id, _ = await controller.initiate_file_upload(
             box_id=box_id,
             alias="test-file",
             decrypted_size=utils.DECRYPTED_SIZE,

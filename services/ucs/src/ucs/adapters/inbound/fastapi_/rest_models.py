@@ -74,6 +74,21 @@ class FileUploadCreationRequest(BaseModel):
     model_config = ConfigDict(title="File Upload Creation Request")
 
 
+class FileUploadCreationResponse(BaseModel):
+    """Response body for newly created FileUploads"""
+
+    file_id: UUID4 = Field(
+        ..., description="The UUID4 identifier assigned to the FileUpload"
+    )
+    alias: str = Field(
+        ...,
+        description="The alias for the file within the box (must be unique within the box)",
+    )
+    storage_alias: str = Field(
+        ..., description="The storage alias to use for this upload"
+    )
+
+
 class FileUploadCompletionRequest(BaseModel):
     """Request body for completing a FileUpload."""
 

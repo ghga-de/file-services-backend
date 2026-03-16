@@ -282,7 +282,7 @@ async def get_box_uploads(
     summary="Add a new FileUpload to an existing FileUploadBox",
     operation_id="createFileUpload",
     status_code=status.HTTP_201_CREATED,
-    response_model=UUID4,
+    response_model=rest_models.FileUploadCreationResponse,
     response_description="The file_id of the newly created FileUpload",
     responses={
         status.HTTP_400_BAD_REQUEST: ERROR_RESPONSES["noSuchStorage"],
@@ -301,11 +301,14 @@ async def create_file_upload(
         http_authorization.require_create_file_work_order,
     ],
     upload_controller: dummies.UploadControllerDummy,
-) -> UUID4:
+) -> rest_models.FileUploadCreationResponse:
     """Add a new FileUpload to an existing FileUploadBox.
 
     Creates a new file upload within the specified box with the provided alias, checksum, and size.
-    Initiates a multipart upload and returns the file ID for the newly created upload.
+    Initiates a multipart upload and returns the file ID, file alias, and storage alias
+    for the newly created upload. The file alias may be used by clients to ensure the
+    response pertains to the correct file.
+
     Requires a CreateFileWorkOrder token from the WPS.
     """
     file_alias = file_upload_creation.alias
@@ -313,7 +316,7 @@ async def create_file_upload(
         raise http_exceptions.HttpNotAuthorizedError()
 
     try:
-        file_id = await upload_controller.initiate_file_upload(
+        file_id, storage_alias = await upload_controller.initiate_file_upload(
             box_id=box_id,
             alias=file_alias,
             decrypted_size=file_upload_creation.decrypted_size,
@@ -342,7 +345,10 @@ async def create_file_upload(
         log.error(error, exc_info=True)
         raise http_exceptions.HttpInternalError() from error
 
-    return file_id
+    response_payload = rest_models.FileUploadCreationResponse(
+        file_id=file_id, alias=file_alias, storage_alias=storage_alias
+    )
+    return response_payload
 
 
 @router.get(

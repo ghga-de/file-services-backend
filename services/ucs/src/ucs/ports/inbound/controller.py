@@ -170,8 +170,10 @@ class UploadControllerPort(ABC):
         decrypted_size: int,
         encrypted_size: int,
         part_size: int,
-    ) -> UUID4:
-        """Initialize a new multipart upload and return the file ID.
+    ) -> tuple[UUID4, str]:
+        """Initialize a new multipart upload.
+
+        Returns the file ID and storage alias as a 2-tuple.
 
         Raises:
         - `BoxNotFoundError` if the box does not exist.

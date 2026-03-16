@@ -168,7 +168,7 @@ async def test_create_file_upload_endpoint_auth(
     }
     rest_client = app_fixture.rest_client
     core_mock = app_fixture.core_mock
-    core_mock.initiate_file_upload.return_value = TEST_FILE_ID
+    core_mock.initiate_file_upload.return_value = (TEST_FILE_ID, "HD01")
 
     url = f"/boxes/{TEST_BOX_ID}/uploads"
     response = await rest_client.post(url, json=body)
@@ -204,6 +204,11 @@ async def test_create_file_upload_endpoint_auth(
     )
     response = await rest_client.post(url, json=body, headers=good_token_header)
     assert response.status_code == 201
+    # assert response.json() == {
+    #     "file_id": TEST_FILE_ID,
+    #     "alias": body["alias"],
+    #     "storage_alias": "HD01",
+    # }
 
 
 async def test_get_file_part_upload_url_endpoint_auth(
