@@ -17,7 +17,7 @@
 
 from typing import Literal, TypeVar
 
-from pydantic import UUID4, BaseModel, ConfigDict, Field
+from pydantic import UUID4, BaseModel, ConfigDict, Field, model_validator
 
 from ucs.core.models import UploadBoxState
 
@@ -60,6 +60,17 @@ class FileUploadCreationRequest(BaseModel):
         description="The number of bytes in each file part (last part may be smaller)",
         ge=1,
     )
+
+    @model_validator(mode="after")
+    def encrypted_size_exceeds_decrypted_size(self) -> "FileUploadCreationRequest":
+        """Ensure encrypted_size is larger than decrypted_size."""
+        if self.encrypted_size <= self.decrypted_size:
+            raise ValueError(
+                f"encrypted_size ({self.encrypted_size}) must be larger than"
+                f" decrypted_size ({self.decrypted_size})"
+            )
+        return self
+
     model_config = ConfigDict(title="File Upload Creation Request")
 
 

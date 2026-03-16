@@ -504,6 +504,35 @@ async def test_create_file_upload_endpoint_error_handling(
 
 
 @pytest.mark.parametrize(
+    "encrypted_size", [utils.DECRYPTED_SIZE, utils.DECRYPTED_SIZE - 1]
+)
+async def test_create_file_upload_endpoint_model_validator(
+    config: ConfigFixture, app_fixture: AppFixture, encrypted_size: int
+):
+    """Test that the model validator for the model required on the endpoint works.
+
+    It should make sure that the `encrypted_size` is larger than `decrypted_size`.
+    """
+    wps_jwk = config.wps_jwk
+    body = {
+        "alias": "test_file",
+        "decrypted_size": utils.DECRYPTED_SIZE,
+        "encrypted_size": encrypted_size,
+        "part_size": utils.PART_SIZE,
+    }
+    rest_client = app_fixture.rest_client
+    token_header = utils.create_file_token_header(
+        box_id=TEST_BOX_ID, alias="test_file", jwk=wps_jwk
+    )
+    response = await rest_client.post(
+        f"/boxes/{TEST_BOX_ID}/uploads",
+        json=body,
+        headers=token_header,
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize(
     "core_error, http_error",
     [
         (
