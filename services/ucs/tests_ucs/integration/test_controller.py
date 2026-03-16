@@ -88,7 +88,6 @@ async def test_integrated_aspects(joint_fixture: JointFixture):
 
         # Make the temp test file
         temp_file.write(("abcdefghij" * (1024 * 1024)).encode())
-        file_size = 10 * 1024 * 1024  # 10 MiB
         temp_file.flush()
 
         expected_encrypted_checksum = calc_expected_encrypted_checksum(
@@ -104,9 +103,9 @@ async def test_integrated_aspects(joint_fixture: JointFixture):
             )
             file_creation_body = {
                 "alias": "test_file",
-                "decrypted_size": file_size,
-                "encrypted_size": file_size,
-                "part_size": file_size,
+                "decrypted_size": utils.DECRYPTED_SIZE,
+                "encrypted_size": utils.ENCRYPTED_SIZE,
+                "part_size": utils.PART_SIZE,
             }
             response = await rest_client.post(
                 f"/boxes/{box_id}/uploads",
@@ -234,9 +233,9 @@ async def test_s3_upload_completed_but_db_not_updated(joint_fixture: JointFixtur
         file_id = await controller.initiate_file_upload(
             box_id=box_id,
             alias="test-file",
-            decrypted_size=1024,
-            encrypted_size=1024,
-            part_size=1024,
+            decrypted_size=utils.DECRYPTED_SIZE,
+            encrypted_size=utils.ENCRYPTED_SIZE,
+            part_size=utils.PART_SIZE,
         )
     url = await controller.get_part_upload_url(file_id=file_id, part_no=1)
 
@@ -304,9 +303,9 @@ async def test_s3_upload_complete_fails(joint_fixture: JointFixture):
         file_id = await controller.initiate_file_upload(
             box_id=box_id,
             alias="test-file",
-            decrypted_size=1024,
-            encrypted_size=1024,
-            part_size=1024,
+            decrypted_size=utils.DECRYPTED_SIZE,
+            encrypted_size=utils.ENCRYPTED_SIZE,
+            part_size=utils.PART_SIZE,
         )
     url = await controller.get_part_upload_url(file_id=file_id, part_no=1)
 
@@ -361,9 +360,9 @@ async def test_s3_upload_complete_fails(joint_fixture: JointFixture):
     )
     body = {
         "alias": "test-file",
-        "decrypted_size": 1024,
-        "encrypted_size": 1024,
-        "part_size": 1024,
+        "decrypted_size": utils.DECRYPTED_SIZE,
+        "encrypted_size": utils.ENCRYPTED_SIZE,
+        "part_size": utils.PART_SIZE,
     }
     response = await rest_client.post(
         f"/boxes/{box_id}/uploads", headers=create_token_header, json=body
@@ -446,9 +445,9 @@ async def test_orphaned_s3_upload_in_file_create(joint_fixture: JointFixture, ca
     )
     body = {
         "alias": "test-file",
-        "decrypted_size": 1024,
-        "encrypted_size": 1024,
-        "part_size": 1024,
+        "decrypted_size": utils.DECRYPTED_SIZE,
+        "encrypted_size": utils.ENCRYPTED_SIZE,
+        "part_size": utils.PART_SIZE,
     }
     with (
         caplog.at_level("CRITICAL"),
@@ -500,17 +499,17 @@ async def test_file_upload_index(joint_fixture: JointFixture, monkeypatch):
         _ = await joint_fixture.upload_controller.initiate_file_upload(
             box_id=box_id,
             alias="file1",
-            decrypted_size=1024,
-            encrypted_size=1024,
-            part_size=1024,
+            decrypted_size=utils.DECRYPTED_SIZE,
+            encrypted_size=utils.ENCRYPTED_SIZE,
+            part_size=utils.PART_SIZE,
         )
         with pytest.raises(UploadControllerPort.FileUploadAlreadyExists):
             _ = await joint_fixture.upload_controller.initiate_file_upload(
                 box_id=box_id,
                 alias="file1",
-                decrypted_size=1024,
-                encrypted_size=1024,
-                part_size=1024,
+                decrypted_size=utils.DECRYPTED_SIZE,
+                encrypted_size=utils.ENCRYPTED_SIZE,
+                part_size=utils.PART_SIZE,
             )
 
 
@@ -529,9 +528,9 @@ async def test_file_upload_report_happy(joint_fixture: JointFixture):
         file_id = await controller.initiate_file_upload(
             box_id=box_id,
             alias="test-file",
-            decrypted_size=1024,
-            encrypted_size=1024,
-            part_size=1024,
+            decrypted_size=utils.DECRYPTED_SIZE,
+            encrypted_size=utils.ENCRYPTED_SIZE,
+            part_size=utils.PART_SIZE,
         )
 
     # Get upload URL and upload the file content
@@ -587,7 +586,7 @@ async def test_file_upload_report_happy(joint_fixture: JointFixture):
         interrogated_at=now_utc_ms_prec(),
         encrypted_parts_md5=["abc123"],
         encrypted_parts_sha256=["def456"],
-        encrypted_size=1024,
+        encrypted_size=utils.ENCRYPTED_SIZE,
     )
 
     await joint_fixture.kafka.publish_event(

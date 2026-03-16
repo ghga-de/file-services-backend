@@ -27,6 +27,7 @@ from pydantic import UUID4
 
 from tests_ucs.fixtures import ConfigFixture
 from tests_ucs.fixtures.in_mem_obj_storage import InMemS3ObjectStorages
+from tests_ucs.fixtures.utils import DECRYPTED_SIZE, ENCRYPTED_SIZE, PART_SIZE
 from ucs.adapters.outbound.s3 import S3Client
 from ucs.core.models import FileUpload, S3UploadDetails
 from ucs.ports.outbound.storage import S3ClientPort
@@ -53,9 +54,9 @@ def make_file_upload(
         storage_alias=storage_alias,
         bucket_id=bucket_id,
         object_id=object_id or uuid4(),
-        decrypted_size=1000,
-        encrypted_size=1100,
-        part_size=100,
+        decrypted_size=DECRYPTED_SIZE,
+        encrypted_size=ENCRYPTED_SIZE,
+        part_size=PART_SIZE,
     )
 
 

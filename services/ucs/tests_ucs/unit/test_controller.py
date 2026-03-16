@@ -26,6 +26,7 @@ from hexkit.protocols.objstorage import ObjectStorageProtocol
 from hexkit.utils import now_utc_ms_prec
 
 from tests_ucs.fixtures.joint import JointRig
+from tests_ucs.fixtures.utils import DECRYPTED_SIZE, ENCRYPTED_SIZE, PART_SIZE
 from ucs.core.models import InterrogationSuccess
 from ucs.ports.inbound.controller import UploadControllerPort
 
@@ -57,16 +58,16 @@ async def test_create_new_file_upload(rig: JointRig):
     file_id = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
-        decrypted_size=1024,
-        encrypted_size=1024,
-        part_size=1024,
+        decrypted_size=DECRYPTED_SIZE,
+        encrypted_size=ENCRYPTED_SIZE,
+        part_size=PART_SIZE,
     )
 
     # Verify the FileUpload was created
     assert file_upload_dao.latest.id == file_id
     assert file_upload_dao.latest.alias == "test_file"
     assert file_upload_dao.latest.decrypted_sha256 is None
-    assert file_upload_dao.latest.decrypted_size == 1024
+    assert file_upload_dao.latest.decrypted_size == DECRYPTED_SIZE
 
     # Verify S3UploadDetails were created
     upload_details = rig.s3_upload_details_dao.latest
@@ -86,9 +87,9 @@ async def test_get_part_url(rig: JointRig):
     file_id = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
-        decrypted_size=1024,
-        encrypted_size=1024,
-        part_size=1024,
+        decrypted_size=DECRYPTED_SIZE,
+        encrypted_size=ENCRYPTED_SIZE,
+        part_size=PART_SIZE,
     )
 
     # Now get the part upload URL
@@ -109,9 +110,9 @@ async def test_complete_file_upload(rig: JointRig):
     file_id = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
-        decrypted_size=1024,
-        encrypted_size=1024,
-        part_size=1024,
+        decrypted_size=DECRYPTED_SIZE,
+        encrypted_size=ENCRYPTED_SIZE,
+        part_size=PART_SIZE,
     )
     file1_object_id = rig.s3_upload_details_dao.latest.object_id
 
@@ -137,17 +138,19 @@ async def test_complete_file_upload(rig: JointRig):
     assert completed - s3_upload_details_dao.latest.completed < timedelta(seconds=5)
     assert rig.file_upload_dao.latest.inbox_upload_completed
     file_upload_box_dao = rig.file_upload_box_dao
-    assert file_upload_box_dao.latest.size == 1024
+    assert file_upload_box_dao.latest.size == DECRYPTED_SIZE
     assert file_upload_box_dao.latest.file_count == 1
 
     # Now repeat the process to ensure the box stats are incremented, not overwritten
     await sleep(0.1)
+    other_decrypted_size = DECRYPTED_SIZE * 2  # this file is bigger
+    other_encrypted_size = int(other_decrypted_size * 1.05)
     file_id2 = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file2",
-        decrypted_size=1000,
-        encrypted_size=1000,
-        part_size=1000,
+        decrypted_size=other_decrypted_size,
+        encrypted_size=other_encrypted_size,
+        part_size=PART_SIZE,
     )
     file2_object_id = rig.s3_upload_details_dao.latest.object_id
     await controller.complete_file_upload(
@@ -163,7 +166,7 @@ async def test_complete_file_upload(rig: JointRig):
     assert latest_s3_details.completed
     assert latest_s3_details.completed > completed
     assert file_upload_box_dao.latest.file_count == 2
-    assert file_upload_box_dao.latest.size == 2024
+    assert file_upload_box_dao.latest.size == DECRYPTED_SIZE + other_decrypted_size
 
 
 @pytest.mark.parametrize("complete_before_delete", [True, False])
@@ -182,9 +185,9 @@ async def test_delete_file_upload(rig: JointRig, complete_before_delete: bool):
     file_id = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
-        decrypted_size=1024,
-        encrypted_size=1024,
-        part_size=1024,
+        decrypted_size=DECRYPTED_SIZE,
+        encrypted_size=ENCRYPTED_SIZE,
+        part_size=PART_SIZE,
     )
     object_id = str(rig.s3_upload_details_dao.latest.object_id)
 
@@ -198,7 +201,7 @@ async def test_delete_file_upload(rig: JointRig, complete_before_delete: bool):
             encrypted_parts_sha256=["def456"],
         )
         assert file_upload_box_dao.latest.file_count == 1
-        assert file_upload_box_dao.latest.size == 1024
+        assert file_upload_box_dao.latest.size == DECRYPTED_SIZE
         assert await object_storage.does_object_exist(
             bucket_id=bucket_id, object_id=object_id
         )
@@ -293,9 +296,9 @@ async def test_get_box_uploads(rig: JointRig):
         file_id = await controller.initiate_file_upload(
             box_id=box_id,
             alias=f"file{i}",
-            decrypted_size=1024,
-            encrypted_size=1024,
-            part_size=1024,
+            decrypted_size=DECRYPTED_SIZE,
+            encrypted_size=ENCRYPTED_SIZE,
+            part_size=PART_SIZE,
         )
         object_id = rig.s3_upload_details_dao.latest.object_id
         await controller.complete_file_upload(
@@ -315,9 +318,9 @@ async def test_get_box_uploads(rig: JointRig):
         other_file_id = await controller.initiate_file_upload(
             box_id=other_box_id,
             alias=f"file{i}",
-            decrypted_size=1024,
-            encrypted_size=1024,
-            part_size=1024,
+            decrypted_size=DECRYPTED_SIZE,
+            encrypted_size=ENCRYPTED_SIZE,
+            part_size=PART_SIZE,
         )
         other_object_id = rig.s3_upload_details_dao.latest.object_id
         await controller.complete_file_upload(
@@ -382,9 +385,9 @@ async def test_create_file_upload_when_box_missing(rig: JointRig):
         await controller.initiate_file_upload(
             box_id=non_existent_box_id,
             alias="test_file",
-            decrypted_size=1024,
-            encrypted_size=1024,
-            part_size=1024,
+            decrypted_size=DECRYPTED_SIZE,
+            encrypted_size=ENCRYPTED_SIZE,
+            part_size=PART_SIZE,
         )
 
     # Verify the exception contains the correct box_id
@@ -412,9 +415,9 @@ async def test_create_file_upload_when_box_locked(rig: JointRig):
         await controller.initiate_file_upload(
             box_id=box_id,
             alias="test_file",
-            decrypted_size=1024,
-            encrypted_size=1024,
-            part_size=1024,
+            decrypted_size=DECRYPTED_SIZE,
+            encrypted_size=ENCRYPTED_SIZE,
+            part_size=PART_SIZE,
         )
 
     # Verify the exception contains the correct box_id
@@ -464,9 +467,9 @@ async def test_delete_file_upload_when_box_locked(rig: JointRig):
     file_id = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
-        decrypted_size=1024,
-        encrypted_size=1024,
-        part_size=1024,
+        decrypted_size=DECRYPTED_SIZE,
+        encrypted_size=ENCRYPTED_SIZE,
+        part_size=PART_SIZE,
     )
 
     # Lock the box manually by updating the state
@@ -514,9 +517,9 @@ async def test_delete_file_upload_with_missing_s3_details(rig: JointRig):
     file_id = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
-        decrypted_size=1024,
-        encrypted_size=1024,
-        part_size=1024,
+        decrypted_size=DECRYPTED_SIZE,
+        encrypted_size=ENCRYPTED_SIZE,
+        part_size=PART_SIZE,
     )
 
     # Verify both FileUpload and S3UploadDetails were created
@@ -554,9 +557,9 @@ async def test_delete_file_upload_with_s3_error(rig: JointRig):
     file_id = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
-        decrypted_size=1024,
-        encrypted_size=1024,
-        part_size=1024,
+        decrypted_size=DECRYPTED_SIZE,
+        encrypted_size=ENCRYPTED_SIZE,
+        part_size=PART_SIZE,
     )
 
     # Set the mock to raise a MultiPartUploadAbortError
@@ -621,16 +624,16 @@ async def test_lock_box_with_incomplete_upload(rig: JointRig):
     file_id1 = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
-        decrypted_size=1024,
-        encrypted_size=1024,
-        part_size=1024,
+        decrypted_size=DECRYPTED_SIZE,
+        encrypted_size=ENCRYPTED_SIZE,
+        part_size=PART_SIZE,
     )
     file_id2 = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file2",
-        decrypted_size=1024,
-        encrypted_size=1024,
-        part_size=1024,
+        decrypted_size=DECRYPTED_SIZE,
+        encrypted_size=ENCRYPTED_SIZE,
+        part_size=PART_SIZE,
     )
     file_ids = sorted([file_id1, file_id2])
 
@@ -662,9 +665,9 @@ async def test_complete_file_upload_when_box_missing(rig: JointRig):
     file_id = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
-        decrypted_size=1024,
-        encrypted_size=1024,
-        part_size=1024,
+        decrypted_size=DECRYPTED_SIZE,
+        encrypted_size=ENCRYPTED_SIZE,
+        part_size=PART_SIZE,
     )
 
     # Manually delete the box (simulating a scenario where the box was deleted
@@ -732,9 +735,9 @@ async def test_complete_file_upload_with_missing_s3_details(rig: JointRig):
     file_id = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
-        decrypted_size=1024,
-        encrypted_size=1024,
-        part_size=1024,
+        decrypted_size=DECRYPTED_SIZE,
+        encrypted_size=ENCRYPTED_SIZE,
+        part_size=PART_SIZE,
     )
 
     # Manually delete the S3UploadDetails but leave the FileUpload
@@ -774,9 +777,9 @@ async def test_complete_file_upload_with_unknown_storage_alias(rig: JointRig):
     file_id = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
-        decrypted_size=1024,
-        encrypted_size=1024,
-        part_size=1024,
+        decrypted_size=DECRYPTED_SIZE,
+        encrypted_size=ENCRYPTED_SIZE,
+        part_size=PART_SIZE,
     )
 
     # Verify both FileUpload and S3UploadDetails were created
@@ -820,9 +823,9 @@ async def test_complete_file_upload_with_s3_error(rig: JointRig):
     file_id = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
-        decrypted_size=1024,
-        encrypted_size=1024,
-        part_size=1024,
+        decrypted_size=DECRYPTED_SIZE,
+        encrypted_size=ENCRYPTED_SIZE,
+        part_size=PART_SIZE,
     )
 
     # Set the mock to raise a MultiPartUploadConfirmError
@@ -866,9 +869,9 @@ async def test_complete_file_upload_checksum_mismatch(rig: JointRig):
     file_id = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
-        decrypted_size=1024,
-        encrypted_size=1024,
-        part_size=1024,
+        decrypted_size=DECRYPTED_SIZE,
+        encrypted_size=ENCRYPTED_SIZE,
+        part_size=PART_SIZE,
     )
 
     file_upload = rig.file_upload_dao.latest
@@ -907,9 +910,9 @@ async def test_get_part_upload_url_with_missing_file_id(rig: JointRig):
     file_id = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
-        decrypted_size=1024,
-        encrypted_size=1024,
-        part_size=1024,
+        decrypted_size=DECRYPTED_SIZE,
+        encrypted_size=ENCRYPTED_SIZE,
+        part_size=PART_SIZE,
     )
 
     # Manually delete the S3UploadDetails but leave the FileUpload
@@ -935,9 +938,9 @@ async def test_get_part_upload_url_with_unknown_storage_alias(rig: JointRig):
     file_id = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
-        decrypted_size=1024,
-        encrypted_size=1024,
-        part_size=1024,
+        decrypted_size=DECRYPTED_SIZE,
+        encrypted_size=ENCRYPTED_SIZE,
+        part_size=PART_SIZE,
     )
 
     # Manually modify the S3UploadDetails to have an unknown storage alias
@@ -964,9 +967,9 @@ async def test_get_part_upload_url_when_s3_upload_not_found(rig: JointRig):
     file_id = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
-        decrypted_size=1024,
-        encrypted_size=1024,
-        part_size=1024,
+        decrypted_size=DECRYPTED_SIZE,
+        encrypted_size=ENCRYPTED_SIZE,
+        part_size=PART_SIZE,
     )
 
     # Set the mock to raise a MultiPartUploadNotFoundError
@@ -1004,7 +1007,7 @@ async def test_process_interrogation_success_no_file_upload(rig: JointRig):
         interrogated_at=now_utc_ms_prec(),
         encrypted_parts_md5=["abc123"],
         encrypted_parts_sha256=["def456"],
-        encrypted_size=1024,
+        encrypted_size=ENCRYPTED_SIZE,
     )
 
     with pytest.raises(UploadControllerPort.FileUploadNotFound):
@@ -1023,9 +1026,9 @@ async def test_initiate_upload_after_failed(rig: JointRig):
     file_id_1 = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
-        decrypted_size=1024,
-        encrypted_size=1024,
-        part_size=1024,
+        decrypted_size=DECRYPTED_SIZE,
+        encrypted_size=ENCRYPTED_SIZE,
+        part_size=PART_SIZE,
     )
 
     # Simulate the "failed" state directly (process_interrogation_failure would also
@@ -1054,9 +1057,9 @@ async def test_initiate_upload_after_failed(rig: JointRig):
     file_id_2 = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
-        decrypted_size=2048,
-        encrypted_size=2048,
-        part_size=1024,
+        decrypted_size=DECRYPTED_SIZE,
+        encrypted_size=ENCRYPTED_SIZE,
+        part_size=PART_SIZE,
     )
 
     assert file_id_2 != file_id_1
@@ -1081,9 +1084,9 @@ async def test_initiate_upload_after_cancelled(rig: JointRig):
     file_id_1 = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
-        decrypted_size=1024,
-        encrypted_size=1024,
-        part_size=1024,
+        decrypted_size=DECRYPTED_SIZE,
+        encrypted_size=ENCRYPTED_SIZE,
+        part_size=PART_SIZE,
     )
     await controller.remove_file_upload(box_id=box_id, file_id=file_id_1)
 
@@ -1108,9 +1111,9 @@ async def test_initiate_upload_after_cancelled(rig: JointRig):
     file_id_2 = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
-        decrypted_size=2048,
-        encrypted_size=2048,
-        part_size=1024,
+        decrypted_size=DECRYPTED_SIZE,
+        encrypted_size=ENCRYPTED_SIZE,
+        part_size=PART_SIZE,
     )
 
     assert file_id_2 != file_id_1
@@ -1132,9 +1135,9 @@ async def test_initiate_upload_blocked_for_inbox_state(rig: JointRig):
     file_id_1 = await controller.initiate_file_upload(
         box_id=box_id,
         alias="test_file",
-        decrypted_size=1024,
-        encrypted_size=1024,
-        part_size=1024,
+        decrypted_size=DECRYPTED_SIZE,
+        encrypted_size=ENCRYPTED_SIZE,
+        part_size=PART_SIZE,
     )
     object_id_1 = rig.s3_upload_details_dao.latest.object_id
     await controller.complete_file_upload(
@@ -1160,9 +1163,9 @@ async def test_initiate_upload_blocked_for_inbox_state(rig: JointRig):
         await controller.initiate_file_upload(
             box_id=box_id,
             alias="test_file",
-            decrypted_size=2048,
-            encrypted_size=2048,
-            part_size=1024,
+            decrypted_size=DECRYPTED_SIZE,
+            encrypted_size=ENCRYPTED_SIZE,
+            part_size=PART_SIZE,
         )
 
     # Original FileUpload must be untouched

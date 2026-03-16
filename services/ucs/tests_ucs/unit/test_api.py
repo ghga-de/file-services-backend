@@ -162,9 +162,9 @@ async def test_create_file_upload_endpoint_auth(
     wps_jwk = config.wps_jwk
     body = {
         "alias": "test_file",
-        "decrypted_size": 1024,
-        "encrypted_size": 1024,
-        "part_size": 1024,
+        "decrypted_size": utils.DECRYPTED_SIZE,
+        "encrypted_size": utils.ENCRYPTED_SIZE,
+        "part_size": utils.PART_SIZE,
     }
     rest_client = app_fixture.rest_client
     core_mock = app_fixture.core_mock
@@ -485,9 +485,9 @@ async def test_create_file_upload_endpoint_error_handling(
     wps_jwk = config.wps_jwk
     body = {
         "alias": "test_file",
-        "decrypted_size": 1024,
-        "encrypted_size": 1024,
-        "part_size": 1024,
+        "decrypted_size": utils.DECRYPTED_SIZE,
+        "encrypted_size": utils.ENCRYPTED_SIZE,
+        "part_size": utils.PART_SIZE,
     }
     rest_client = app_fixture.rest_client
     core_mock = app_fixture.core_mock
