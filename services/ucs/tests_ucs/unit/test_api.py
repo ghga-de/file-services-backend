@@ -204,11 +204,11 @@ async def test_create_file_upload_endpoint_auth(
     )
     response = await rest_client.post(url, json=body, headers=good_token_header)
     assert response.status_code == 201
-    # assert response.json() == {
-    #     "file_id": TEST_FILE_ID,
-    #     "alias": body["alias"],
-    #     "storage_alias": "HD01",
-    # }
+    assert response.json() == {
+        "file_id": str(TEST_FILE_ID),
+        "alias": body["alias"],
+        "storage_alias": "HD01",
+    }
 
 
 async def test_get_file_part_upload_url_endpoint_auth(
