@@ -125,8 +125,7 @@ components:
           title: Reason
         secret:
           anyOf:
-          - contentMediaType: application/octet-stream
-            format: password
+          - format: password
             type: string
             writeOnly: true
           - type: 'null'
