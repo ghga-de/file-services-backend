@@ -17,10 +17,13 @@
 from uuid import UUID
 
 from ghga_event_schemas.configs import (
+    FileDeletionRequestEventsConfig,
+    FileInternallyRegisteredEventsConfig,
     FileInterrogationFailureEventsConfig,
     FileInterrogationSuccessEventsConfig,
 )
 from ghga_event_schemas.pydantic_ import (
+    FileDeletionRequested,
     FileInternallyRegistered,
     InterrogationFailure,
     InterrogationSuccess,
@@ -36,6 +39,8 @@ from ucs.ports.inbound.controller import UploadControllerPort
 class EventSubConfig(
     FileInterrogationFailureEventsConfig,
     FileInterrogationSuccessEventsConfig,
+    FileInternallyRegisteredEventsConfig,
+    FileDeletionRequestEventsConfig,
 ):
     """Event sub translator configuration"""
 
@@ -51,10 +56,16 @@ class EventSubTranslator(EventSubscriberProtocol):
     ):
         """Configure the translator"""
         self._config = config
-        self.topics_of_interest = [config.file_interrogations_topic]
+        self.topics_of_interest = [
+            config.file_interrogations_topic,
+            config.file_internally_registered_topic,
+            config.file_deletion_request_topic,
+        ]
         self.types_of_interest = [
             config.interrogation_success_type,
             config.interrogation_failure_type,
+            config.file_internally_registered_type,
+            config.file_deletion_request_type,
         ]
         self._upload_controller = upload_controller
 
@@ -84,6 +95,14 @@ class EventSubTranslator(EventSubscriberProtocol):
             registration_metadata=validated_payload
         )
 
+    @TRACER.start_as_current_span("EventSubTranslator._consume_file_deletion_requested")
+    async def _consume_file_deletion_requested(self, *, payload: JsonObject):
+        """Consume a FileDeletionRequested event"""
+        validated_payload = get_validated_payload(payload, FileDeletionRequested)
+        await self._upload_controller.process_file_deletion_requested(
+            file_id=validated_payload.file_id
+        )
+
     async def _consume_validated(
         self, *, payload: JsonObject, type_: str, topic: str, key: str, event_id: UUID
     ) -> None:
@@ -91,3 +110,7 @@ class EventSubTranslator(EventSubscriberProtocol):
             await self._consume_interrogation_success(payload=payload)
         elif type_ == self._config.interrogation_failure_type:
             await self._consume_interrogation_failure(payload=payload)
+        elif type_ == self._config.file_internally_registered_type:
+            await self._consume_file_internally_registered(payload=payload)
+        elif type_ == self._config.file_deletion_request_type:
+            await self._consume_file_deletion_requested(payload=payload)

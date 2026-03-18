@@ -961,3 +961,33 @@ class UploadController(UploadControllerPort):
 
         await self._file_upload_dao.update(file_upload)
         log.info("Processed internal file registration for %s.", file_id)
+
+    async def process_file_deletion_requested(self, *, file_id: UUID4) -> None:
+        """Process a deletion request for the given FileUpload ID.
+
+        This will remove the object from the inbox, if it exists.
+        Database objects are untouched.
+
+        If no FileUpload with the given ID exists, merely logs a warning and returns.
+        """
+        try:
+            file_upload = await self._file_upload_dao.get_by_id(file_id)
+        except ResourceNotFoundError:
+            log.warning(
+                "Cannot process deletion request for file ID %s. No such FileUpload found.",
+                file_id,
+                extra={"file_id": file_id},
+            )
+            return
+
+        if file_upload.state in ["cancelled", "failed"]:
+            log.info(
+                "FileUpload %s is already marked '%s', further action presumed unnecessary.",
+                file_id,
+                file_upload.state,
+            )
+            return
+
+        # This will result in a second FileUpload fetch, but alternative is to
+        #  replicate removal logic here
+        await self.remove_file_upload(box_id=file_upload.box_id, file_id=file_id)

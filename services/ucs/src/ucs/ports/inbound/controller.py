@@ -343,3 +343,14 @@ class UploadControllerPort(ABC):
         - `FileUploadStateError` if the FileUpload's details aren't what's expected.
         """
         ...
+
+    @abstractmethod
+    async def process_file_deletion_requested(self, *, file_id: UUID4) -> None:
+        """Process a deletion request for the given FileUpload ID.
+
+        This will remove the object from the inbox, if it exists.
+        Database objects are untouched.
+
+        If no FileUpload with the given ID exists, merely logs a warning and returns.
+        """
+        ...
