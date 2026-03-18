@@ -20,11 +20,16 @@ from ghga_event_schemas.configs import (
     FileInterrogationFailureEventsConfig,
     FileInterrogationSuccessEventsConfig,
 )
-from ghga_event_schemas.pydantic_ import InterrogationFailure, InterrogationSuccess
+from ghga_event_schemas.pydantic_ import (
+    FileInternallyRegistered,
+    InterrogationFailure,
+    InterrogationSuccess,
+)
 from ghga_event_schemas.validation import get_validated_payload
 from hexkit.custom_types import JsonObject
 from hexkit.protocols.eventsub import EventSubscriberProtocol
 
+from ucs.constants import TRACER
 from ucs.ports.inbound.controller import UploadControllerPort
 
 
@@ -53,6 +58,7 @@ class EventSubTranslator(EventSubscriberProtocol):
         ]
         self._upload_controller = upload_controller
 
+    @TRACER.start_as_current_span("EventSubTranslator._consume_interrogation_success")
     async def _consume_interrogation_success(self, *, payload: JsonObject):
         """Consume an InterrogationSuccess event"""
         validated_payload = get_validated_payload(payload, InterrogationSuccess)
@@ -60,11 +66,22 @@ class EventSubTranslator(EventSubscriberProtocol):
             report=validated_payload
         )
 
+    @TRACER.start_as_current_span("EventSubTranslator._consume_interrogation_failure")
     async def _consume_interrogation_failure(self, *, payload: JsonObject):
         """Consume an InterrogationFailure event"""
         validated_payload = get_validated_payload(payload, InterrogationFailure)
         await self._upload_controller.process_interrogation_failure(
             report=validated_payload
+        )
+
+    @TRACER.start_as_current_span(
+        "EventSubTranslator._consume_file_internally_registered"
+    )
+    async def _consume_file_internally_registered(self, *, payload: JsonObject):
+        """Consume a FileInternallyRegistered event"""
+        validated_payload = get_validated_payload(payload, FileInternallyRegistered)
+        await self._upload_controller.process_internal_file_registration(
+            registration_metadata=validated_payload
         )
 
     async def _consume_validated(
