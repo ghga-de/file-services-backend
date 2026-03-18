@@ -20,7 +20,11 @@ from contextlib import suppress
 from typing import Any
 from uuid import uuid4
 
-from ghga_event_schemas.pydantic_ import InterrogationFailure, InterrogationSuccess
+from ghga_event_schemas.pydantic_ import (
+    FileInternallyRegistered,
+    InterrogationFailure,
+    InterrogationSuccess,
+)
 from hexkit.protocols.dao import NoHitsFoundError, UniqueConstraintViolationError
 from hexkit.utils import now_utc_ms_prec
 from pydantic import UUID4
@@ -908,3 +912,49 @@ class UploadController(UploadControllerPort):
             raise error from err
 
         await self._remove_completed_file_upload(s3_upload_details=s3_upload_details)
+
+    async def process_internal_file_registration(
+        self, *, registration_metadata: FileInternallyRegistered
+    ) -> None:
+        """Update a FileUpload state to 'archived' and verify other data.
+
+        Raises:
+        - `FileUploadNotFound` if the FileUpload isn't found.
+        - `FileUploadStateError` if the FileUpload's details aren't what's expected.
+        """
+        file_id = registration_metadata.file_id
+        try:
+            file_upload = await self._file_upload_dao.get_by_id(file_id)
+        except ResourceNotFoundError as err:
+            error = self.FileUploadNotFound(file_id=file_id)
+            log.error(error, extra={"file_id": file_id})
+            raise error from err
+
+        if file_upload.state == "archived":
+            log.info("FileUpload %s is already marked 'archived', returning.", file_id)
+            return
+
+        if file_upload.state != "awaiting_archival":
+            details = f"FileUpload state was {file_upload.state}, but expected 'awaiting_archival'."
+            error = self.FileUploadStateError(file_id=file_id, details=details)
+            log.error(error)
+            raise error
+
+        # Update the state and state_updated fields
+        file_upload.state = "archived"
+        file_upload.state_updated = now_utc_ms_prec()
+
+        for field in [
+            "decrypted_sha256",
+            "encrypted_parts_md5",
+            "encrypted_parts_sha256",
+            "storage_alias",
+            "secret_id",
+            "decrypted_size",
+            "encrypted_size",
+        ]:
+            if getattr(file_upload, field) != getattr(registration_metadata, field):
+                details = f"The value for {field} doesn't match the event data."
+                error = self.FileUploadStateError(file_id=file_id, details=details)
+                log.error(error)
+                raise error
