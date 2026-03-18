@@ -958,3 +958,6 @@ class UploadController(UploadControllerPort):
                 error = self.FileUploadStateError(file_id=file_id, details=details)
                 log.error(error)
                 raise error
+
+        await self._file_upload_dao.update(file_upload)
+        log.info("Processed internal file registration for %s.", file_id)

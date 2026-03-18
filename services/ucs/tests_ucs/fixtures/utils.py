@@ -151,7 +151,7 @@ def make_file_upload(
     state: FileUploadState = "init",
 ) -> FileUpload:
     """Make a FileUpload instance with sensible defaults."""
-    return FileUpload(
+    file_upload = FileUpload(
         id=uuid4(),
         alias="test.bam",
         box_id=uuid4(),
@@ -164,3 +164,13 @@ def make_file_upload(
         encrypted_size=ENCRYPTED_SIZE,
         part_size=PART_SIZE,
     )
+
+    if state != "init":
+        file_upload.decrypted_sha256 = "my-decrypted-sha"
+        file_upload.encrypted_parts_md5 = ["a1", "b2", "c3"]
+        file_upload.encrypted_parts_sha256 = ["a1", "b2", "c3"]
+
+    if state not in ["init", "inbox"]:
+        file_upload.secret_id = "the-secret-is"
+
+    return file_upload
