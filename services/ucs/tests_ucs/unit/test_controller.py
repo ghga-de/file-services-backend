@@ -1222,7 +1222,7 @@ async def test_handle_internal_file_registration(rig: JointRig):
     await rig.controller.process_internal_file_registration(registration_metadata=event)
     updated_file_upload = await rig.file_upload_dao.get_by_id(file_upload.id)
     assert updated_file_upload.state == "archived"
-    assert updated_file_upload.state_updated >= file_upload.state_updated
+    assert updated_file_upload.state_updated > file_upload.state_updated
 
     # Now reprocess the event - should get no errors and timestamp should be unchanged
     await sleep(0.1)  # sleep so that timestamp comparisons are valid

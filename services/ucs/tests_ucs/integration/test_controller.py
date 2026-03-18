@@ -633,7 +633,7 @@ async def test_file_upload_report_happy(joint_fixture: JointFixture):
     await joint_fixture.event_subscriber.run(forever=False)
 
 
-async def test_file_deletion_requested_event(joint_fixture: JointFixture):
+async def test_file_deletion_requested_event(joint_fixture: JointFixture, caplog):
     """Test that consuming a FileDeletionRequested event aborts the S3 multipart upload,
     removes S3UploadDetails from the DB, and marks the FileUpload as 'cancelled'.
 
@@ -680,7 +680,14 @@ async def test_file_deletion_requested_event(joint_fixture: JointFixture):
         type_=config.file_deletion_request_type,
         topic=config.file_deletion_request_topic,
     )
-    await joint_fixture.event_subscriber.run(forever=False)
+    with caplog.at_level("INFO"):
+        caplog.clear()
+        await joint_fixture.event_subscriber.run(forever=False)
+    assert any(
+        f"FileUpload {file_id} is already marked 'cancelled', further action presumed unnecessary."
+        in record.message
+        for record in caplog.records
+    )
 
     # Publish/Consume a deletion request for a file that doesn't exist (no error)
     unknown_event = FileDeletionRequested(file_id=uuid4())
@@ -689,4 +696,11 @@ async def test_file_deletion_requested_event(joint_fixture: JointFixture):
         type_=config.file_deletion_request_type,
         topic=config.file_deletion_request_topic,
     )
-    await joint_fixture.event_subscriber.run(forever=False)
+    with caplog.at_level("WARNING"):
+        caplog.clear()
+        await joint_fixture.event_subscriber.run(forever=False)
+    assert any(
+        f"Cannot process deletion request for file ID {unknown_event.file_id}. No such FileUpload found."
+        in record.message
+        for record in caplog.records
+    )
