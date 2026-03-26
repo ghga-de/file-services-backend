@@ -20,16 +20,18 @@ from ghga_service_commons.utils.utc_dates import UTCDatetime
 from pydantic import UUID4, BaseModel, Field
 
 
-class S3UploadDetails(BaseModel):
-    """Class for linking a multipart upload to its FileUpload object"""
+class FileUploadBasics(BaseModel):
+    """Holds the fields of a FileUpload that are known before S3 upload initiation."""
 
-    file_id: UUID4  # the id of the corresponding FileUpload
-    bucket_id: str
-    object_id: UUID4  # the S3 object ID (from FileUpload.object_id)
+    id: UUID4
+    box_id: UUID4
+    alias: str
     storage_alias: str
-    s3_upload_id: str
-    initiated: UTCDatetime
-    completed: UTCDatetime | None = None
+    bucket_id: str
+    object_id: UUID4
+    decrypted_size: int
+    encrypted_size: int
+    part_size: int
 
 
 class FileUploadBox(event_schemas.FileUploadBox):
@@ -47,7 +49,17 @@ class FileUpload(event_schemas.FileUpload):
     permanent archival.
     """
 
-    inbox_upload_completed: bool = Field(  # Note: This is a UCS-only field
+    # Note: The following are UCS-only fields
+    inbox_upload_completed: bool = Field(
         default=False,
         description="Indicates whether the file has been completely uploaded to the inbox.",
+    )
+    s3_upload_id: str = Field(
+        default=..., description="The ID of the S3 multipart upload"
+    )
+    initiated: UTCDatetime = Field(
+        default=..., description="When the S3 multipart upload was initiated"
+    )
+    completed: UTCDatetime | None = Field(
+        default=None, description="When the S3 multipart upload was completed"
     )

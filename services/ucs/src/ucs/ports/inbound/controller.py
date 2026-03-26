@@ -49,16 +49,6 @@ class UploadControllerPort(ABC):
     class FileArchivalError(UploadError):
         """Raised when there's a problem that prevents archiving a given FileUpload."""
 
-    class S3UploadDetailsNotFoundError(UploadError):
-        """Raised when the expected S3 upload details aren't found in the local DB.
-
-        This happens when there is a FileUpload object but no matching S3UploadDetails.
-        """
-
-        def __init__(self, *, file_id: UUID4):
-            msg = f"Failed to find S3 multipart upload details for file ID {file_id}."
-            super().__init__(msg)
-
     class UnknownStorageAliasError(UploadError):
         """Raised when the requested storage alias is not configured."""
 

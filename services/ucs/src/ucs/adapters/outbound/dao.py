@@ -16,28 +16,15 @@
 """DAO translators for accessing the database."""
 
 from ghga_event_schemas.configs import FileUploadBoxEventsConfig, FileUploadEventsConfig
-from hexkit.protocols.dao import DaoFactoryProtocol
 from hexkit.protocols.daopub import DaoPublisher, DaoPublisherFactoryProtocol
 from hexkit.providers.mongodb import MongoDbIndex
 
 from ucs.constants import (
     FILE_UPLOAD_BOXES_COLLECTION,
     FILE_UPLOADS_COLLECTION,
-    S3_UPLOAD_DETAILS_COLLECTION,
 )
-from ucs.core.models import FileUpload, FileUploadBox, S3UploadDetails
-from ucs.ports.outbound.dao import S3UploadDetailsDao, UploadDaoPublisherFactoryPort
-
-
-async def get_s3_upload_details_dao(
-    *, dao_factory: DaoFactoryProtocol
-) -> S3UploadDetailsDao:
-    """Produce as S3UploadDetailsDao"""
-    return await dao_factory.get_dao(
-        name=S3_UPLOAD_DETAILS_COLLECTION,
-        dto_model=S3UploadDetails,
-        id_field="file_id",
-    )
+from ucs.core.models import FileUpload, FileUploadBox
+from ucs.ports.outbound.dao import UploadDaoPublisherFactoryPort
 
 
 class UploadDaoConfig(FileUploadBoxEventsConfig, FileUploadEventsConfig):
