@@ -30,6 +30,7 @@ from hexkit.utils import now_utc_ms_prec
 
 from tests_ucs.fixtures import utils
 from tests_ucs.fixtures.joint import JointFixture
+from ucs.adapters.outbound.dao import FIELDS_NOT_PUBLISHED
 from ucs.constants import FILE_UPLOADS_COLLECTION
 from ucs.ports.inbound.controller import UploadControllerPort
 
@@ -167,6 +168,8 @@ async def test_integrated_aspects(joint_fixture: JointFixture):
         events = file_recorder.recorded_events
         assert len(events) == 1
         assert events[0].payload["state"] in ["inbox", "archived"]
+        # Make sure the UCS-only fields are excluded from the outbox event
+        assert not any(field in events[0].payload for field in FIELDS_NOT_PUBLISHED)
 
         # Let's lock the box now and verify that it is reflected in the event.
         # Box version is 1 after completing the file upload (stats changed 0→1 file).

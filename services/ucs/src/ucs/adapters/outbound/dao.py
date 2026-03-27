@@ -26,6 +26,14 @@ from ucs.constants import (
 from ucs.core.models import FileUpload, FileUploadBox
 from ucs.ports.outbound.dao import UploadDaoPublisherFactoryPort
 
+# The following FileUpload fields are UCS-only and excluded from outbox events
+FIELDS_NOT_PUBLISHED: set[str] = {
+    "inbox_upload_completed",
+    "s3_upload_id",
+    "initiated",
+    "completed",
+}
+
 
 class UploadDaoConfig(FileUploadBoxEventsConfig, FileUploadEventsConfig):
     """Topic configuration for the published DTOs"""
@@ -64,7 +72,7 @@ class UploadDaoPublisherFactory(UploadDaoPublisherFactoryPort):
             name=FILE_UPLOADS_COLLECTION,
             id_field="id",
             dto_model=FileUpload,
-            dto_to_event=lambda x: x.model_dump(exclude={"inbox_upload_completed"}),
+            dto_to_event=lambda x: x.model_dump(exclude=FIELDS_NOT_PUBLISHED),
             event_topic=self._file_upload_topic,
             autopublish=True,
             indexes=[
