@@ -192,7 +192,7 @@ class UploadControllerPort(ABC):
         the given number of the upload with the given file ID.
 
         Raises:
-        - `S3UploadDetailsNotFoundError` if no upload details are found.
+        - `FileUploadNotFound` if the FileUpload is not found.
         - `UnknownStorageAliasError` if the storage alias is not known.
         - `UploadSessionNotFoundError` if the upload session can't be found.
         """
@@ -215,7 +215,6 @@ class UploadControllerPort(ABC):
 
         Raises:
         - `FileUploadNotFound` if the FileUpload isn't found.
-        - `S3UploadDetailsNotFoundError` if the S3UploadDetails aren't found.
         - `BoxNotFoundError` if the FileUploadBox isn't found.
         - `BoxStateError` if the box exists but is locked.
         - `BoxVersionError` if the box version changed before stats could be updated.
@@ -233,7 +232,6 @@ class UploadControllerPort(ABC):
         - `BoxNotFoundError` if the box does not exist.
         - `BoxStateError` if the box exists but is locked.
         - `BoxVersionError` if the box version changed before stats could be updated.
-        - `S3UploadDetailsNotFoundError` if the S3UploadDetails aren't found.
         - `UnknownStorageAliasError` if the storage alias is not known.
         - `UploadAbortError` if there's an error instructing S3 to abort the upload.
         """
@@ -256,7 +254,7 @@ class UploadControllerPort(ABC):
         Raises:
         - `BoxNotFoundError` if the FileUploadBox isn't found in the DB.
         - `BoxVersionError` if the supplied version doesn't match the current version.
-        - `IncompleteUploadsError` if the box has incomplete FileUploads.
+        - `IncompleteUploadsError` if the FileUploadBox has incomplete FileUploads.
         """
         ...
 
@@ -286,7 +284,7 @@ class UploadControllerPort(ABC):
 
     @abstractmethod
     async def get_box_file_info(self, *, box_id: UUID4) -> list[FileUpload]:
-        """Return the list of FileUploads for a FileUploadBox.
+        """Return the list of FileUploads for a FileUploadBox, sorted by alias.
 
         Raises:
         - `BoxNotFoundError` if the FileUploadBox isn't found in the DB.
@@ -301,7 +299,6 @@ class UploadControllerPort(ABC):
         interrogation report and remove it from the inbox bucket.
 
         Raises:
-        - `S3UploadDetailsNotFoundError` if the S3UploadDetails aren't found.
         - `FileUploadNotFound` if the FileUpload isn't found.
         - `UnknownStorageAliasError` if the storage alias is not known.
         - `UploadAbortError` if there's an error instructing S3 to abort the upload.
@@ -316,7 +313,6 @@ class UploadControllerPort(ABC):
 
         Raises:
         - `FileUploadNotFound` if the FileUpload isn't found.
-        - `S3UploadDetailsNotFoundError` if the S3UploadDetails aren't found.
         - `UnknownStorageAliasError` if the storage alias is not known.
         - `UploadAbortError` if there's an error instructing S3 to abort the upload.
         """

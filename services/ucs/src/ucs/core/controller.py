@@ -119,8 +119,7 @@ class UploadController(UploadControllerPort):
     ) -> bool:
         """Try to replace an existing FileUpload for a given box and alias.
 
-        If successful, this method will delete any existing S3UploadDetails from the
-        database, delete the old FileUpload, and insert the new one.
+        If successful, this method will delete the old FileUpload and insert the new one.
         This does result in an outbox deletion event for the old FileUpload.
 
         Returns a boolean indicating whether replacement was successful.
