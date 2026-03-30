@@ -23,15 +23,40 @@ from pydantic import UUID4, BaseModel, Field
 class FileUploadBasics(BaseModel):
     """Holds the fields of a FileUpload that are known before S3 upload initiation."""
 
-    id: UUID4
-    box_id: UUID4
-    alias: str
-    storage_alias: str
-    bucket_id: str
-    object_id: UUID4
-    decrypted_size: int
-    encrypted_size: int
-    part_size: int
+    id: UUID4 = Field(default=..., description="Unique identifier for the file upload")
+    box_id: UUID4 = Field(
+        default=...,
+        description="The ID of the FileUploadBox this file is associated with",
+    )
+    alias: str = Field(
+        default=...,
+        description="The submitted alias from the metadata (unique within the box)",
+    )
+    storage_alias: str = Field(
+        default=..., description="The storage alias of the Data Hub housing the file"
+    )
+    bucket_id: str = Field(
+        default=...,
+        description="The name of the bucket where the file is currently stored",
+    )
+    object_id: UUID4 = Field(
+        default=..., description="The ID of the file specific to its S3 bucket"
+    )
+    decrypted_size: int = Field(
+        default=..., description="The size of the unencrypted file"
+    )
+    encrypted_size: int = Field(
+        default=...,
+        description=(
+            "The size of the encrypted file content. When the file is in the inbox, this"
+            + " includes the Crypt4GH envelope. After re-encryption, the file no longer"
+            + " contains an envelope, so the value is slightly smaller."
+        ),
+    )
+    part_size: int = Field(
+        default=...,
+        description="The number of bytes in each file part (last part is likely smaller)",
+    )
 
 
 class FileUploadBox(event_schemas.FileUploadBox):

@@ -34,7 +34,10 @@ pytestmark = pytest.mark.asyncio
 def _to_basics(file_upload: FileUpload) -> FileUploadBasics:
     """Extract a FileUploadBasics from a FileUpload."""
     return FileUploadBasics(
-        **{k: getattr(file_upload, k) for k in FileUploadBasics.model_fields}
+        **{
+            field: getattr(file_upload, field)
+            for field in FileUploadBasics.model_fields
+        }
     )
 
 
