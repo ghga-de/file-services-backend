@@ -18,40 +18,6 @@ from ghga_service_commons.httpyexpect.server import HttpCustomExceptionBase
 from pydantic import BaseModel
 
 
-class HttpMalformedOrMissingEnvelopeError(HttpCustomExceptionBase):
-    """Raised when envelope decryption fails due to a missing or malformed envelope."""
-
-    exception_id = "malformedOrMissingEnvelopeError"
-
-    class DataModel(BaseModel):
-        """Model for exception data"""
-
-    def __init__(self, *, status_code: int = 400):
-        """Construct message and init the exception."""
-        super().__init__(
-            status_code=status_code,
-            description=("Envelope malformed or missing"),
-            data={},
-        )
-
-
-class HttpEnvelopeDecryptionError(HttpCustomExceptionBase):
-    """Raised when no available secret crypt4GH key can successfully decrypt the file envelope."""
-
-    exception_id = "envelopeDecryptionError"
-
-    class DataModel(BaseModel):
-        """Model for exception data"""
-
-    def __init__(self, *, status_code: int = 403):
-        """Construct message and init the exception."""
-        super().__init__(
-            status_code=status_code,
-            description=("Could not decrypt envelope content with given keys"),
-            data={},
-        )
-
-
 class HttpSecretInsertionError(HttpCustomExceptionBase):
     """Raised when a secret could not be inserted into the vault"""
 

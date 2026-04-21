@@ -23,12 +23,9 @@ from pathlib import Path
 import pytest_asyncio
 
 from ekss.config import Config
-from tests_ekss.fixtures.config import DEFAULT_CONFIG, get_config
-from tests_ekss.fixtures.keypair import tmp_keypair
-from tests_ekss.fixtures.vault import (
-    VaultFixture,
-    vault_fixture,  # noqa: F401
-)
+from tests_ekss.fixtures.config import get_config
+from tests_ekss.fixtures.keypair import KeypairFixture
+from tests_ekss.fixtures.vault import VaultFixture
 
 
 @dataclass
@@ -36,7 +33,7 @@ class EnvelopeFixture:
     """Fixture for GET call to create an envelope"""
 
     config: Config
-    public_key_path: Path
+    user_public_key: bytes
     private_key_path: Path
     secret_id: str
     secret: bytes
@@ -45,23 +42,20 @@ class EnvelopeFixture:
 
 @pytest_asyncio.fixture
 async def envelope_fixture(
-    *,
-    vault_fixture: VaultFixture,  # noqa: F811
+    keypair: KeypairFixture, vault_fixture: VaultFixture
 ) -> AsyncGenerator[EnvelopeFixture]:
     """
     Generates an EnvelopeFixture, containing a client public key as well as a secret id
     That secret id corresponds to a random secret created and put into the database
     """
     secret = os.urandom(32)
-    # put secret in database
     secret_id = vault_fixture.adapter.store_secret(secret=secret)
-    with tmp_keypair(DEFAULT_CONFIG.private_key_passphrase) as crypt4gh_config:
-        config = get_config([vault_fixture.config, crypt4gh_config])
-        yield EnvelopeFixture(
-            config=config,
-            public_key_path=config.server_public_key_path,
-            private_key_path=config.server_private_key_path,
-            secret_id=secret_id,
-            secret=secret,
-            vault=vault_fixture,
-        )
+    config = get_config([vault_fixture.config, keypair.config])
+    yield EnvelopeFixture(
+        config=config,
+        user_public_key=keypair.user_pk,
+        private_key_path=config.server_private_key_path,
+        secret_id=secret_id,
+        secret=secret,
+        vault=vault_fixture,
+    )

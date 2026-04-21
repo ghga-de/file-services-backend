@@ -19,55 +19,41 @@ import io
 
 import crypt4gh.header
 import pytest
-from crypt4gh.keys import get_private_key, get_public_key
 
-from tests_ekss.fixtures.envelope import (
-    EnvelopeFixture,
-    envelope_fixture,  # noqa: F401
-)
+from tests_ekss.fixtures.envelope import EnvelopeFixture
+from tests_ekss.fixtures.keypair import KeypairFixture
 from tests_ekss.fixtures.utils import get_test_client
-from tests_ekss.fixtures.vault import vault_fixture  # noqa: F401
 
 pytestmark = pytest.mark.asyncio()
 
 
-async def test_get_envelope(
-    *,
-    envelope_fixture: EnvelopeFixture,  # noqa: F811
-):
+async def test_get_envelope(keypair: KeypairFixture, envelope_fixture: EnvelopeFixture):
     """Test request response for /secrets/../envelopes/.. endpoint with valid data"""
     secret_id = envelope_fixture.secret_id
-    client_pk = base64.urlsafe_b64encode(
-        get_public_key(envelope_fixture.public_key_path)
-    ).decode("utf-8")
+    client_pk = base64.urlsafe_b64encode(envelope_fixture.user_public_key).decode(
+        "utf-8"
+    )
     client = get_test_client(envelope_fixture.config)
     response = client.get(url=f"/secrets/{secret_id}/envelopes/{client_pk}")
     assert response.status_code == 200
     body = response.json()
     content = base64.b64decode(body["content"])
     assert content
-    client_sk = get_private_key(
-        envelope_fixture.private_key_path,
-        callback=lambda: envelope_fixture.config.private_key_passphrase,
-    )
-    keys = [(0, client_sk, None)]
+    keys = [(0, keypair.user_sk, None)]
     session_keys, _ = crypt4gh.header.deconstruct(
         infile=io.BytesIO(content),
         keys=keys,
-        sender_pubkey=get_public_key(envelope_fixture.config.server_public_key_path),
+        sender_pubkey=keypair.ekss_pk,
     )
     assert session_keys[0] == envelope_fixture.secret
 
 
-async def test_wrong_id(
-    *,
-    envelope_fixture: EnvelopeFixture,  # noqa: F811
-):
+async def test_wrong_id(envelope_fixture: EnvelopeFixture):
     """Test request response for /secrets/../envelopes/.. endpoint with invalid secret_id"""
     secret_id = "wrong_id"
-    client_pk = base64.urlsafe_b64encode(
-        get_public_key(envelope_fixture.public_key_path)
-    ).decode("utf-8")
+    client_pk = base64.urlsafe_b64encode(envelope_fixture.user_public_key).decode(
+        "utf-8"
+    )
     client = get_test_client(envelope_fixture.config)
     response = client.get(url=f"/secrets/{secret_id}/envelopes/{client_pk}")
     assert response.status_code == 404

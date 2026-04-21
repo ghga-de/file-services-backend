@@ -110,16 +110,6 @@ The service requires the following configuration parameters:
   ```
 
 
-- <a id="properties/server_public_key_path"></a>**`server_public_key_path`** *(string, format: path, required)*: Path to the Crypt4GH public key file.
-
-
-  Examples:
-
-  ```json
-  "./key.pub"
-  ```
-
-
 - <a id="properties/private_key_passphrase"></a>**`private_key_passphrase`**: Passphrase needed to read the content of the private key file. Only needed if the private key is encrypted. Default: `null`.
 
   - **Any of**

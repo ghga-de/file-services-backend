@@ -154,48 +154,6 @@ components:
       properties: {}
       title: HttpVaultConnectionErrorData
       type: object
-    InboundEnvelopeContent:
-      description: 'Contains file encryption/decryption secret extracted from file
-        envelope, the ID
-
-        generated for this secret and the file content offset, i.e. the location of
-        the
-
-        encrypted file content within the file.'
-      properties:
-        new_secret:
-          title: New Secret
-          type: string
-        offset:
-          title: Offset
-          type: integer
-        secret_id:
-          title: Secret Id
-          type: string
-        submitter_secret:
-          title: Submitter Secret
-          type: string
-      required:
-      - submitter_secret
-      - new_secret
-      - secret_id
-      - offset
-      title: InboundEnvelopeContent
-      type: object
-    InboundEnvelopeQuery:
-      description: Request object containing first file part and a public key.
-      properties:
-        file_part:
-          title: File Part
-          type: string
-        public_key:
-          title: Public Key
-          type: string
-      required:
-      - file_part
-      - public_key
-      title: InboundEnvelopeQuery
-      type: object
     OutboundEnvelopeContent:
       description: 'Contains the header envelope, which contains the file secret encrypted
         with the
@@ -208,6 +166,16 @@ components:
       required:
       - content
       title: OutboundEnvelopeContent
+      type: object
+    SecretID:
+      description: Contains the Vault-generated secret ID for a file encryption secret.
+      properties:
+        secret_id:
+          title: Secret Id
+          type: string
+      required:
+      - secret_id
+      title: SecretID
       type: object
     ValidationError:
       properties:
@@ -262,18 +230,12 @@ paths:
 
         file content offset'
       operationId: postEncryptionData
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/InboundEnvelopeQuery'
-        required: true
       responses:
         '200':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/InboundEnvelopeContent'
+                $ref: '#/components/schemas/SecretID'
           description: Successfully created and stored secret for re-encryption.
         '400':
           content:
@@ -325,7 +287,7 @@ paths:
           type: string
       responses:
         '204':
-          description: Succesfully deleted secret.
+          description: Successfully deleted secret.
         '404':
           content:
             application/json:

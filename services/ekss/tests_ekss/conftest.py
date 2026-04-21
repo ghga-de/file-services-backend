@@ -13,21 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Defines dataclasses for holding business-logic data"""
+"""Test fixture setup"""
 
-from pydantic import BaseModel
-
-
-class OutboundEnvelopeContent(BaseModel):
-    """
-    Contains the header envelope, which contains the file secret encrypted with the
-    client's public key and the server's private key
-    """
-
-    content: str
-
-
-class SecretID(BaseModel):
-    """Contains the Vault-generated secret ID for a file encryption secret."""
-
-    secret_id: str
+from tests_ekss.fixtures.envelope import envelope_fixture  # noqa: F401
+from tests_ekss.fixtures.keypair import keypair_fixture  # noqa: F401
+from tests_ekss.fixtures.vault import VaultFixture, vault_fixture  # noqa: F401
