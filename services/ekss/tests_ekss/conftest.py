@@ -15,6 +15,6 @@
 
 """Test fixture setup"""
 
-from tests_ekss.fixtures.envelope import envelope_fixture  # noqa: F401
+from tests_ekss.fixtures.client import client_fixture  # noqa: F401
 from tests_ekss.fixtures.keypair import keypair_fixture  # noqa: F401
-from tests_ekss.fixtures.vault import VaultFixture, vault_fixture  # noqa: F401
+from tests_ekss.fixtures.vault import vault_fixture  # noqa: F401

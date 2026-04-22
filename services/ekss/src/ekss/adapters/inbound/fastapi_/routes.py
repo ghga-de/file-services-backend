@@ -16,22 +16,14 @@
 
 import base64
 import logging
+from typing import Annotated
 
-from crypt4gh.keys import get_private_key
-from fastapi import APIRouter, Depends, Request, status
-from ghga_service_commons.utils.crypt import decrypt
-from requests.exceptions import RequestException
+from fastapi import APIRouter, Body, status
 
 from ekss.adapters.inbound.fastapi_ import exceptions, models
-from ekss.adapters.inbound.fastapi_.deps import config_injector
-from ekss.adapters.outbound.vault import VaultAdapter
-from ekss.adapters.outbound.vault.exceptions import (
-    SecretInsertionError,
-    SecretRetrievalError,
-)
-from ekss.config import Config
+from ekss.adapters.inbound.fastapi_.dummies import SecretsHandlerDummy
 from ekss.constants import TRACER
-from ekss.core.envelope_encryption import get_envelope
+from ekss.ports.inbound.secrets import SecretsHandlerPort
 
 log = logging.getLogger(__name__)
 router = APIRouter(tags=["EncryptionKeyStoreService"])
@@ -59,6 +51,18 @@ ERROR_RESPONSES = {
         "description": "Could not decrypt the submitted file secret",
         "model": exceptions.HttpDecryptionError.get_body_model(),
     },
+    "envelopeCreationError": {
+        "description": "Could not create envelope for the requested secret.",
+        "model": exceptions.HttpEnvelopeCreationError.get_body_model(),
+    },
+    "secretDeletionError": {
+        "description": "The secret was found but could not be deleted.",
+        "model": exceptions.HttpSecretDeletionError.get_body_model(),
+    },
+    "internalError": {
+        "description": "An internal server error has occurred.",
+        "model": exceptions.HttpInternalError.get_body_model(),
+    },
 }
 
 
@@ -77,12 +81,13 @@ async def health():
     "/secrets",
     summary="Store Crypt4GH-encrypted file encryption secret",
     operation_id="postEncryptionData",
-    status_code=status.HTTP_200_OK,
+    status_code=status.HTTP_201_CREATED,
     response_model=models.SecretID,
     response_description="Successfully stored file encryption secret.",
     responses={
         status.HTTP_403_FORBIDDEN: ERROR_RESPONSES["decryptionError"],
         status.HTTP_422_UNPROCESSABLE_CONTENT: ERROR_RESPONSES["decodingError"],
+        status.HTTP_500_INTERNAL_SERVER_ERROR: ERROR_RESPONSES["internalError"],
         status.HTTP_502_BAD_GATEWAY: ERROR_RESPONSES["secretInsertionError"],
         status.HTTP_504_GATEWAY_TIMEOUT: ERROR_RESPONSES["vaultConnectionError"],
     },
@@ -90,38 +95,33 @@ async def health():
 @TRACER.start_as_current_span("routes.post_encryption_secret")
 async def post_encryption_secret(
     *,
-    request: Request,
-    config: Config = Depends(config_injector),
+    body: Annotated[
+        bytes,
+        Body(
+            min_length=1,  # Auto-reject empty string
+            description=(
+                "Base64-encoded string containing a Crypt4GH-encrypted file"
+                + " encryption secret."
+            ),
+        ),
+    ],
+    secrets_handler: SecretsHandlerDummy,
 ):
     """Extract file encryption/decryption secret, create secret ID and extract
     file content offset
     """
-    vault = VaultAdapter(config)
     try:
-        encrypted_secret = (await request.body()).decode("utf-8")
-    except Exception as error:
-        raise exceptions.HttpDecodingError(affected="encrypted secret") from error
-
-    try:
-        server_private_key = get_private_key(
-            config.server_private_key_path, lambda: config.private_key_passphrase
-        )
-        base64_file_secret = decrypt(encrypted_secret, server_private_key)
-    except Exception as error:
-        raise exceptions.HttpDecryptionError() from error
-
-    try:
-        file_secret = base64.urlsafe_b64decode(base64_file_secret)
-    except Exception as error:
+        encrypted_secret = body.decode("utf-8")
+        secret_id = secrets_handler.deposit_secret(encrypted_secret=encrypted_secret)
+    except SecretsHandlerPort.SecretDecodeError as error:
         raise exceptions.HttpDecodingError(affected="decrypted secret") from error
-
-    try:
-        secret_id = vault.store_secret(secret=file_secret)
-        log.info("Successfully stored secret in Vault")
-    except SecretInsertionError as error:
+    except SecretsHandlerPort.SecretDecryptionError as error:
+        raise exceptions.HttpDecryptionError() from error
+    except SecretsHandlerPort.SecretInsertionError as error:
         raise exceptions.HttpSecretInsertionError() from error
-    except RequestException as error:
-        raise exceptions.HttpVaultConnectionError() from error
+    except Exception as exc:
+        log.error(str(exc), exc_info=True)
+        raise exceptions.HttpInternalError(message="Failed to deposit secret") from exc
 
     return {"secret_id": secret_id}
 
@@ -136,28 +136,34 @@ async def post_encryption_secret(
     responses={
         status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["secretNotFoundError"],
         status.HTTP_422_UNPROCESSABLE_CONTENT: ERROR_RESPONSES["decodingError"],
+        status.HTTP_500_INTERNAL_SERVER_ERROR: ERROR_RESPONSES["envelopeCreationError"],
     },
 )
 @TRACER.start_as_current_span("routes.get_header_envelope")
 async def get_header_envelope(
-    *, secret_id: str, client_pk: str, config: Config = Depends(config_injector)
+    *,
+    secret_id: str,
+    client_pk: str,
+    secrets_handler: SecretsHandlerDummy,
 ):
     """Create header envelope for the file secret with given ID encrypted with a given public key"""
-    vault = VaultAdapter(config)
     try:
         client_pubkey = base64.urlsafe_b64decode(client_pk)
     except Exception as error:
         raise exceptions.HttpDecodingError(affected="client public key") from error
     try:
-        header_envelope = await get_envelope(
+        header_envelope = secrets_handler.get_envelope(
             secret_id=secret_id,
             client_pubkey=client_pubkey,
-            server_private_key_path=config.server_private_key_path,
-            passphrase=config.private_key_passphrase,
-            vault=vault,
         )
-    except SecretRetrievalError as error:
+    except SecretsHandlerPort.SecretRetrievalError as error:
         raise exceptions.HttpSecretNotFoundError() from error
+    except SecretsHandlerPort.EnvelopeCreationError as error:
+        raise exceptions.HttpEnvelopeCreationError() from error
+    except Exception as exc:
+        log.error(str(exc), exc_info=True)
+        message = f"Failed to get envelope for secret ID {secret_id}"
+        raise exceptions.HttpInternalError(message=message) from exc
 
     return {
         "content": base64.b64encode(header_envelope).decode("utf-8"),
@@ -172,15 +178,25 @@ async def get_header_envelope(
     response_description="Successfully deleted secret.",
     responses={
         status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["secretNotFoundError"],
+        status.HTTP_500_INTERNAL_SERVER_ERROR: ERROR_RESPONSES["secretDeletionError"],
     },
 )
-@TRACER.start_as_current_span("route.delete_secret")
-async def delete_secret(*, secret_id: str, config: Config = Depends(config_injector)):
-    """Create header envelope for the file secret with given ID encrypted with a given public key"""
-    vault = VaultAdapter(config)
+@TRACER.start_as_current_span("routes.delete_secret")
+async def delete_secret(
+    *,
+    secret_id: str,
+    secrets_handler: SecretsHandlerDummy,
+):
+    """Delete the secret with the given ID from the key manager"""
     try:
-        vault.delete_secret(key=secret_id)
-    except SecretRetrievalError as error:
+        secrets_handler.delete_secret(secret_id=secret_id)
+    except SecretsHandlerPort.SecretRetrievalError as error:
         raise exceptions.HttpSecretNotFoundError() from error
+    except SecretsHandlerPort.SecretDeletionError as error:
+        raise exceptions.HttpSecretDeletionError() from error
+    except Exception as exc:
+        log.error(str(exc), exc_info=True)
+        message = f"Failed to delete secret with ID {secret_id}"
+        raise exceptions.HttpInternalError(message=message) from exc
 
     return status.HTTP_204_NO_CONTENT

@@ -13,17 +13,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Entrypoint of the package"""
+"""Module containing entrypoint functions."""
 
-import asyncio
+from ghga_service_commons.api import run_server
+from hexkit.log import configure_logging
+from hexkit.opentelemetry import configure_opentelemetry
 
-from ekss.main import run_rest_app
-
-
-def run():
-    """Run the service"""
-    asyncio.run(run_rest_app())
+from ekss.config import Config
+from ekss.inject import prepare_rest_app
 
 
-if __name__ == "__main__":
-    run()
+async def run_rest_app():
+    """Run the HTTP REST API."""
+    config = Config()
+    configure_logging(config=config)
+    configure_opentelemetry(service_name=config.service_name, config=config)
+    async with prepare_rest_app(config=config) as app:
+        await run_server(app=app, config=config)

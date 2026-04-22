@@ -95,3 +95,56 @@ class HttpDecryptionError(HttpCustomExceptionBase):
             description="Could not decrypt the submitted file secret",
             data={},
         )
+
+
+class HttpSecretDeletionError(HttpCustomExceptionBase):
+    """Raised when a secret was found but could not be deleted"""
+
+    exception_id = "secretDeletionError"
+
+    class DataModel(BaseModel):
+        """Model for exception data"""
+
+    def __init__(self, *, status_code: int = 500):
+        """Construct message and init the exception."""
+        super().__init__(
+            status_code=status_code,
+            description="The secret was found but could not be deleted.",
+            data={},
+        )
+
+
+class HttpEnvelopeCreationError(HttpCustomExceptionBase):
+    """Raised when a Crypt4GH envelope could not be created for the requested secret"""
+
+    exception_id = "envelopeCreationError"
+
+    class DataModel(BaseModel):
+        """Model for exception data"""
+
+    def __init__(self, *, status_code: int = 500):
+        """Construct message and init the exception."""
+        super().__init__(
+            status_code=status_code,
+            description="Could not create envelope for the requested secret",
+            data={},
+        )
+
+
+class HttpInternalError(HttpCustomExceptionBase):
+    """Thrown for otherwise unhandled exceptions"""
+
+    exception_id = "internalError"
+
+    def __init__(
+        self,
+        *,
+        message: str = "An internal server error has occurred.",
+        status_code: int = 500,
+    ):
+        """Construct message and init the exception."""
+        super().__init__(
+            status_code=status_code,
+            description=message,
+            data={},
+        )

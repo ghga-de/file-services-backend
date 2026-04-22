@@ -59,6 +59,79 @@ components:
       properties: {}
       title: HttpDecryptionErrorData
       type: object
+    HttpEnvelopeCreationError:
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/HttpEnvelopeCreationErrorData'
+        description:
+          description: A human readable message to the client explaining the cause
+            of the exception.
+          title: Description
+          type: string
+        exception_id:
+          const: envelopeCreationError
+          title: Exception Id
+          type: string
+      required:
+      - data
+      - description
+      - exception_id
+      title: HttpEnvelopeCreationError
+      type: object
+    HttpEnvelopeCreationErrorData:
+      properties: {}
+      title: HttpEnvelopeCreationErrorData
+      type: object
+    HttpInternalError:
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/HttpInternalErrorData'
+        description:
+          description: A human readable message to the client explaining the cause
+            of the exception.
+          title: Description
+          type: string
+        exception_id:
+          const: internalError
+          title: Exception Id
+          type: string
+      required:
+      - data
+      - description
+      - exception_id
+      title: HttpInternalError
+      type: object
+    HttpInternalErrorData:
+      additionalProperties: true
+      properties: {}
+      title: HttpInternalErrorData
+      type: object
+    HttpSecretDeletionError:
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/HttpSecretDeletionErrorData'
+        description:
+          description: A human readable message to the client explaining the cause
+            of the exception.
+          title: Description
+          type: string
+        exception_id:
+          const: secretDeletionError
+          title: Exception Id
+          type: string
+      required:
+      - data
+      - description
+      - exception_id
+      title: HttpSecretDeletionError
+      type: object
+    HttpSecretDeletionErrorData:
+      properties: {}
+      title: HttpSecretDeletionErrorData
+      type: object
     HttpSecretInsertionError:
       additionalProperties: false
       properties:
@@ -207,8 +280,19 @@ paths:
 
         file content offset'
       operationId: postEncryptionData
+      requestBody:
+        content:
+          application/json:
+            schema:
+              contentMediaType: application/octet-stream
+              description: Base64-encoded string containing a Crypt4GH-encrypted file
+                encryption secret.
+              minLength: 1
+              title: Body
+              type: string
+        required: true
       responses:
-        '200':
+        '201':
           content:
             application/json:
               schema:
@@ -226,6 +310,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/HttpDecodingError'
           description: One of the provided inputs could not be decoded as base64 string.
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpInternalError'
+          description: An internal server error has occurred.
         '502':
           content:
             application/json:
@@ -243,8 +333,7 @@ paths:
       - EncryptionKeyStoreService
   /secrets/{secret_id}:
     delete:
-      description: Create header envelope for the file secret with given ID encrypted
-        with a given public key
+      description: Delete the secret with the given ID from the key manager
       operationId: deleteSecret
       parameters:
       - in: path
@@ -268,6 +357,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpSecretDeletionError'
+          description: The secret was found but could not be deleted.
       summary: Delete the associated secret
       tags:
       - EncryptionKeyStoreService
@@ -308,6 +403,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/HttpDecodingError'
           description: One of the provided inputs could not be decoded as base64 string.
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpEnvelopeCreationError'
+          description: Could not create envelope for the requested secret.
       summary: Get personalized envelope containing Crypt4GH file encryption/decryption
         key
       tags:

@@ -22,14 +22,14 @@ import hvac
 import hvac.exceptions
 from hvac.api.auth_methods import Kubernetes
 
-from ekss.adapters.outbound.vault import exceptions
 from ekss.config import VaultConfig
 from ekss.constants import TRACER
+from ekss.ports.outbound.vault import VaultClientPort
 
 log = logging.getLogger(__name__)
 
 
-class VaultAdapter:
+class VaultClient(VaultClientPort):
     """Adapter wrapping hvac.Client"""
 
     def __init__(self, config: VaultConfig):
@@ -83,11 +83,39 @@ class VaultAdapter:
                 role_id=self._role_id, secret_id=self._secret_id
             )
 
-    @TRACER.start_as_current_span("VaultAdapter.store_secret")
-    def store_secret(self, *, secret: bytes) -> str:
+    @TRACER.start_as_current_span("VaultClient.get_secret")
+    def get_secret(self, *, key: str) -> bytes:
+        """Retrieve a secret at the subpath of the given prefix denoted by key.
+
+        Key should be a UUID4 returned by store_secret on insertion.
+
+        Raises a VaultException if the secret cannot be retrieved or if the operation
+        fails for some unexpected reason.
         """
-        Store a secret under a subpath of the given prefix.
+        self._check_auth()
+        path = f"{self._path}/{key}"
+
+        try:
+            response = self._client.secrets.kv.v2.read_secret_version(
+                path=path,
+                raise_on_deleted_version=True,
+                mount_point=self._secrets_mount_point,
+            )
+        except hvac.exceptions.InvalidPath as exc:
+            log.error("Invalid path error when fetching secret at %s: %s", path, exc)
+            raise self.SecretRetrievalError() from exc
+
+        secret = response["data"]["data"][key]
+        return base64.b64decode(secret)
+
+    @TRACER.start_as_current_span("VaultClient.store_secret")
+    def store_secret(self, *, secret: bytes) -> str:
+        """Store a secret under a subpath of the given prefix.
+
         Generates a UUID4 as key, uses it for the subpath and returns it.
+
+        Raises a VaultException if the secret cannot be stored or if the operation
+        fails for some unexpected reason.
         """
         value = base64.b64encode(secret).decode("utf-8")
         key = str(uuid4())
@@ -104,35 +132,17 @@ class VaultAdapter:
                 mount_point=self._secrets_mount_point,
             )
         except hvac.exceptions.InvalidRequest as exc:
-            log.debug("Invalid request error when storing secret at %s: %s", path, exc)
-            raise exceptions.SecretInsertionError() from exc
+            log.error("Invalid request error when storing secret at %s: %s", path, exc)
+            raise self.SecretInsertionError() from exc
         return key
 
-    @TRACER.start_as_current_span("VaultAdapter.get_secret")
-    def get_secret(self, *, key: str) -> bytes:
-        """
-        Retrieve a secret at the subpath of the given prefix denoted by key.
-        Key should be a UUID4 returned by store_secret on insertion
-        """
-        self._check_auth()
-        path = f"{self._path}/{key}"
-
-        try:
-            response = self._client.secrets.kv.v2.read_secret_version(
-                path=path,
-                raise_on_deleted_version=True,
-                mount_point=self._secrets_mount_point,
-            )
-        except hvac.exceptions.InvalidPath as exc:
-            log.debug("Invalid path error when fetching secret at %s: %s", path, exc)
-            raise exceptions.SecretRetrievalError() from exc
-
-        secret = response["data"]["data"][key]
-        return base64.b64decode(secret)
-
-    @TRACER.start_as_current_span("VaultAdapter.delete_secret")
+    @TRACER.start_as_current_span("VaultClient.delete_secret")
     def delete_secret(self, *, key: str) -> None:
-        """Delete a secret"""
+        """Delete a secret.
+
+        Raises a VaultException if the secret cannot be deleted or if the operation
+        fails for some unexpected reason.
+        """
         self._check_auth()
         path = f"{self._path}/{key}"
 
@@ -143,8 +153,8 @@ class VaultAdapter:
                 mount_point=self._secrets_mount_point,
             )
         except hvac.exceptions.InvalidPath as exc:
-            log.debug("Invalid path error when deleting secret at %s: %s", path, exc)
-            raise exceptions.SecretRetrievalError() from exc
+            log.error("Invalid path error when deleting secret at %s: %s", path, exc)
+            raise self.SecretRetrievalError() from exc
 
         response = self._client.secrets.kv.v2.delete_metadata_and_all_versions(
             path=path,
@@ -154,9 +164,9 @@ class VaultAdapter:
         # Check the response status
         status_code = response.status_code
         if status_code != 204:
-            log.debug(
+            log.error(
                 "Unexpected status code %d when deleting secret at %s",
                 status_code,
                 path,
             )
-            raise exceptions.SecretDeletionError()
+            raise self.SecretDeletionError()
