@@ -15,6 +15,7 @@
 """Contains routes and associated data for the upload path"""
 
 import base64
+import logging
 
 from crypt4gh.keys import get_private_key
 from fastapi import APIRouter, Depends, Request, status
@@ -32,19 +33,20 @@ from ekss.config import Config
 from ekss.constants import TRACER
 from ekss.core.envelope_encryption import get_envelope
 
+log = logging.getLogger(__name__)
 router = APIRouter(tags=["EncryptionKeyStoreService"])
 
 ERROR_RESPONSES = {
     "secretInsertionError": {
-        "description": ("Failed to successfully insert secret into vault."),
+        "description": "Failed to successfully insert secret into vault.",
         "model": exceptions.HttpSecretInsertionError.get_body_model(),
     },
     "vaultConnectionError": {
-        "description": ("Failed to establish a connection to vault."),
+        "description": "Failed to establish a connection to vault.",
         "model": exceptions.HttpVaultConnectionError.get_body_model(),
     },
     "secretNotFoundError": {
-        "description": ("Could not find a secret for the given secret ID."),
+        "description": "Could not find a secret for the given secret ID.",
         "model": exceptions.HttpSecretNotFoundError.get_body_model(),
     },
     "decodingError": {
@@ -52,6 +54,10 @@ ERROR_RESPONSES = {
             "One of the provided inputs could not be decoded as base64 string."
         ),
         "model": exceptions.HttpDecodingError.get_body_model(),
+    },
+    "decryptionError": {
+        "description": "Could not decrypt the submitted file secret",
+        "model": exceptions.HttpDecryptionError.get_body_model(),
     },
 }
 
@@ -75,7 +81,8 @@ async def health():
     response_model=models.SecretID,
     response_description="Successfully stored file encryption secret.",
     responses={
-        status.HTTP_422_UNPROCESSABLE_ENTITY: ERROR_RESPONSES["decodingError"],
+        status.HTTP_403_FORBIDDEN: ERROR_RESPONSES["decryptionError"],
+        status.HTTP_422_UNPROCESSABLE_CONTENT: ERROR_RESPONSES["decodingError"],
         status.HTTP_502_BAD_GATEWAY: ERROR_RESPONSES["secretInsertionError"],
         status.HTTP_504_GATEWAY_TIMEOUT: ERROR_RESPONSES["vaultConnectionError"],
     },
@@ -95,13 +102,22 @@ async def post_encryption_secret(
     except Exception as error:
         raise exceptions.HttpDecodingError(affected="encrypted secret") from error
 
-    server_private_key = get_private_key(
-        config.server_private_key_path, lambda: config.private_key_passphrase
-    )
-    file_secret = decrypt(encrypted_secret, server_private_key)
+    try:
+        server_private_key = get_private_key(
+            config.server_private_key_path, lambda: config.private_key_passphrase
+        )
+        base64_file_secret = decrypt(encrypted_secret, server_private_key)
+    except Exception as error:
+        raise exceptions.HttpDecryptionError() from error
 
     try:
-        secret_id = vault.store_secret(secret=file_secret.encode())
+        file_secret = base64.urlsafe_b64decode(base64_file_secret)
+    except Exception as error:
+        raise exceptions.HttpDecodingError(affected="decrypted secret") from error
+
+    try:
+        secret_id = vault.store_secret(secret=file_secret)
+        log.info("Successfully stored secret in Vault")
     except SecretInsertionError as error:
         raise exceptions.HttpSecretInsertionError() from error
     except RequestException as error:
@@ -119,7 +135,7 @@ async def post_encryption_secret(
     response_description="Created personalized Crypt4GH envelope.",
     responses={
         status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["secretNotFoundError"],
-        status.HTTP_422_UNPROCESSABLE_ENTITY: ERROR_RESPONSES["decodingError"],
+        status.HTTP_422_UNPROCESSABLE_CONTENT: ERROR_RESPONSES["decodingError"],
     },
 )
 @TRACER.start_as_current_span("routes.get_header_envelope")

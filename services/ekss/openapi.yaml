@@ -34,6 +34,31 @@ components:
       properties: {}
       title: HttpDecodingErrorData
       type: object
+    HttpDecryptionError:
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/HttpDecryptionErrorData'
+        description:
+          description: A human readable message to the client explaining the cause
+            of the exception.
+          title: Description
+          type: string
+        exception_id:
+          const: decryptionError
+          title: Exception Id
+          type: string
+      required:
+      - data
+      - description
+      - exception_id
+      title: HttpDecryptionError
+      type: object
+    HttpDecryptionErrorData:
+      additionalProperties: true
+      properties: {}
+      title: HttpDecryptionErrorData
+      type: object
     HttpSecretInsertionError:
       additionalProperties: false
       properties:
@@ -189,6 +214,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/SecretID'
           description: Successfully stored file encryption secret.
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpDecryptionError'
+          description: Could not decrypt the submitted file secret
         '422':
           content:
             application/json:

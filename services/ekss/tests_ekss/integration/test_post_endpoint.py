@@ -39,3 +39,5 @@ async def test_post_secrets(*, keypair: KeypairFixture, vault_fixture: VaultFixt
     assert response.status_code == 200
     body = response.json()
     assert body["secret_id"]
+
+    assert vault_fixture.adapter.get_secret(key=body["secret_id"]) == file_secret

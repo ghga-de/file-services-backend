@@ -81,3 +81,17 @@ class HttpDecodingError(HttpCustomExceptionBase):
             description=f"Could not decode the the given string as base64: {affected}",
             data={},
         )
+
+
+class HttpDecryptionError(HttpCustomExceptionBase):
+    """Raised when the submitted file secret could not be decrypted"""
+
+    exception_id = "decryptionError"
+
+    def __init__(self, *, status_code: int = 403):
+        """Construct message and init the exception."""
+        super().__init__(
+            status_code=status_code,
+            description="Could not decrypt the submitted file secret",
+            data={},
+        )
