@@ -180,30 +180,6 @@ components:
       properties: {}
       title: HttpSecretNotFoundErrorData
       type: object
-    HttpVaultConnectionError:
-      additionalProperties: false
-      properties:
-        data:
-          $ref: '#/components/schemas/HttpVaultConnectionErrorData'
-        description:
-          description: A human readable message to the client explaining the cause
-            of the exception.
-          title: Description
-          type: string
-        exception_id:
-          const: vaultConnectionError
-          title: Exception Id
-          type: string
-      required:
-      - data
-      - description
-      - exception_id
-      title: HttpVaultConnectionError
-      type: object
-    HttpVaultConnectionErrorData:
-      properties: {}
-      title: HttpVaultConnectionErrorData
-      type: object
     OutboundEnvelopeContent:
       description: 'Contains the header envelope, which contains the file secret encrypted
         with the
@@ -320,12 +296,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/HttpSecretInsertionError'
           description: Failed to successfully insert secret into vault.
-        '504':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpVaultConnectionError'
-          description: Failed to establish a connection to vault.
       summary: Store Crypt4GH-encrypted file encryption secret
       tags:
       - EncryptionKeyStoreService

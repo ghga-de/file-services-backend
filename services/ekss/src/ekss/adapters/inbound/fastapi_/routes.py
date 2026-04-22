@@ -33,10 +33,6 @@ ERROR_RESPONSES = {
         "description": "Failed to successfully insert secret into vault.",
         "model": exceptions.HttpSecretInsertionError.get_body_model(),
     },
-    "vaultConnectionError": {
-        "description": "Failed to establish a connection to vault.",
-        "model": exceptions.HttpVaultConnectionError.get_body_model(),
-    },
     "secretNotFoundError": {
         "description": "Could not find a secret for the given secret ID.",
         "model": exceptions.HttpSecretNotFoundError.get_body_model(),
@@ -89,7 +85,6 @@ async def health():
         status.HTTP_422_UNPROCESSABLE_CONTENT: ERROR_RESPONSES["decodingError"],
         status.HTTP_500_INTERNAL_SERVER_ERROR: ERROR_RESPONSES["internalError"],
         status.HTTP_502_BAD_GATEWAY: ERROR_RESPONSES["secretInsertionError"],
-        status.HTTP_504_GATEWAY_TIMEOUT: ERROR_RESPONSES["vaultConnectionError"],
     },
 )
 @TRACER.start_as_current_span("routes.post_encryption_secret")
