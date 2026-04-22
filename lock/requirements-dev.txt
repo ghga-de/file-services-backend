@@ -86,7 +86,7 @@ filelock==3.25.2
     #   virtualenv
 ghga-event-schemas==12.0.0
     # via fsb (pyproject.toml)
-ghga-service-commons @ git+https://github.com/ghga-de/ghga-service-commons@06374a50aebe1710e7f24471314f579cb2d073c7#fix/otel_httpx_incompatibility
+ghga-service-commons @ git+https://github.com/ghga-de/ghga-service-commons@e1386b69985cebb5793b75876a2f0248e3d31196
     # via
     #   fsb (pyproject.toml)
     #   ghga-event-schemas
