@@ -33,7 +33,7 @@ class VaultClient(VaultClientPort):
     """Adapter wrapping hvac.Client"""
 
     def __init__(self, config: VaultConfig):
-        """Initialized approle based client and login"""
+        """Initialize AppRole-based client and perform login"""
         self._client = hvac.Client(url=config.vault_url, verify=config.vault_verify)
         self._path = config.vault_path
         self._auth_mount_point = config.vault_auth_mount_point
@@ -42,7 +42,6 @@ class VaultClient(VaultClientPort):
         self._kube_role = config.vault_kube_role
         if self._kube_role:
             # use kube role and service account token
-            self._kube_role = self._kube_role
             self._kube_adapter = Kubernetes(self._client.adapter)
             self._service_account_token_path = config.service_account_token_path
         elif config.vault_role_id and config.vault_secret_id:

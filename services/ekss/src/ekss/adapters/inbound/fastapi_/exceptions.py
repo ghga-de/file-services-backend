@@ -78,7 +78,7 @@ class HttpDecodingError(HttpCustomExceptionBase):
         """Construct message and init the exception."""
         super().__init__(
             status_code=status_code,
-            description=f"Could not decode the the given string as base64: {affected}",
+            description=f"Could not decode the given string as base64: {affected}",
             data={},
         )
 

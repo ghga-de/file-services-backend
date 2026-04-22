@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Contains routes and associated data for the upload path"""
+"""Contains routes for encryption key store service operations"""
 
 import base64
 import logging
@@ -107,9 +107,7 @@ async def post_encryption_secret(
     ],
     secrets_handler: SecretsHandlerDummy,
 ):
-    """Extract file encryption/decryption secret, create secret ID and extract
-    file content offset
-    """
+    """Decrypt the provided Crypt4GH-encrypted file secret and store it in the key manager"""
     try:
         encrypted_secret = body.decode("utf-8")
         secret_id = secrets_handler.deposit_secret(encrypted_secret=encrypted_secret)
@@ -198,5 +196,3 @@ async def delete_secret(
         log.error(str(exc), exc_info=True)
         message = f"Failed to delete secret with ID {secret_id}"
         raise exceptions.HttpInternalError(message=message) from exc
-
-    return status.HTTP_204_NO_CONTENT

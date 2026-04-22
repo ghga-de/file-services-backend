@@ -275,10 +275,8 @@ paths:
       - EncryptionKeyStoreService
   /secrets:
     post:
-      description: 'Extract file encryption/decryption secret, create secret ID and
-        extract
-
-        file content offset'
+      description: Decrypt the provided Crypt4GH-encrypted file secret and store it
+        in the key manager
       operationId: postEncryptionData
       requestBody:
         content:
