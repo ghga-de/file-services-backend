@@ -90,8 +90,8 @@ async def health():
 @TRACER.start_as_current_span("routes.post_encryption_secret")
 async def post_encryption_secret(
     *,
-    body: Annotated[
-        bytes,
+    encrypted_secret: Annotated[
+        str,
         Body(
             min_length=ENCODED_ENCRYPTED_KEY_SIZE,
             max_length=ENCODED_ENCRYPTED_KEY_SIZE,
@@ -105,7 +105,6 @@ async def post_encryption_secret(
 ):
     """Decrypt the provided Crypt4GH-encrypted file secret and store it in the key manager"""
     try:
-        encrypted_secret = body.decode("utf-8")
         secret_id = secrets_handler.deposit_secret(encrypted_secret=encrypted_secret)
     except SecretsHandlerPort.SecretDecodeError as error:
         raise exceptions.HttpDecodingError(affected="decrypted secret") from error

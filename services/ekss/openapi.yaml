@@ -258,12 +258,11 @@ paths:
         content:
           application/json:
             schema:
-              contentMediaType: application/octet-stream
               description: Base64-encoded string containing a Crypt4GH-encrypted file
                 encryption secret.
               maxLength: 124
               minLength: 124
-              title: Body
+              title: Encrypted Secret
               type: string
         required: true
       responses:
