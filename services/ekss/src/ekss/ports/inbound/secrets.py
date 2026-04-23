@@ -59,7 +59,6 @@ class SecretsHandlerPort(ABC):
             SecretRetrievalError: if no secret exists for the given secret_id.
             EnvelopeCreationError: if the envelope cannot be created for the given secret_id.
         """
-        ...
 
     @abstractmethod
     def deposit_secret(self, *, encrypted_secret: str) -> str:
@@ -71,7 +70,6 @@ class SecretsHandlerPort(ABC):
             SecretDecodeError: if the decrypted payload cannot be base64-decoded.
             SecretInsertionError: if the secret cannot be stored.
         """
-        ...
 
     @abstractmethod
     def delete_secret(self, *, secret_id: str) -> None:
@@ -81,4 +79,3 @@ class SecretsHandlerPort(ABC):
             SecretRetrievalError: if no secret exists for the given secret_id.
             SecretDeletionError: if the secret with the given ID cannot be deleted.
         """
-        ...
