@@ -21,11 +21,11 @@ import os
 import crypt4gh.header
 import pytest
 from ghga_service_commons.api.testing import AsyncTestClient
-from ghga_service_commons.utils.crypt import encrypt
 
 from ekss.inject import prepare_rest_app
 from tests_ekss.fixtures.config import get_config
 from tests_ekss.fixtures.keypair import KeypairFixture
+from tests_ekss.fixtures.utils import make_secret_payload
 from tests_ekss.fixtures.vault import VaultFixture
 
 pytestmark = pytest.mark.asyncio()
@@ -34,9 +34,7 @@ pytestmark = pytest.mark.asyncio()
 async def test_post_secrets(*, keypair: KeypairFixture, vault_fixture: VaultFixture):
     """Test request response for POST /secrets endpoint with valid data"""
     # Generate a secret and then encode it and encrypt it
-    file_secret = os.urandom(32)
-    encoded_secret = base64.urlsafe_b64encode(file_secret).decode("utf-8")
-    encrypted_secret = encrypt(encoded_secret, key=keypair.ekss_pk, encoding="utf-8")
+    file_secret, encrypted_secret = make_secret_payload(keypair.ekss_pk)
 
     # Set up an API client and post the secret
     config = get_config([vault_fixture.config, keypair.config])
@@ -73,7 +71,7 @@ async def test_get_envelope(keypair: KeypairFixture, vault_fixture: VaultFixture
     content = base64.b64decode(body["content"])
     assert content
 
-    # Extract the secret from the envelope using the user's pub key and verify it matches
+    # Extract the secret from the envelope using the user's sec key and verify it matches
     keys = [(0, keypair.user_sk, None)]
     session_keys, _ = crypt4gh.header.deconstruct(infile=io.BytesIO(content), keys=keys)
     assert session_keys[0] == secret

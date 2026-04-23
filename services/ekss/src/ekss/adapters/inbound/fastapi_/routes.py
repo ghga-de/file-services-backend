@@ -22,7 +22,7 @@ from fastapi import APIRouter, Body, status
 
 from ekss.adapters.inbound.fastapi_ import exceptions, models
 from ekss.adapters.inbound.fastapi_.dummies import SecretsHandlerDummy
-from ekss.constants import TRACER
+from ekss.constants import ENCODED_ENCRYPTED_KEY_SIZE, TRACER
 from ekss.ports.inbound.secrets import SecretsHandlerPort
 
 log = logging.getLogger(__name__)
@@ -93,7 +93,7 @@ async def post_encryption_secret(
     body: Annotated[
         bytes,
         Body(
-            min_length=1,  # Auto-reject empty string
+            min_length=ENCODED_ENCRYPTED_KEY_SIZE,
             description=(
                 "Base64-encoded string containing a Crypt4GH-encrypted file"
                 + " encryption secret."

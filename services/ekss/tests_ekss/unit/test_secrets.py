@@ -15,20 +15,19 @@
 
 """Unit tests for the SecretsHandler"""
 
-import base64
 import io
 import os
 from unittest.mock import AsyncMock
 
 import crypt4gh.header
 import pytest
-from ghga_service_commons.utils.crypt import encrypt
 
 from ekss.core.secrets import SecretsHandler
 from ekss.ports.inbound.secrets import SecretsHandlerPort
 from ekss.ports.outbound.vault import VaultClientPort
 from tests_ekss.fixtures.config import get_config
 from tests_ekss.fixtures.keypair import KeypairFixture
+from tests_ekss.fixtures.utils import make_secret_payload
 
 
 def test_get_envelope(keypair: KeypairFixture):
@@ -77,10 +76,7 @@ def test_deposit_secret(keypair: KeypairFixture):
         _ = secrets_handler.deposit_secret(encrypted_secret="not-valid-crypt4gh")
 
     # Prepare a valid encrypted payload for the remaining cases
-    file_secret = os.urandom(32)
-    encoded = base64.urlsafe_b64encode(file_secret).decode("utf-8")
-    encrypted = encrypt(encoded, key=keypair.ekss_pk, encoding="utf-8")
-
+    file_secret, encrypted = make_secret_payload(keypair.ekss_pk)
     # Test SecretInsertionError - vault raises on store
     vault_client.store_secret.side_effect = VaultClientPort.SecretInsertionError
     with pytest.raises(SecretsHandlerPort.SecretInsertionError):

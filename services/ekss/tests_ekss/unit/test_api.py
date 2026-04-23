@@ -19,11 +19,11 @@ import base64
 import os
 
 import pytest
-from ghga_service_commons.utils.crypt import encrypt
 
 from ekss.ports.inbound.secrets import SecretsHandlerPort
 from tests_ekss.fixtures.client import ClientFixture
 from tests_ekss.fixtures.keypair import KeypairFixture
+from tests_ekss.fixtures.utils import make_secret_payload
 
 pytestmark = pytest.mark.asyncio
 
@@ -58,9 +58,7 @@ async def test_post_secret(client_fixture: ClientFixture, keypair: KeypairFixtur
     assert response.status_code == 422
 
     # Now for success case - Generate a secret to submit
-    file_secret = os.urandom(32)
-    encoded_secret = base64.urlsafe_b64encode(file_secret).decode("utf-8")
-    encrypted_secret = encrypt(encoded_secret, key=keypair.ekss_pk, encoding="utf-8")
+    _, encrypted_secret = make_secret_payload(keypair.ekss_pk)
 
     # Fix the return value for the secrets handler
     client_fixture.secrets_handler.deposit_secret.return_value = "secret123"
@@ -121,6 +119,7 @@ async def test_error_translation_get_envelope(
     ],
 )
 async def test_error_translation_post_secret(
+    keypair: KeypairFixture,
     client_fixture: ClientFixture,
     core_error: type[Exception],
     exception_id: str,
@@ -128,7 +127,8 @@ async def test_error_translation_post_secret(
 ):
     """Test that core errors are translated to the correct HTTP errors for the POST endpoint"""
     client_fixture.secrets_handler.deposit_secret.side_effect = core_error
-    response = await client_fixture.client.post("/secrets", content=b"dummy-payload")
+    _, encrypted_secret = make_secret_payload(keypair.ekss_pk)
+    response = await client_fixture.client.post("/secrets", content=encrypted_secret)
     assert response.status_code == status_code
     assert response.json()["exception_id"] == exception_id
 
