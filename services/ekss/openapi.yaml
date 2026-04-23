@@ -376,7 +376,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HttpEnvelopeCreationError'
-          description: Could not create envelope for the requested secret.
+          description: Could not create an envelope for the requested secret.
       summary: Get personalized envelope containing Crypt4GH file encryption/decryption
         key
       tags:

@@ -48,7 +48,7 @@ ERROR_RESPONSES = {
         "model": exceptions.HttpDecryptionError.get_body_model(),
     },
     "envelopeCreationError": {
-        "description": "Could not create envelope for the requested secret.",
+        "description": "Could not create an envelope for the requested secret.",
         "model": exceptions.HttpEnvelopeCreationError.get_body_model(),
     },
     "secretDeletionError": {
