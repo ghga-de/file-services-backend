@@ -37,18 +37,20 @@ class VaultClientPort(ABC):
     def get_secret(self, *, key: str) -> bytes:
         """Retrieve a secret at the subpath of the given prefix denoted by key.
 
-        Key should be a UUID4 returned by store_secret on insertion.
+        Key should be a string returned by store_secret on insertion.
 
-        Raises: SecretRetrievalError: if the secret cannot be retrieved.
+        Raises a VaultException if the secret cannot be retrieved or if the operation
+        fails for some unexpected reason.
         """
 
     @abstractmethod
     def store_secret(self, *, secret: bytes) -> str:
         """Store a secret under a subpath of the given prefix.
 
-        Generates a UUID4 as key, uses it for the subpath and returns it.
+        Generates a key to use for the subpath and returns it.
 
-        Raises: SecretInsertionError: if the secret cannot be stored.
+        Raises a VaultException if the secret cannot be stored or if the operation
+        fails for some unexpected reason.
         """
 
     @abstractmethod
