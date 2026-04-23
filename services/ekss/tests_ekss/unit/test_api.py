@@ -57,6 +57,15 @@ async def test_post_secret(client_fixture: ClientFixture, keypair: KeypairFixtur
     response = await client_fixture.client.post("/secrets")
     assert response.status_code == 422
 
+    response = await client_fixture.client.post("/secrets", content=b"")
+    assert response.status_code == 422
+
+    response = await client_fixture.client.post("/secrets", content=b"a" * 123)
+    assert response.status_code == 422
+
+    response = await client_fixture.client.post("/secrets", content=b"a" * 125)
+    assert response.status_code == 422
+
     # Now for success case - Generate a secret to submit
     _, encrypted_secret = make_secret_payload(keypair.ekss_pk)
 

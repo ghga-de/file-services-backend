@@ -94,6 +94,7 @@ async def post_encryption_secret(
         bytes,
         Body(
             min_length=ENCODED_ENCRYPTED_KEY_SIZE,
+            max_length=ENCODED_ENCRYPTED_KEY_SIZE,
             description=(
                 "Base64-encoded string containing a Crypt4GH-encrypted file"
                 + " encryption secret."
