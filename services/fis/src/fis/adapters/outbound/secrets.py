@@ -82,9 +82,9 @@ class SecretsClient(SecretsClientPort):
         try:
             secret_id = response.json().get("secret_id")
         except Exception as err:
+            log.error("Failed to retrieve secret_id from response body.")
             raise self.SecretsApiError() from err
-        else:
-            return secret_id
+        return secret_id
 
     async def delete_secret(self, *, secret_id: str) -> None:
         """Delete a file encryption secret from the Secrets API"""
