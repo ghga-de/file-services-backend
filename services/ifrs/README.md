@@ -192,26 +192,6 @@ The service requires the following configuration parameters:
   ```
 
 
-- <a id="properties/file_interrogations_topic"></a>**`file_interrogations_topic`** *(string, required)*: The name of the topic use to publish file interrogation outcome events.
-
-
-  Examples:
-
-  ```json
-  "file-interrogations"
-  ```
-
-
-- <a id="properties/interrogation_success_type"></a>**`interrogation_success_type`** *(string, required)*: The type used for events informing about successful file validations.
-
-
-  Examples:
-
-  ```json
-  "interrogation_success"
-  ```
-
-
 - <a id="properties/file_deletion_request_topic"></a>**`file_deletion_request_topic`** *(string, required)*: The name of the topic to receive events informing about files to delete.
 
 
