@@ -34,6 +34,7 @@ TOKEN_LIFESPAN = 30  # seconds
 DECRYPTED_SIZE = 10737418240
 ENCRYPTED_SIZE = 10742005884
 PART_SIZE = 5245120
+TEST_MAX_BOX_SIZE = DECRYPTED_SIZE * 10  # Large enough for most test scenarios
 TEST_STORAGE_ALIAS = "test"  # Should match the test config
 TEST_BUCKET = "test-inbox"
 

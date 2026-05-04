@@ -60,7 +60,7 @@ async def test_create_box_endpoint_auth(config: ConfigFixture, app_fixture: AppF
     and a 200 if the token is correct (and request succeeds).
     """
     uos_jwk = config.uos_jwk
-    body = {"storage_alias": "HD01"}
+    body = {"storage_alias": "HD01", "max_size": 1073741824}
     rest_client = app_fixture.rest_client
     core_mock = app_fixture.core_mock
     core_mock.create_file_upload_box.return_value = TEST_BOX_ID
@@ -369,7 +369,7 @@ async def test_create_box_endpoint_error_handling(
 ):
     """Test that the endpoint correctly translates errors from the core."""
     uos_jwk = config.uos_jwk
-    body = {"storage_alias": "HD01"}
+    body = {"storage_alias": "HD01", "max_size": 1073741824}
     rest_client = app_fixture.rest_client
     core_mock = app_fixture.core_mock
     core_mock.create_file_upload_box.side_effect = core_error
@@ -470,6 +470,17 @@ async def test_view_box_endpoint_error_handling(
             http_exceptions.HttpOrphanedMultipartUploadError(file_alias="test_file"),
         ),
         (RuntimeError("Random error"), http_exceptions.HttpInternalError()),
+        (
+            UploadControllerPort.BoxSizeLimitExceededError(
+                box_id=TEST_BOX_ID, max_size=9001, current_size=8000
+            ),
+            http_exceptions.HttpBoxSizeLimitExceededError(
+                box_id=TEST_BOX_ID,
+                max_size=9001,
+                current_size=8000,
+                file_alias="test_file",
+            ),
+        ),
     ],
     ids=[
         "BoxNotFound",
@@ -478,6 +489,7 @@ async def test_view_box_endpoint_error_handling(
         "UnknownStorageAlias",
         "UploadAlreadyInProgressError",
         "InternalError",
+        "BoxSizeLimitExceededError",
     ],
 )
 async def test_create_file_upload_endpoint_error_handling(
