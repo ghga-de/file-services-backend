@@ -234,6 +234,36 @@ class HttpChecksumMismatchError(HttpCustomExceptionBase):
         )
 
 
+class HttpBoxSizeLimitExceededError(HttpCustomExceptionBase):
+    """Thrown when adding a file would exceed the box's total size limit."""
+
+    exception_id = "boxSizeLimitExceeded"
+
+    def __init__(
+        self,
+        *,
+        box_id: UUID4,
+        max_size: int,
+        current_size: int,
+        file_alias: str,
+        status_code: int = 507,
+    ):
+        """Construct message and init the exception."""
+        super().__init__(
+            status_code=status_code,
+            description=(
+                f"Cannot add the file {file_alias} because it would exceed the maximum"
+                + " total size limit allowed for the box."
+            ),
+            data={
+                "box_id": str(box_id),
+                "max_size": max_size,
+                "current_size": current_size,
+                "file_alias": file_alias,
+            },
+        )
+
+
 class HttpNotAuthorizedError(HttpCustomExceptionBase):
     """Thrown when the user is not authorized to perform the requested action."""
 

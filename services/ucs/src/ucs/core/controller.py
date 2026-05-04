@@ -242,6 +242,22 @@ class UploadController(UploadControllerPort):
         extra["storage_alias"] = storage_alias
         extra["bucket_id"] = bucket_id
 
+        # See how many bytes are currently allocated in the box
+        # current size = finished (box.size) + in-progress (upload.state=init)
+        current_size = box.size
+        async for upload in self._file_upload_dao.find_all(
+            mapping={"box_id": box.id, "state": "init"}
+        ):
+            current_size += upload.decrypted_size
+
+        # Compare against box's size limit
+        if current_size + decrypted_size > box.max_size:
+            error = self.BoxSizeLimitExceededError(
+                box_id=box.id, max_size=box.max_size, current_size=current_size
+            )
+            log.error(error, extra=extra)
+            raise error
+
         file_id = uuid4()
         object_id = uuid4()
         initiated = now_utc_ms_prec()
@@ -495,7 +511,8 @@ class UploadController(UploadControllerPort):
         log.info("File %s deleted from box %s", file_id, box_id)
 
     async def _update_box_stats(self, *, box_id: UUID4, version: int) -> None:
-        """Update FileUploadBox stats (file count & size) in an idempotent manner.
+        """Update FileUploadBox stats (file count & size) in an idempotent manner,
+        counting only files that are finished uploading.
 
         Re-fetches the box to get the latest state, verifies the version is still
         current before applying any changes.
@@ -518,10 +535,16 @@ class UploadController(UploadControllerPort):
             log.error(error, extra={"box_id": box_id, "version": version})
             raise error
 
+        # Get all the files that are done uploading
         file_count = 0
         total_size = 0
         async for file_upload in self._file_upload_dao.find_all(
-            mapping={"box_id": box_id, "state": {"$nin": ["cancelled", "failed"]}}
+            mapping={
+                "box_id": box_id,
+                "state": {
+                    "$in": ["inbox", "interrogated", "awaiting_archival", "archived"]
+                },
+            }
         ):
             file_count += 1
             total_size += file_upload.decrypted_size
@@ -533,7 +556,9 @@ class UploadController(UploadControllerPort):
             box.size = total_size
             await self._file_upload_box_dao.update(box)
 
-    async def create_file_upload_box(self, *, storage_alias: str) -> UUID4:
+    async def create_file_upload_box(
+        self, *, storage_alias: str, max_size: int
+    ) -> UUID4:
         """Create a new FileUploadBox with the given S3 storage alias.
         Returns the UUID4 id of the created FileUploadBox.
 
@@ -549,6 +574,7 @@ class UploadController(UploadControllerPort):
             state="open",
             file_count=0,
             size=0,
+            max_size=max_size,
             storage_alias=storage_alias,
         )
         await self._file_upload_box_dao.insert(box)

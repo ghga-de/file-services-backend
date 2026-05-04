@@ -18,7 +18,7 @@
 from typing import Literal, TypeVar
 
 from ghga_event_schemas.pydantic_ import UploadBoxState
-from pydantic import UUID4, BaseModel, ConfigDict, Field, model_validator
+from pydantic import UUID4, BaseModel, ConfigDict, Field, PositiveInt, model_validator
 
 
 class BoxCreationRequest(BaseModel):
@@ -26,6 +26,10 @@ class BoxCreationRequest(BaseModel):
 
     storage_alias: str = Field(
         ..., description="The storage alias to use for this upload box"
+    )
+    max_size: PositiveInt = Field(
+        ...,
+        description="Maximum total bytes allowed across all file uploads in this box.",
     )
     model_config = ConfigDict(title="Box Creation Request")
 

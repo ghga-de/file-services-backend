@@ -117,6 +117,13 @@ ERROR_RESPONSES = {
         ),
         "model": http_exceptions.HttpChecksumMismatchError.get_body_model(),
     },
+    "boxSizeLimitExceeded": {
+        "description": (
+            "Exceptions by ID:"
+            + "\n- boxSizeLimitExceeded: Adding this file would exceed the box's size limit."
+        ),
+        "model": http_exceptions.HttpBoxSizeLimitExceededError.get_body_model(),
+    },
 }
 
 # For the update_box endpoint, map the work type required to change to a given box state
@@ -163,8 +170,10 @@ async def create_box(
     Returns the box_id of the newly created FileUploadBox.
     """
     try:
-        alias = box_creation.storage_alias
-        return await upload_controller.create_file_upload_box(storage_alias=alias)
+        return await upload_controller.create_file_upload_box(
+            storage_alias=box_creation.storage_alias,
+            max_size=box_creation.max_size,
+        )
     except UploadControllerPort.UnknownStorageAliasError as error:
         raise http_exceptions.HttpUnknownStorageAliasError() from error
     except Exception as error:
@@ -283,6 +292,7 @@ async def get_box_uploads(
         status.HTTP_409_CONFLICT: ERROR_RESPONSES["boxStateError"]
         | ERROR_RESPONSES["fileUploadAlreadyExists"]
         | ERROR_RESPONSES["orphanedMultipartUpload"],
+        status.HTTP_507_INSUFFICIENT_STORAGE: ERROR_RESPONSES["boxSizeLimitExceeded"],
     },
 )
 @TRACER.start_as_current_span("routes.create_file_upload")
@@ -321,6 +331,13 @@ async def create_file_upload(
     except UploadControllerPort.BoxStateError as error:
         raise http_exceptions.HttpBoxStateError(
             box_id=box_id, box_state=error.box_state
+        ) from error
+    except UploadControllerPort.BoxSizeLimitExceededError as error:
+        raise http_exceptions.HttpBoxSizeLimitExceededError(
+            box_id=box_id,
+            max_size=error.max_size,
+            current_size=error.current_size,
+            file_alias=file_alias,
         ) from error
     except UploadControllerPort.FileUploadAlreadyExists as error:
         raise http_exceptions.HttpFileUploadAlreadyExistsError(
