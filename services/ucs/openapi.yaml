@@ -280,6 +280,44 @@ components:
           type: array
       title: HTTPValidationError
       type: object
+    HttpBoxMaxSizeBelowCurrentSizeError:
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/HttpBoxMaxSizeBelowCurrentSizeErrorData'
+        description:
+          description: A human readable message to the client explaining the cause
+            of the exception.
+          title: Description
+          type: string
+        exception_id:
+          const: boxMaxSizeBelowCurrentSize
+          title: Exception Id
+          type: string
+      required:
+      - data
+      - description
+      - exception_id
+      title: HttpBoxMaxSizeBelowCurrentSizeError
+      type: object
+    HttpBoxMaxSizeBelowCurrentSizeErrorData:
+      properties:
+        box_id:
+          format: uuid4
+          title: Box Id
+          type: string
+        current_size:
+          title: Current Size
+          type: integer
+        max_size:
+          title: Max Size
+          type: integer
+      required:
+      - box_id
+      - max_size
+      - current_size
+      title: HttpBoxMaxSizeBelowCurrentSizeErrorData
+      type: object
     HttpBoxNotFoundError:
       additionalProperties: false
       properties:
@@ -372,36 +410,6 @@ components:
       - box_id
       - box_state
       title: HttpBoxStateErrorData
-      type: object
-    HttpBoxVersionError:
-      additionalProperties: false
-      properties:
-        data:
-          $ref: '#/components/schemas/HttpBoxVersionErrorData'
-        description:
-          description: A human readable message to the client explaining the cause
-            of the exception.
-          title: Description
-          type: string
-        exception_id:
-          const: boxVersionOutdated
-          title: Exception Id
-          type: string
-      required:
-      - data
-      - description
-      - exception_id
-      title: HttpBoxVersionError
-      type: object
-    HttpBoxVersionErrorData:
-      properties:
-        box_id:
-          format: uuid4
-          title: Box Id
-          type: string
-      required:
-      - box_id
-      title: HttpBoxVersionErrorData
       type: object
     HttpChecksumMismatchError:
       additionalProperties: false
@@ -735,10 +743,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HttpBoxVersionError'
+                $ref: '#/components/schemas/HttpBoxMaxSizeBelowCurrentSizeError'
           description: 'Exceptions by ID:
 
-            - boxVersionOutdated: The requested FileUploadBox version is outdated.'
+            - boxMaxSizeBelowCurrentSize: The requested max_size is less than the
+            box''s current committed size.'
         '422':
           content:
             application/json:

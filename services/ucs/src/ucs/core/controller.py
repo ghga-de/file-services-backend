@@ -591,8 +591,9 @@ class UploadController(UploadControllerPort):
         Raises:
         - `BoxNotFoundError` if the FileUploadBox isn't found in the DB.
         - `BoxVersionError` if the supplied version doesn't match the current version.
+        - `BoxMaxSizeBelowCurrentSizeError` if the new max_size is smaller than what has
+            already been uploaded.
         """
-        # TODO: Handle scenario where new limit is below current size
         try:
             box = await self._file_upload_box_dao.get_by_id(box_id)
         except ResourceNotFoundError as err:
@@ -603,6 +604,13 @@ class UploadController(UploadControllerPort):
         if box.version != version:
             error = self.BoxVersionError(box_id=box_id)
             log.error(error, extra={"box_id": box_id, "version": version})
+            raise error
+
+        if max_size < box.size:
+            error = self.BoxMaxSizeBelowCurrentSizeError(
+                box_id=box_id, max_size=max_size, current_size=box.size
+            )
+            log.error(error, extra={"box_id": box_id, "max_size": max_size})
             raise error
 
         box.version += 1

@@ -116,6 +116,18 @@ class UploadControllerPort(ABC):
             )
             super().__init__(msg)
 
+    class BoxMaxSizeBelowCurrentSizeError(UploadError):
+        """Raised when the requested max_size is less than the box's current committed size."""
+
+        def __init__(self, *, box_id: UUID4, max_size: int, current_size: int):
+            self.max_size = max_size
+            self.current_size = current_size
+            msg = (
+                f"Cannot set max_size to {max_size} for box {box_id} because"
+                f" {current_size} bytes are already committed."
+            )
+            super().__init__(msg)
+
     class BoxSizeLimitExceededError(UploadError):
         """Raised when adding a new FileUpload would exceed the box's total size limit."""
 
@@ -276,6 +288,8 @@ class UploadControllerPort(ABC):
         Raises:
         - `BoxNotFoundError` if the FileUploadBox isn't found in the DB.
         - `BoxVersionError` if the supplied version doesn't match the current version.
+        - `BoxMaxSizeBelowCurrentSizeError` if the new max_size is smaller than what has
+            already been uploaded.
         """
         ...
 

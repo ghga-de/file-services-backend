@@ -234,6 +234,41 @@ class HttpChecksumMismatchError(HttpCustomExceptionBase):
         )
 
 
+class HttpBoxMaxSizeBelowCurrentSizeError(HttpCustomExceptionBase):
+    """Thrown when the requested max_size is less than the box's current committed size."""
+
+    exception_id = "boxMaxSizeBelowCurrentSize"
+
+    class DataModel(BaseModel):
+        """Model for exception data"""
+
+        box_id: UUID4
+        max_size: int
+        current_size: int
+
+    def __init__(
+        self,
+        *,
+        box_id: UUID4,
+        max_size: int,
+        current_size: int,
+        status_code: int = 409,
+    ):
+        """Construct message and init the exception."""
+        super().__init__(
+            status_code=status_code,
+            description=(
+                f"Cannot set max_size to {max_size} for box {box_id} because"
+                f" {current_size} bytes are already committed."
+            ),
+            data={
+                "box_id": str(box_id),
+                "max_size": max_size,
+                "current_size": current_size,
+            },
+        )
+
+
 class HttpBoxSizeLimitExceededError(HttpCustomExceptionBase):
     """Thrown when adding a file would exceed the box's total size limit."""
 

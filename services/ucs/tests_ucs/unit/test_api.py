@@ -445,6 +445,31 @@ async def test_update_box_endpoint_error_handling(
     assert response.json()["description"] == str(http_error)
 
 
+async def test_update_box_max_size_below_current_error_handling(
+    config: ConfigFixture, app_fixture: AppFixture
+):
+    """Test that BoxMaxSizeBelowCurrentSizeError is correctly translated to HTTP 409."""
+    uos_jwk = config.uos_jwk
+    body = {"max_size": 100, "version": 0}
+    rest_client = app_fixture.rest_client
+    core_mock = app_fixture.core_mock
+    core_mock.update_box_max_size.side_effect = (
+        UploadControllerPort.BoxMaxSizeBelowCurrentSizeError(
+            box_id=TEST_BOX_ID, max_size=100, current_size=200
+        )
+    )
+    token_header = utils.change_file_box_token_header(
+        box_id=TEST_BOX_ID, work_type="resize", jwk=uos_jwk
+    )
+    response = await rest_client.patch(
+        f"/boxes/{TEST_BOX_ID}", json=body, headers=token_header
+    )
+    expected = http_exceptions.HttpBoxMaxSizeBelowCurrentSizeError(
+        box_id=TEST_BOX_ID, max_size=100, current_size=200
+    )
+    assert response.json()["description"] == str(expected)
+
+
 @pytest.mark.parametrize(
     "core_error, http_error",
     [

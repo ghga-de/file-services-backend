@@ -256,6 +256,35 @@ async def test_update_box_max_size_errors(rig: JointRig):
         )
 
 
+async def test_update_box_max_size_below_committed(rig: JointRig):
+    """Test that setting max_size below committed bytes raises BoxMaxSizeBelowCurrentSizeError."""
+    controller = rig.controller
+    box_id = await rig.create_default_box()
+
+    file_id, _ = await controller.initiate_file_upload(
+        box_id=box_id,
+        alias="test_file",
+        decrypted_size=DECRYPTED_SIZE,
+        encrypted_size=ENCRYPTED_SIZE,
+        part_size=PART_SIZE,
+    )
+    object_id = rig.file_upload_dao.latest.object_id
+    await controller.complete_file_upload(
+        box_id=box_id,
+        file_id=file_id,
+        unencrypted_checksum="unencrypted_checksum",
+        encrypted_checksum=f"etag_for_{object_id}",
+        encrypted_parts_md5=["abc123"],
+        encrypted_parts_sha256=["def456"],
+    )
+
+    box = rig.file_upload_box_dao.latest
+    with pytest.raises(UploadControllerPort.BoxMaxSizeBelowCurrentSizeError):
+        await controller.update_box_max_size(
+            box_id=box_id, version=box.version, max_size=box.size - 1
+        )
+
+
 async def test_lock_file_upload_box(rig: JointRig):
     """Test locking an unlocked FileUploadBox"""
     # First create a FileUploadBox (starts open by default)

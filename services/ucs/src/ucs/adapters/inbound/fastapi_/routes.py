@@ -124,6 +124,14 @@ ERROR_RESPONSES = {
         ),
         "model": http_exceptions.HttpBoxSizeLimitExceededError.get_body_model(),
     },
+    "boxMaxSizeBelowCurrentSize": {
+        "description": (
+            "Exceptions by ID:"
+            + "\n- boxMaxSizeBelowCurrentSize: The requested max_size is less than the"
+            + " box's current committed size."
+        ),
+        "model": http_exceptions.HttpBoxMaxSizeBelowCurrentSizeError.get_body_model(),
+    },
 }
 
 # For the update_box endpoint, map the work type required to change to a given box state
@@ -189,11 +197,12 @@ async def create_box(
     response_description="FileUploadBox successfully updated",
     responses={
         status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["boxNotFound"],
-        status.HTTP_409_CONFLICT: ERROR_RESPONSES["boxVersionOutdated"],
+        status.HTTP_409_CONFLICT: ERROR_RESPONSES["boxVersionOutdated"]
+        | ERROR_RESPONSES["boxMaxSizeBelowCurrentSize"],
     },
 )
 @TRACER.start_as_current_span("routes.update_box")
-async def update_box(  # noqa: C901
+async def update_box(  # noqa: C901, PLR0912
     box_id: UUID4,
     box_update: rest_models.BoxUpdateRequest,
     work_order: Annotated[
@@ -247,6 +256,10 @@ async def update_box(  # noqa: C901
         raise http_exceptions.HttpBoxNotFoundError(box_id=box_id) from error
     except UploadControllerPort.BoxVersionError as error:
         raise http_exceptions.HttpBoxVersionError(box_id=box_id) from error
+    except UploadControllerPort.BoxMaxSizeBelowCurrentSizeError as error:
+        raise http_exceptions.HttpBoxMaxSizeBelowCurrentSizeError(
+            box_id=box_id, max_size=error.max_size, current_size=error.current_size
+        ) from error
     except Exception as error:
         log.error(error, exc_info=True)
         raise http_exceptions.HttpInternalError() from error
