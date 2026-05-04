@@ -183,7 +183,7 @@ async def create_box(
 
 @router.patch(
     "/boxes/{box_id}",
-    summary="Update a FileUploadBox (lock/unlock/archive)",
+    summary="Update a FileUploadBox (lock/unlock/archive/resize)",
     operation_id="updateBox",
     status_code=status.HTTP_204_NO_CONTENT,
     response_description="FileUploadBox successfully updated",
@@ -193,7 +193,7 @@ async def create_box(
     },
 )
 @TRACER.start_as_current_span("routes.update_box")
-async def update_box(
+async def update_box(  # noqa: C901
     box_id: UUID4,
     box_update: rest_models.BoxUpdateRequest,
     work_order: Annotated[
@@ -202,35 +202,47 @@ async def update_box(
     ],
     upload_controller: dummies.UploadControllerDummy,
 ) -> None:
-    """Update a FileUploadBox to lock it, unlock it, or archive it.
+    """Update a FileUploadBox state or max_size.
 
-    Request body must contain a `state` field indicating the target state of the box,
-    as well as a `version` field indicating the expected current version of the box.
-    Requires ChangeFileBoxWorkOrder token from the UOS. Users are only allowed to lock
-    the box; a Data Steward role is required to do everything else.
+    Request body must contain a `version` field (for optimistic locking) plus either
+    a `state` field indicating the target state or a `max_size` field with the
+    new size limit. Requires ChangeFileBoxWorkOrder token from the UOS. When updating
+    state, the work type must match the target state. When updating max_size, the
+    work type must be 'resize'. Users are only allowed to lock the box; a Data Steward
+    role is required to do everything else.
     """
-    required_work_type = BOX_STATE_TO_WORK_TYPE.get(box_update.state)
-    if (
-        work_order.box_id != box_id
-        or not required_work_type
-        or work_order.work_type != required_work_type
-    ):
+    if box_update.state is not None:
+        required_work_type = BOX_STATE_TO_WORK_TYPE.get(box_update.state)
+        if not required_work_type:
+            raise http_exceptions.HttpNotAuthorizedError()
+    else:
+        required_work_type = "resize"
+
+    if work_order.box_id != box_id or work_order.work_type != required_work_type:
         raise http_exceptions.HttpNotAuthorizedError()
 
     try:
-        match box_update.state:
-            case "locked":
-                await upload_controller.lock_file_upload_box(
-                    box_id=box_id, version=box_update.version
-                )
-            case "open":
-                await upload_controller.unlock_file_upload_box(
-                    box_id=box_id, version=box_update.version
-                )
-            case "archived":
-                await upload_controller.archive_file_upload_box(
-                    box_id=box_id, version=box_update.version
-                )
+        current_version = box_update.version
+
+        if box_update.max_size is not None:
+            await upload_controller.update_box_max_size(
+                box_id=box_id, version=current_version, max_size=box_update.max_size
+            )
+            current_version += 1
+        else:
+            match box_update.state:
+                case "locked":
+                    await upload_controller.lock_file_upload_box(
+                        box_id=box_id, version=current_version
+                    )
+                case "open":
+                    await upload_controller.unlock_file_upload_box(
+                        box_id=box_id, version=current_version
+                    )
+                case "archived":
+                    await upload_controller.archive_file_upload_box(
+                        box_id=box_id, version=current_version
+                    )
     except UploadControllerPort.BoxNotFoundError as error:
         raise http_exceptions.HttpBoxNotFoundError(box_id=box_id) from error
     except UploadControllerPort.BoxVersionError as error:

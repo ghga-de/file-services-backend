@@ -226,6 +226,36 @@ async def test_delete_file_upload(rig: JointRig, complete_before_delete: bool):
     assert file_upload_box_dao.latest.size == 0
 
 
+async def test_update_box_max_size(rig: JointRig):
+    """Test updating the max_size of a FileUploadBox"""
+    file_upload_box_dao = rig.file_upload_box_dao
+    box_id = await rig.create_default_box()
+
+    new_max_size = TEST_MAX_BOX_SIZE * 2
+    await rig.controller.update_box_max_size(
+        box_id=box_id, version=0, max_size=new_max_size
+    )
+
+    assert file_upload_box_dao.latest.max_size == new_max_size
+    assert file_upload_box_dao.latest.version == 1
+
+
+async def test_update_box_max_size_errors(rig: JointRig):
+    """Test that update_box_max_size raises the expected errors."""
+    # BoxNotFound
+    with pytest.raises(UploadControllerPort.BoxNotFoundError):
+        await rig.controller.update_box_max_size(
+            box_id=uuid4(), version=0, max_size=1234
+        )
+
+    # BoxVersionOutdated
+    box_id = await rig.create_default_box()
+    with pytest.raises(UploadControllerPort.BoxVersionError):
+        await rig.controller.update_box_max_size(
+            box_id=box_id, version=6, max_size=1234
+        )
+
+
 async def test_lock_file_upload_box(rig: JointRig):
     """Test locking an unlocked FileUploadBox"""
     # First create a FileUploadBox (starts open by default)

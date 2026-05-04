@@ -111,12 +111,43 @@ async def test_update_box_endpoint_auth(config: ConfigFixture, app_fixture: AppF
     response = await rest_client.patch(url, json=body, headers=wrong_work_token_header)
     assert response.status_code == 403
 
-    # Now the happy case
+    # Now the happy case for state-only update
     good_token_header = utils.change_file_box_token_header(
         box_id=TEST_BOX_ID, jwk=uos_jwk
     )
     response = await rest_client.patch(url, json=body, headers=good_token_header)
     assert response.status_code == 204
+
+    # max_size-only update requires "resize" work type
+    resize_body = {"max_size": 1073741824, "version": 0}
+    wrong_work_for_resize = utils.change_file_box_token_header(
+        box_id=TEST_BOX_ID, work_type="lock", jwk=uos_jwk
+    )
+    response = await rest_client.patch(
+        url, json=resize_body, headers=wrong_work_for_resize
+    )
+    assert response.status_code == 403
+
+    # Test max_size update with right work type
+    resize_token_header = utils.change_file_box_token_header(
+        box_id=TEST_BOX_ID, work_type="resize", jwk=uos_jwk
+    )
+    response = await rest_client.patch(
+        url, json=resize_body, headers=resize_token_header
+    )
+    assert response.status_code == 204
+
+    # Pydantic model should cause 422 if both state and max_size are supplied
+    combined_body = {"state": "locked", "max_size": 1073741824, "version": 0}
+    response = await rest_client.patch(
+        url, json=combined_body, headers=resize_token_header
+    )
+    assert response.status_code == 422
+
+    # Omitting both state and max_size should return a 422 as well
+    empty_body = {"version": 0}
+    response = await rest_client.patch(url, json=empty_body, headers=good_token_header)
+    assert response.status_code == 422
 
 
 async def test_view_box_endpoint_auth(config: ConfigFixture, app_fixture: AppFixture):

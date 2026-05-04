@@ -268,6 +268,18 @@ class UploadControllerPort(ABC):
         ...
 
     @abstractmethod
+    async def update_box_max_size(
+        self, *, box_id: UUID4, version: int, max_size: int
+    ) -> None:
+        """Update the max_size of an existing FileUploadBox.
+
+        Raises:
+        - `BoxNotFoundError` if the FileUploadBox isn't found in the DB.
+        - `BoxVersionError` if the supplied version doesn't match the current version.
+        """
+        ...
+
+    @abstractmethod
     async def lock_file_upload_box(self, *, box_id: UUID4, version: int) -> None:
         """Lock an existing FileUploadBox.
 

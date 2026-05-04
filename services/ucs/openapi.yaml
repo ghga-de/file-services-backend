@@ -21,20 +21,29 @@ components:
     BoxUpdateRequest:
       description: Request body for updating a FileUploadBox.
       properties:
+        max_size:
+          anyOf:
+          - exclusiveMinimum: 0.0
+            type: integer
+          - type: 'null'
+          description: Updated maximum total bytes allowed across all file uploads
+            in this box.
+          title: Max Size
         state:
+          anyOf:
+          - enum:
+            - open
+            - locked
+            - archived
+            type: string
+          - type: 'null'
           description: Updated state
-          enum:
-          - open
-          - locked
-          - archived
           title: State
-          type: string
         version:
           description: The expected current version of the box (for optimistic locking)
           title: Version
           type: integer
       required:
-      - state
       - version
       title: Box Update Request
       type: object
@@ -679,19 +688,23 @@ paths:
       - UploadControllerService
   /boxes/{box_id}:
     patch:
-      description: 'Update a FileUploadBox to lock it, unlock it, or archive it.
+      description: 'Update a FileUploadBox state or max_size.
 
 
-        Request body must contain a `state` field indicating the target state of the
-        box,
+        Request body must contain a `version` field (for optimistic locking) plus
+        either
 
-        as well as a `version` field indicating the expected current version of the
-        box.
+        a `state` field indicating the target state or a `max_size` field with the
 
-        Requires ChangeFileBoxWorkOrder token from the UOS. Users are only allowed
-        to lock
+        new size limit. Requires ChangeFileBoxWorkOrder token from the UOS. When updating
 
-        the box; a Data Steward role is required to do everything else.'
+        state, the work type must match the target state. When updating max_size,
+        the
+
+        work type must be ''resize''. Users are only allowed to lock the box; a Data
+        Steward
+
+        role is required to do everything else.'
       operationId: updateBox
       parameters:
       - in: path
@@ -734,7 +747,7 @@ paths:
           description: Validation Error
       security:
       - HTTPBearer: []
-      summary: Update a FileUploadBox (lock/unlock/archive)
+      summary: Update a FileUploadBox (lock/unlock/archive/resize)
       tags:
       - UploadControllerService
   /boxes/{box_id}/uploads:

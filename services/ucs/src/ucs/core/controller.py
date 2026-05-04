@@ -583,6 +583,33 @@ class UploadController(UploadControllerPort):
         )
         return box.id
 
+    async def update_box_max_size(
+        self, *, box_id: UUID4, version: int, max_size: int
+    ) -> None:
+        """Update the max_size of an existing FileUploadBox.
+
+        Raises:
+        - `BoxNotFoundError` if the FileUploadBox isn't found in the DB.
+        - `BoxVersionError` if the supplied version doesn't match the current version.
+        """
+        # TODO: Handle scenario where new limit is below current size
+        try:
+            box = await self._file_upload_box_dao.get_by_id(box_id)
+        except ResourceNotFoundError as err:
+            error = self.BoxNotFoundError(box_id=box_id)
+            log.error(error)
+            raise error from err
+
+        if box.version != version:
+            error = self.BoxVersionError(box_id=box_id)
+            log.error(error, extra={"box_id": box_id, "version": version})
+            raise error
+
+        box.version += 1
+        box.max_size = max_size
+        await self._file_upload_box_dao.update(box)
+        log.info("Updated max_size for box %s to %s.", box_id, max_size)
+
     async def lock_file_upload_box(self, *, box_id: UUID4, version: int) -> None:
         """Lock an existing FileUploadBox.
 

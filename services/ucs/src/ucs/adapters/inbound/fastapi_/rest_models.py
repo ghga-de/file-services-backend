@@ -37,12 +37,25 @@ class BoxCreationRequest(BaseModel):
 class BoxUpdateRequest(BaseModel):
     """Request body for updating a FileUploadBox."""
 
-    state: UploadBoxState = Field(default=..., description="Updated state")
+    state: UploadBoxState | None = Field(default=None, description="Updated state")
+    max_size: PositiveInt | None = Field(
+        default=None,
+        description="Updated maximum total bytes allowed across all file uploads in this box.",
+    )
     version: int = Field(
         ...,
         description="The expected current version of the box (for optimistic locking)",
     )
     model_config = ConfigDict(title="Box Update Request")
+
+    @model_validator(mode="after")
+    def enforce_size_state_exclusivity(self) -> "BoxUpdateRequest":
+        """Ensure that one and only one of 'state' or 'max_size' is provided."""
+        if self.state is None and self.max_size is None:
+            raise ValueError("At least one of 'state' or 'max_size' must be provided.")
+        if self.state and self.max_size:
+            raise ValueError("Cannot specify state and max_size simultaneously.")
+        return self
 
 
 class FileUploadCreationRequest(BaseModel):
@@ -113,7 +126,7 @@ class FileUploadCompletionRequest(BaseModel):
 
 
 WorkType = Literal[
-    "create", "lock", "unlock", "archive", "view", "upload", "close", "delete"
+    "create", "lock", "unlock", "archive", "resize", "view", "upload", "close", "delete"
 ]
 
 T = TypeVar("T", bound=WorkType)
@@ -129,8 +142,10 @@ class BaseWorkOrderToken[T: WorkType](BaseModel):
 CreateFileBoxWorkOrder = BaseWorkOrderToken[Literal["create"]]
 
 
-class ChangeFileBoxWorkOrder(BaseWorkOrderToken[Literal["lock", "unlock", "archive"]]):
-    """WOT schema authorizing a user to lock or unlock an existing FileUploadBox"""
+class ChangeFileBoxWorkOrder(
+    BaseWorkOrderToken[Literal["lock", "unlock", "archive", "resize"]]
+):
+    """WOT schema authorizing a user to lock, unlock, archive, or resize a FileUploadBox"""
 
     box_id: UUID4
 
