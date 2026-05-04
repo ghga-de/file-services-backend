@@ -369,8 +369,25 @@ components:
       title: HttpBoxSizeLimitExceededError
       type: object
     HttpBoxSizeLimitExceededErrorData:
-      additionalProperties: true
-      properties: {}
+      properties:
+        box_id:
+          format: uuid4
+          title: Box Id
+          type: string
+        current_size:
+          title: Current Size
+          type: integer
+        file_alias:
+          title: File Alias
+          type: string
+        max_size:
+          title: Max Size
+          type: integer
+      required:
+      - box_id
+      - max_size
+      - current_size
+      - file_alias
       title: HttpBoxSizeLimitExceededErrorData
       type: object
     HttpBoxStateError:

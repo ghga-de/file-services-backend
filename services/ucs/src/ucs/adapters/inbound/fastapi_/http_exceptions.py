@@ -274,6 +274,14 @@ class HttpBoxSizeLimitExceededError(HttpCustomExceptionBase):
 
     exception_id = "boxSizeLimitExceeded"
 
+    class DataModel(BaseModel):
+        """Model for exception data"""
+
+        box_id: UUID4
+        max_size: int
+        current_size: int
+        file_alias: str
+
     def __init__(
         self,
         *,

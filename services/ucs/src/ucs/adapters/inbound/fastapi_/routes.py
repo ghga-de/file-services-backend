@@ -231,26 +231,23 @@ async def update_box(  # noqa: C901, PLR0912
         raise http_exceptions.HttpNotAuthorizedError()
 
     try:
-        current_version = box_update.version
-
         if box_update.max_size is not None:
             await upload_controller.update_box_max_size(
-                box_id=box_id, version=current_version, max_size=box_update.max_size
+                box_id=box_id, version=box_update.version, max_size=box_update.max_size
             )
-            current_version += 1
         else:
             match box_update.state:
                 case "locked":
                     await upload_controller.lock_file_upload_box(
-                        box_id=box_id, version=current_version
+                        box_id=box_id, version=box_update.version
                     )
                 case "open":
                     await upload_controller.unlock_file_upload_box(
-                        box_id=box_id, version=current_version
+                        box_id=box_id, version=box_update.version
                     )
                 case "archived":
                     await upload_controller.archive_file_upload_box(
-                        box_id=box_id, version=current_version
+                        box_id=box_id, version=box_update.version
                     )
     except UploadControllerPort.BoxNotFoundError as error:
         raise http_exceptions.HttpBoxNotFoundError(box_id=box_id) from error
