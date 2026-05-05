@@ -448,13 +448,13 @@ async def test_update_box_endpoint_error_handling(
 async def test_update_box_max_size_below_current_error_handling(
     config: ConfigFixture, app_fixture: AppFixture
 ):
-    """Test that BoxMaxSizeBelowCurrentSizeError is correctly translated to HTTP 409."""
+    """Test that BoxMaxSizeTooLowError is correctly translated to HTTP 409."""
     uos_jwk = config.uos_jwk
     body = {"max_size": 100, "version": 0}
     rest_client = app_fixture.rest_client
     core_mock = app_fixture.core_mock
     core_mock.update_box_max_size.side_effect = (
-        UploadControllerPort.BoxMaxSizeBelowCurrentSizeError(
+        UploadControllerPort.BoxMaxSizeTooLowError(
             box_id=TEST_BOX_ID, max_size=100, current_size=200
         )
     )
@@ -464,7 +464,7 @@ async def test_update_box_max_size_below_current_error_handling(
     response = await rest_client.patch(
         f"/boxes/{TEST_BOX_ID}", json=body, headers=token_header
     )
-    expected = http_exceptions.HttpBoxMaxSizeBelowCurrentSizeError(
+    expected = http_exceptions.HttpMaxSizeTooLowError(
         box_id=TEST_BOX_ID, max_size=100, current_size=200
     )
     assert response.json()["description"] == str(expected)
@@ -527,10 +527,10 @@ async def test_view_box_endpoint_error_handling(
         ),
         (RuntimeError("Random error"), http_exceptions.HttpInternalError()),
         (
-            UploadControllerPort.BoxSizeLimitExceededError(
+            UploadControllerPort.BoxMaxSizeExceededError(
                 box_id=TEST_BOX_ID, max_size=9001, current_size=8000
             ),
-            http_exceptions.HttpBoxSizeLimitExceededError(
+            http_exceptions.HttpBoxMaxSizeExceededError(
                 box_id=TEST_BOX_ID,
                 max_size=9001,
                 current_size=8000,
@@ -545,7 +545,7 @@ async def test_view_box_endpoint_error_handling(
         "UnknownStorageAlias",
         "UploadAlreadyInProgressError",
         "InternalError",
-        "BoxSizeLimitExceededError",
+        "BoxMaxSizeExceededError",
     ],
 )
 async def test_create_file_upload_endpoint_error_handling(

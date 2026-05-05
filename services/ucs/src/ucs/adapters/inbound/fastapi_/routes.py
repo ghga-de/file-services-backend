@@ -122,15 +122,15 @@ ERROR_RESPONSES = {
             "Exceptions by ID:"
             + "\n- boxSizeLimitExceeded: Adding this file would exceed the box's size limit."
         ),
-        "model": http_exceptions.HttpBoxSizeLimitExceededError.get_body_model(),
+        "model": http_exceptions.HttpBoxMaxSizeExceededError.get_body_model(),
     },
-    "boxMaxSizeBelowCurrentSize": {
+    "boxMaxSizeTooLow": {
         "description": (
             "Exceptions by ID:"
-            + "\n- boxMaxSizeBelowCurrentSize: The requested max_size is less than the"
+            + "\n- boxMaxSizeTooLow: The requested max_size is less than the"
             + " box's current committed size."
         ),
-        "model": http_exceptions.HttpBoxMaxSizeBelowCurrentSizeError.get_body_model(),
+        "model": http_exceptions.HttpMaxSizeTooLowError.get_body_model(),
     },
 }
 
@@ -198,7 +198,7 @@ async def create_box(
     responses={
         status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["boxNotFound"],
         status.HTTP_409_CONFLICT: ERROR_RESPONSES["boxVersionOutdated"]
-        | ERROR_RESPONSES["boxMaxSizeBelowCurrentSize"],
+        | ERROR_RESPONSES["boxMaxSizeTooLow"],
     },
 )
 @TRACER.start_as_current_span("routes.update_box")
@@ -224,7 +224,7 @@ async def update_box(  # noqa: C901, PLR0912
         required_work_type = BOX_STATE_TO_WORK_TYPE.get(box_update.state)
         if not required_work_type:
             raise http_exceptions.HttpNotAuthorizedError()
-    else:
+    else:  # the validator guarantees that max_size is set in this case
         required_work_type = "resize"
 
     if work_order.box_id != box_id or work_order.work_type != required_work_type:
@@ -253,8 +253,8 @@ async def update_box(  # noqa: C901, PLR0912
         raise http_exceptions.HttpBoxNotFoundError(box_id=box_id) from error
     except UploadControllerPort.BoxVersionError as error:
         raise http_exceptions.HttpBoxVersionError(box_id=box_id) from error
-    except UploadControllerPort.BoxMaxSizeBelowCurrentSizeError as error:
-        raise http_exceptions.HttpBoxMaxSizeBelowCurrentSizeError(
+    except UploadControllerPort.BoxMaxSizeTooLowError as error:
+        raise http_exceptions.HttpMaxSizeTooLowError(
             box_id=box_id, max_size=error.max_size, current_size=error.current_size
         ) from error
     except Exception as error:
@@ -354,8 +354,8 @@ async def create_file_upload(
         raise http_exceptions.HttpBoxStateError(
             box_id=box_id, box_state=error.box_state
         ) from error
-    except UploadControllerPort.BoxSizeLimitExceededError as error:
-        raise http_exceptions.HttpBoxSizeLimitExceededError(
+    except UploadControllerPort.BoxMaxSizeExceededError as error:
+        raise http_exceptions.HttpBoxMaxSizeExceededError(
             box_id=box_id,
             max_size=error.max_size,
             current_size=error.current_size,

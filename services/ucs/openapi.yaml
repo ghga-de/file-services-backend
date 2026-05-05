@@ -280,27 +280,27 @@ components:
           type: array
       title: HTTPValidationError
       type: object
-    HttpBoxMaxSizeBelowCurrentSizeError:
+    HttpBoxMaxSizeExceededError:
       additionalProperties: false
       properties:
         data:
-          $ref: '#/components/schemas/HttpBoxMaxSizeBelowCurrentSizeErrorData'
+          $ref: '#/components/schemas/HttpBoxMaxSizeExceededErrorData'
         description:
           description: A human readable message to the client explaining the cause
             of the exception.
           title: Description
           type: string
         exception_id:
-          const: boxMaxSizeBelowCurrentSize
+          const: boxMaxSizeExceeded
           title: Exception Id
           type: string
       required:
       - data
       - description
       - exception_id
-      title: HttpBoxMaxSizeBelowCurrentSizeError
+      title: HttpBoxMaxSizeExceededError
       type: object
-    HttpBoxMaxSizeBelowCurrentSizeErrorData:
+    HttpBoxMaxSizeExceededErrorData:
       properties:
         box_id:
           format: uuid4
@@ -309,6 +309,9 @@ components:
         current_size:
           title: Current Size
           type: integer
+        file_alias:
+          title: File Alias
+          type: string
         max_size:
           title: Max Size
           type: integer
@@ -316,7 +319,8 @@ components:
       - box_id
       - max_size
       - current_size
-      title: HttpBoxMaxSizeBelowCurrentSizeErrorData
+      - file_alias
+      title: HttpBoxMaxSizeExceededErrorData
       type: object
     HttpBoxNotFoundError:
       additionalProperties: false
@@ -347,48 +351,6 @@ components:
       required:
       - box_id
       title: HttpBoxNotFoundErrorData
-      type: object
-    HttpBoxSizeLimitExceededError:
-      additionalProperties: false
-      properties:
-        data:
-          $ref: '#/components/schemas/HttpBoxSizeLimitExceededErrorData'
-        description:
-          description: A human readable message to the client explaining the cause
-            of the exception.
-          title: Description
-          type: string
-        exception_id:
-          const: boxSizeLimitExceeded
-          title: Exception Id
-          type: string
-      required:
-      - data
-      - description
-      - exception_id
-      title: HttpBoxSizeLimitExceededError
-      type: object
-    HttpBoxSizeLimitExceededErrorData:
-      properties:
-        box_id:
-          format: uuid4
-          title: Box Id
-          type: string
-        current_size:
-          title: Current Size
-          type: integer
-        file_alias:
-          title: File Alias
-          type: string
-        max_size:
-          title: Max Size
-          type: integer
-      required:
-      - box_id
-      - max_size
-      - current_size
-      - file_alias
-      title: HttpBoxSizeLimitExceededErrorData
       type: object
     HttpBoxStateError:
       additionalProperties: false
@@ -487,6 +449,44 @@ components:
       required:
       - file_id
       title: HttpFileUploadNotFoundErrorData
+      type: object
+    HttpMaxSizeTooLowError:
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/HttpMaxSizeTooLowErrorData'
+        description:
+          description: A human readable message to the client explaining the cause
+            of the exception.
+          title: Description
+          type: string
+        exception_id:
+          const: boxMaxSizeTooLow
+          title: Exception Id
+          type: string
+      required:
+      - data
+      - description
+      - exception_id
+      title: HttpMaxSizeTooLowError
+      type: object
+    HttpMaxSizeTooLowErrorData:
+      properties:
+        box_id:
+          format: uuid4
+          title: Box Id
+          type: string
+        current_size:
+          title: Current Size
+          type: integer
+        max_size:
+          title: Max Size
+          type: integer
+      required:
+      - box_id
+      - max_size
+      - current_size
+      title: HttpMaxSizeTooLowErrorData
       type: object
     HttpOrphanedMultipartUploadError:
       additionalProperties: false
@@ -760,11 +760,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HttpBoxMaxSizeBelowCurrentSizeError'
+                $ref: '#/components/schemas/HttpMaxSizeTooLowError'
           description: 'Exceptions by ID:
 
-            - boxMaxSizeBelowCurrentSize: The requested max_size is less than the
-            box''s current committed size.'
+            - boxMaxSizeTooLow: The requested max_size is less than the box''s current
+            committed size.'
         '422':
           content:
             application/json:
@@ -897,7 +897,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HttpBoxSizeLimitExceededError'
+                $ref: '#/components/schemas/HttpBoxMaxSizeExceededError'
           description: 'Exceptions by ID:
 
             - boxSizeLimitExceeded: Adding this file would exceed the box''s size

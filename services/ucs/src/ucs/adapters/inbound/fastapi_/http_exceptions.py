@@ -234,10 +234,10 @@ class HttpChecksumMismatchError(HttpCustomExceptionBase):
         )
 
 
-class HttpBoxMaxSizeBelowCurrentSizeError(HttpCustomExceptionBase):
+class HttpMaxSizeTooLowError(HttpCustomExceptionBase):
     """Thrown when the requested max_size is less than the box's current committed size."""
 
-    exception_id = "boxMaxSizeBelowCurrentSize"
+    exception_id = "boxMaxSizeTooLow"
 
     class DataModel(BaseModel):
         """Model for exception data"""
@@ -269,10 +269,10 @@ class HttpBoxMaxSizeBelowCurrentSizeError(HttpCustomExceptionBase):
         )
 
 
-class HttpBoxSizeLimitExceededError(HttpCustomExceptionBase):
+class HttpBoxMaxSizeExceededError(HttpCustomExceptionBase):
     """Thrown when adding a file would exceed the box's total size limit."""
 
-    exception_id = "boxSizeLimitExceeded"
+    exception_id = "boxMaxSizeExceeded"
 
     class DataModel(BaseModel):
         """Model for exception data"""

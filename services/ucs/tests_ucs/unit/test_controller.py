@@ -257,7 +257,7 @@ async def test_update_box_max_size_errors(rig: JointRig):
 
 
 async def test_update_box_max_size_below_committed(rig: JointRig):
-    """Test that setting max_size below committed bytes raises BoxMaxSizeBelowCurrentSizeError."""
+    """Test that setting max_size below committed bytes raises BoxMaxSizeTooLowError."""
     controller = rig.controller
     box_id = await rig.create_default_box()
 
@@ -279,7 +279,7 @@ async def test_update_box_max_size_below_committed(rig: JointRig):
     )
 
     box = rig.file_upload_box_dao.latest
-    with pytest.raises(UploadControllerPort.BoxMaxSizeBelowCurrentSizeError):
+    with pytest.raises(UploadControllerPort.BoxMaxSizeTooLowError):
         await controller.update_box_max_size(
             box_id=box_id, version=box.version, max_size=box.size - 1
         )
@@ -1127,7 +1127,7 @@ async def test_box_size_limit(
         )
 
     with (
-        pytest.raises(UploadControllerPort.BoxSizeLimitExceededError)
+        pytest.raises(UploadControllerPort.BoxMaxSizeExceededError)
         if expect_error
         else nullcontext()
     ):
@@ -1179,7 +1179,7 @@ async def test_finished_uploads_count_toward_limit(rig: JointRig):
     )
 
     # file3 would exceed: box.size (DECRYPTED_SIZE) + in_progress (DECRYPTED_SIZE) + new > max
-    with pytest.raises(UploadControllerPort.BoxSizeLimitExceededError):
+    with pytest.raises(UploadControllerPort.BoxMaxSizeExceededError):
         await controller.initiate_file_upload(
             box_id=box_id,
             alias="file3",

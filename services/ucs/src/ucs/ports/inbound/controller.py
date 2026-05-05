@@ -116,7 +116,7 @@ class UploadControllerPort(ABC):
             )
             super().__init__(msg)
 
-    class BoxMaxSizeBelowCurrentSizeError(UploadError):
+    class BoxMaxSizeTooLowError(UploadError):
         """Raised when the requested max_size is less than the box's current committed size."""
 
         def __init__(self, *, box_id: UUID4, max_size: int, current_size: int):
@@ -128,7 +128,7 @@ class UploadControllerPort(ABC):
             )
             super().__init__(msg)
 
-    class BoxSizeLimitExceededError(UploadError):
+    class BoxMaxSizeExceededError(UploadError):
         """Raised when adding a new FileUpload would exceed the box's total size limit."""
 
         def __init__(self, *, box_id: UUID4, max_size: int, current_size: int):
@@ -204,7 +204,7 @@ class UploadControllerPort(ABC):
         Raises:
         - `BoxNotFoundError` if the box does not exist.
         - `BoxStateError` if the box exists but is locked.
-        - `BoxSizeLimitExceededError` if adding the file would exceed the box's size limit.
+        - `BoxMaxSizeExceededError` if adding the file would exceed the box's size limit.
         - `FileUploadAlreadyExists` if there's already a FileUpload for this alias.
         - `UnknownStorageAliasError` if the storage alias is not known.
         - `UploadAlreadyInProgressError` if an upload is already in progress.
@@ -288,7 +288,7 @@ class UploadControllerPort(ABC):
         Raises:
         - `BoxNotFoundError` if the FileUploadBox isn't found in the DB.
         - `BoxVersionError` if the supplied version doesn't match the current version.
-        - `BoxMaxSizeBelowCurrentSizeError` if the new max_size is smaller than what has
+        - `BoxMaxSizeTooLowError` if the new max_size is smaller than what has
             already been uploaded.
         """
         ...

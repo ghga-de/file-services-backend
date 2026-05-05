@@ -272,7 +272,7 @@ class UploadController(UploadControllerPort):
             current_size += upload.decrypted_size
 
         if current_size + decrypted_size > box.max_size:
-            error = self.BoxSizeLimitExceededError(
+            error = self.BoxMaxSizeExceededError(
                 box_id=box.id, max_size=box.max_size, current_size=current_size
             )
             log.error(error, extra=extra)
@@ -600,13 +600,13 @@ class UploadController(UploadControllerPort):
         Raises:
         - `BoxNotFoundError` if the FileUploadBox isn't found in the DB.
         - `BoxVersionError` if the supplied version doesn't match the current version.
-        - `BoxMaxSizeBelowCurrentSizeError` if the new max_size is smaller than what has
+        - `BoxMaxSizeTooLowError` if the new max_size is smaller than what has
             already been uploaded.
         """
         box = await self._get_box_at_version(box_id=box_id, version=version)
 
         if max_size < box.size:
-            error = self.BoxMaxSizeBelowCurrentSizeError(
+            error = self.BoxMaxSizeTooLowError(
                 box_id=box_id, max_size=max_size, current_size=box.size
             )
             log.error(error, extra={"box_id": box_id, "max_size": max_size})
