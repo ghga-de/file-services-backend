@@ -1,11 +1,11 @@
 [project]
 name = "fsb"
-version = "11.0.2"
+version = "12.0.0"
 description = "File Services Backend - monorepo housing file services"
 dependencies = [
-    "typer >= 0.19",
+    "typer >= 0.25",
     "ghga-service-commons[api, auth, crypt, transports] >= 7.0.1",
-    "ghga-event-schemas >= 12.0.0",
+    "ghga-event-schemas >= 13.0.0",
     "hexkit[akafka, s3, mongodb, opentelemetry] >= 8.1",
     "crypt4gh >= 1.7",
     "hvac >= 2",
