@@ -117,10 +117,10 @@ ERROR_RESPONSES = {
         ),
         "model": http_exceptions.HttpChecksumMismatchError.get_body_model(),
     },
-    "boxSizeLimitExceeded": {
+    "boxMaxSizeExceeded": {
         "description": (
             "Exceptions by ID:"
-            + "\n- boxSizeLimitExceeded: Adding this file would exceed the box's size limit."
+            + "\n- boxMaxSizeExceeded: Adding this file would exceed the box's size limit."
         ),
         "model": http_exceptions.HttpBoxMaxSizeExceededError.get_body_model(),
     },
@@ -314,7 +314,7 @@ async def get_box_uploads(
         status.HTTP_409_CONFLICT: ERROR_RESPONSES["boxStateError"]
         | ERROR_RESPONSES["fileUploadAlreadyExists"]
         | ERROR_RESPONSES["orphanedMultipartUpload"],
-        status.HTTP_507_INSUFFICIENT_STORAGE: ERROR_RESPONSES["boxSizeLimitExceeded"],
+        status.HTTP_507_INSUFFICIENT_STORAGE: ERROR_RESPONSES["boxMaxSizeExceeded"],
     },
 )
 @TRACER.start_as_current_span("routes.create_file_upload")

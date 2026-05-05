@@ -900,8 +900,7 @@ paths:
                 $ref: '#/components/schemas/HttpBoxMaxSizeExceededError'
           description: 'Exceptions by ID:
 
-            - boxSizeLimitExceeded: Adding this file would exceed the box''s size
-            limit.'
+            - boxMaxSizeExceeded: Adding this file would exceed the box''s size limit.'
       security:
       - HTTPBearer: []
       summary: Add a new FileUpload to an existing FileUploadBox
