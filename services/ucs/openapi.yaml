@@ -517,6 +517,39 @@ components:
       - file_alias
       title: HttpOrphanedMultipartUploadErrorData
       type: object
+    HttpPartSizeError:
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/HttpPartSizeErrorData'
+        description:
+          description: A human readable message to the client explaining the cause
+            of the exception.
+          title: Description
+          type: string
+        exception_id:
+          const: invalidPartSize
+          title: Exception Id
+          type: string
+      required:
+      - data
+      - description
+      - exception_id
+      title: HttpPartSizeError
+      type: object
+    HttpPartSizeErrorData:
+      properties:
+        file_alias:
+          title: File Alias
+          type: string
+        part_size:
+          title: Part Size
+          type: integer
+      required:
+      - file_alias
+      - part_size
+      title: HttpPartSizeErrorData
+      type: object
     HttpS3UploadNotFoundError:
       additionalProperties: false
       properties:
@@ -899,10 +932,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HttpUnknownStorageAliasError'
+                $ref: '#/components/schemas/HttpPartSizeError'
           description: 'Exceptions by ID:
 
-            - noSuchStorage: The storage node for the given alias does not exist.'
+            - invalidPartSize: The specified part size is invalid (too small, too
+            large, or would result in too many parts).'
         '404':
           content:
             application/json:

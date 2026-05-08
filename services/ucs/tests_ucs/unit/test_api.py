@@ -545,6 +545,10 @@ async def test_view_box_endpoint_error_handling(
                 box_id=TEST_BOX_ID, max_concurrent=3
             ),
         ),
+        (
+            UploadControllerPort.PartSizeError(file_alias="test_file", part_size=1000),
+            http_exceptions.HttpPartSizeError(file_alias="test_file", part_size=1000),
+        ),
     ],
     ids=[
         "BoxNotFound",
@@ -555,6 +559,7 @@ async def test_view_box_endpoint_error_handling(
         "InternalError",
         "BoxMaxSizeExceededError",
         "TooManyOpenUploadsError",
+        "PartSizeError",
     ],
 )
 async def test_create_file_upload_endpoint_error_handling(
