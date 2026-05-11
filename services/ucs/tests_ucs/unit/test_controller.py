@@ -1226,7 +1226,7 @@ async def test_concurrent_upload_cap(rig: JointRig):
     )
     # Use all of our in-flight quota
     for i in range(limit):
-        await rig.controller.initiate_file_upload(
+        _ = await rig.controller.initiate_file_upload(
             box_id=box_id,
             alias=f"existing_{i}",
             decrypted_size=1,
@@ -1236,7 +1236,7 @@ async def test_concurrent_upload_cap(rig: JointRig):
 
     # Trigger the new error by trying to start another upload
     with pytest.raises(UploadControllerPort.TooManyOpenUploadsError):
-        await rig.controller.initiate_file_upload(
+        _ = await rig.controller.initiate_file_upload(
             box_id=box_id,
             alias="new_file",
             decrypted_size=1,
@@ -1262,6 +1262,17 @@ async def test_concurrent_upload_cap(rig: JointRig):
         encrypted_size=1,
         part_size=PART_SIZE,
     )
+
+    # And finally check that crossing the limit once again triggers the error
+    # Trigger the new error by trying to start another upload
+    with pytest.raises(UploadControllerPort.TooManyOpenUploadsError):
+        _ = await rig.controller.initiate_file_upload(
+            box_id=box_id,
+            alias="new_file",
+            decrypted_size=1,
+            encrypted_size=1,
+            part_size=PART_SIZE,
+        )
 
 
 def _make_matching_event(file_upload: FileUpload) -> FileInternallyRegistered:

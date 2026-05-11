@@ -276,7 +276,7 @@ class UploadController(UploadControllerPort):
 
         # Ensure that another upload is allowed at the moment
         max_concurrent = self._config.max_concurrent_uploads_per_box
-        if max_concurrent > 0 and in_progress_count >= max_concurrent:
+        if in_progress_count >= max_concurrent:
             error = self.TooManyOpenUploadsError(
                 box_id=box.id, max_concurrent=max_concurrent
             )
