@@ -238,7 +238,9 @@ components:
           type: integer
         part_size:
           description: The number of bytes in each file part (last part may be smaller)
-          minimum: 1.0
+          exclusiveMinimum: 0.0
+          maximum: 5368709120.0
+          minimum: 5242880.0
           title: Part Size
           type: integer
       required:

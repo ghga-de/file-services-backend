@@ -1280,11 +1280,12 @@ async def test_concurrent_upload_cap(rig: JointRig):
     "part_size, encrypted_size, expect_error",
     [
         (PART_SIZE, ENCRYPTED_SIZE, False),
+        (0, ENCRYPTED_SIZE, True),
         (MIN_PART_SIZE - 1, ENCRYPTED_SIZE, True),
         (MAX_PART_SIZE + 1, ENCRYPTED_SIZE, True),
         (MIN_PART_SIZE, MIN_PART_SIZE * (MAX_PART_COUNT + 1), True),
     ],
-    ids=["valid", "too_small", "too_large", "too_many_parts"],
+    ids=["valid", "zero", "too_small", "too_large", "too_many_parts"],
 )
 async def test_part_size_validation(
     rig: JointRig,

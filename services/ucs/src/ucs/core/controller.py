@@ -297,11 +297,11 @@ class UploadController(UploadControllerPort):
             log.error(error, extra=extra)
             raise error
 
-        # Ensure part size is okay - verify size & implied part count
-        implied_part_count = ceil(encrypted_size / part_size)
+        # Ensure part size is okay - verify size & implied part count. Min and Max part
+        #  size are enforced by the pydantic model at ingress, but double-checked here
         if (
             not (MIN_PART_SIZE <= part_size <= MAX_PART_SIZE)
-            or implied_part_count > MAX_PART_COUNT
+            or ceil(encrypted_size / part_size) > MAX_PART_COUNT
         ):
             raise self.PartSizeError(file_alias=alias, part_size=part_size)
 
