@@ -818,6 +818,56 @@ async def test_complete_file_upload_with_s3_error(rig: JointRig):
     assert file_upload_box_dao.latest.file_count == 0
 
 
+async def test_complete_file_upload_size_mismatch(rig: JointRig):
+    """Test that UploadSizeMismatchError is raised and the FileUpload is marked 'failed'
+    when the actual S3 object size doesn't match the declared encrypted_size.
+    """
+    box_id = await rig.create_default_box()
+    file_id, _ = await rig.controller.initiate_file_upload(
+        box_id=box_id,
+        alias="test_file",
+        decrypted_size=DECRYPTED_SIZE,
+        encrypted_size=ENCRYPTED_SIZE,
+        part_size=PART_SIZE,
+    )
+
+    file_upload = rig.file_upload_dao.latest
+    assert file_upload.state == "init"
+    state_updated = file_upload.state_updated
+
+    # Sleep so we can check for the timestamp difference
+    await sleep(0.1)
+
+    # Patch get_object_size to return a wrong size for this object
+    _, storage = rig.object_storages.for_alias("test")
+
+    async def wrong_size(*args, **kwargs):
+        return ENCRYPTED_SIZE + 1
+
+    storage.get_object_size = wrong_size  # type: ignore[method-assign]
+
+    # Now try to complete the upload. Should get the UploadSizeMismatchError.
+    object_id = rig.file_upload_dao.latest.object_id
+    with pytest.raises(UploadControllerPort.UploadSizeMismatchError):
+        await rig.controller.complete_file_upload(
+            box_id=box_id,
+            file_id=file_id,
+            unencrypted_checksum="sha256:unencrypted_checksum_here",
+            encrypted_checksum=f"etag_for_{object_id}",
+            encrypted_parts_md5=["abc123"],
+            encrypted_parts_sha256=["def456"],
+        )
+
+    # Make sure the FileUpload attributes are updated
+    file_upload = rig.file_upload_dao.latest
+    assert file_upload.state == "failed"
+    assert file_upload.state_updated > state_updated
+    assert not file_upload.inbox_upload_completed
+    assert not file_upload.completed
+    assert rig.file_upload_box_dao.latest.size == 0
+    assert rig.file_upload_box_dao.latest.file_count == 0
+
+
 async def test_complete_file_upload_checksum_mismatch(rig: JointRig):
     """Test to make sure the FileUpload is marked as 'failed' if the UploadController
     raises a ChecksumMismatchError.
