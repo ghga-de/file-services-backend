@@ -174,7 +174,7 @@ def rig(config: ConfigFixture, patch_s3_calls) -> JointRig:
                 return resource.encrypted_size
         return 1024  # The value that the InMem fixture otherwise returns
 
-    storage.get_object_size = mock_get_object_size  # type: ignore[method-assign]
+    storage.get_object_size = mock_get_object_size
 
     controller = UploadController(
         config=(_config),

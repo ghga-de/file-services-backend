@@ -844,7 +844,7 @@ async def test_complete_file_upload_size_mismatch(rig: JointRig):
     async def wrong_size(*args, **kwargs):
         return ENCRYPTED_SIZE + 1
 
-    storage.get_object_size = wrong_size  # type: ignore[method-assign]
+    storage.get_object_size = wrong_size
 
     # Now try to complete the upload. Should get the UploadSizeMismatchError.
     object_id = rig.file_upload_dao.latest.object_id
