@@ -354,7 +354,7 @@ class HttpPartSizeError(HttpCustomExceptionBase):
             description=(
                 f"The part size {part_size} for file '{file_alias}' is invalid."
                 + " It must be between 5 MiB and 5 GiB and no less than 1/10000th of"
-                + " the total part size."
+                + " the total file size."
             ),
             data={"file_alias": file_alias, "part_size": part_size},
         )
