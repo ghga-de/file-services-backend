@@ -43,6 +43,8 @@ from ucs.constants import MAX_PART_COUNT, MAX_PART_SIZE, MIN_PART_SIZE
 from ucs.core.models import FileUpload
 from ucs.ports.inbound.controller import UploadControllerPort
 
+MIN_SLEEP = 0.001
+
 pytestmark = pytest.mark.asyncio()
 
 
@@ -151,7 +153,7 @@ async def test_complete_file_upload(rig: JointRig):
     assert file_upload_box_dao.latest.file_count == 1
 
     # Now repeat the process to ensure the box stats are incremented, not overwritten
-    await sleep(0.1)
+    await sleep(MIN_SLEEP)
     other_decrypted_size = DECRYPTED_SIZE * 2  # this file is bigger
     other_encrypted_size = int(other_decrypted_size * 1.05)
     file_id2, _ = await controller.initiate_file_upload(
@@ -836,7 +838,7 @@ async def test_complete_file_upload_size_mismatch(rig: JointRig):
     state_updated = file_upload.state_updated
 
     # Sleep so we can check for the timestamp difference
-    await sleep(0.1)
+    await sleep(MIN_SLEEP)
 
     # Patch get_object_size to return a wrong size for this object
     _, storage = rig.object_storages.for_alias("test")
@@ -889,7 +891,7 @@ async def test_complete_file_upload_checksum_mismatch(rig: JointRig):
     assert file_upload.state == "init"
     state_updated = file_upload.state_updated
 
-    await sleep(0.1)  # short sleep for differentiating timestamps
+    await sleep(MIN_SLEEP)  # short sleep for differentiating timestamps
 
     # Provide a wrong checksum to trigger a ChecksumMismatchError
     with pytest.raises(UploadControllerPort.ChecksumMismatchError):
@@ -1394,14 +1396,14 @@ async def test_handle_internal_file_registration(rig: JointRig):
     # Now insert the FileUpload and run the event handling function
     await rig.file_upload_dao.insert(file_upload)
 
-    await sleep(0.1)  # sleep so that timestamp comparisons are valid
+    await sleep(MIN_SLEEP)  # sleep so that timestamp comparisons are valid
     await rig.controller.process_internal_file_registration(registration_metadata=event)
     updated_file_upload = await rig.file_upload_dao.get_by_id(file_upload.id)
     assert updated_file_upload.state == "archived"
     assert updated_file_upload.state_updated > file_upload.state_updated
 
     # Now reprocess the event - should get no errors and timestamp should be unchanged
-    await sleep(0.1)  # sleep so that timestamp comparisons are valid
+    await sleep(MIN_SLEEP)  # sleep so that timestamp comparisons are valid
     await rig.controller.process_internal_file_registration(registration_metadata=event)
     final_file_upload = await rig.file_upload_dao.get_by_id(file_upload.id)
     assert final_file_upload.state == "archived"
