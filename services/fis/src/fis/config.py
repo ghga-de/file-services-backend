@@ -65,7 +65,7 @@ class Config(
         description=(
             "A PEP 440 version specifier controlling which DHFS client versions are"
             + " accepted. Requests where the reported version does not satisfy this"
-            + " specifier will be rejected with a 400 error."
+            + " specifier will be rejected with a 426 error."
         ),
         examples=[">=1.0.0,<2.0.0", "~=2.0"],
     )
