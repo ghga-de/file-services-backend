@@ -127,6 +127,9 @@ async def prepare_rest_app(
             auth_providers[hub] = provider
 
         app.dependency_overrides[dummies.auth_providers_dummy] = lambda: auth_providers
+        app.dependency_overrides[dummies.supported_dhfs_versions_dummy] = lambda: (
+            config.supported_dhfs_versions
+        )
 
         yield app
 

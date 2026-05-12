@@ -62,5 +62,6 @@ port: 8080
 retry_after_applicable_for_num_requests: 1
 service_instance_id: '1'
 service_name: fis
+supported_dhfs_versions: ~=2.0
 timeout_keep_alive: 90
 workers: 1

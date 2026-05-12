@@ -20,7 +20,8 @@ from hexkit.log import LoggingConfig
 from hexkit.opentelemetry import OpenTelemetryConfig
 from hexkit.providers.mongodb.migrations import MigrationConfig
 from hexkit.providers.mongokafka import MongoKafkaConfig
-from pydantic import Field
+from packaging.specifiers import InvalidSpecifier, SpecifierSet
+from pydantic import Field, field_validator
 
 from fis.adapters.inbound.event_sub import OutboxSubConfig
 from fis.adapters.outbound.event_pub import EventPubConfig
@@ -58,3 +59,25 @@ class Config(
             }
         ],
     )
+
+    supported_dhfs_versions: str = Field(
+        default=...,
+        description=(
+            "A PEP 440 version specifier controlling which DHFS client versions are"
+            + " accepted. Requests where the reported version does not satisfy this"
+            + " specifier will be rejected with a 400 error."
+        ),
+        examples=[">=1.0.0,<2.0.0", "~=2.0"],
+    )
+
+    @field_validator("supported_dhfs_versions")
+    @classmethod
+    def validate_supported_dhfs_versions(cls, value: str) -> str:
+        """Ensure supported_dhfs_versions is a valid PEP 440 version specifier."""
+        try:
+            SpecifierSet(value)
+        except InvalidSpecifier as err:
+            raise ValueError(
+                f"Invalid version specifier for supported_dhfs_versions: {err}"
+            ) from err
+        return value
