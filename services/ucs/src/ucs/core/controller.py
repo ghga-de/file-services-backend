@@ -472,7 +472,6 @@ class UploadController(UploadControllerPort):
             file_upload.state_updated = now_utc_ms_prec()
             file_upload.failure_reason = "Actual object size didn't match expected size"
             await self._file_upload_dao.update(file_upload)
-            log.info("Marked FileUpload %s as 'failed' due to size mismatch.", file_id)
             error = self.UploadSizeMismatchError(file_id=file_id)
             log.error(
                 error,
