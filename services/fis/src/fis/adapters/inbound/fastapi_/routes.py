@@ -36,7 +36,7 @@ def check_and_log_user_agent_header(
     *,
     request: Request,
     endpoint_description: str,
-    supported_dhfs_versions: str,
+    dhfs_version_constraint: str,
     storage_alias: str = "",
 ) -> None:
     """Log a structured message from the User-Agent header.
@@ -49,12 +49,18 @@ def check_and_log_user_agent_header(
     in a 426 Upgrade Required response.
     """
     raw_user_agent = request.headers.get("user-agent")
-    extra = {"user_agent": raw_user_agent, "storage_alias": storage_alias}
+    extra = {
+        "user_agent": raw_user_agent,
+        "storage_alias": storage_alias,
+        "dhfs_version_constraint": dhfs_version_constraint,
+    }
     alias_part = f", originating from {storage_alias}" if storage_alias else ""
     client_part = raw_user_agent
 
     accepted = True
     parts = (raw_user_agent or "").split("/")
+
+    # Note: this is a naive implementation and we might want/need to use regex later
     if (len(parts) == 2) and all(parts):
         extra["client_name"] = parts[0]
         extra["client_version"] = parts[1]
@@ -65,9 +71,11 @@ def check_and_log_user_agent_header(
         if parts[0] == DHFS_USER_AGENT_PREFIX:
             try:
                 accepted = Version(version_part) in SpecifierSet(
-                    supported_dhfs_versions
+                    dhfs_version_constraint
                 )
             except InvalidVersion:
+                # Invalid version would come from version_part, not dhfs_version_constraint
+                #  as the latter is already screened during config instantiation.
                 accepted = False
 
     # Log all requests either way
@@ -81,15 +89,16 @@ def check_and_log_user_agent_header(
         )
     else:
         log.warning(
-            "Rejected request from unsupported DHFS version %s.",
+            "Rejected request from DHFS version %s, which doesn't satisfy constraint %s.",
             version_part,
+            dhfs_version_constraint,
             extra=extra,
         )
         raise HTTPException(
             status_code=status.HTTP_426_UPGRADE_REQUIRED,
             detail=(
                 "Data Hub File Service must satisfy the following version"
-                + f" constraint(s): {supported_dhfs_versions}"
+                + f" constraint(s): {dhfs_version_constraint}"
             ),
         )
 
@@ -103,13 +112,13 @@ def check_and_log_user_agent_header(
 @TRACER.start_as_current_span("routes.health")
 async def health(
     request: Request,
-    _supported_dhfs_versions: dummies.SupportedDhfsVersions,
+    _dhfs_version_constraint: dummies.DhfsVersionConstraint,
 ):
     """Used to test if this service is alive"""
     check_and_log_user_agent_header(
         request=request,
         endpoint_description="health",
-        supported_dhfs_versions=_supported_dhfs_versions,
+        dhfs_version_constraint=_dhfs_version_constraint,
     )
     return {"status": "OK"}
 
@@ -127,12 +136,12 @@ async def list_uploads(
     request: Request,
     interrogator: dummies.InterrogatorPort,
     _token: Annotated[JWT, require_data_hub_jwt],
-    _supported_dhfs_versions: dummies.SupportedDhfsVersions,
+    _dhfs_version_constraint: dummies.DhfsVersionConstraint,
 ) -> list[models.BaseFileInformation]:
     """Return a list of not-yet-interrogated files for a Data Hub (storage_alias)"""
     check_and_log_user_agent_header(
         request=request,
-        supported_dhfs_versions=_supported_dhfs_versions,
+        dhfs_version_constraint=_dhfs_version_constraint,
         endpoint_description="list_uploads",
         storage_alias=storage_alias,
     )
@@ -159,7 +168,7 @@ async def get_removable_files(
     request: Request,
     interrogator: dummies.InterrogatorPort,
     _token: Annotated[JWT, require_data_hub_jwt],
-    _supported_dhfs_versions: dummies.SupportedDhfsVersions,
+    _dhfs_version_constraint: dummies.DhfsVersionConstraint,
     object_ids: list[UUID4] = Body(),
 ) -> list[UUID4]:
     """Returns a subset of the provided object ID list containing the IDs of all S3
@@ -167,7 +176,7 @@ async def get_removable_files(
     """
     check_and_log_user_agent_header(
         request=request,
-        supported_dhfs_versions=_supported_dhfs_versions,
+        dhfs_version_constraint=_dhfs_version_constraint,
         endpoint_description="get_removable_files",
         storage_alias=storage_alias,
     )
@@ -198,13 +207,13 @@ async def post_interrogation_report(
     request: Request,
     interrogator: dummies.InterrogatorPort,
     _token: Annotated[JWT, require_data_hub_jwt],
-    _supported_dhfs_versions: dummies.SupportedDhfsVersions,
+    _dhfs_version_constraint: dummies.DhfsVersionConstraint,
     report: models.InterrogationReportWithSecret = Body(),
 ) -> None:
     """Post an InterrogationReport"""
     check_and_log_user_agent_header(
         request=request,
-        supported_dhfs_versions=_supported_dhfs_versions,
+        dhfs_version_constraint=_dhfs_version_constraint,
         endpoint_description="post_interrogation_report",
         storage_alias=storage_alias,
     )

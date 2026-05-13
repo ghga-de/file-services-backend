@@ -593,7 +593,7 @@ The service requires the following configuration parameters:
   ```
 
 
-- <a id="properties/supported_dhfs_versions"></a>**`supported_dhfs_versions`** *(string, required)*: A PEP 440 version specifier controlling which DHFS client versions are accepted. Requests where the reported version does not satisfy this specifier will be rejected with a 426 error.
+- <a id="properties/dhfs_version_constraint"></a>**`dhfs_version_constraint`** *(string, required)*: A PEP 440 version specifier controlling which DHFS client versions are accepted. Requests where the reported version does not satisfy this specifier will be rejected with a 426 error.
 
 
   Examples:

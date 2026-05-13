@@ -31,10 +31,10 @@ from tests_fis.fixtures.config import get_config
         "!=1.5.0",
     ],
 )
-def test_supported_dhfs_versions_valid(specifier: str):
+def test_dhfs_version_constraint_valid(specifier: str):
     """Valid PEP 440 specifiers should be accepted without error."""
-    config = get_config(supported_dhfs_versions=specifier)
-    assert config.supported_dhfs_versions == specifier
+    config = get_config(dhfs_version_constraint=specifier)
+    assert config.dhfs_version_constraint == specifier
 
 
 @pytest.mark.parametrize(
@@ -45,7 +45,7 @@ def test_supported_dhfs_versions_valid(specifier: str):
         "1.0.0",  # bare version without operator is invalid as a specifier
     ],
 )
-def test_supported_dhfs_versions_invalid(specifier: str):
+def test_dhfs_version_constraint_invalid(specifier: str):
     """Invalid PEP 440 specifiers should raise a ValidationError at config load time."""
     with pytest.raises(ValidationError):
-        get_config(supported_dhfs_versions=specifier)
+        get_config(dhfs_version_constraint=specifier)

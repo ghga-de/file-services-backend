@@ -60,7 +60,7 @@ class Config(
         ],
     )
 
-    supported_dhfs_versions: str = Field(
+    dhfs_version_constraint: str = Field(
         default=...,
         description=(
             "A PEP 440 version specifier controlling which DHFS client versions are"
@@ -70,14 +70,14 @@ class Config(
         examples=[">=1.0.0,<2.0.0", "~=2.0"],
     )
 
-    @field_validator("supported_dhfs_versions")
+    @field_validator("dhfs_version_constraint")
     @classmethod
-    def validate_supported_dhfs_versions(cls, value: str) -> str:
-        """Ensure supported_dhfs_versions is a valid PEP 440 version specifier."""
+    def validate_dhfs_version_constraint(cls, value: str) -> str:
+        """Ensure dhfs_version_constraint is a valid PEP 440 version specifier."""
         try:
             SpecifierSet(value)
         except InvalidSpecifier as err:
             raise ValueError(
-                f"Invalid version specifier for supported_dhfs_versions: {err}"
+                f"Invalid version specifier for dhfs_version_constraint: {err}"
             ) from err
         return value
