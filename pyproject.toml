@@ -10,6 +10,7 @@ dependencies = [
     "crypt4gh >= 1.7",
     "hvac >= 2",
     "httpx >= 0.28",
+    "packaging >= 26",
 ]
 readme = "README.md"
 authors = [
