@@ -21,3 +21,4 @@ TRACER = trace.get_tracer_provider().get_tracer(SERVICE_NAME)
 AUTH_CHECK_CLAIMS = ["iss", "aud", "iat", "exp", "sub"]
 GHGA = "GHGA"
 DHFS_USER_AGENT_PREFIX = "GHGA DataHubFileService"
+OLD_DHFS_USER_AGENT_PREFIX = "DataHubFileService"

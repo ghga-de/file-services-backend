@@ -24,7 +24,7 @@ from ghga_service_commons.utils.jwt_helpers import sign_and_serialize_token
 from hexkit.utils import now_utc_ms_prec
 from jwcrypto.jwk import JWK
 
-from fis.constants import DHFS_USER_AGENT_PREFIX, GHGA
+from fis.constants import DHFS_USER_AGENT_PREFIX, GHGA, OLD_DHFS_USER_AGENT_PREFIX
 from fis.core import models
 from tests_fis.fixtures.joint import JointRig
 from tests_fis.fixtures.utils import create_file_under_interrogation
@@ -109,6 +109,11 @@ async def test_health(rest_client: AsyncTestClient, caplog: pytest.LogCaptureFix
 
     # With unaccepted DHFS version, 426
     response = await rest_client.get(url, headers={"User-Agent": WRONG_USER_AGENT})
+    assert response.status_code == 426
+
+    # DHFS pre-v2 User Agent string should get rejected
+    prev2_header = {"User-Agent": f"{OLD_DHFS_USER_AGENT_PREFIX}/1.0.4"}
+    response = await rest_client.get(url, headers=prev2_header)
     assert response.status_code == 426
 
 

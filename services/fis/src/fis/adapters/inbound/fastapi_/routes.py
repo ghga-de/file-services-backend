@@ -24,7 +24,7 @@ from pydantic import UUID4
 
 from fis.adapters.inbound.fastapi_ import dummies
 from fis.adapters.inbound.fastapi_.http_authorization import JWT, require_data_hub_jwt
-from fis.constants import DHFS_USER_AGENT_PREFIX, TRACER
+from fis.constants import DHFS_USER_AGENT_PREFIX, OLD_DHFS_USER_AGENT_PREFIX, TRACER
 from fis.core import models
 from fis.ports.inbound.interrogation import InterrogationHandlerPort
 
@@ -68,7 +68,7 @@ def check_and_log_user_agent_header(
         client_part = f"from {parts[0]}, version {version_part}"
 
         # If the User Agent specifies DHFS, enforce the version requirement
-        if parts[0] == DHFS_USER_AGENT_PREFIX:
+        if parts[0] in [DHFS_USER_AGENT_PREFIX, OLD_DHFS_USER_AGENT_PREFIX]:
             try:
                 accepted = Version(version_part) in SpecifierSet(
                     dhfs_version_constraint
