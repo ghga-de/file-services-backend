@@ -66,7 +66,7 @@ async def test_v3_migration(mongodb: MongoDbFixture):
             "_id": derive_file_id_from_accession(old_doc["_id"]),
             "archive_date": old_doc["upload_date"],
             "storage_alias": old_doc["storage_alias"],
-            "bucket_id": bucket_ids[old_doc["storage_alias"]],
+            "bucket_id": bucket_ids[str(old_doc["storage_alias"])],
             "object_id": old_doc["object_id"],
             "secret_id": old_doc["decryption_secret_id"],
             "decrypted_size": old_doc["decrypted_size"],
