@@ -74,20 +74,19 @@ async def update_event(doc: Document) -> Document:
     uuid4_file_id = derive_file_id_from_accession(payload["file_id"])
     payload["file_id"] = uuid4_file_id
 
-    doc["_id"] = doc["_id"].replace(doc["key"], str(uuid4_file_id))
+    doc["_id"] = f"{doc['topic']}:{uuid4_file_id}"
     doc["key"] = str(uuid4_file_id)
     doc["published"] = False
 
-    if "target_object_id" in payload and isinstance(payload["target_object_id"], str):
+    # There are only two event types in the collection at this time:
+    # FileDownloadServed event:
+    if "target_object_id" in payload:
         payload["target_object_id"] = UUID(payload["target_object_id"])
-
-    if "s3_endpoint_alias" in payload:
         payload["storage_alias"] = payload.pop("s3_endpoint_alias")
-
-    if "upload_date" in payload:
+    else:
+        # FileRegisteredForDownload event:
+        payload.pop("drs_uri")
         payload["archive_date"] = payload.pop("upload_date")
-
-    payload.pop("drs_uri", None)
 
     return doc
 
