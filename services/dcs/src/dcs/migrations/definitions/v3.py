@@ -62,6 +62,9 @@ async def update_event(doc: Document) -> Document:
     If doc["key"] is already a valid UUID, the doc has been migrated; skip it.
     Fields are updated field-by-field so this function handles any event type.
     """
+    # For events, the idempotence check is done on the key because the _id is formatted
+    #  like topic_name:event_key and it is therefore simpler to check the key. We cast
+    #  to UUID instead of doing a UUID type-check because the key is actually a string
     with suppress(ValueError):
         _ = UUID(doc["key"])
         return doc
