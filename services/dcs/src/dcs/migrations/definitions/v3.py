@@ -27,9 +27,13 @@ from dcs.core.models import AccessTimeDrsObject
 
 
 def derive_file_id_from_accession(accession: str) -> UUID:
-    """Use the first portion of the SHA256 hash of an accession to derive a UUID4"""
-    hash = sha256(accession.encode()).hexdigest()
-    uuid_str = f"{hash[0:8]}-{hash[8:12]}-4{hash[13:16]}-a{hash[17:20]}-{hash[20:32]}"
+    """Use the first portion of the SHA256 hash of an accession to derive a UUID4.
+
+    This is the same algorithm used by IFRS, so the database values will be consistent
+    across both services.
+    """
+    hashed_acc = sha256(accession.encode()).hexdigest()
+    uuid_str = f"{hashed_acc[0:8]}-{hashed_acc[8:12]}-4{hashed_acc[13:16]}-a{hashed_acc[17:20]}-{hashed_acc[20:32]}"
     return UUID(uuid_str)
 
 
