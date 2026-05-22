@@ -29,6 +29,14 @@ inputs:
   tag:
     description: "The tag used to publish to the registry."
     required: true
+  push_regular:
+    description: "Whether to build and push the regular image."
+    required: false
+    default: "true"
+  dhi_tag:
+    description: "The tag used to publish the DHI image. If empty, no DHI image is built."
+    required: false
+    default: ""
   dockerhub_platforms:
     description: "Platforms passed to DockerHub build and push action."
     required: true
@@ -42,7 +50,7 @@ runs:
   using: composite
   steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         fetch-depth: 0
 
@@ -53,6 +61,7 @@ runs:
 
     - name: Prepare Dockerfile
       id: prepare-dockerfile
+      if: ${{ inputs.push_regular == 'true' }}
       shell: bash
       run: cp Dockerfile services/${{ inputs.service }}/ && sed -i "s/\(ENTRYPOINT \)\[\]/\1[\"opentelemetry-instrument\", \"${{ inputs.service }}\"]/" services/${{ inputs.service }}/Dockerfile
 
@@ -71,6 +80,7 @@ runs:
     - name: Build and push
       uses: docker/build-push-action@v5
       id: docker_build
+      if: ${{ inputs.push_regular == 'true' }}
       with:
         push: true
         platforms: "${{ inputs.dockerhub_platforms }}"
@@ -79,6 +89,7 @@ runs:
 
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
+      if: ${{ inputs.push_regular == 'true' }}
       env:
         TRIVY_DB_REPOSITORY: "ghcr.io/aquasecurity/trivy-db,public.ecr.aws/aquasecurity/trivy-db"
       with:
@@ -90,5 +101,44 @@ runs:
         severity: ${{ inputs.trivy_severity }}
 
     - name: Image digest
+      if: ${{ inputs.push_regular == 'true' }}
       shell: bash
       run: echo ${{ steps.docker_build.outputs.digest }}
+
+    - name: Prepare Dockerfile.dhi
+      id: prepare-dockerfile-dhi
+      if: ${{ inputs.dhi_tag != '' }}
+      shell: bash
+      run: |
+        cp Dockerfile.dhi services/${{ inputs.service }}/
+        sed -i "s/my-microservice/${{ inputs.service }}/g" services/${{ inputs.service }}/Dockerfile.dhi
+        sed -i "s/\(ENTRYPOINT \)\[\]/\1[\"opentelemetry-instrument\", \"${{ inputs.service }}\"]/" services/${{ inputs.service }}/Dockerfile.dhi
+
+    - name: Build and push DHI image
+      uses: docker/build-push-action@v5
+      id: docker_build_dhi
+      if: ${{ inputs.dhi_tag != '' }}
+      with:
+        push: true
+        platforms: "${{ inputs.dockerhub_platforms }}"
+        tags: "${{ inputs.dhi_tag }}"
+        context: "services/${{ inputs.service }}"
+        file: "services/${{ inputs.service }}/Dockerfile.dhi"
+
+    - name: Run Trivy vulnerability scanner for DHI image
+      uses: aquasecurity/trivy-action@master
+      if: ${{ inputs.dhi_tag != '' }}
+      env:
+        TRIVY_DB_REPOSITORY: "ghcr.io/aquasecurity/trivy-db,public.ecr.aws/aquasecurity/trivy-db"
+      with:
+        image-ref: "docker.io/${{ inputs.dhi_tag }}"
+        format: "table"
+        exit-code: "1"
+        ignore-unfixed: true
+        vuln-type: "os,library"
+        severity: ${{ inputs.trivy_severity }}
+
+    - name: DHI image digest
+      if: ${{ inputs.dhi_tag != '' }}
+      shell: bash
+      run: echo ${{ steps.docker_build_dhi.outputs.digest }}

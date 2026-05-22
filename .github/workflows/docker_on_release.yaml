@@ -157,6 +157,11 @@ jobs:
         run: |
           echo tag="ghga/${{ steps.extract-service-name.outputs.name }}:${{ steps.extract-service-version.outputs.version }}" >> $GITHUB_OUTPUT
 
+      - name: Create current DHI docker tag
+        id: dhi-docker-tag
+        run: |
+          echo tag="${{ steps.docker-tag.outputs.tag }}-dhi" >> $GITHUB_OUTPUT
+
       - name: Ensure that tag complies with semantic versioning.
         uses: matt-usurp/validate-semver@v2
         with:
@@ -175,12 +180,25 @@ jobs:
             echo image_exists=false >> $GITHUB_OUTPUT
           fi
 
+      - name: Check if DHI docker image already exists
+        id: check-dhi-image-exists
+        run: |
+          set +eo pipefail
+          if docker pull "docker.io/${{ steps.dhi-docker-tag.outputs.tag }}"
+          then
+            echo image_exists=true >> $GITHUB_OUTPUT
+          else
+            echo image_exists=false >> $GITHUB_OUTPUT
+          fi
+
       - name: Push to Docker Hub
         id: docker-push
-        if: ${{ steps.check-image-exists.outputs.image_exists == 'false' }}
+        if: ${{ steps.check-image-exists.outputs.image_exists == 'false' || steps.check-dhi-image-exists.outputs.image_exists == 'false' }}
         uses: ./.github/workflows/push_to_docker
         with:
           dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
           dockerhub_token: ${{ secrets.DOCKERHUB_TOKEN }}
           service: ${{ matrix.service }}
           tag: ${{ steps.docker-tag.outputs.tag }}
+          push_regular: ${{ steps.check-image-exists.outputs.image_exists == 'false' }}
+          dhi_tag: ${{ steps.check-dhi-image-exists.outputs.image_exists == 'false' && steps.dhi-docker-tag.outputs.tag || '' }}
