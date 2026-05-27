@@ -420,3 +420,15 @@ class UploadControllerPort(ABC):
         If no FileUpload with the given ID exists, merely logs a warning and returns.
         """
         ...
+
+    @abstractmethod
+    async def cleanup_stale_uploads(self) -> None:
+        """Abort stale in-progress multipart uploads and mark their FileUpload records
+        as 'cancelled'. Also aborts any orphaned S3 multipart uploads that have no
+        corresponding FileUpload record.
+
+        An upload is considered stale if its last-activity timestamp is older than
+        `config.multipart_upload_ttl_hours` hours. If no activity entry exists,
+        falls back to comparing the FileUpload's `initiated` timestamp.
+        """
+        ...
