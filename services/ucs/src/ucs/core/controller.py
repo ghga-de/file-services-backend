@@ -1072,12 +1072,17 @@ class UploadController(UploadControllerPort):
         Falls back to the upload's `initiated` timestamp when no activity entry exists.
         """
         stale_uploads: list[FileUpload] = []
+        mapping = {"file_id": {"$in": [file.id for file in ongoing_uploads]}}
+        activities = {
+            activity.file_id: activity.last_activity
+            async for activity in self._upload_activity_dao.find_all(mapping=mapping)
+        }
+
         for upload in ongoing_uploads:
             try:
-                activity = await self._upload_activity_dao.get_by_id(upload.id)
-                if activity.last_activity <= cutoff:
+                if activities[upload.id] <= cutoff:
                     stale_uploads.append(upload)
-            except ResourceNotFoundError:
+            except KeyError:
                 log.debug(
                     "FileUpload %s did not have a matching upload activity entry, so"
                     + " the initiated date of %s was referenced instead.",
