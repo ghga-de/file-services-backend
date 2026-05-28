@@ -1667,9 +1667,7 @@ async def test_orphaned_abort_failure_does_not_stop_cleanup(
     assert call_count == 2
 
 
-async def test_refresh_activity_warns_and_recreates_when_missing(
-    rig: JointRig, caplog: pytest.LogCaptureFixture
-):
+async def test_refresh_activity_warns_and_recreates_when_missing(rig: JointRig):
     """Test that _refresh_upload_activity logs a warning and recreates the entry
     when the activity record is unexpectedly absent during a part URL request.
     """
@@ -1686,15 +1684,9 @@ async def test_refresh_activity_warns_and_recreates_when_missing(
     await rig.upload_activity_dao.delete(file_id)
 
     # Manually fetch a presigned part upload URL, which should recreate the entry
-    with caplog.at_level("WARNING"):
-        caplog.clear()
-        await rig.controller.refresh_upload_activity(file_id=file_id)
-        await sleep(0)  # yield to let the background task run
+    await rig.controller.refresh_upload_activity(file_id=file_id)
+    await sleep(0)  # yield to let the background task run
 
-    # Check the logs and verify the entry now exists again
-    assert any(
-        f"Activity entry missing for file {file_id}" in record.message
-        for record in caplog.records
-    )
+    # Verify the entry now exists again
     activity = await rig.upload_activity_dao.get_by_id(file_id)
     assert activity.file_id == file_id

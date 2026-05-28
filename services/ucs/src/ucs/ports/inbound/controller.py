@@ -260,9 +260,10 @@ class UploadControllerPort(ABC):
 
     @abstractmethod
     async def refresh_upload_activity(self, *, file_id: UUID4) -> None:
-        """Update the activity timestamp for an in-progress upload. Creates the entry
-        with a warning if it is unexpectedly missing. Exceptions are caught and logged
-        so the caller's create_task fire-and-forget is safe.
+        """Update the activity timestamp for an in-progress upload.
+
+        Exceptions are caught and logged so uploads aren't interrupted for something
+        that is only needed for cleanup.
         """
         ...
 

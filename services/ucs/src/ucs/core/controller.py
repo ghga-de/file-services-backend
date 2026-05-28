@@ -373,16 +373,7 @@ class UploadController(UploadControllerPort):
         )
         await self._insert_file_upload(box=box, file_upload=file_upload)
 
-        # Create upload activity entry (warn if one unexpectedly exists)
-        try:
-            await self._upload_activity_dao.get_by_id(file_id)
-            log.warning(
-                "Activity entry unexpectedly exists for new file %s. Overwriting.",
-                file_id,
-                extra={"box_id": box_id, "alias": alias, "file_id": file_id},
-            )
-        except ResourceNotFoundError:
-            pass
+        # Create upload activity entry (overwrite if one unexpectedly exists)
         await self._upload_activity_dao.upsert(
             UploadActivity(file_id=file_id, last_activity=now_utc_ms_prec())
         )
@@ -441,24 +432,19 @@ class UploadController(UploadControllerPort):
             ) from err
 
     async def refresh_upload_activity(self, *, file_id: UUID4) -> None:
-        """Update the activity timestamp for an in-progress upload. Creates the entry
-        with a warning if it is unexpectedly missing. Exceptions are caught and logged
-        so the caller's create_task fire-and-forget is safe.
+        """Update the activity timestamp for an in-progress upload.
+
+        Exceptions are caught and logged so uploads aren't interrupted for something
+        that is only needed for cleanup.
         """
         try:
-            await self._upload_activity_dao.update(
-                UploadActivity(file_id=file_id, last_activity=now_utc_ms_prec())
-            )
-        except ResourceNotFoundError:
-            log.warning(
-                "Activity entry missing for file %s during URL issuance. Creating it.",
-                file_id,
-            )
-            await self._upload_activity_dao.insert(
+            await self._upload_activity_dao.upsert(
                 UploadActivity(file_id=file_id, last_activity=now_utc_ms_prec())
             )
         except Exception:
-            log.exception("Failed to refresh activity entry for file %s.", file_id)
+            log.exception(
+                "Failed to refresh activity entry for file %s.", file_id, exc_info=True
+            )
 
     async def _compare_checksums(
         self,
