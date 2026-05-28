@@ -773,15 +773,19 @@ async def test_cleanup_aborts_orphaned_s3_uploads(joint_fixture: JointFixture):
     await controller.cleanup_stale_uploads()
 
     # The orphaned upload should be aborted
-    assert orphaned_s3_upload_id not in await s3_storage.get_all_multipart_uploads(
+    active_uploads_after = await s3_storage.get_all_multipart_uploads(
         bucket_id=bucket_id
     )
+    assert orphaned_s3_upload_id not in active_uploads_after
 
     # The recent FileUpload should remain in "init" state (not cancelled)
     db = joint_fixture.mongodb.client[joint_fixture.config.db_name]
     file_upload_doc = db[FILE_UPLOADS_COLLECTION].find_one({"_id": file_id})
     assert file_upload_doc is not None
     assert file_upload_doc["state"] == "init"
+
+    # Verify that the active upload is still alive in S3
+    assert file_upload_doc["s3_upload_id"] in active_uploads_after
 
 
 async def test_upload_activity_deleted_after_completion_failure(
