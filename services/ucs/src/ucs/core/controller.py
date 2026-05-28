@@ -418,7 +418,7 @@ class UploadController(UploadControllerPort):
 
         s3_upload_id = file_upload.s3_upload_id
         try:
-            presigned_url = await self._s3_client.get_part_upload_url(
+            return await self._s3_client.get_part_upload_url(
                 file_upload=file_upload, part_no=part_no
             )
         except S3ClientPort.UnknownStorageAliasError as err:
@@ -439,8 +439,6 @@ class UploadController(UploadControllerPort):
             raise self.UploadSessionNotFoundError(
                 bucket_id=file_upload.bucket_id, s3_upload_id=s3_upload_id
             ) from err
-
-        return presigned_url
 
     async def refresh_upload_activity(self, *, file_id: UUID4) -> None:
         """Update the activity timestamp for an in-progress upload. Creates the entry
