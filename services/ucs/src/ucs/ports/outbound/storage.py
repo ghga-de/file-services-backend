@@ -78,10 +78,7 @@ class S3ClientPort(ABC):
             bucket_id: str,
             file_id: UUID4 | None = None,
         ):
-            if file_id is None:
-                subject = f"object {object_id}"
-            else:
-                subject = f"file ID {file_id}"
+            subject = f"file ID {file_id}" if file_id else f"object {object_id}"
             msg = (
                 f"Failed to abort S3 multipart upload with ID {s3_upload_id} for"
                 + f" {subject} in bucket ID {bucket_id}."
