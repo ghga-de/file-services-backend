@@ -1619,9 +1619,8 @@ async def test_activity_refresh_prevents_stale_cancellation(rig: JointRig):
         UploadActivity(file_id=file_id, last_activity=stale_timestamp)
     )
 
-    # Requesting a part URL fires a create_task to refresh the activity timestamp
-    await rig.controller.get_part_upload_url(file_id=file_id, part_no=1)
-    await sleep(0.01)  # yield to let the task run
+    # Refresh the activity timestamp
+    await rig.controller.refresh_upload_activity(file_id=file_id)
 
     # Verify the activity timestamp has been updated
     activity = await rig.upload_activity_dao.get_by_id(file_id)
@@ -1689,7 +1688,7 @@ async def test_refresh_activity_warns_and_recreates_when_missing(
     # Manually fetch a presigned part upload URL, which should recreate the entry
     with caplog.at_level("WARNING"):
         caplog.clear()
-        await rig.controller.get_part_upload_url(file_id=file_id, part_no=1)
+        await rig.controller.refresh_upload_activity(file_id=file_id)
         await sleep(0)  # yield to let the background task run
 
     # Check the logs and verify the entry now exists again

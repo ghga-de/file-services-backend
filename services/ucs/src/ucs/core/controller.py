@@ -15,7 +15,6 @@
 
 """Implements the UploadController class to manage file uploads"""
 
-import asyncio
 import contextlib
 import logging
 from datetime import timedelta
@@ -441,10 +440,9 @@ class UploadController(UploadControllerPort):
                 bucket_id=file_upload.bucket_id, s3_upload_id=s3_upload_id
             ) from err
 
-        asyncio.create_task(self._refresh_upload_activity(file_id=file_id))  # noqa: RUF006
         return presigned_url
 
-    async def _refresh_upload_activity(self, *, file_id: UUID4) -> None:
+    async def refresh_upload_activity(self, *, file_id: UUID4) -> None:
         """Update the activity timestamp for an in-progress upload. Creates the entry
         with a warning if it is unexpectedly missing. Exceptions are caught and logged
         so the caller's create_task fire-and-forget is safe.
