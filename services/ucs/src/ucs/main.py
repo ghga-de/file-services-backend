@@ -85,6 +85,6 @@ async def perform_cleanup(run_forever: bool = True) -> None:
             log.info("Stale upload cleanup job complete.")
             if run_forever:
                 log.info(
-                    "Will run again in %i minutes.", config.cleanup_interval_minutes
+                    "Will run cleanup again in %i minutes.", config.cleanup_interval_minutes
                 )
                 await asyncio.sleep(config.cleanup_interval_minutes * 60)
