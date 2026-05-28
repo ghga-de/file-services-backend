@@ -129,6 +129,7 @@ class JointRig:
     config: Config
     file_upload_box_dao: BaseInMemDao[models.FileUploadBox]
     file_upload_dao: BaseInMemDao[models.FileUpload]
+    upload_activity_dao: BaseInMemDao[UploadActivity]
     object_storages: ObjectStorages
     controller: UploadController
     s3_client: S3ClientPort
@@ -192,6 +193,7 @@ def rig(config: ConfigFixture, patch_s3_calls) -> JointRig:
         config=_config,
         file_upload_box_dao=file_upload_box_dao,
         file_upload_dao=file_upload_dao,
+        upload_activity_dao=upload_activity_dao,
         object_storages=object_storages,
         controller=controller,
         s3_client=s3_client,
