@@ -1148,16 +1148,15 @@ class UploadController(UploadControllerPort):
                 storage_alias,
                 exc_info=True,
             )
-        else:
-            # Only make the following updates if the upload cancellation worked
-            upload.state = "cancelled"
-            upload.state_updated = now_utc_ms_prec()
-            await self._file_upload_dao.update(upload)
-            with contextlib.suppress(ResourceNotFoundError):
-                await self._upload_activity_dao.delete(upload.id)
-            log.info(
-                "Cleaned up stale upload %s (alias '%s')", upload.id, storage_alias
-            )
+
+        # Update FileUpload as cancelled regardless of whether S3 upload was aborted -
+        #  the next round of cleanup will catch it
+        upload.state = "cancelled"
+        upload.state_updated = now_utc_ms_prec()
+        await self._file_upload_dao.update(upload)
+        with contextlib.suppress(ResourceNotFoundError):
+            await self._upload_activity_dao.delete(upload.id)
+        log.info("Cleaned up stale upload %s (alias '%s')", upload.id, storage_alias)
 
     async def _abort_orphaned_s3_uploads(
         self,
