@@ -123,7 +123,10 @@ class S3Client(S3ClientPort):
                     file_upload_basics.alias,
                 )
                 return s3_upload_id
-            except object_storage.MultiPartUploadAlreadyExistsError as err:
+            except (
+                object_storage.MultiPartUploadAlreadyExistsError,
+                object_storage.MultipleActiveUploadsError,
+            ) as err:
                 #  See the long note on UploadController.initiate_file_upload()
                 raise self.OrphanedMultipartUploadError(
                     file_id=file_upload_basics.id, bucket_id=bucket_id
