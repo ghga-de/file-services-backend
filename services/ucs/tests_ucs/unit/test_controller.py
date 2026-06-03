@@ -1690,3 +1690,50 @@ async def test_refresh_activity_warns_and_recreates_when_missing(rig: JointRig):
     # Verify the entry now exists again
     activity = await rig.upload_activity_dao.get_by_id(file_id)
     assert activity.file_id == file_id
+
+
+async def test_initiate_file_upload_marks_failed_on_insert_kafka_error(
+    rig: JointRig,
+):
+    """If a Kafka publishing error occurs during the FileUpload insert (or some other
+    kind of equivalent error), the FileUpload must be marked "failed" so that a
+    subsequent retry can replace it.
+
+    The test `test_initiate_upload_after_failed()` covers the process of starting a new
+    upload for the same essential file after a FileUpload is "failed".
+    """
+    box_id = await rig.create_default_box()
+
+    # Simulate the outbox publisher scenario: MongoDB write succeeds (we call the real
+    # insert), then Kafka raises an error (the reason doesn't matter)
+    original_insert = rig.file_upload_dao.insert
+    original_update = rig.file_upload_dao.update
+
+    async def insert_then_fail(dto):
+        await original_insert(dto)
+        raise RuntimeError("Simulated Kafka error on insert")
+
+    async def update_then_fail(dto):
+        await original_update(dto)
+        raise RuntimeError("Simulated Kafka error on update")
+
+    rig.file_upload_dao.insert = insert_then_fail
+    rig.file_upload_dao.update = update_then_fail
+
+    with pytest.raises(RuntimeError, match="Simulated Kafka error on update"):
+        await rig.controller.initiate_file_upload(
+            box_id=box_id,
+            alias="test-file",
+            decrypted_size=DECRYPTED_SIZE,
+            encrypted_size=ENCRYPTED_SIZE,
+            part_size=PART_SIZE,
+        )
+
+    # The FileUpload was written to the DB but must now be marked 'failed'
+    assert len(rig.file_upload_dao.resources) == 1
+    stuck_upload = rig.file_upload_dao.latest
+    assert stuck_upload.state == "failed"
+    assert stuck_upload.failure_reason == "Internal error during upload initiation"
+
+    # Just double check that no UploadActivity was inserted
+    assert not [x async for x in rig.upload_activity_dao.find_all(mapping={})]
