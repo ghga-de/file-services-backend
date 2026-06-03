@@ -29,6 +29,7 @@ from ghga_event_schemas.pydantic_ import (
 )
 from ghga_service_commons.utils.utc_dates import UTCDatetime
 from hexkit.protocols.dao import (
+    DaoError,
     MultipleHitsFoundError,
     NoHitsFoundError,
     UniqueConstraintViolationError,
@@ -159,22 +160,55 @@ class UploadController(UploadControllerPort):
                 new_upload=file_upload,
                 logging_extras=logging_extras,
             )
+
+            # This means that the existing file is still "good" and needs explicit
+            #  cancellation/removal before a new upload can be started for this alias.
             if not replaced:
                 error = self.FileUploadAlreadyExists(alias=alias)
                 log.error(error, extra=logging_extras)
-                raise error from err
-        except Exception:
+                raise error from None  # don't need Unique* error in the trace
+        except Exception as err:
             # This branch handles all other errors that *don't* signify an existing file
             # If, e.g. kafka raises an error, delete the FileUpload so user can retry.
             # To avoid more potential failure points, let active S3 upload linger until
             #  the cleanup job takes care of it.
             extra = {"box_id": file_upload.box_id, "file_alias": file_upload.alias}
+            log.error(
+                "Got an error while trying to insert FileUpload %s, for which it must"
+                + " be marked 'failed'. Error: %s",
+                file_upload.id,
+                err,
+                extra=extra,
+            )
+
             file_upload.state = "failed"
             file_upload.state_updated = now_utc_ms_prec()
             file_upload.failure_reason = "Internal error during upload initiation"
-
             # If Kafka is the problem, this will also error but not until after the update
-            await self._file_upload_dao.update(file_upload)
+            try:
+                # In case first write didn't actually land, use upsert
+                await self._file_upload_dao.upsert(file_upload)
+            except Exception as mark_failed_err:
+                # TODO: Update this section once Hexkit has defined errors for Kafka
+                if isinstance(mark_failed_err, DaoError):
+                    # Database errors should be raised, not suppressed
+                    log.error(
+                        "An error has occurred during FileUpload init which requires"
+                        + " that the FileUpload be marked 'failed'. While making that"
+                        + " DB write, we received this additional error: %s",
+                        mark_failed_err,
+                        extra=extra,
+                    )
+                    raise mark_failed_err
+                else:
+                    log.warning(
+                        "While marking FileUpload %s as 'failed', got another error."
+                        + " If it's from Kafka, this is fine - just fix Kafka and run"
+                        + " the publish-all job. If it's not related to Kafka at all,"
+                        + " then this warrants further investigation. Error: %s",
+                        file_upload.id,
+                        mark_failed_err,
+                    )
 
             # This is INFO level because it's normal procedure for cleanup.
             log.info(

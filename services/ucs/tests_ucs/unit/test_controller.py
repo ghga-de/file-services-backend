@@ -15,6 +15,7 @@
 
 """Tests for the UploadController class"""
 
+import logging
 from asyncio import sleep
 from contextlib import nullcontext
 from datetime import timedelta
@@ -1694,6 +1695,7 @@ async def test_refresh_activity_warns_and_recreates_when_missing(rig: JointRig):
 
 async def test_initiate_file_upload_marks_failed_on_insert_kafka_error(
     rig: JointRig,
+    caplog: pytest.LogCaptureFixture,
 ):
     """If a Kafka publishing error occurs during the FileUpload insert (or some other
     kind of equivalent error), the FileUpload must be marked "failed" so that a
@@ -1707,27 +1709,42 @@ async def test_initiate_file_upload_marks_failed_on_insert_kafka_error(
     # Simulate the outbox publisher scenario: MongoDB write succeeds (we call the real
     # insert), then Kafka raises an error (the reason doesn't matter)
     original_insert = rig.file_upload_dao.insert
-    original_update = rig.file_upload_dao.update
+    original_upsert = rig.file_upload_dao.upsert
 
     async def insert_then_fail(dto):
         await original_insert(dto)
-        raise RuntimeError("Simulated Kafka error on insert")
+        raise RuntimeError("First Error")
 
-    async def update_then_fail(dto):
-        await original_update(dto)
-        raise RuntimeError("Simulated Kafka error on update")
+    async def upsert_then_fail(dto):
+        await original_upsert(dto)
+        raise RuntimeError("Follow-up Error")
 
     rig.file_upload_dao.insert = insert_then_fail
-    rig.file_upload_dao.update = update_then_fail
+    rig.file_upload_dao.upsert = upsert_then_fail
 
-    with pytest.raises(RuntimeError, match="Simulated Kafka error on update"):
-        await rig.controller.initiate_file_upload(
-            box_id=box_id,
-            alias="test-file",
-            decrypted_size=DECRYPTED_SIZE,
-            encrypted_size=ENCRYPTED_SIZE,
-            part_size=PART_SIZE,
-        )
+    with caplog.at_level(logging.INFO, logger="ucs.core.controller"):
+        with pytest.raises(RuntimeError, match="First Error"):
+            await rig.controller.initiate_file_upload(
+                box_id=box_id,
+                alias="test-file",
+                decrypted_size=DECRYPTED_SIZE,
+                encrypted_size=ENCRYPTED_SIZE,
+                part_size=PART_SIZE,
+            )
+
+    controller_logs = [r for r in caplog.records if r.name == "ucs.core.controller"]
+    error_logs = [r for r in controller_logs if r.levelno == logging.ERROR]
+    warning_logs = [r for r in controller_logs if r.levelno == logging.WARNING]
+    info_logs = [r for r in controller_logs if r.levelno == logging.INFO]
+
+    assert len(error_logs) == 1
+    assert "Got an error while trying to insert" in error_logs[0].getMessage()
+
+    assert len(warning_logs) == 1
+    assert "While marking FileUpload" in warning_logs[0].getMessage()
+
+    assert len(info_logs) == 1
+    assert "as 'failed' due to error during initiation" in info_logs[0].getMessage()
 
     # The FileUpload was written to the DB but must now be marked 'failed'
     assert len(rig.file_upload_dao.resources) == 1
