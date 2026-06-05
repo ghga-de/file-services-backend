@@ -356,14 +356,18 @@ class InterrogationHandler(InterrogationHandlerPort):
         return files
 
     async def delete_file(self, *, file_id: UUID4) -> None:
-        """Delete a file from the database.
+        """Delete a file and its interrogation report (if any) from the database.
 
-        This actually removes the entry from the database as a result of an upstream
+        This removes the entries from the database as a result of an upstream
         deletion in UCS. The usual cause for this is the replacement of a failed or
         cancelled FileUpload with a new instance for the same file alias.
 
         If no matching entry is found, it is assumed that the entry was already deleted.
         """
+        with suppress(ResourceNotFoundError):
+            await self._interrogation_report_dao.delete(file_id)
+            log.info("Interrogation report deleted for file ID %s.", file_id)
+
         try:
             await self._file_dao.delete(file_id)
             log.info("Local copy deleted for file ID %s.", file_id)
