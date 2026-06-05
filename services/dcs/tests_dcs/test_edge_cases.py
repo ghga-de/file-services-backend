@@ -91,7 +91,7 @@ async def test_access_non_existing(joint_fixture: JointFixture):
     response = await joint_fixture.rest_client.get(
         f"/objects/{file_id}",
     )
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     # test with authorization header but wrong pubkey
     response = await joint_fixture.rest_client.get(

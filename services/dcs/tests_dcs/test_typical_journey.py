@@ -52,6 +52,11 @@ async def test_happy_journey(
     """Simulates a typical, successful API journey."""
     joint_fixture = populated_fixture.joint_fixture
 
+    # Allow S3 requests through the mock (hexkit uses httpx for presigned uploads)
+    s3_host = httpx.URL(joint_fixture.s3.config.s3_endpoint_url).host
+    if s3_host not in unintercepted_hosts:
+        unintercepted_hosts.append(s3_host)
+
     # explicitly handle ekss API calls (and name unintercepted hosts above)
     httpx_mock.add_callback(
         callback=router.handle_request,
@@ -172,7 +177,9 @@ async def test_happy_journey(
 
 
 @pytest.mark.httpx_mock(
-    assert_all_responses_were_requested=False, can_send_already_matched_responses=True
+    assert_all_responses_were_requested=False,
+    can_send_already_matched_responses=True,
+    should_mock=lambda request: request.url.host not in unintercepted_hosts,
 )
 async def test_happy_deletion(
     populated_fixture: PopulatedFixture,
@@ -181,6 +188,11 @@ async def test_happy_deletion(
 ):
     """Simulates a typical, successful journey for file deletion."""
     joint_fixture = populated_fixture.joint_fixture
+
+    # Allow S3 requests through the mock (hexkit uses httpx for presigned uploads)
+    s3_host = httpx.URL(joint_fixture.s3.config.s3_endpoint_url).host
+    if s3_host not in unintercepted_hosts:
+        unintercepted_hosts.append(s3_host)
 
     # explicitly handle ekss API calls (and name unintercepted hosts above)
     httpx_mock.add_callback(
