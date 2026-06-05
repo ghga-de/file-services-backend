@@ -174,8 +174,8 @@ class UploadController(UploadControllerPort):
             #  the cleanup job takes care of it.
             extra = {"box_id": file_upload.box_id, "file_alias": file_upload.alias}
             log.error(
-                "Got an error while trying to insert FileUpload %s, for which it must"
-                + " be marked 'failed'. Error: %s",
+                "Encountered an error while inserting FileUpload %s; it will be marked"
+                + " as 'failed'. Error: %s",
                 file_upload.id,
                 err,
                 extra=extra,
@@ -193,16 +193,16 @@ class UploadController(UploadControllerPort):
                 if isinstance(mark_failed_err, DaoError):
                     # Database errors should be raised, not suppressed
                     log.error(
-                        "An error has occurred during FileUpload init which requires"
-                        + " that the FileUpload be marked 'failed'. While making that"
-                        + " DB write, we received this additional error: %s",
+                        "While marking FileUpload %s as 'failed', encountered another"
+                        + " database error: %s",
+                        file_upload.id,
                         mark_failed_err,
                         extra=extra,
                     )
                     raise mark_failed_err
                 else:
                     log.warning(
-                        "While marking FileUpload %s as 'failed', got another error."
+                        "While marking FileUpload %s as 'failed', encountered another error."
                         + " If it's from Kafka, this is fine - just fix Kafka and run"
                         + " the publish-all job. If it's not related to Kafka at all,"
                         + " then this warrants further investigation. Error: %s",

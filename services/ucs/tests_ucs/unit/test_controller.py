@@ -1738,7 +1738,9 @@ async def test_initiate_file_upload_marks_failed_on_insert_kafka_error(
     info_logs = [r for r in controller_logs if r.levelno == logging.INFO]
 
     assert len(error_logs) == 1
-    assert "Got an error while trying to insert" in error_logs[0].getMessage()
+    assert (
+        "Encountered an error while inserting FileUpload" in error_logs[0].getMessage()
+    )
 
     assert len(warning_logs) == 1
     assert "While marking FileUpload" in warning_logs[0].getMessage()
