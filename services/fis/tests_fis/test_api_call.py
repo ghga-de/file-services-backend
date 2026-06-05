@@ -75,7 +75,7 @@ async def test_api_calls(monkeypatch, joint_fixture: JointFixture):
     response = await joint_fixture.rest_client.post(
         "/federated/ingest_secret", json=encrypted_secret.model_dump()
     )
-    assert response.status_code == 403
+    assert response.status_code == 401
 
     # test malformed payload
     nonsense_secret_payload = encrypted_secret.model_copy(
@@ -164,7 +164,7 @@ async def test_api_calls(monkeypatch, joint_fixture: JointFixture):
     response = await joint_fixture.rest_client.post(
         "/federated/ingest_metadata", json=json_payload
     )
-    assert response.status_code == 403
+    assert response.status_code == 401
 
     # test malformed payload
     response = await joint_fixture.rest_client.post(
@@ -268,7 +268,7 @@ async def test_legacy_api_calls(monkeypatch, joint_fixture: JointFixture):
     response = await joint_fixture.rest_client.post(
         "/legacy/ingest", json=encrypted_payload.model_dump()
     )
-    assert response.status_code == 403
+    assert response.status_code == 401
 
     # test malformed payload
     nonsense_payload = encrypted_payload.model_copy(
