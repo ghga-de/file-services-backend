@@ -550,7 +550,49 @@ async def test_delete_file_upload_when_box_locked(rig: JointRig):
     assert len(file_upload_dao.resources) == 1
 
 
-async def test_delete_file_upload_when_upload_missing(rig: JointRig):
+@pytest.mark.parametrize(
+    "state",
+    ["interrogated", "awaiting_archival", "archived", "cancelled", "failed"],
+    ids=["interrogated", "awaiting_archival", "archived", "cancelled", "failed"],
+)
+async def test_remove_file_upload_skips_s3_for_terminal_states(
+    rig: JointRig,
+    monkeypatch: pytest.MonkeyPatch,
+    state: FileUploadState,
+):
+    """Test that remove_file_upload makes no S3 calls for FileUploads in states that
+    are past the multipart upload phase (interrogated, awaiting_archival, archived) or
+    already in a terminal state (cancelled, failed).
+    """
+    box_id = await rig.create_default_box()
+    file_upload = make_file_upload(state=state)
+    file_upload.box_id = box_id
+    await rig.file_upload_dao.insert(file_upload)
+
+    s3_calls: list[str] = []
+
+    async def spy_delete_inbox_file(**kwargs):
+        s3_calls.append("delete_inbox_file")
+
+    async def spy_abort_multipart_upload(**kwargs):
+        s3_calls.append("abort_multipart_upload")
+
+    monkeypatch.setattr(rig.s3_client, "delete_inbox_file", spy_delete_inbox_file)
+    monkeypatch.setattr(
+        rig.s3_client, "abort_multipart_upload", spy_abort_multipart_upload
+    )
+
+    # Call remove_file_upload() and verify that the S3Client's delete method wasn't called
+    await rig.controller.remove_file_upload(box_id=box_id, file_id=file_upload.id)
+
+    assert not s3_calls, (
+        f"Expected no S3 calls for state '{state}', but got: {s3_calls}"
+    )
+    updated_upload = await rig.file_upload_dao.get_by_id(file_upload.id)
+    assert updated_upload.state == "cancelled"
+
+
+async def test_remove_file_upload_when_upload_missing(rig: JointRig):
     """Test error handling in the case where the user tries to delete a FileUpload
     that doesn't exist.
     """
