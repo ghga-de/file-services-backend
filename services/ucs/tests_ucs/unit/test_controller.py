@@ -202,6 +202,10 @@ async def test_delete_file_upload(rig: JointRig, complete_before_delete: bool):
     )
     object_id = str(rig.file_upload_dao.latest.object_id)
 
+    assert await object_storage.list_multipart_uploads_for_object(
+        bucket_id=bucket_id, object_id=object_id
+    )
+
     if complete_before_delete:
         await controller.complete_file_upload(
             box_id=box_id,
@@ -220,6 +224,10 @@ async def test_delete_file_upload(rig: JointRig, complete_before_delete: bool):
     # Now delete the file upload
     await controller.remove_file_upload(box_id=box_id, file_id=file_id)
     assert not await object_storage.does_object_exist(
+        bucket_id=bucket_id, object_id=object_id
+    )
+
+    assert not await object_storage.list_multipart_uploads_for_object(
         bucket_id=bucket_id, object_id=object_id
     )
 
