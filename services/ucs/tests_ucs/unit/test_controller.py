@@ -560,8 +560,15 @@ async def test_delete_file_upload_when_box_locked(rig: JointRig):
 
 @pytest.mark.parametrize(
     "state",
-    ["interrogated", "awaiting_archival", "archived", "cancelled", "failed"],
-    ids=["interrogated", "awaiting_archival", "archived", "cancelled", "failed"],
+    [
+        "interrogated",
+        "awaiting_archival",
+        "archived",
+        "cancelled",
+        "failed",
+        "inbox",
+        "init",
+    ],
 )
 async def test_remove_file_upload_skips_s3_for_terminal_states(
     rig: JointRig,
@@ -571,6 +578,8 @@ async def test_remove_file_upload_skips_s3_for_terminal_states(
     """Test that remove_file_upload makes no S3 calls for FileUploads in states that
     are past the multipart upload phase (interrogated, awaiting_archival, archived) or
     already in a terminal state (cancelled, failed).
+
+    Also checks correct calls for inbox and init states for completeness.
     """
     box_id = await rig.create_default_box()
     file_upload = make_file_upload(state=state)
@@ -593,9 +602,14 @@ async def test_remove_file_upload_skips_s3_for_terminal_states(
     # Call remove_file_upload() and verify that the S3Client's delete method wasn't called
     await rig.controller.remove_file_upload(box_id=box_id, file_id=file_upload.id)
 
-    assert not s3_calls, (
-        f"Expected no S3 calls for state '{state}', but got: {s3_calls}"
-    )
+    if state in ["inbox", "init"]:
+        assert s3_calls == (
+            ["delete_inbox_file"] if state == "inbox" else ["abort_multipart_upload"]
+        )
+    else:
+        assert not s3_calls, (
+            f"Expected no S3 calls for state '{state}', but got: {s3_calls}"
+        )
     updated_upload = await rig.file_upload_dao.get_by_id(file_upload.id)
     assert updated_upload.state == "cancelled"
 
