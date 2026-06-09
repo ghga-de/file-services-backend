@@ -992,6 +992,8 @@ paths:
 
         Deletes the FileUpload and tells S3 to cancel the multipart upload if applicable.
 
+        Returns 404 if the FileUpload or box does not exist.
+
         Requires a DeleteFileWorkOrder token from the WPS.'
       operationId: removeFileUpload
       parameters:
@@ -1024,10 +1026,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HttpBoxNotFoundError'
+                $ref: '#/components/schemas/HttpFileUploadNotFoundError'
           description: 'Exceptions by ID:
 
-            - boxNotFound: The FileUploadBox with the given ID does not exist.'
+            - fileUploadNotFound: The FileUpload could not be found.'
         '409':
           content:
             application/json:
