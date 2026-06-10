@@ -906,7 +906,10 @@ class UploadController(UploadControllerPort):
             incomplete_files_cursor = self._file_upload_dao.find_all(
                 mapping={"box_id": box_id, "state": "init"}
             )
-            file_ids = sorted([x.id async for x in incomplete_files_cursor])
+            file_ids = sorted(
+                [(x.id, x.alias) async for x in incomplete_files_cursor],
+                key=lambda entry: entry[1],
+            )
             if file_ids:
                 error = self.IncompleteUploadsError(box_id=box_id, file_ids=file_ids)
                 log.error(error, extra={"box_id": box_id, "file_ids": str(file_ids)})
@@ -962,7 +965,10 @@ class UploadController(UploadControllerPort):
         files_not_interrogated_cursor = self._file_upload_dao.find_all(
             mapping={"box_id": box_id, "state": {"$in": ["init", "inbox"]}}
         )
-        file_ids = sorted([x.id async for x in files_not_interrogated_cursor])
+        file_ids = sorted(
+            [(x.id, x.alias) async for x in files_not_interrogated_cursor],
+            key=lambda entry: entry[1],
+        )
         if file_ids:
             error = self.IncompleteUploadsError(box_id=box_id, file_ids=file_ids)
             log.error(error, extra={"box_id": box_id, "file_ids": str(file_ids)})

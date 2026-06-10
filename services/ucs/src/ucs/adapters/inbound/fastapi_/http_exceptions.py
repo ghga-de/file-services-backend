@@ -382,6 +382,38 @@ class HttpPartSizeError(HttpCustomExceptionBase):
         )
 
 
+class HttpIncompleteUploadsError(HttpCustomExceptionBase):
+    """Thrown when locking or archiving a box that still has in-progress uploads."""
+
+    exception_id = "incompleteUploads"
+
+    class DataModel(BaseModel):
+        """Model for exception data"""
+
+        box_id: UUID4
+        file_ids: list[tuple[UUID4, str]]
+
+    def __init__(
+        self,
+        *,
+        box_id: UUID4,
+        file_ids: list[tuple[UUID4, str]],
+        status_code: int = 409,
+    ):
+        """Construct message and init the exception."""
+        super().__init__(
+            status_code=status_code,
+            description=(
+                f"Cannot lock or archive box {box_id} because"
+                f" {len(file_ids)} incomplete upload(s) exist."
+            ),
+            data={
+                "box_id": str(box_id),
+                "file_ids": [[str(fid), alias] for fid, alias in file_ids],
+            },
+        )
+
+
 class HttpFileUploadStateError(HttpCustomExceptionBase):
     """Thrown when an action is incompatible with the FileUpload's current state."""
 

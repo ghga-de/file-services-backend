@@ -420,9 +420,17 @@ async def test_create_box_endpoint_error_handling(
             UploadControllerPort.BoxVersionError(box_id=TEST_BOX_ID),
             http_exceptions.HttpBoxVersionError(box_id=TEST_BOX_ID),
         ),
+        (
+            UploadControllerPort.IncompleteUploadsError(
+                box_id=TEST_BOX_ID, file_ids=[(TEST_FILE_ID, "test_file")]
+            ),
+            http_exceptions.HttpIncompleteUploadsError(
+                box_id=TEST_BOX_ID, file_ids=[(TEST_FILE_ID, "test_file")]
+            ),
+        ),
         (RuntimeError("Random error"), http_exceptions.HttpInternalError()),
     ],
-    ids=["BoxNotFound", "BoxVersionOutdated", "InternalError"],
+    ids=["BoxNotFound", "BoxVersionOutdated", "IncompleteUploads", "InternalError"],
 )
 async def test_update_box_endpoint_error_handling(
     config: ConfigFixture,

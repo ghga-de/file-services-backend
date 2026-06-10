@@ -39,7 +39,9 @@ class UploadControllerPort(ABC):
         at least one incomplete FileUpload exists.
         """
 
-        def __init__(self, *, box_id: UUID4, file_ids: list[UUID4]):
+        def __init__(self, *, box_id: UUID4, file_ids: list[tuple[UUID4, str]]):
+            self.box_id = box_id
+            self.file_ids = file_ids
             msg = (
                 f"Cannot lock or archive box {box_id} because these"
                 + f" files are incomplete: {file_ids}"

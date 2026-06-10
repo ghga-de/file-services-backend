@@ -752,17 +752,15 @@ async def test_lock_box_with_incomplete_upload(rig: JointRig):
         encrypted_size=ENCRYPTED_SIZE,
         part_size=PART_SIZE,
     )
-    file_ids = sorted([file_id1, file_id2])
-
     # Attempt to lock the box while the upload is still incomplete
     with pytest.raises(UploadControllerPort.IncompleteUploadsError) as exc_info:
         await controller.lock_file_upload_box(box_id=box_id, version=0)
 
-    # Verify the exception is correct
-    assert (
-        str(exc_info.value)
-        == f"Cannot lock or archive box {box_id} because these files are incomplete: {file_ids}"
-    )
+    # Verify the exception carries the right IDs and aliases (sorted by alias)
+    assert exc_info.value.file_ids == [
+        (file_id1, "test_file"),
+        (file_id2, "test_file2"),
+    ]
 
     # Verify that the box is still open
     assert file_upload_box_dao.latest.state == "open"
