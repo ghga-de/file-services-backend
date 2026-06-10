@@ -675,11 +675,6 @@ class UploadController(UploadControllerPort):
             log.error(error, extra=extra)
             raise error from err
 
-        # Exit early if the FileUpload is complete (already in the inbox or archived)
-        if file_upload.inbox_upload_completed:
-            log.info("FileUpload with ID %s already complete.", file_id)
-            return
-
         if file_upload.state in ("cancelled", "failed"):
             error = self.FileUploadStateError(
                 file_id=file_id,
@@ -687,6 +682,11 @@ class UploadController(UploadControllerPort):
             )
             log.error(error, extra=extra)
             raise error
+
+        # Exit early if the FileUpload is complete (already in the inbox or archived)
+        if file_upload.state != "init":
+            log.info("FileUpload with ID %s already complete.", file_id)
+            return
 
         try:
             await self._s3_client.complete_multipart_upload(file_upload=file_upload)
