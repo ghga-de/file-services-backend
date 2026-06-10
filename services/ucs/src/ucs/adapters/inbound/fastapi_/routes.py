@@ -155,6 +155,14 @@ ERROR_RESPONSES = {
         ),
         "model": http_exceptions.HttpPartSizeError.get_body_model(),
     },
+    "fileUploadStateError": {
+        "description": (
+            "Exceptions by ID:"
+            + "\n- fileUploadStateError: The action is incompatible with the"
+            + " FileUpload's current state."
+        ),
+        "model": http_exceptions.HttpFileUploadStateError.get_body_model(),
+    },
 }
 
 # For the update_box endpoint, map the work type required to change to a given box state
@@ -489,7 +497,8 @@ async def get_part_upload_url(  # noqa: PLR0913
         | ERROR_RESPONSES["uploadSizeMismatch"],
         status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["boxNotFound"]
         | ERROR_RESPONSES["fileUploadNotFound"],
-        status.HTTP_409_CONFLICT: ERROR_RESPONSES["boxStateError"],
+        status.HTTP_409_CONFLICT: ERROR_RESPONSES["boxStateError"]
+        | ERROR_RESPONSES["fileUploadStateError"],
         status.HTTP_500_INTERNAL_SERVER_ERROR: ERROR_RESPONSES[
             "s3UploadCompletionFailure"
         ],
@@ -532,6 +541,8 @@ async def complete_file_upload(
         ) from error
     except UploadControllerPort.FileUploadNotFound as error:
         raise http_exceptions.HttpFileUploadNotFoundError(file_id=file_id) from error
+    except UploadControllerPort.FileUploadStateError as error:
+        raise http_exceptions.HttpFileUploadStateError(file_id=file_id) from error
     except UploadControllerPort.UploadCompletionError as error:
         raise http_exceptions.HttpUploadCompletionError(
             box_id=box_id, file_id=file_id

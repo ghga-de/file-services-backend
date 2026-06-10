@@ -428,6 +428,36 @@ components:
       - file_id
       title: HttpFileUploadNotFoundErrorData
       type: object
+    HttpFileUploadStateError:
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/HttpFileUploadStateErrorData'
+        description:
+          description: A human readable message to the client explaining the cause
+            of the exception.
+          title: Description
+          type: string
+        exception_id:
+          const: fileUploadStateError
+          title: Exception Id
+          type: string
+      required:
+      - data
+      - description
+      - exception_id
+      title: HttpFileUploadStateError
+      type: object
+    HttpFileUploadStateErrorData:
+      properties:
+        file_id:
+          format: uuid4
+          title: File Id
+          type: string
+      required:
+      - file_id
+      title: HttpFileUploadStateErrorData
+      type: object
     HttpMaxSizeTooLowError:
       additionalProperties: false
       properties:
@@ -1127,10 +1157,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HttpBoxStateError'
+                $ref: '#/components/schemas/HttpFileUploadStateError'
           description: 'Exceptions by ID:
 
-            - boxStateError: The FileUploadBox''s state precludes the requested action.'
+            - fileUploadStateError: The action is incompatible with the FileUpload''s
+            current state.'
         '422':
           content:
             application/json:

@@ -680,6 +680,14 @@ class UploadController(UploadControllerPort):
             log.info("FileUpload with ID %s already complete.", file_id)
             return
 
+        if file_upload.state in ("cancelled", "failed"):
+            error = self.FileUploadStateError(
+                file_id=file_id,
+                details=f"Cannot complete a FileUpload in the '{file_upload.state}' state.",
+            )
+            log.error(error, extra=extra)
+            raise error
+
         try:
             await self._s3_client.complete_multipart_upload(file_upload=file_upload)
         except S3ClientPort.UnknownStorageAliasError as err:

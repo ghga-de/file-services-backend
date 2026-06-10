@@ -769,6 +769,25 @@ async def test_lock_box_with_incomplete_upload(rig: JointRig):
     assert file_upload_box_dao.latest.state == "open"
 
 
+@pytest.mark.parametrize("terminal_state", ["failed", "cancelled"])
+async def test_lock_box_ignores_terminal_uploads(
+    rig: JointRig, terminal_state: FileUploadState
+):
+    """Locking with force=False must succeed when the only incomplete uploads
+    (inbox_upload_completed=False) are in a terminal state (failed/cancelled).
+    Those uploads are no longer active. The only state that should block locking
+    is 'init'.
+    """
+    box_id = await rig.create_default_box()
+
+    file_upload = make_file_upload(state=terminal_state)
+    file_upload.box_id = box_id
+    await rig.file_upload_dao.insert(file_upload)
+
+    await rig.controller.lock_file_upload_box(box_id=box_id, version=0)
+    assert rig.file_upload_box_dao.latest.state == "locked"
+
+
 async def test_complete_file_upload_when_box_missing(rig: JointRig):
     """Test error handling in the case where the user tries to complete a FileUpload
     for a box ID that doesn't exist.
@@ -808,6 +827,32 @@ async def test_complete_file_upload_when_box_missing(rig: JointRig):
     # Verify the exception contains the correct box_id
     assert str(box_id) in str(exc_info.value)
     assert not file_upload_dao.latest.inbox_upload_completed
+
+
+@pytest.mark.parametrize("terminal_state", ["cancelled", "failed"])
+async def test_complete_file_upload_in_terminal_state(
+    rig: JointRig, terminal_state: FileUploadState
+):
+    """Completing a cancelled or failed FileUpload must raise FileUploadStateError
+    rather than attempting the S3 operation on an already-aborted or invalid upload.
+    """
+    box_id = await rig.create_default_box()
+    file_upload = make_file_upload(state=terminal_state)
+    file_upload.box_id = box_id
+    await rig.file_upload_dao.insert(file_upload)
+
+    with pytest.raises(UploadControllerPort.FileUploadStateError) as exc_info:
+        await rig.controller.complete_file_upload(
+            box_id=box_id,
+            file_id=file_upload.id,
+            unencrypted_checksum="sha256:checksum",
+            encrypted_checksum="md5:checksum",
+            encrypted_parts_md5=["abc123"],
+            encrypted_parts_sha256=["def456"],
+        )
+
+    assert str(file_upload.id) in str(exc_info.value)
+    assert terminal_state in str(exc_info.value)
 
 
 async def test_complete_missing_file_upload(rig: JointRig):

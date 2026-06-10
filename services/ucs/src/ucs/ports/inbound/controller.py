@@ -318,6 +318,7 @@ class UploadControllerPort(ABC):
 
         Raises:
         - `FileUploadNotFound` if the FileUpload isn't found.
+        - `FileUploadStateError` if the FileUpload is in a cancelled or failed state.
         - `BoxNotFoundError` if the FileUploadBox isn't found.
         - `BoxStateError` if the box exists but is locked.
         - `BoxVersionError` if the box version changed before stats could be updated.
