@@ -377,13 +377,16 @@ class UploadControllerPort(ABC):
         ...
 
     @abstractmethod
-    async def lock_file_upload_box(self, *, box_id: UUID4, version: int) -> None:
+    async def lock_file_upload_box(
+        self, *, box_id: UUID4, version: int, force: bool = False
+    ) -> None:
         """Lock an existing FileUploadBox.
 
         Raises:
         - `BoxNotFoundError` if the FileUploadBox isn't found in the DB.
         - `BoxVersionError` if the supplied version doesn't match the current version.
-        - `IncompleteUploadsError` if the FileUploadBox has incomplete FileUploads.
+        - `IncompleteUploadsError` if force is False and the box has incomplete FileUploads.
+        - `UploadAbortError` if force is True and aborting an in-progress upload fails.
         """
         ...
 

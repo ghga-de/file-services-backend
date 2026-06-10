@@ -222,6 +222,7 @@ async def create_box(
         status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["boxNotFound"],
         status.HTTP_409_CONFLICT: ERROR_RESPONSES["boxVersionOutdated"]
         | ERROR_RESPONSES["boxMaxSizeTooLow"],
+        status.HTTP_500_INTERNAL_SERVER_ERROR: ERROR_RESPONSES["uploadAbortError"],
     },
 )
 @TRACER.start_as_current_span("routes.update_box")
@@ -262,7 +263,9 @@ async def update_box(  # noqa: C901, PLR0912
             match box_update.state:
                 case "locked":
                     await upload_controller.lock_file_upload_box(
-                        box_id=box_id, version=box_update.version
+                        box_id=box_id,
+                        version=box_update.version,
+                        force=box_update.force,
                     )
                 case "open":
                     await upload_controller.unlock_file_upload_box(
@@ -280,6 +283,8 @@ async def update_box(  # noqa: C901, PLR0912
         raise http_exceptions.HttpMaxSizeTooLowError(
             box_id=box_id, max_size=error.max_size, current_size=error.current_size
         ) from error
+    except UploadControllerPort.UploadAbortError as error:
+        raise http_exceptions.HttpUploadAbortError() from error
     except Exception as error:
         log.error(error, exc_info=True)
         raise http_exceptions.HttpInternalError() from error

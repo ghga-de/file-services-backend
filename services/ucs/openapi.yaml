@@ -21,6 +21,12 @@ components:
     BoxUpdateRequest:
       description: Request body for updating a FileUploadBox.
       properties:
+        force:
+          default: false
+          description: Only applies when locking the box. If True, any uploads still
+            in the 'init' state will be aborted before locking proceeds.
+          title: Force
+          type: boolean
         max_size:
           anyOf:
           - exclusiveMinimum: 0.0
@@ -840,6 +846,14 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpUploadAbortError'
+          description: 'Exceptions by ID:
+
+            - uploadAbortError: There was an error aborting the s3 multipart upload.'
       security:
       - HTTPBearer: []
       summary: Update a FileUploadBox (lock/unlock/archive/resize)
