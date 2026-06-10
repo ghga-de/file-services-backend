@@ -882,32 +882,30 @@ class UploadController(UploadControllerPort):
             log.info("Box with ID %s is already locked.", box_id)
             return
 
+        incomplete_files = [
+            upload
+            async for upload in self._file_upload_dao.find_all(
+                mapping={"box_id": box_id, "state": "init"}
+            )
+        ]
+
         if force:
-            init_uploads = [
-                upload
-                async for upload in self._file_upload_dao.find_all(
-                    mapping={"box_id": box_id, "state": "init"}
-                )
-            ]
-            for upload in init_uploads:
+            for upload in incomplete_files:
                 await self._remove_incomplete_file_upload(file_upload=upload)
                 upload.state = "cancelled"
                 upload.state_updated = now_utc_ms_prec()
                 await self._file_upload_dao.update(upload)
                 with contextlib.suppress(ResourceNotFoundError):
                     await self._upload_activity_dao.delete(upload.id)
-            if init_uploads:
+            if incomplete_files:
                 log.info(
                     "Aborted %d in-progress upload(s) in box %s for forced lock.",
-                    len(init_uploads),
+                    len(incomplete_files),
                     box_id,
                 )
         else:
-            incomplete_files_cursor = self._file_upload_dao.find_all(
-                mapping={"box_id": box_id, "state": "init"}
-            )
             file_ids = sorted(
-                [(x.id, x.alias) async for x in incomplete_files_cursor],
+                [(x.id, x.alias) for x in incomplete_files],
                 key=lambda entry: entry[1],
             )
             if file_ids:
