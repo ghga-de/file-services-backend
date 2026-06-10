@@ -148,7 +148,6 @@ async def test_complete_file_upload(rig: JointRig):
     assert file_upload_dao.latest.id == file_id
     assert file_upload_dao.latest.completed is not None
     assert completed - file_upload_dao.latest.completed < timedelta(seconds=5)
-    assert file_upload_dao.latest.inbox_upload_completed
     file_upload_box_dao = rig.file_upload_box_dao
     assert file_upload_box_dao.latest.size == DECRYPTED_SIZE
     assert file_upload_box_dao.latest.file_count == 1
@@ -826,7 +825,6 @@ async def test_complete_file_upload_when_box_missing(rig: JointRig):
 
     # Verify the exception contains the correct box_id
     assert str(box_id) in str(exc_info.value)
-    assert not file_upload_dao.latest.inbox_upload_completed
 
 
 @pytest.mark.parametrize("terminal_state", ["cancelled", "failed"])
@@ -919,7 +917,6 @@ async def test_complete_file_upload_with_unknown_storage_alias(rig: JointRig):
 
     # Verify the exception message contains the unknown storage alias
     assert "does_not_exist" in str(exc_info.value)
-    assert not file_upload_dao.latest.inbox_upload_completed
     assert rig.file_upload_box_dao.latest.size == 0
     assert rig.file_upload_box_dao.latest.file_count == 0
 
@@ -964,7 +961,6 @@ async def test_complete_file_upload_with_s3_error(rig: JointRig):
     # Verify the exception contains the S3 upload ID
     s3_upload_id = file_upload_dao.latest.s3_upload_id
     assert s3_upload_id in str(exc_info.value)
-    assert not rig.file_upload_dao.latest.inbox_upload_completed
     assert not file_upload_dao.latest.completed
     assert file_upload_box_dao.latest.size == 0
     assert file_upload_box_dao.latest.file_count == 0
@@ -1014,7 +1010,6 @@ async def test_complete_file_upload_size_mismatch(rig: JointRig):
     file_upload = rig.file_upload_dao.latest
     assert file_upload.state == "failed"
     assert file_upload.state_updated > state_updated
-    assert not file_upload.inbox_upload_completed
     assert not file_upload.completed
     assert rig.file_upload_box_dao.latest.size == 0
     assert rig.file_upload_box_dao.latest.file_count == 0
@@ -1057,7 +1052,6 @@ async def test_complete_file_upload_checksum_mismatch(rig: JointRig):
     file_upload = rig.file_upload_dao.latest
     assert file_upload.state == "failed"
     assert file_upload.state_updated > state_updated
-    assert not file_upload.inbox_upload_completed
     assert not file_upload.completed
     assert file_upload_box_dao.latest.size == 0
     assert file_upload_box_dao.latest.file_count == 0

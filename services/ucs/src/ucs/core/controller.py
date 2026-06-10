@@ -719,7 +719,6 @@ class UploadController(UploadControllerPort):
         file_upload.decrypted_sha256 = unencrypted_checksum
         file_upload.encrypted_parts_md5 = encrypted_parts_md5
         file_upload.encrypted_parts_sha256 = encrypted_parts_sha256
-        file_upload.inbox_upload_completed = True
         file_upload.state_updated = now_utc_ms_prec()
         file_upload.completed = now_utc_ms_prec()
         await self._file_upload_dao.update(file_upload)

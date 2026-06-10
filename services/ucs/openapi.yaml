@@ -125,12 +125,6 @@ components:
           format: uuid4
           title: Id
           type: string
-        inbox_upload_completed:
-          default: false
-          description: Indicates whether the file has been completely uploaded to
-            the inbox.
-          title: Inbox Upload Completed
-          type: boolean
         initiated:
           description: When the S3 multipart upload was initiated
           format: date-time
