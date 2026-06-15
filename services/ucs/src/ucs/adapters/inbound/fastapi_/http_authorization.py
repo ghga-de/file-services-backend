@@ -83,7 +83,7 @@ class JWTAuthContextProviderBundle:
         # File deletion is requested by the WPS (user-driven cancellation via the
         #  connector) and by the RS (manual deletion by a Data Steward or user),
         #  each signing with its own key, so both providers are needed.
-        self.delete_file_provider = JWTAuthContextProvider(
+        self.delete_file_wps_provider = JWTAuthContextProvider(
             config=self.wps_auth_config,
             context_class=models.DeleteFileWorkOrder,
         )
@@ -190,7 +190,7 @@ async def _require_delete_file_work_order(
     try:
         return await require_auth_context_using_credentials(
             credentials=credentials,
-            auth_provider=auth_provider_bundle.delete_file_provider,
+            auth_provider=auth_provider_bundle.delete_file_wps_provider,
         )
     except HTTPException as wps_error:
         if wps_error.status_code != 401 or not (
