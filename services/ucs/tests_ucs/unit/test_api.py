@@ -381,6 +381,33 @@ async def test_delete_file_endpoint_auth(
     assert response.status_code == 204
 
 
+async def test_delete_file_endpoint_accepts_rs_signed_token(
+    config: ConfigFixture, app_fixture: AppFixture
+):
+    """Test that the delete file endpoint also accepts a DeleteFileWorkOrder signed
+    with the RS key (used for manual deletion by the RS), in addition to the
+    WPS-signed tokens covered by test_delete_file_endpoint_auth. Mismatched claims
+    must still be rejected.
+    """
+    rs_jwk = config.rs_jwk
+    rest_client = app_fixture.rest_client
+    url = f"/boxes/{TEST_BOX_ID}/uploads/{TEST_FILE_ID}"
+
+    # Specifying the wrong box should get a 403 even if token signature is valid
+    wrong_box_token_header = utils.delete_file_token_header(
+        file_id=TEST_FILE_ID, jwk=rs_jwk
+    )
+    response = await rest_client.delete(url, headers=wrong_box_token_header)
+    assert response.status_code == 403
+
+    # Should be able to successfully call the endpoint
+    good_token_header = utils.delete_file_token_header(
+        box_id=TEST_BOX_ID, file_id=TEST_FILE_ID, jwk=rs_jwk
+    )
+    response = await rest_client.delete(url, headers=good_token_header)
+    assert response.status_code == 204
+
+
 @pytest.mark.parametrize(
     "core_error, http_error",
     [
