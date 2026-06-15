@@ -823,25 +823,6 @@ class UploadController(UploadControllerPort):
             log.error(error)
             raise error
 
-        # Before deleting anything, make sure there aren't any FileUploads in an
-        #  unexpected state
-        async for file_upload in self._file_upload_dao.find_all(
-            mapping={
-                "box_id": box_id,
-                "state": {"$in": ["awaiting_archival", "archived"]},
-            }
-        ):
-            error = self.FileUploadStateError(
-                file_id=file_upload.id,
-                details=(
-                    f"FileUpload {file_upload.id} is in '{file_upload.state}' state,"
-                    + " which should only be reachable when the box is archived."
-                    + " This indicates a data inconsistency."
-                ),
-            )
-            log.error(error)
-            raise error
-
         # Lock the box so no new uploads can be initiated while sweeping
         if box.state == "open":
             box.version += 1
@@ -849,13 +830,44 @@ class UploadController(UploadControllerPort):
             await self._file_upload_box_dao.update(box)
             log.info("Locked FileUploadBox %s before deleting files.", box_id)
 
+        # Before deleting anything, make sure there aren't any FileUploads in an
+        #  unexpected state. Raising an error here leaves the box in the locked state,
+        #  which should be fine because it doesn't prevent a subsequent deletion attempt
+        files_with_wrong_state = [
+            x
+            async for x in self._file_upload_dao.find_all(
+                mapping={
+                    "box_id": box_id,
+                    "state": {"$in": ["awaiting_archival", "archived"]},
+                }
+            )
+        ]
+
+        if files_with_wrong_state:
+            first_bad_file = files_with_wrong_state[0]
+            error = self.FileUploadStateError(
+                file_id=first_bad_file.id,
+                details=(
+                    f"FileUpload {first_bad_file.id} is in the '{first_bad_file.state}',"
+                    + " state which should only be reachable when the box is archived."
+                    + " This indicates a data inconsistency."
+                ),
+            )
+            log.error(
+                error,
+                extra={
+                    "box_id": box_id,
+                    "files_with_wrong_state": [f.id for f in files_with_wrong_state],
+                },
+            )
+            raise error
+
         # Delete the FileUploads
-        log.debug("Deleting all FileUploads for FileUploadBox %s.", box_id)
         await self._delete_box_file_uploads(box_id=box_id)
 
         # Finally, delete the box itself
         await self._file_upload_box_dao.delete(box_id)
-        log.info("Box %s and all its FileUploads were deleted.", box_id)
+        log.info("Deleted FileUploadBox %s.", box_id)
 
     async def _delete_box_file_uploads(self, *, box_id: UUID4) -> None:
         """Hard-delete all FileUploads belonging to a box after S3 cleanup.
@@ -879,6 +891,7 @@ class UploadController(UploadControllerPort):
                 log.info("Deleted all FileUploads for FileUploadBox %s.", box_id)
                 break
 
+            log.debug("Deleting all FileUploads for FileUploadBox %s.", box_id)
             for file_upload in file_uploads:
                 if file_upload.state == "inbox":
                     await self._remove_completed_file_upload(file_upload=file_upload)
