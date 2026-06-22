@@ -27,6 +27,7 @@ import httpx
 import pytest
 from ghga_event_schemas.pydantic_ import FileDeletionRequested, InterrogationSuccess
 from hexkit.correlation import set_correlation_id
+from hexkit.protocols.objstorage import ObjectStorageProtocolError
 from hexkit.utils import now_utc_ms_prec
 
 from tests_ucs.fixtures import utils
@@ -864,7 +865,10 @@ async def test_cleanup_cancels_despite_s3_abort_failure(
     assert s3_upload_id not in uploads
 
 
-async def test_cleanup_of_orphaned_files(joint_fixture: JointFixture):
+@pytest.mark.parametrize("simulate_errors", [True, False])
+async def test_cleanup_of_orphaned_files(
+    joint_fixture: JointFixture, simulate_errors: bool, caplog
+):
     """Test that orphaned files are deleted from the inbox by the cleanup job."""
     controller = joint_fixture.upload_controller
     s3_storage = joint_fixture.s3.storage
@@ -963,12 +967,57 @@ async def test_cleanup_of_orphaned_files(joint_fixture: JointFixture):
         orphaned_object_id2,
     }
 
+    # Simulate errors in the S3 delete method if simulate_errors is True
+    _real_deletion_method = s3_storage.delete_object
+
+    class _S3PermissionError(ObjectStorageProtocolError):
+        def __init__(self, *, bucket_id: str, object_id: str):
+            super().__init__("You don't have permission to do that.")
+
+    async def _delete_with_error(bucket_id: str, object_id: str) -> None:
+        """Raises an ObjectNotFoundError, then _S3PermissionError, then reverts."""
+        if object_id == orphaned_object_id1:
+            await _real_deletion_method(bucket_id=bucket_id, object_id=object_id)
+            raise s3_storage.ObjectNotFoundError(
+                bucket_id=bucket_id, object_id=object_id
+            )
+        elif object_id == file_cancelled_object_id:
+            raise _S3PermissionError(bucket_id=bucket_id, object_id=object_id)
+        else:
+            return await _real_deletion_method(bucket_id=bucket_id, object_id=object_id)
+
+    if simulate_errors:
+        s3_storage.delete_object = _delete_with_error
+        controller._s3_client._get_bucket_and_storage = lambda x: (
+            bucket_id,
+            s3_storage,
+        )
+
     # Run the cleanup job
-    await controller.cleanup_stale_uploads()
+    caplog.clear()
+    with caplog.at_level("INFO"):
+        await controller.cleanup_stale_uploads()
+
+    deleted_count = 1 if simulate_errors else 3
+    log_msg = (
+        f"Cleaned up {deleted_count} orphaned object(s) from bucket {bucket_id}"
+        + " in storage alias test."
+    )
+
+    if simulate_errors:
+        log_msg += (
+            " An additional 1 object(s) could not be deleted and 1 object(s) were no"
+            + " longer present by the time deletion was attempted."
+        )
+    assert log_msg in caplog.messages
 
     # Verify that the orphaned and cancelled files are gone, but init and inbox remain
     all_object_ids = await s3_storage.list_all_object_ids(bucket_id=bucket_id)
-    assert set(all_object_ids) == {file_init_object_id, file_inbox_object_id}
+
+    expected_objects = {file_init_object_id, file_inbox_object_id}
+    if simulate_errors:
+        expected_objects.add(file_cancelled_object_id)  # didn't get deleted due to exc
+    assert set(all_object_ids) == expected_objects
 
 
 async def test_upload_activity_deleted_after_completion_failure(

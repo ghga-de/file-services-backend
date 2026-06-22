@@ -528,8 +528,8 @@ class S3Client(S3ClientPort):
         problem_msg = ""
         if problem_ids or missing_ids:
             problem_msg = (
-                f" An additional {len(problem_ids)} could not be deleted and"
-                + f" {len(missing_ids)} were no longer present by the time"
+                f" An additional {len(problem_ids)} object(s) could not be deleted and"
+                + f" {len(missing_ids)} object(s) were no longer present by the time"
                 + " deletion was attempted."
             )
             extra["could_not_delete_count"] = len(problem_ids)
