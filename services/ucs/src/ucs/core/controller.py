@@ -1179,6 +1179,7 @@ class UploadController(UploadControllerPort):
                 return
             case "inbox":
                 # Update the FileUpload's parameters using the InterrogationReport
+                await self._remove_completed_file_upload(file_upload=old_file_upload)
                 updated_file_upload = old_file_upload.model_copy(deep=True)
                 updated_file_upload.state = "interrogated"
                 updated_file_upload.state_updated = now_utc_ms_prec()
@@ -1201,8 +1202,6 @@ class UploadController(UploadControllerPort):
                     file_id,
                     old_file_upload.state,
                 )
-
-        await self._remove_completed_file_upload(file_upload=old_file_upload)
 
     async def process_interrogation_failure(
         self, *, report: InterrogationFailure
@@ -1236,6 +1235,7 @@ class UploadController(UploadControllerPort):
                 file_upload.failure_reason = report.reason
                 log.debug("Marking FileUpload %s as '%s'", file_id, file_upload.state)
                 await self._file_upload_dao.update(file_upload)
+                await self._remove_completed_file_upload(file_upload=file_upload)
             case _:
                 log.info(
                     "FileUpload %s was already marked as '%s', so it's likely"
@@ -1243,8 +1243,6 @@ class UploadController(UploadControllerPort):
                     file_id,
                     file_upload.state,
                 )
-
-        await self._remove_completed_file_upload(file_upload=file_upload)
 
     async def process_internal_file_registration(
         self, *, registration_metadata: FileInternallyRegistered
