@@ -27,7 +27,7 @@ import httpx
 import pytest
 from ghga_event_schemas.pydantic_ import FileDeletionRequested, InterrogationSuccess
 from hexkit.correlation import set_correlation_id
-from hexkit.protocols.objstorage import ObjectStorageProtocolError
+from hexkit.protocols.objstorage import ObjectStorageProtocol
 from hexkit.utils import now_utc_ms_prec
 
 from tests_ucs.fixtures import utils
@@ -970,7 +970,7 @@ async def test_cleanup_of_orphaned_files(
     # Simulate errors in the S3 delete method if simulate_errors is True
     _real_deletion_method = s3_storage.delete_object
 
-    class _S3PermissionError(ObjectStorageProtocolError):
+    class _S3PermissionError(ObjectStorageProtocol.ObjectStorageProtocolError):
         def __init__(self, *, bucket_id: str, object_id: str):
             super().__init__("You don't have permission to do that.")
 
