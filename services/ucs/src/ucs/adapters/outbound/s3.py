@@ -489,18 +489,24 @@ class S3Client(S3ClientPort):
         bucket_id, object_storage = self._get_bucket_and_storage(storage_alias)
         extra: dict[str, Any] = {"storage_alias": storage_alias, "bucket_id": bucket_id}
         try:
-            object_ids = await object_storage.list_all_object_ids(bucket_id=bucket_id)
+            object_ids: list[str] = await object_storage.list_all_object_ids(
+                bucket_id=bucket_id
+            )
         except ObjectStorageProtocol.BucketNotFoundError as err:
             error = S3ClientPort.BucketNotFoundError(bucket_id=bucket_id)
             log.error(error, extra=extra)
             raise error from err
 
         orphaned_object_ids = set(object_ids) - known_object_ids
+
+        # Return early if no orphaned objects
+        if not orphaned_object_ids:
+            log.info("Did not detect any orphaned objects in the bucket %s.", bucket_id)
+
         deleted_ids = []
         missing_ids = []
         problem_ids = []
         for object_id in orphaned_object_ids:
-            extra["object_id"] = object_id
             try:
                 await object_storage.delete_object(
                     bucket_id=bucket_id, object_id=object_id
@@ -515,15 +521,11 @@ class S3Client(S3ClientPort):
                     bucket_id,
                     storage_alias,
                     str(err),
-                    extra=extra,
+                    extra={**extra, "object_id": object_id},
                 )
                 problem_ids.append(object_id)
             else:
                 deleted_ids.append(object_id)
-
-        _ = extra.pop("object_id", None)
-        extra["deleted_count"] = len(deleted_ids)
-        extra["deleted_object_ids"] = deleted_ids
 
         problem_msg = ""
         if problem_ids or missing_ids:
@@ -537,6 +539,8 @@ class S3Client(S3ClientPort):
             extra["no_longer_present_count"] = len(missing_ids)
             extra["no_longer_present_object_ids"] = missing_ids
 
+        extra["deleted_count"] = len(deleted_ids)
+        extra["deleted_object_ids"] = deleted_ids
         log.info(
             "Cleaned up %i orphaned object(s) from bucket %s in storage alias %s.%s",
             len(deleted_ids),

@@ -1433,6 +1433,7 @@ class UploadController(UploadControllerPort):
         Orphaned objects are also deleted.
         """
         # Fetch all FileUploads for this storage alias that are still 'init' or 'inbox'
+        #  to avoid doing a second query later when performing object cleanup
         init_and_inbox_uploads = [
             upload
             async for upload in self._file_upload_dao.find_all(
