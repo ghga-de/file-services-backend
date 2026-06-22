@@ -474,3 +474,30 @@ class S3Client(S3ClientPort):
             op_name="get_all_multipart_uploads", bucket_id=bucket_id, extra=extra
         ):
             return await object_storage.get_all_multipart_uploads(bucket_id=bucket_id)
+
+    async def cleanup_orphaned_objects(
+        self, *, storage_alias: str, known_object_ids: set[str]
+    ):
+        """Cleans out all orphaned object IDs in the inbox bucket.
+
+        Raises:
+            `UnknownStorageAliasError` if the storage alias is not known.
+        """
+        bucket_id, object_storage = self._get_bucket_and_storage(storage_alias)
+        extra = {"storage_alias": storage_alias, "bucket_id": bucket_id}
+        with handle_bucket_and_general_s3_errors(
+            op_name="list_all_object_ids", bucket_id=bucket_id, extra=extra
+        ):
+            object_ids = await object_storage.list_all_object_ids(bucket_id=bucket_id)
+            orphaned_object_ids = set(object_ids) - known_object_ids
+            for object_id in orphaned_object_ids:
+                await object_storage.delete_object(
+                    bucket_id=bucket_id, object_id=object_id
+                )
+                log.info(
+                    "Deleted object %s from bucket %s in storage alias %s.",
+                    object_id,
+                    bucket_id,
+                    storage_alias,
+                    extra={"object_id": object_id, **extra},
+                )

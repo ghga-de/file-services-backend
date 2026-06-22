@@ -228,3 +228,13 @@ class S3ClientPort(ABC):
         Raises:
             `UnknownStorageAliasError` if the storage alias is not known.
         """
+
+    @abstractmethod
+    async def cleanup_orphaned_objects(
+        self, *, storage_alias: str, known_object_ids: set[str]
+    ):
+        """Cleans out all orphaned object IDs in the inbox bucket.
+
+        Raises:
+            `UnknownStorageAliasError` if the storage alias is not known.
+        """
