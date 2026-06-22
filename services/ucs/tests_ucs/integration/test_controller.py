@@ -864,6 +864,113 @@ async def test_cleanup_cancels_despite_s3_abort_failure(
     assert s3_upload_id not in uploads
 
 
+async def test_cleanup_of_orphaned_files(joint_fixture: JointFixture):
+    """Test that orphaned files are deleted from the inbox by the cleanup job."""
+    controller = joint_fixture.upload_controller
+    s3_storage = joint_fixture.s3.storage
+    bucket_id = joint_fixture.bucket_id
+
+    # Create a box and initiate a file upload
+    async with set_correlation_id(uuid4()):
+        box_id = await controller.create_file_upload_box(
+            storage_alias="test", max_size=utils.TEST_MAX_BOX_SIZE
+        )
+        file_init_id, _ = await controller.initiate_file_upload(
+            box_id=box_id,
+            alias="test-file1",
+            decrypted_size=DECRYPTED_SIZE,
+            encrypted_size=ENCRYPTED_SIZE,
+            part_size=utils.PART_SIZE,
+        )
+        file_inbox_id, _ = await controller.initiate_file_upload(
+            box_id=box_id,
+            alias="test-file2",
+            decrypted_size=DECRYPTED_SIZE,
+            encrypted_size=ENCRYPTED_SIZE,
+            part_size=utils.PART_SIZE,
+        )
+        file_cancelled_id, _ = await controller.initiate_file_upload(
+            box_id=box_id,
+            alias="test-file3",
+            decrypted_size=DECRYPTED_SIZE,
+            encrypted_size=ENCRYPTED_SIZE,
+            part_size=utils.PART_SIZE,
+        )
+    for file_id in [file_init_id, file_inbox_id, file_cancelled_id]:
+        url = await controller.get_part_upload_url(file_id=file_id, part_no=1)
+        httpx.put(url, content=b"some-data")
+
+    # Complete the uploads
+    collection = joint_fixture.mongodb.client[joint_fixture.config.db_name][
+        FILE_UPLOADS_COLLECTION
+    ]
+    file_init_doc = collection.find_one({"_id": file_init_id})
+    file_inbox_doc = collection.find_one({"_id": file_inbox_id})
+    file_cancelled_doc = collection.find_one({"_id": file_cancelled_id})
+    assert file_init_doc is not None
+    assert file_inbox_doc is not None
+    assert file_cancelled_doc is not None
+    file_init_object_id = str(file_init_doc["object_id"])
+    file_inbox_object_id = str(file_inbox_doc["object_id"])
+    file_cancelled_object_id = str(file_cancelled_doc["object_id"])
+    await s3_storage.complete_multipart_upload(
+        upload_id=file_init_doc["s3_upload_id"],
+        bucket_id=bucket_id,
+        object_id=file_init_object_id,
+    )
+    await s3_storage.complete_multipart_upload(
+        upload_id=file_inbox_doc["s3_upload_id"],
+        bucket_id=bucket_id,
+        object_id=file_inbox_object_id,
+    )
+    await s3_storage.complete_multipart_upload(
+        upload_id=file_cancelled_doc["s3_upload_id"],
+        bucket_id=bucket_id,
+        object_id=file_cancelled_object_id,
+    )
+
+    # Set the inbox and cancelled docs to the desired states but leave init as is to
+    #  simulate race condition
+    file_inbox_doc["inbox"] = "inbox"
+    file_cancelled_doc["state"] = "cancelled"
+    collection.replace_one(filter={"_id": file_inbox_id}, replacement=file_inbox_doc)
+    collection.replace_one(
+        filter={"_id": file_cancelled_id}, replacement=file_cancelled_doc
+    )
+
+    # Upload two different orphaned objects
+    orphaned_object_id1 = str(uuid4())
+    orphaned_object_id2 = "not-a-uuid"
+    for object_id in [orphaned_object_id1, orphaned_object_id2]:
+        upload_id = await s3_storage.init_multipart_upload(
+            bucket_id=bucket_id, object_id=object_id
+        )
+        url = await s3_storage.get_part_upload_url(
+            upload_id=upload_id, bucket_id=bucket_id, object_id=object_id, part_number=1
+        )
+        httpx.put(url, content=b"some-data")
+        await s3_storage.complete_multipart_upload(
+            upload_id=upload_id, bucket_id=bucket_id, object_id=object_id
+        )
+
+    # Check the list of current IDs before running the job
+    all_object_ids = await s3_storage.list_all_object_ids(bucket_id=bucket_id)
+    assert set(all_object_ids) == {
+        file_init_object_id,
+        file_inbox_object_id,
+        file_cancelled_object_id,
+        orphaned_object_id1,
+        orphaned_object_id2,
+    }
+
+    # Run the cleanup job
+    await controller.cleanup_stale_uploads()
+
+    # Verify that the orphaned and cancelled files are gone, but init and inbox remain
+    all_object_ids = await s3_storage.list_all_object_ids(bucket_id=bucket_id)
+    assert set(all_object_ids) == {file_init_object_id, file_inbox_object_id}
+
+
 async def test_upload_activity_deleted_after_completion_failure(
     joint_fixture: JointFixture,
 ):
