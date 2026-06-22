@@ -489,9 +489,7 @@ class S3Client(S3ClientPort):
         bucket_id, object_storage = self._get_bucket_and_storage(storage_alias)
         extra: dict[str, Any] = {"storage_alias": storage_alias, "bucket_id": bucket_id}
         try:
-            object_ids: list[str] = await object_storage.list_all_object_ids(
-                bucket_id=bucket_id
-            )
+            object_ids = await object_storage.list_all_object_ids(bucket_id=bucket_id)
         except ObjectStorageProtocol.BucketNotFoundError as err:
             error = S3ClientPort.BucketNotFoundError(bucket_id=bucket_id)
             log.error(error, extra=extra)
