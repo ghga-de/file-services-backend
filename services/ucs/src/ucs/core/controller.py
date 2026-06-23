@@ -1230,12 +1230,12 @@ class UploadController(UploadControllerPort):
                 )
                 return
             case "inbox":
+                await self._remove_completed_file_upload(file_upload=file_upload)
                 file_upload.state = "failed"
                 file_upload.state_updated = now_utc_ms_prec()
                 file_upload.failure_reason = report.reason
                 log.debug("Marking FileUpload %s as '%s'", file_id, file_upload.state)
                 await self._file_upload_dao.update(file_upload)
-                await self._remove_completed_file_upload(file_upload=file_upload)
             case _:
                 log.info(
                     "FileUpload %s was already marked as '%s', so it's likely"
