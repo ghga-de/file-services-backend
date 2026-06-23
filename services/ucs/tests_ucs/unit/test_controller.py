@@ -408,19 +408,22 @@ async def test_get_box_uploads(rig: JointRig):
     empty_box_id = await rig.create_default_box()
 
     # Get the file uploads for the first box - should be sorted by alias
-    results = await controller.get_box_file_info(box_id=box_id)
-    assert len(results) == 3
-    assert [r.alias for r in results] == ["file0", "file1", "file2"]
-    assert all(r.id in file_ids for r in results)
+    file_uploads, total_count = await controller.get_box_file_info(box_id=box_id)
+    assert len(file_uploads) == 3
+    assert total_count == 3
+    assert [r.alias for r in file_uploads] == ["file0", "file1", "file2"]
+    assert all(r.id in file_ids for r in file_uploads)
 
     # Verify the other box returns only its own files
-    other_results = await controller.get_box_file_info(box_id=other_box_id)
-    assert len(other_results) == 2
-    assert all(r.id in other_file_ids for r in other_results)
+    other_uploads, other_total = await controller.get_box_file_info(box_id=other_box_id)
+    assert len(other_uploads) == 2
+    assert other_total == 2
+    assert all(r.id in other_file_ids for r in other_uploads)
 
     # Verify that we get an empty list for the third box
-    no_ids = await controller.get_box_file_info(box_id=empty_box_id)
-    assert no_ids == []
+    empty_uploads, empty_total = await controller.get_box_file_info(box_id=empty_box_id)
+    assert empty_uploads == []
+    assert empty_total == 0
 
 
 async def test_get_box_uploads_retrieves_all_states(rig: JointRig):
@@ -458,8 +461,9 @@ async def test_get_box_uploads_retrieves_all_states(rig: JointRig):
         )
         await rig.file_upload_dao.insert(file_upload)
 
-    files = await rig.controller.get_box_file_info(box_id=box_id)
+    files, total = await rig.controller.get_box_file_info(box_id=box_id)
     assert [f.alias for f in files] == states
+    assert total == len(states)
 
 
 async def test_create_box_with_unknown_storage_alias(rig: JointRig):
