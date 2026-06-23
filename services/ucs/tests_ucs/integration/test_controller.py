@@ -639,7 +639,7 @@ async def test_file_interrogation_report_happy(joint_fixture: JointFixture):
         s3_storage,
     )
 
-    # REGRESSION TEST: Publish/consume the InterrogationSuccess event to trigger S3 error
+    # Publish/consume the InterrogationSuccess event to trigger S3 error
     await joint_fixture.kafka.publish_event(
         payload=interrogation_success.model_dump(mode="json"),
         type_=config.interrogation_success_type,
@@ -648,15 +648,14 @@ async def test_file_interrogation_report_happy(joint_fixture: JointFixture):
     with pytest.raises(UploadControllerPort.S3OperationError):
         await joint_fixture.event_subscriber.run(forever=False)
 
-    # REGRESSION TEST: Verify that the the FileUpload is unchanged and the object is
-    #  still in the inbox
+    # Verify that the the FileUpload is unchanged and the object is still in the inbox
     await s3_storage.does_object_exist(bucket_id=inbox_bucket_id, object_id=object_id)
     file_upload_check = file_upload_collection.find_one({"_id": file_id})
     assert file_upload_check is not None
     assert file_upload_check["state"] == "inbox"
     assert file_upload_check["object_id"] == UUID(object_id)
 
-    # REGRESSION TEST: Undo the S3 patches. Regression test finished
+    # Undo the S3 patches. This is the end of the regression test
     s3_storage.delete_object = _real_delete_fn
     controller._s3_client._get_bucket_and_storage = _real_get_storage_fn
 
