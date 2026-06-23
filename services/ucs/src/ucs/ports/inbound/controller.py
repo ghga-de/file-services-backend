@@ -447,8 +447,10 @@ class UploadControllerPort(ABC):
         ...
 
     @abstractmethod
-    async def get_box_file_info(self, *, box_id: UUID4) -> list[FileUpload]:
-        """Return the list of FileUploads for a FileUploadBox, sorted by alias.
+    async def get_box_file_info(
+        self, *, box_id: UUID4, skip: int = 0, limit: int | None = None
+    ) -> tuple[list[FileUpload], int]:
+        """Return a page of FileUploads for a FileUploadBox, sorted by alias.
 
         Raises:
         - `BoxNotFoundError` if the FileUploadBox isn't found in the DB.
