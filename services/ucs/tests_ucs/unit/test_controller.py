@@ -1126,6 +1126,15 @@ async def test_get_file_ids_for_non_existent_box(rig: JointRig):
         await rig.controller.get_box_file_info(box_id=uuid4())
 
 
+async def test_get_box_file_info_pagination_error(
+    rig: JointRig, monkeypatch: pytest.MonkeyPatch
+):
+    """Test that a ValueError raised by the DAO's find_all is translated to PaginationError."""
+    box_id = await rig.create_default_box()
+    with pytest.raises(UploadControllerPort.PaginationError):
+        await rig.controller.get_box_file_info(box_id=box_id, skip=-1)
+
+
 async def test_process_interrogation_success_no_file_upload(rig: JointRig):
     """Test the alt case where the file upload doesn't exist."""
     non_existent_file_id = uuid4()

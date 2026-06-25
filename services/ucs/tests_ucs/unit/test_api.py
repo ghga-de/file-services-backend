@@ -595,9 +595,13 @@ async def test_update_box_max_size_below_current_error_handling(
             UploadControllerPort.BoxNotFoundError(box_id=TEST_BOX_ID),
             http_exceptions.HttpBoxNotFoundError(box_id=TEST_BOX_ID),
         ),
+        (
+            UploadControllerPort.PaginationError(),
+            http_exceptions.HttpSkipOrLimitInvalidError(),
+        ),
         (RuntimeError("Random error"), http_exceptions.HttpInternalError()),
     ],
-    ids=["BoxNotFound", "InternalError"],
+    ids=["BoxNotFound", "PaginationError", "InternalError"],
 )
 async def test_view_box_endpoint_error_handling(
     config: ConfigFixture,
