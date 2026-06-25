@@ -250,6 +250,9 @@ class UploadControllerPort(ABC):
             )
             super().__init__(msg)
 
+    class PaginationError(RuntimeError):
+        """Raised when pagination parameters, such as skip and limit, are invalid"""
+
     @abstractmethod
     async def initiate_file_upload(
         self,
@@ -453,6 +456,7 @@ class UploadControllerPort(ABC):
         """Return a page of FileUploads for a FileUploadBox, sorted by alias.
 
         Raises:
+        - `PaginationError` if skip and/or limit are invalid.
         - `BoxNotFoundError` if the FileUploadBox isn't found in the DB.
         """
         ...

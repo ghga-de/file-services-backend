@@ -627,6 +627,31 @@ components:
       properties: {}
       title: HttpS3UploadNotFoundErrorData
       type: object
+    HttpSkipOrLimitInvalidError:
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/HttpSkipOrLimitInvalidErrorData'
+        description:
+          description: A human readable message to the client explaining the cause
+            of the exception.
+          title: Description
+          type: string
+        exception_id:
+          const: skipOrLimitInvalid
+          title: Exception Id
+          type: string
+      required:
+      - data
+      - description
+      - exception_id
+      title: HttpSkipOrLimitInvalidError
+      type: object
+    HttpSkipOrLimitInvalidErrorData:
+      additionalProperties: true
+      properties: {}
+      title: HttpSkipOrLimitInvalidErrorData
+      type: object
     HttpTooManyOpenUploadsError:
       additionalProperties: false
       properties:
@@ -1056,8 +1081,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
+                $ref: '#/components/schemas/HttpSkipOrLimitInvalidError'
+          description: 'Exceptions by ID:
+
+            - skipOrLimitInvalid: The skip or limit pagination parameters are invalid.'
       security:
       - HTTPBearer: []
       summary: Retrieve list of file IDs for box

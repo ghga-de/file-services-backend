@@ -1135,6 +1135,7 @@ class UploadController(UploadControllerPort):
         """Return a page of FileUploads for a FileUploadBox, sorted by alias.
 
         Raises:
+        - `PaginationError` if skip and/or limit are invalid.
         - `BoxNotFoundError` if the FileUploadBox isn't found in the DB.
         """
         try:
@@ -1144,12 +1145,16 @@ class UploadController(UploadControllerPort):
             log.error(error)
             raise error from err
 
-        find_result = self._file_upload_dao.find_all(
-            mapping={"box_id": box_id},
-            skip=skip,
-            limit=limit,
-            sort=["alias"],
-        )
+        try:
+            find_result = self._file_upload_dao.find_all(
+                mapping={"box_id": box_id},
+                skip=skip,
+                limit=limit,
+                sort=["alias"],
+            )
+        except ValueError as err:
+            raise self.PaginationError() from err
+
         file_uploads = [x async for x in find_result]
         total_count = await find_result.total_count()
         return file_uploads, total_count
