@@ -349,7 +349,7 @@ async def get_box_uploads(
         log.error(error, exc_info=True)
         raise http_exceptions.HttpInternalError() from error
 
-    return rest_models.BoxUploadsPage(elements=file_uploads, total_count=total_count)
+    return rest_models.BoxUploadsPage(items=file_uploads, total_count=total_count)
 
 
 @router.post(

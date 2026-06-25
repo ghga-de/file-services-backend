@@ -219,5 +219,5 @@ class DeleteFileBoxWorkOrder(BaseWorkOrderToken[Literal["delete_box"]]):
 class BoxUploadsPage(BaseModel):
     """Paginated response for a box's file uploads."""
 
-    elements: list[FileUpload]
+    items: list[FileUpload]
     total_count: int

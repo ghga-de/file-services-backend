@@ -181,7 +181,7 @@ async def test_view_box_endpoint_auth(config: ConfigFixture, app_fixture: AppFix
     response = await rest_client.get(url, headers=good_token_header)
     assert response.status_code == 200
     body = response.json()
-    assert body["elements"] == []
+    assert body["items"] == []
     assert body["total_count"] == 0
 
 
@@ -211,9 +211,9 @@ async def test_get_box_uploads_response_format(
     assert response.status_code == 200
     body = response.json()
     assert body["total_count"] == 5
-    assert len(body["elements"]) == 2
-    assert body["elements"][0]["alias"] == "test0.bam"
-    assert body["elements"][1]["alias"] == "test1.vcf"
+    assert len(body["items"]) == 2
+    assert body["items"][0]["alias"] == "test0.bam"
+    assert body["items"][1]["alias"] == "test1.vcf"
     core_mock.get_box_file_info.assert_awaited_with(
         box_id=TEST_BOX_ID, skip=0, limit=50
     )
@@ -226,8 +226,8 @@ async def test_get_box_uploads_response_format(
     assert response.status_code == 200
     body = response.json()
     assert body["total_count"] == 5
-    assert len(body["elements"]) == 1
-    assert body["elements"][0]["alias"] == "test1.vcf"
+    assert len(body["items"]) == 1
+    assert body["items"][0]["alias"] == "test1.vcf"
     core_mock.get_box_file_info.assert_awaited_with(box_id=TEST_BOX_ID, skip=3, limit=1)
 
     # skip beyond all results  controller returns empty page but preserves total_count
@@ -236,7 +236,7 @@ async def test_get_box_uploads_response_format(
     assert response.status_code == 200
     body = response.json()
     assert body["total_count"] == 5
-    assert body["elements"] == []
+    assert body["items"] == []
 
 
 async def test_get_box_uploads_invalid_params(

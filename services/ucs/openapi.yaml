@@ -56,16 +56,16 @@ components:
     BoxUploadsPage:
       description: Paginated response for a box's file uploads.
       properties:
-        elements:
+        items:
           items:
             $ref: '#/components/schemas/FileUpload'
-          title: Elements
+          title: Items
           type: array
         total_count:
           title: Total Count
           type: integer
       required:
-      - elements
+      - items
       - total_count
       title: BoxUploadsPage
       type: object
