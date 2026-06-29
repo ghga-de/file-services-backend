@@ -197,7 +197,7 @@ async def test_get_box_uploads_response_format(
     token_header = utils.view_file_box_token_header(jwk=rs_jwk, box_id=TEST_BOX_ID)
     url = f"/boxes/{TEST_BOX_ID}/uploads"
 
-    # Create two file uploads with different aliases
+    # Build two mock file uploads with different aliases
     file_upload_a = utils.make_file_upload(file_id=TEST_FILE_ID)
     file_upload_a.alias = "test0.bam"
     file_upload_a.box_id = TEST_BOX_ID
