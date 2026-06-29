@@ -180,8 +180,7 @@ class HttpUploadCompletionError(HttpCustomExceptionBase):
         """Construct message and init the exception."""
         super().__init__(
             status_code=status_code,
-            description="An error occurred while completing the file upload. Delete the"
-            + " file from the file upload box and retry.",
+            description="",
             data={"box_id": str(box_id), "file_id": str(file_id)},
         )
 
@@ -195,7 +194,7 @@ class HttpUploadAbortError(HttpCustomExceptionBase):
         """Construct message and init the exception."""
         super().__init__(
             status_code=status_code,
-            description="An error occurred while canceling the file upload.",
+            description="",
             data={},
         )
 
