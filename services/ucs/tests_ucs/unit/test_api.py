@@ -597,7 +597,7 @@ async def test_update_box_max_size_below_current_error_handling(
         ),
         (
             UploadControllerPort.PaginationError(),
-            http_exceptions.HttpSkipOrLimitInvalidError(),
+            http_exceptions.HttpPaginationError(),
         ),
         (RuntimeError("Random error"), http_exceptions.HttpInternalError()),
     ],

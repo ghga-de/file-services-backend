@@ -170,13 +170,6 @@ ERROR_RESPONSES = {
         ),
         "model": http_exceptions.HttpIncompleteUploadsError.get_body_model(),
     },
-    "skipOrLimitInvalid": {
-        "description": (
-            "Exceptions by ID:"
-            + "\n- skipOrLimitInvalid: The skip or limit pagination parameters are invalid."
-        ),
-        "model": http_exceptions.HttpSkipOrLimitInvalidError.get_body_model(),
-    },
 }
 
 # For the update_box endpoint, map the work type required to change to a given box state
@@ -319,14 +312,13 @@ async def update_box(  # noqa: C901, PLR0912
 
 @router.get(
     "/boxes/{box_id}/uploads",
-    summary="Retrieve list of file IDs for box",
+    summary="Retrieve a paginated list of file uploads for the given box",
     operation_id="getBoxUploads",
     status_code=status.HTTP_200_OK,
     response_model=rest_models.BoxUploadsPage,
     response_description="Paginated list of file uploads for the box",
     responses={
         status.HTTP_404_NOT_FOUND: ERROR_RESPONSES["boxNotFound"],
-        status.HTTP_422_UNPROCESSABLE_CONTENT: ERROR_RESPONSES["skipOrLimitInvalid"],
     },
 )
 @TRACER.start_as_current_span("routes.get_box_uploads")
@@ -354,7 +346,7 @@ async def get_box_uploads(
     except UploadControllerPort.BoxNotFoundError as error:
         raise http_exceptions.HttpBoxNotFoundError(box_id=box_id) from error
     except UploadControllerPort.PaginationError as error:
-        raise http_exceptions.HttpSkipOrLimitInvalidError() from error
+        raise http_exceptions.HttpPaginationError() from error
     except Exception as error:
         log.error(error, exc_info=True)
         raise http_exceptions.HttpInternalError() from error
