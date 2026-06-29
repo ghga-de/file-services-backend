@@ -114,7 +114,7 @@ class HttpFileUploadAlreadyExistsError(HttpCustomExceptionBase):
         super().__init__(
             status_code=status_code,
             description=(
-                f"Failed to create a FileUpload for the alias {alias} because"
+                f"Rejected upload initiation for the alias {alias} because"
                 + " another one with the same alias already exists."
             ),
             data={"alias": alias},
@@ -351,8 +351,9 @@ class HttpTooManyOpenUploadsError(HttpCustomExceptionBase):
         super().__init__(
             status_code=status_code,
             description=(
-                f"Box {box_id} already has {max_concurrent} in-progress upload(s)."
-                + " Cancel or complete an existing upload before starting another."
+                f"Rejected upload initiation against box {box_id} because"
+                f" {max_concurrent} concurrent uploads are already in progress."
+                " Cancel or complete an existing upload before starting another."
             ),
             data={"box_id": str(box_id), "max_concurrent": max_concurrent},
         )

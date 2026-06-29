@@ -165,7 +165,7 @@ class UploadController(UploadControllerPort):
             #  cancellation/removal before a new upload can be started for this alias.
             if not replaced:
                 error = self.FileUploadAlreadyExists(alias=alias)
-                log.error(error, extra=logging_extras)
+                log.info(error, extra=logging_extras)  # intentionally set to INFO
                 raise error from None  # don't need Unique* error in the trace
         except Exception as err:
             # This branch handles all other errors that *don't* signify an existing file
@@ -392,7 +392,7 @@ class UploadController(UploadControllerPort):
             error = self.TooManyOpenUploadsError(
                 box_id=box.id, max_concurrent=max_concurrent
             )
-            log.error(error, extra=extra)
+            log.info(error, extra=extra)  # intentionally set to INFO
             raise error
 
         # Ensure file size doesn't exceed box limit
