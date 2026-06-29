@@ -1175,7 +1175,7 @@ class UploadController(UploadControllerPort):
             old_file_upload = await self._file_upload_dao.get_by_id(file_id)
         except ResourceNotFoundError as err:
             error = self.FileUploadNotFound(file_id=file_id)
-            log.warning(error, extra={"file_id": file_id})
+            log.error(error, extra={"file_id": file_id})
             raise error from err
 
         match old_file_upload.state:
@@ -1227,7 +1227,7 @@ class UploadController(UploadControllerPort):
             file_upload = await self._file_upload_dao.get_by_id(file_id)
         except ResourceNotFoundError as err:
             error = self.FileUploadNotFound(file_id=file_id)
-            log.warning(error, extra={"file_id": file_id})
+            log.error(error, extra={"file_id": file_id})
             raise error from err
 
         match file_upload.state:
@@ -1267,7 +1267,7 @@ class UploadController(UploadControllerPort):
             file_upload = await self._file_upload_dao.get_by_id(file_id)
         except ResourceNotFoundError as err:
             error = self.FileUploadNotFound(file_id=file_id)
-            log.warning(error, extra={"file_id": file_id})
+            log.error(error, extra={"file_id": file_id})
             raise error from err
 
         if file_upload.state == "archived":
