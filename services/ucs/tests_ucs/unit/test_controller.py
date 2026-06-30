@@ -1371,7 +1371,7 @@ async def test_overwrite_cancels_active_upload(
     "state",
     ["interrogated", "awaiting_archival", "archived"],
 )
-async def test_overwrite_blocked_for_terminal_states(
+async def test_overwrite_blocked_for_immutable_states(
     rig: JointRig,
     state: FileUploadState,
 ):
@@ -1415,8 +1415,11 @@ async def test_overwrite_blocked_for_terminal_states(
     assert (await file_upload_dao.get_by_id(file_upload.id)).state == state
 
 
-async def test_overwrite_false_still_blocks_active_upload(rig: JointRig):
-    """With overwrite=False (default), an active 'init' upload still raises
+@pytest.mark.parametrize("state", ["init", "inbox"])
+async def test_overwrite_false_still_blocks_active_upload(
+    rig: JointRig, state: FileUploadState
+):
+    """With overwrite=False (default), an active 'init' or 'inbox' upload still raises
     FileUploadAlreadyExists, confirming overwrite is opt-in.
 
     The InMemDao doesn't enforce compound unique indexes, so we simulate the
@@ -1433,6 +1436,12 @@ async def test_overwrite_false_still_blocks_active_upload(rig: JointRig):
         encrypted_size=ENCRYPTED_SIZE,
         part_size=PART_SIZE,
     )
+
+    if state == "inbox":
+        file_upload = file_upload_dao.latest
+        file_upload.state = "inbox"
+        await file_upload_dao.update(file_upload)
+        assert file_upload_dao.latest.state == "inbox"
 
     # Simulate the compound unique index violation MongoDB would raise on insert
     async def patched_insert(dto):
@@ -1454,7 +1463,7 @@ async def test_overwrite_false_still_blocks_active_upload(rig: JointRig):
 
     # First upload must be untouched and still in 'init'
     upload = await file_upload_dao.get_by_id(file_id_1)
-    assert upload.state == "init"
+    assert upload.state == state
 
 
 @pytest.mark.parametrize(
