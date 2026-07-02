@@ -56,14 +56,23 @@ class S3Client(S3ClientPort):
     def __init__(self, *, config: Config, object_storages: ObjectStorages):
         self._config = config
         self._object_storages = object_storages
+        self._storages_by_alias: dict[str, tuple[str, ObjectStorageProtocol]] = {}
 
     def _get_bucket_and_storage(
         self, storage_alias: str
     ) -> tuple[str, ObjectStorageProtocol]:
         """Return the bucket ID and ObjectStorageProtocol for a given storage alias.
 
+        The instances returned by `for_alias` are cached per alias: constructing an
+        `S3ObjectStorage` builds boto3 clients synchronously on the event loop and
+        discards the underlying connection pool, which is far too expensive to do
+        on every request.
+
         Raises `UnknownStorageAliasError` if the storage alias is not known.
         """
+        if storage_alias in self._storages_by_alias:
+            return self._storages_by_alias[storage_alias]
+
         try:
             bucket_id, object_storage = self._object_storages.for_alias(storage_alias)
         except KeyError as error:
@@ -75,6 +84,7 @@ class S3Client(S3ClientPort):
             bucket_id,
             storage_alias,
         )
+        self._storages_by_alias[storage_alias] = (bucket_id, object_storage)
         return bucket_id, object_storage
 
     def get_bucket_id_for_alias(self, *, storage_alias: str) -> str:
