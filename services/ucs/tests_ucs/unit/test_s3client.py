@@ -465,3 +465,33 @@ async def test_generic_storage_error_raises_s3_operation_error(
     # Call the method and verify that it was translated as the generic S3OperationError
     with pytest.raises(S3ClientPort.S3OperationError):
         await getattr(s3_client, method_name)(**kwargs)
+
+
+async def test_object_storage_cached_per_alias(
+    config: ConfigFixture, object_storages: ObjectStorages
+):
+    """Test that S3Client only resolves each storage alias once.
+
+    `for_alias` constructs boto3 clients synchronously on the event loop, so it
+    must not be re-invoked on every request.
+    """
+    call_count = 0
+    original_for_alias = object_storages.for_alias
+
+    def counting_for_alias(endpoint_alias: str):
+        nonlocal call_count
+        call_count += 1
+        return original_for_alias(endpoint_alias)
+
+    object_storages.for_alias = counting_for_alias  # type: ignore[method-assign]
+    s3_client = S3Client(config=config.config, object_storages=object_storages)
+
+    file_upload = make_file_upload()
+    await s3_client.init_multipart_upload(file_upload_basics=_to_basics(file_upload))
+    s3_client.get_bucket_id_for_alias(storage_alias=file_upload.storage_alias)
+    await s3_client.list_all_multipart_uploads(storage_alias=file_upload.storage_alias)
+
+    assert call_count == 1
+
+    with pytest.raises(S3ClientPort.UnknownStorageAliasError):
+        s3_client.get_bucket_id_for_alias(storage_alias="does-not-exist")
