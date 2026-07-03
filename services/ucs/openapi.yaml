@@ -764,7 +764,7 @@ info:
   description: A service managing uploads of file objects to an S3-compatible Object
     Storage.
   title: Upload Controller Service
-  version: 14.0.1
+  version: 14.0.2
 openapi: 3.1.0
 paths:
   /boxes:
