@@ -312,6 +312,46 @@ async def test_lock_file_upload_box(rig: JointRig):
     assert file_upload_box_dao.latest.state == "locked"
 
 
+async def test_lock_recomputes_box_stats(rig: JointRig):
+    """Test that locking a box recomputes its stats from the FileUploads,
+    correcting any drift left behind by the delta-based completion path.
+    """
+    file_upload_box_dao = rig.file_upload_box_dao
+    box_id = await rig.create_default_box()
+
+    # Complete one file upload so the box has real stats (version 0 -> 1)
+    file_id, _ = await rig.controller.initiate_file_upload(
+        box_id=box_id,
+        alias="test_file",
+        decrypted_size=DECRYPTED_SIZE,
+        encrypted_size=ENCRYPTED_SIZE,
+        part_size=PART_SIZE,
+    )
+    object_id = rig.file_upload_dao.latest.object_id
+    await rig.controller.complete_file_upload(
+        box_id=box_id,
+        file_id=file_id,
+        unencrypted_checksum="unencrypted_checksum",
+        encrypted_checksum=f"etag_for_{object_id}",
+        encrypted_parts_md5=["abc123"],
+        encrypted_parts_sha256=["def456"],
+    )
+    assert file_upload_box_dao.latest.file_count == 1
+    assert file_upload_box_dao.latest.size == DECRYPTED_SIZE
+
+    # Manufacture stat drift, as if a crash or concurrent update had lost a delta
+    drifted_box = await file_upload_box_dao.get_by_id(box_id)
+    drifted_box.file_count = 5
+    drifted_box.size = 12345
+    await file_upload_box_dao.update(drifted_box)
+
+    # Lock the box and verify the stats were corrected in the same update
+    await rig.controller.lock_file_upload_box(box_id=box_id, version=1)
+    assert file_upload_box_dao.latest.state == "locked"
+    assert file_upload_box_dao.latest.file_count == 1
+    assert file_upload_box_dao.latest.size == DECRYPTED_SIZE
+
+
 async def test_unlock_file_upload_box(rig: JointRig):
     """Test unlocking a locked FileUploadBox"""
     file_upload_box_dao = rig.file_upload_box_dao

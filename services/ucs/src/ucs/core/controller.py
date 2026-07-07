@@ -756,8 +756,15 @@ class UploadController(UploadControllerPort):
                 "Activity entry not found when completing upload for file %s.", file_id
             )
 
-        # Update the FileUploadBox with new size and file count
-        await self._update_box_stats(box_id=box_id, version=box_version)
+        # Update the FileUploadBox with new size and file count. The early-return
+        #  guard on the file state above ensures this runs at most once per file, so
+        #  a delta is applied instead of a full stats recompute.
+        await self._apply_box_stat_delta(
+            box_id=box_id,
+            version=box_version,
+            file_count_delta=1,
+            size_delta=file_upload.decrypted_size,
+        )
         log.info("DB data updated for upload completion of file %s", file_id)
 
     async def remove_file_upload(self, *, box_id: UUID4, file_id: UUID4) -> None:
@@ -927,6 +934,26 @@ class UploadController(UploadControllerPort):
                     await self._upload_activity_dao.delete(file_upload.id)
                 await self._file_upload_dao.delete(file_upload.id)
 
+    async def _compute_box_stats(self, *, box_id: UUID4) -> tuple[int, int]:
+        """Compute the file count and total decrypted size for a FileUploadBox,
+        counting only files that are finished uploading.
+
+        Returns a tuple of (file_count, total_size).
+        """
+        file_count = 0
+        total_size = 0
+        async for file_upload in self._file_upload_dao.find_all(
+            mapping={
+                "box_id": box_id,
+                "state": {
+                    "$in": ["inbox", "interrogated", "awaiting_archival", "archived"]
+                },
+            }
+        ):
+            file_count += 1
+            total_size += file_upload.decrypted_size
+        return file_count, total_size
+
     async def _update_box_stats(self, *, box_id: UUID4, version: int) -> None:
         """Update FileUploadBox stats (file count & size) in an idempotent manner,
         counting only files that are finished uploading.
@@ -942,18 +969,7 @@ class UploadController(UploadControllerPort):
         """
         box = await self._get_box_at_version(box_id=box_id, version=version)
 
-        file_count = 0
-        total_size = 0
-        async for file_upload in self._file_upload_dao.find_all(
-            mapping={
-                "box_id": box_id,
-                "state": {
-                    "$in": ["inbox", "interrogated", "awaiting_archival", "archived"]
-                },
-            }
-        ):
-            file_count += 1
-            total_size += file_upload.decrypted_size
+        file_count, total_size = await self._compute_box_stats(box_id=box_id)
 
         # Since every update triggers an event, only update if data differs
         if file_count != box.file_count or total_size != box.size:
@@ -961,6 +977,28 @@ class UploadController(UploadControllerPort):
             box.file_count = file_count
             box.size = total_size
             await self._file_upload_box_dao.update(box)
+
+    async def _apply_box_stat_delta(
+        self, *, box_id: UUID4, version: int, file_count_delta: int, size_delta: int
+    ) -> None:
+        """Apply a delta to the FileUploadBox stats (file count & size).
+
+        Unlike `_update_box_stats`, this does not rescan the box's FileUploads, so it
+        stays O(1) regardless of box size. It must only be called from paths where the
+        triggering state transition is guaranteed to occur at most once per file (e.g.
+        the guarded 'init' -> 'inbox' transition on upload completion). Any drift left
+        behind by a crash or a concurrent box update is corrected by the full recompute
+        performed on file removal and box locking.
+
+        Raises:
+        - `BoxNotFoundError` if the box no longer exists.
+        - `BoxVersionError` if the box version has changed since it was fetched.
+        """
+        box = await self._get_box_at_version(box_id=box_id, version=version)
+        box.version += 1
+        box.file_count += file_count_delta
+        box.size += size_delta
+        await self._file_upload_box_dao.update(box)
 
     async def create_file_upload_box(
         self, *, storage_alias: str, max_size: int
@@ -1063,8 +1101,16 @@ class UploadController(UploadControllerPort):
                 log.info(error, extra={"box_id": box_id, "file_ids": str(file_ids)})
                 raise error
 
+        # Recompute stats from scratch while locking: the completion path only applies
+        #  deltas, so this is the backstop that corrects any drift (e.g. from crashes,
+        #  concurrent box updates, or interrogation failures) before the box contents
+        #  are finalized.
+        file_count, total_size = await self._compute_box_stats(box_id=box_id)
+
         box.version += 1
         box.state = "locked"
+        box.file_count = file_count
+        box.size = total_size
         await self._file_upload_box_dao.update(box)
         log.info("Locked box with ID %s.", box_id)
 
