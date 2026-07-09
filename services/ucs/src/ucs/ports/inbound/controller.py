@@ -466,9 +466,19 @@ class UploadControllerPort(ABC):
 
     @abstractmethod
     async def get_box_file_info(
-        self, *, box_id: UUID4, skip: int = 0, limit: int | None = None
+        self,
+        *,
+        box_id: UUID4,
+        skip: int = 0,
+        limit: int | None = None,
+        sort: list[str] | None = None,
     ) -> tuple[list[FileUpload], int]:
-        """Return a page of FileUploads for a FileUploadBox, sorted by alias.
+        """Return a page of FileUploads for a FileUploadBox.
+
+        The `sort` parameter is a list of FileUpload field names defining the sort
+        order, where a "-" prefix indicates descending order. Field names are
+        assumed to be validated by the caller. If `sort` is None, results are
+        sorted by alias in ascending order.
 
         Raises:
         - `PaginationError` if skip and/or limit are invalid.
