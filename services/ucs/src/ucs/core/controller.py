@@ -1155,14 +1155,27 @@ class UploadController(UploadControllerPort):
         log.info("Archived box with ID %s", box_id)
 
     async def get_box_file_info(
-        self, *, box_id: UUID4, skip: int = 0, limit: int | None = None
+        self,
+        *,
+        box_id: UUID4,
+        skip: int = 0,
+        limit: int | None = None,
+        sort: list[str] | None = None,
     ) -> tuple[list[FileUpload], int]:
-        """Return a page of FileUploads for a FileUploadBox, sorted by alias.
+        """Return a page of FileUploads for a FileUploadBox.
+
+        The `sort` parameter is a list of FileUpload field names defining the sort
+        order, where a "-" prefix indicates descending order. Field names are
+        assumed to be validated by the caller. If `sort` is None, results are
+        sorted by alias in ascending order.
 
         Raises:
         - `PaginationError` if skip and/or limit are invalid.
         - `BoxNotFoundError` if the FileUploadBox isn't found in the DB.
         """
+        if sort is None:
+            sort = ["alias"]
+
         try:
             _ = await self._file_upload_box_dao.get_by_id(box_id)
         except ResourceNotFoundError as err:
@@ -1175,7 +1188,7 @@ class UploadController(UploadControllerPort):
                 mapping={"box_id": box_id},
                 skip=skip,
                 limit=limit,
-                sort=["alias"],
+                sort=sort,
             )
         except ValueError as err:
             raise self.PaginationError() from err

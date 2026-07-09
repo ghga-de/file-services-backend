@@ -1040,11 +1040,27 @@ paths:
         name: limit
         required: false
         schema:
-          default: 50
-          maximum: 100
+          default: 10
+          maximum: 1000
           minimum: 0
           title: Limit
           type: integer
+      - description: A comma-separated list of FileUpload field names defining the
+          sort order, where field names prefixed with '-' indicate descending order
+          (e.g. 'alias,-decrypted_size'). Defaults to sorting by alias in ascending
+          order.
+        in: query
+        name: sort
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: A comma-separated list of FileUpload field names defining the
+            sort order, where field names prefixed with '-' indicate descending order
+            (e.g. 'alias,-decrypted_size'). Defaults to sorting by alias in ascending
+            order.
+          title: Sort
       responses:
         '200':
           content:
