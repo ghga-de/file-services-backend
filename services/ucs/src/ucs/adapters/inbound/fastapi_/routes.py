@@ -336,8 +336,10 @@ async def get_box_uploads(  # noqa: PLR0913
         Query(
             description="A comma-separated list of FileUpload field names defining"
             + " the sort order, where field names prefixed with '-' indicate"
-            + " descending order (e.g. 'alias,-decrypted_size')."
+            + " descending order (e.g. 'state,-decrypted_size')."
             + " Defaults to sorting by alias in ascending order."
+            + " If 'alias' is not referenced, it is appended as an ascending"
+            + " tiebreaker to guarantee a stable order."
         ),
     ] = None,
 ) -> rest_models.BoxUploadsPage:

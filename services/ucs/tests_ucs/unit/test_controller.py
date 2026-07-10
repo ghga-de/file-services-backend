@@ -19,6 +19,7 @@ import logging
 from asyncio import sleep
 from contextlib import nullcontext
 from datetime import timedelta
+from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
@@ -420,6 +421,22 @@ async def test_get_box_uploads(rig: JointRig):
     )
     assert total_count == 3
     assert [r.alias for r in file_uploads] == ["file2", "file1", "file0"]
+
+    # When the sort spec doesn't reference alias, it should be appended. If it is
+    #  included, then it shouldn't be appended.
+    with patch.object(
+        rig.file_upload_dao, "find_all", wraps=rig.file_upload_dao.find_all
+    ) as find_all_spy:
+        await controller.get_box_file_info(box_id=box_id, sort=["-state"])
+        assert find_all_spy.call_args.kwargs["sort"] == ["-state", "alias"]
+        await controller.get_box_file_info(
+            box_id=box_id, sort=["-state", "-alias", "decrypted_size"]
+        )
+        assert find_all_spy.call_args.kwargs["sort"] == [
+            "-state",
+            "-alias",
+            "decrypted_size",
+        ]
 
     # Verify the other box returns only its own files
     other_uploads, other_total = await controller.get_box_file_info(box_id=other_box_id)

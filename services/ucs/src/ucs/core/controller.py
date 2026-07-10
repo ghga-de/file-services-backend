@@ -1167,7 +1167,9 @@ class UploadController(UploadControllerPort):
         The `sort` parameter is a list of FileUpload field names defining the sort
         order, where a "-" prefix indicates descending order. Field names are
         assumed to be validated by the caller. If `sort` is None, results are
-        sorted by alias in ascending order.
+        sorted by alias in ascending order. If `sort` does not reference the alias
+        field, alias (ascending) is appended as a tiebreaker so the resulting
+        order is stable.
 
         Raises:
         - `PaginationError` if skip and/or limit are invalid.
@@ -1175,6 +1177,8 @@ class UploadController(UploadControllerPort):
         """
         if sort is None:
             sort = ["alias"]
+        elif all(spec.removeprefix("-") != "alias" for spec in sort):
+            sort = [*sort, "alias"]
 
         try:
             _ = await self._file_upload_box_dao.get_by_id(box_id)
