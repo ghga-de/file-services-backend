@@ -54,6 +54,8 @@ class MongoDbBoxStatsAggregator(BoxStatsAggregatorPort):
             },
         ]
         cursor = await self._collection.aggregate(pipeline)
+
+        # The aggregator should only return one document due to the grouping step
         async for group in cursor:
             return group["file_count"], group["size"]
         return 0, 0

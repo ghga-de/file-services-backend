@@ -85,9 +85,7 @@ class UploadDaoPublisherFactory(UploadDaoPublisherFactoryPort):
                 # Supports the stale upload cleanup job, which queries by
                 #  storage_alias and state
                 MongoDbIndex(fields={"storage_alias": 1, "state": 1}),
-                # Covering index for the box stats aggregation: matching on
-                #  box_id + state and summing decrypted_size can be served entirely
-                #  from this index without fetching documents
+                # For calculating box stats:
                 MongoDbIndex(fields={"box_id": 1, "state": 1, "decrypted_size": 1}),
             ],
         )
