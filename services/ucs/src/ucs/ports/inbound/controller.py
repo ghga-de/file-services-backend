@@ -284,6 +284,8 @@ class UploadControllerPort(ABC):
         Raises:
         - `BoxNotFoundError` if the box does not exist.
         - `BoxStateError` if the box exists but is locked.
+        - `BoxVersionError` if the box version changed before stats could be updated
+            after replacing a counted upload.
         - `BoxMaxSizeExceededError` if adding the file would exceed the box's size limit.
         - `TooManyOpenUploadsError` if the box is already at the concurrent upload limit.
         - `FileUploadAlreadyExists` if there's already a FileUpload for this alias that
@@ -292,8 +294,11 @@ class UploadControllerPort(ABC):
         - `UploadAlreadyInProgressError` if an upload is already in progress.
         - `PartSizeError` if the specified part size would results in more
             parts than S3 allows, or is smaller or larger than what S3 allows.
+        - `UploadAbortError` if there's an error deleting a replaced upload's
+            retained file object.
         - `BucketMissingError` if the configured bucket does not exist in S3.
         - `S3OperationError` if S3 returns any other unexpected error.
+        - `BoxStatsCalcError` if there's a problem calculating box size and file count.
         """
         ...
 
