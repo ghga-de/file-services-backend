@@ -254,6 +254,11 @@ class UploadController(UploadControllerPort):
         if existing_upload.state not in ("failed", "cancelled"):
             return False
 
+        # A failed upload that completed verification still has its file object in the
+        #  inbox bucket. Delete it rather than waiting on the cleanup job.
+        if existing_upload.state == "failed" and existing_upload.completed is not None:
+            await self._remove_completed_file_upload(file_upload=existing_upload)
+
         log.info(
             "Replacing %s FileUpload %s for alias '%s' with new upload %s",
             existing_upload.state,
