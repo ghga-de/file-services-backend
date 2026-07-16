@@ -15,6 +15,7 @@
 
 """General testing utilities"""
 
+import hashlib
 from pathlib import Path
 from typing import Literal, TypeAlias
 from uuid import UUID, uuid4
@@ -189,3 +190,13 @@ def make_file_upload(
         file_upload.secret_id = "the-secret-is"
 
     return file_upload
+
+
+def calc_expected_encrypted_checksum(content: str) -> str:
+    """Calculate the expected checksum for 'encrypted' (test) data in S3.
+
+    This assumes only one object part for simplicity.
+    """
+    part_md5 = hashlib.md5(content.encode(), usedforsecurity=False).digest()
+    object_md5 = hashlib.md5(part_md5, usedforsecurity=False).hexdigest()
+    return object_md5 + "-1"  # only one part
