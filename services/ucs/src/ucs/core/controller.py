@@ -343,7 +343,7 @@ class UploadController(UploadControllerPort):
         except S3ClientPort.S3OperationError as err:
             raise self.S3OperationError(details=str(err)) from err
 
-    async def initiate_file_upload(  # noqa: C901, PLR0913, PLR0915
+    async def initiate_file_upload(  # noqa: C901, PLR0912, PLR0913, PLR0915
         self,
         *,
         box_id: UUID4,
@@ -365,6 +365,8 @@ class UploadController(UploadControllerPort):
         Raises:
         - `BoxNotFoundError` if the box does not exist.
         - `BoxStateError` if the box exists but is locked.
+        - `BoxVersionError` if the box version changed before stats could be updated
+            after replacing a counted upload.
         - `BoxMaxSizeExceededError` if adding the file would exceed the box's size limit.
         - `TooManyOpenUploadsError` if the box is already at the concurrent upload limit.
         - `FileUploadAlreadyExists` if there's already a FileUpload for this alias that
@@ -373,8 +375,11 @@ class UploadController(UploadControllerPort):
         - `UploadAlreadyInProgressError` if an upload is already in progress.
         - `PartSizeError` if the specified part size would results in more
             parts than S3 allows, or is smaller or larger than what S3 allows.
+        - `UploadAbortError` if there's an error deleting a replaced upload's
+            retained file object.
         - `BucketMissingError` if the configured bucket does not exist in S3.
         - `S3OperationError` if S3 returns any other unexpected error.
+        - `BoxStatsCalcError` if there's a problem calculating box size and file count.
         """
         extra: dict[str, Any] = {"box_id": box_id, "alias": alias}
         # Get the box and resolve S3 storage details
@@ -389,21 +394,42 @@ class UploadController(UploadControllerPort):
         extra["storage_alias"] = storage_alias
         extra["bucket_id"] = bucket_id
 
-        # If overwrite is requested, cancel any active upload for this alias before
-        # re-deriving size/count. 'failed'/'cancelled' states are handled later by
-        # _insert_file_upload; only 'init'/'inbox' need explicit cancellation here.
-        if overwrite:
-            try:
-                existing_upload = await self._file_upload_dao.find_one(
-                    mapping={"box_id": box_id, "alias": alias}
-                )
-            except NoHitsFoundError:
-                existing_upload = None
+        # Look for an existing upload for this box/alias.
+        try:
+            existing_upload = await self._file_upload_dao.find_one(
+                mapping={"box_id": box_id, "alias": alias}
+            )
+        except NoHitsFoundError:
+            existing_upload = None
 
-            if existing_upload and existing_upload.state in ("init", "inbox"):
+        if existing_upload:
+            # If the file is 'init' or 'inbox', overwrite it or raise an error
+            if existing_upload.state in ("init", "inbox"):
+                if overwrite:
+                    await self.remove_file_upload(
+                        box_id=box_id, file_id=existing_upload.id
+                    )
+                    # Re-fetch box to get the updated size/file count
+                    box = await self._get_unlocked_box(box_id=box_id)
+                else:
+                    error = self.FileUploadAlreadyExists(alias=alias)
+                    log.info(error, extra=extra)
+                    raise error
+            # Don't require the overwrite flag to replace an upload failed by DHFS
+            elif existing_upload.state == "failed" and existing_upload.completed:
                 await self.remove_file_upload(box_id=box_id, file_id=existing_upload.id)
                 # Re-fetch box to get the updated size/file count
                 box = await self._get_unlocked_box(box_id=box_id)
+            # Raise an error if the file is too far along - "archived" &
+            #  "awaiting_archival" should be unreachable including them anyway
+            elif existing_upload.state in {
+                "archived",
+                "awaiting_archival",
+                "interrogated",
+            }:
+                error = self.FileUploadAlreadyExists(alias=alias)
+                log.info(error, extra=extra)
+                raise error
 
         # Get both box size + in progress size and the number of in progress files
         current_size = box.size
