@@ -27,6 +27,7 @@ import pytest_asyncio
 from ghga_event_schemas.pydantic_ import (
     FileInternallyRegistered,
     FileUploadState,
+    InterrogationFailure,
     InterrogationSuccess,
 )
 from hexkit.protocols.dao import ResourceNotFoundError, UniqueConstraintViolationError
@@ -1261,8 +1262,256 @@ async def test_process_interrogation_success_no_file_upload(rig: JointRig):
         await rig.controller.process_interrogation_success(report=report)
 
 
+async def initiate_and_complete_upload(
+    rig: JointRig, *, box_id, alias: str
+) -> FileUpload:
+    """Initiate and complete a file upload, returning the resulting FileUpload."""
+    file_id, _ = await rig.controller.initiate_file_upload(
+        box_id=box_id,
+        alias=alias,
+        decrypted_size=DECRYPTED_SIZE,
+        encrypted_size=ENCRYPTED_SIZE,
+        part_size=PART_SIZE,
+    )
+    object_id = rig.file_upload_dao.latest.object_id
+    await rig.controller.complete_file_upload(
+        box_id=box_id,
+        file_id=file_id,
+        unencrypted_checksum="unencrypted_checksum",
+        encrypted_checksum=f"etag_for_{object_id}",
+        encrypted_parts_md5=["abc123"],
+        encrypted_parts_sha256=["def456"],
+    )
+    return await rig.file_upload_dao.get_by_id(file_id)
+
+
+async def fail_completed_upload(rig: JointRig, *, file_id) -> FileUpload:
+    """Process an interrogation failure for a completed upload and return the result."""
+    report = InterrogationFailure(
+        file_id=file_id,
+        storage_alias="test",
+        interrogated_at=now_utc_ms_prec(),
+        reason="Decryption failed",
+    )
+    await rig.controller.process_interrogation_failure(report=report)
+    return await rig.file_upload_dao.get_by_id(file_id)
+
+
+async def test_process_interrogation_failure_retains_inbox_object(rig: JointRig):
+    """A file that fails interrogation is marked 'failed' but its object stays in the
+    inbox bucket so it can be resolved manually without a new upload.
+    """
+    box_id = await rig.create_default_box()
+    file_upload = await initiate_and_complete_upload(
+        rig, box_id=box_id, alias="test_file"
+    )
+
+    bucket_id, object_storage = rig.object_storages.for_alias("test")
+    assert await object_storage.does_object_exist(
+        bucket_id=bucket_id, object_id=str(file_upload.object_id)
+    )
+
+    failed_upload = await fail_completed_upload(rig, file_id=file_upload.id)
+    assert failed_upload.state == "failed"
+    assert failed_upload.failure_reason == "Decryption failed"
+    assert failed_upload.completed is not None
+
+    # The object must still be in the inbox bucket
+    assert await object_storage.does_object_exist(
+        bucket_id=bucket_id, object_id=str(file_upload.object_id)
+    )
+
+
+async def test_cleanup_protects_retained_failed_objects(rig: JointRig):
+    """The cleanup job must not sweep the object of a failed upload that completed
+    verification, but it must still sweep the object of a failed upload that never
+    completed (e.g. after a checksum mismatch).
+    """
+    bucket_id, object_storage = rig.object_storages.for_alias("test")
+    box_id = await rig.create_default_box()
+
+    # Produce a failed upload that completed verification (object is retained)
+    retained_upload = await initiate_and_complete_upload(
+        rig, box_id=box_id, alias="retained_file"
+    )
+    await fail_completed_upload(rig, file_id=retained_upload.id)
+
+    # Produce a failed upload that never completed, via a checksum mismatch during
+    #  completion (the object lands in the bucket but is untrustworthy)
+    mismatch_file_id, _ = await rig.controller.initiate_file_upload(
+        box_id=box_id,
+        alias="mismatch_file",
+        decrypted_size=DECRYPTED_SIZE,
+        encrypted_size=ENCRYPTED_SIZE,
+        part_size=PART_SIZE,
+    )
+    mismatch_object_id = rig.file_upload_dao.latest.object_id
+    with pytest.raises(UploadControllerPort.ChecksumMismatchError):
+        await rig.controller.complete_file_upload(
+            box_id=box_id,
+            file_id=mismatch_file_id,
+            unencrypted_checksum="unencrypted_checksum",
+            encrypted_checksum="wrong_checksum",
+            encrypted_parts_md5=["abc123"],
+            encrypted_parts_sha256=["def456"],
+        )
+    mismatch_upload = await rig.file_upload_dao.get_by_id(mismatch_file_id)
+    assert mismatch_upload.state == "failed"
+    assert mismatch_upload.completed is None
+    assert await object_storage.does_object_exist(
+        bucket_id=bucket_id, object_id=str(mismatch_object_id)
+    )
+
+    # Run the cleanup job
+    await rig.controller.cleanup_stale_uploads()
+
+    # The verified failed object is retained, the unverified one is swept
+    assert await object_storage.does_object_exist(
+        bucket_id=bucket_id, object_id=str(retained_upload.object_id)
+    )
+    assert not await object_storage.does_object_exist(
+        bucket_id=bucket_id, object_id=str(mismatch_object_id)
+    )
+
+
+async def test_replacing_failed_upload_deletes_retained_object(rig: JointRig):
+    """Re-initiating an upload for the alias of a failed upload deletes the failed
+    upload's retained object from the inbox bucket.
+    """
+    bucket_id, object_storage = rig.object_storages.for_alias("test")
+    box_id = await rig.create_default_box()
+    old_upload = await initiate_and_complete_upload(
+        rig, box_id=box_id, alias="test_file"
+    )
+    await fail_completed_upload(rig, file_id=old_upload.id)
+
+    # Patch insert to simulate the MongoDB compound-index constraint violation
+    file_upload_dao = rig.file_upload_dao
+    original_insert = file_upload_dao.insert
+    call_count = 0
+
+    async def patched_insert(dto):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            raise UniqueConstraintViolationError(
+                unique_fields={"box_id": str(box_id), "alias": "test_file"}
+            )
+        return await original_insert(dto)
+
+    file_upload_dao.insert = patched_insert
+
+    new_file_id, _ = await rig.controller.initiate_file_upload(
+        box_id=box_id,
+        alias="test_file",
+        decrypted_size=DECRYPTED_SIZE,
+        encrypted_size=ENCRYPTED_SIZE,
+        part_size=PART_SIZE,
+    )
+
+    # The old FileUpload and its retained object are gone, the new upload is in place
+    assert new_file_id != old_upload.id
+    with pytest.raises(ResourceNotFoundError):
+        await file_upload_dao.get_by_id(old_upload.id)
+    assert not await object_storage.does_object_exist(
+        bucket_id=bucket_id, object_id=str(old_upload.object_id)
+    )
+    new_upload = await file_upload_dao.get_by_id(new_file_id)
+    assert new_upload.state == "init"
+
+    # The replaced upload counted toward the box stats, so they must be refreshed
+    #  (the new upload is still in 'init' state and doesn't count yet)
+    box = await rig.file_upload_box_dao.get_by_id(box_id)
+    assert box.size == 0
+    assert box.file_count == 0
+
+
+async def test_removing_failed_upload_deletes_retained_object(rig: JointRig):
+    """Removing a failed upload that completed verification deletes its retained
+    object from the inbox bucket.
+    """
+    bucket_id, object_storage = rig.object_storages.for_alias("test")
+    box_id = await rig.create_default_box()
+    file_upload = await initiate_and_complete_upload(
+        rig, box_id=box_id, alias="test_file"
+    )
+    await fail_completed_upload(rig, file_id=file_upload.id)
+
+    # The retained failed file still counts toward the box stats
+    box = await rig.file_upload_box_dao.get_by_id(box_id)
+    assert box.size == DECRYPTED_SIZE
+    assert box.file_count == 1
+
+    await rig.controller.remove_file_upload(box_id=box_id, file_id=file_upload.id)
+
+    refreshed = await rig.file_upload_dao.get_by_id(file_upload.id)
+    assert refreshed.state == "cancelled"
+    assert not await object_storage.does_object_exist(
+        bucket_id=bucket_id, object_id=str(file_upload.object_id)
+    )
+
+    # Removing the retained file releases the box capacity it occupied
+    box = await rig.file_upload_box_dao.get_by_id(box_id)
+    assert box.size == 0
+    assert box.file_count == 0
+
+
+async def test_retained_failed_file_counts_toward_box_size(rig: JointRig):
+    """A retained failed file occupies box capacity, blocking new uploads that would
+    exceed the box's max size, but a retry for the same alias is still allowed because
+    the retained file will be replaced.
+    """
+    # Create a box that can only fit a single file of size DECRYPTED_SIZE
+    box_id = await rig.controller.create_file_upload_box(
+        storage_alias="test", max_size=DECRYPTED_SIZE
+    )
+    file_upload = await initiate_and_complete_upload(
+        rig, box_id=box_id, alias="test_file"
+    )
+    await fail_completed_upload(rig, file_id=file_upload.id)
+
+    # A new upload under a different alias must be rejected since the retained failed
+    #  file already occupies the box's capacity
+    with pytest.raises(UploadControllerPort.BoxMaxSizeExceededError):
+        await rig.controller.initiate_file_upload(
+            box_id=box_id,
+            alias="other_file",
+            decrypted_size=DECRYPTED_SIZE,
+            encrypted_size=ENCRYPTED_SIZE,
+            part_size=PART_SIZE,
+        )
+
+    # Patch insert to simulate the MongoDB compound-index constraint violation
+    file_upload_dao = rig.file_upload_dao
+    original_insert = file_upload_dao.insert
+    call_count = 0
+
+    async def patched_insert(dto):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            raise UniqueConstraintViolationError(
+                unique_fields={"box_id": str(box_id), "alias": "test_file"}
+            )
+        return await original_insert(dto)
+
+    file_upload_dao.insert = patched_insert
+
+    # A retry for the same alias must be allowed despite the full box, because the
+    #  retained failed file will be replaced by the new upload
+    new_file_id, _ = await rig.controller.initiate_file_upload(
+        box_id=box_id,
+        alias="test_file",
+        decrypted_size=DECRYPTED_SIZE,
+        encrypted_size=ENCRYPTED_SIZE,
+        part_size=PART_SIZE,
+    )
+    new_upload = await file_upload_dao.get_by_id(new_file_id)
+    assert new_upload.state == "init"
+
+
 async def test_initiate_upload_after_failed(rig: JointRig):
-    """Re-initiating an upload with the same alias is allowed when the existing
+    """Ensure re-initiating an upload with the same alias is allowed when the existing
     FileUpload is in 'failed' state.
     """
     controller = rig.controller
@@ -1364,9 +1613,12 @@ async def test_initiate_upload_after_cancelled(rig: JointRig):
 async def test_initiate_upload_blocked_for_inbox_state(rig: JointRig):
     """Re-initiating an upload with the same alias is blocked when the existing
     FileUpload is in 'inbox' state (active upload, not a retryable terminal state).
+
+    This test also verifies that the S3 MPU initiation is not attempted the second time.
     """
     controller = rig.controller
     file_upload_dao = rig.file_upload_dao
+    bucket_id, object_storage = rig.object_storages.for_alias("test")
 
     box_id = await rig.create_default_box()
     file_id_1, _ = await controller.initiate_file_upload(
@@ -1389,13 +1641,6 @@ async def test_initiate_upload_blocked_for_inbox_state(rig: JointRig):
     inbox_upload = await file_upload_dao.get_by_id(file_id_1)
     assert inbox_upload.state == "inbox"
 
-    async def patched_insert(dto):
-        raise UniqueConstraintViolationError(
-            unique_fields={"box_id": str(box_id), "alias": "test_file"}
-        )
-
-    file_upload_dao.insert = patched_insert
-
     with pytest.raises(UploadControllerPort.FileUploadAlreadyExists):
         await controller.initiate_file_upload(
             box_id=box_id,
@@ -1408,6 +1653,9 @@ async def test_initiate_upload_blocked_for_inbox_state(rig: JointRig):
     # Original FileUpload must be untouched
     assert len(file_upload_dao.resources) == 1
     assert (await file_upload_dao.get_by_id(file_id_1)).state == "inbox"
+
+    # No S3 multipart upload may have been initiated for the second attempt
+    assert not await object_storage.get_all_multipart_uploads(bucket_id=bucket_id)
 
 
 @pytest.mark.parametrize("state", ["init", "inbox"])
@@ -1484,9 +1732,6 @@ async def test_overwrite_blocked_for_immutable_states(
 ):
     """Test that when overwrite=True, uploads in 'interrogated', 'awaiting_archival', or
     'archived' state cannot be replaced and FileUploadAlreadyExists is raised.
-
-    The InMemDao doesn't enforce compound unique indexes, so we simulate the
-    MongoDB UniqueConstraintViolationError the same way existing idempotence tests do.
     """
     controller = rig.controller
     file_upload_dao = rig.file_upload_dao
@@ -1498,14 +1743,6 @@ async def test_overwrite_blocked_for_immutable_states(
     file_upload.box_id = box_id
     file_upload.alias = "test_file"
     await file_upload_dao.insert(file_upload)
-
-    # Simulate the compound unique index violation MongoDB would raise on insert
-    async def patched_insert(dto):
-        raise UniqueConstraintViolationError(
-            unique_fields={"box_id": str(box_id), "alias": "test_file"}
-        )
-
-    file_upload_dao.insert = patched_insert
 
     with pytest.raises(UploadControllerPort.FileUploadAlreadyExists):
         await controller.initiate_file_upload(
@@ -1529,11 +1766,11 @@ async def test_overwrite_false_still_blocks_active_upload(
     """With overwrite=False (default), an active 'init' or 'inbox' upload still raises
     FileUploadAlreadyExists, confirming overwrite is opt-in.
 
-    The InMemDao doesn't enforce compound unique indexes, so we simulate the
-    MongoDB UniqueConstraintViolationError the same way existing idempotence tests do.
+    This test also verifies that the S3 MPU initiation is not attempted the second time.
     """
     controller = rig.controller
     file_upload_dao = rig.file_upload_dao
+    bucket_id, object_storage = rig.object_storages.for_alias("test")
 
     box_id = await rig.create_default_box()
     file_id_1, _ = await controller.initiate_file_upload(
@@ -1543,20 +1780,13 @@ async def test_overwrite_false_still_blocks_active_upload(
         encrypted_size=ENCRYPTED_SIZE,
         part_size=PART_SIZE,
     )
+    object_id_1 = str(file_upload_dao.latest.object_id)
 
     if state == "inbox":
         file_upload = file_upload_dao.latest
         file_upload.state = "inbox"
         await file_upload_dao.update(file_upload)
         assert file_upload_dao.latest.state == "inbox"
-
-    # Simulate the compound unique index violation MongoDB would raise on insert
-    async def patched_insert(dto):
-        raise UniqueConstraintViolationError(
-            unique_fields={"box_id": str(box_id), "alias": "test_file"}
-        )
-
-    file_upload_dao.insert = patched_insert
 
     with pytest.raises(UploadControllerPort.FileUploadAlreadyExists):
         await controller.initiate_file_upload(
@@ -1571,6 +1801,12 @@ async def test_overwrite_false_still_blocks_active_upload(
     # First upload must be untouched and still in 'init'
     upload = await file_upload_dao.get_by_id(file_id_1)
     assert upload.state == state
+
+    # The only S3 multipart upload must be the one from the first initiation
+    all_multipart_uploads = await object_storage.get_all_multipart_uploads(
+        bucket_id=bucket_id
+    )
+    assert list(all_multipart_uploads.values()) == [object_id_1]
 
 
 @pytest.mark.parametrize(
@@ -1746,7 +1982,7 @@ async def test_concurrent_upload_cap(rig: JointRig):
     with pytest.raises(UploadControllerPort.TooManyOpenUploadsError):
         _ = await rig.controller.initiate_file_upload(
             box_id=box_id,
-            alias="new_file",
+            alias="another_new_file",
             decrypted_size=1,
             encrypted_size=1,
             part_size=PART_SIZE,
