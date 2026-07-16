@@ -75,7 +75,7 @@ class InMemBoxStatsAggregator(BoxStatsAggregatorPort):
                 "$or": [
                     {"state": {"$in": list(COUNTED_UPLOAD_STATES)}},
                     {"$and": [{"state": "failed", "completed": {"$ne": None}}]},
-                ],
+                ],  # ^ use of 'and' is due to a bug in the InMemDao that is being fixed
             }
         ):
             file_count += 1
