@@ -1545,22 +1545,24 @@ class UploadController(UploadControllerPort):
         """Run stale upload cleanup for a single storage alias.
 
         This aborts ongoing uploads that are too old or not tied to any FileUpload.
-        Orphaned objects are also deleted.
+        Orphaned objects are also deleted. Objects belonging to failed uploads that
+        completed upload verification are retained for manual resolution and are not
+        treated as orphans.
         """
-        # Fetch all FileUploads for this storage alias that are still 'init' or 'inbox'
-        #  to avoid doing a second query later when performing object cleanup
-        init_and_inbox_uploads = [
+        # Fetch all FileUploads for this storage alias that are 'init', 'inbox', or
+        #  'failed' to avoid doing a second query later when performing object cleanup
+        potentially_stored_uploads = [
             upload
             async for upload in self._file_upload_dao.find_all(
                 mapping={
                     "storage_alias": storage_alias,
-                    "state": {"$in": ["init", "inbox"]},
+                    "state": {"$in": ["init", "inbox", "failed"]},
                 }
             )
         ]
 
         # Get just the 'init', i.e. ongoing, uploads from that list
-        ongoing_uploads = [x for x in init_and_inbox_uploads if x.state == "init"]
+        ongoing_uploads = [x for x in potentially_stored_uploads if x.state == "init"]
         known_init_object_ids = {str(upload.object_id) for upload in ongoing_uploads}
 
         # Determine which of the ongoing uploads have been dormant since the cutoff time
@@ -1603,9 +1605,15 @@ class UploadController(UploadControllerPort):
             storage_alias=storage_alias, orphaned_s3_uploads=orphaned_s3_uploads
         )
 
-        # Get a set of all object_ids from init_and_inbox_uploads. Cast to str because
-        #  S3Client does a set diff on the string object IDs returned by S3
-        known_object_ids = {str(x.object_id) for x in init_and_inbox_uploads}
+        # Get a set of all object_ids whose objects must be kept. 'failed' uploads are
+        #  only kept if they have `completed` set.
+        #  Cast to str because S3Client does a set diff on the string object IDs
+        #  returned by S3
+        known_object_ids = {
+            str(upload.object_id)
+            for upload in potentially_stored_uploads
+            if upload.state in ("init", "inbox") or upload.completed is not None
+        }
         await self._s3_client.cleanup_orphaned_objects(
             storage_alias=storage_alias, known_object_ids=known_object_ids
         )
