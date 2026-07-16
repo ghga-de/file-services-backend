@@ -379,6 +379,8 @@ class UploadControllerPort(ABC):
 
         Files in 'init' state have their S3 multipart upload aborted.
         Files in 'inbox' state have their S3 object deleted.
+        Files in 'failed' state that completed upload verification have their
+        retained S3 object deleted.
         Files in other states require no S3 interaction.
         Files in 'awaiting_archival' or 'archived' state cause a FileUploadStateError
         (invariant violation: these states require the box to be archived).
@@ -512,14 +514,12 @@ class UploadControllerPort(ABC):
     async def process_interrogation_failure(
         self, *, report: InterrogationFailure
     ) -> None:
-        """Update a FileUpload state to 'failed' and remove it from the inbox bucket.
+        """Update a FileUpload state to 'failed'.
+
+        The file object is intentionally retained for manual resolution.
 
         Raises:
         - `FileUploadNotFound` if the FileUpload isn't found.
-        - `UnknownStorageAliasError` if the storage alias is not known.
-        - `UploadAbortError` if there's an error instructing S3 to abort the upload.
-        - `BucketMissingError` if the configured bucket does not exist in S3.
-        - `S3OperationError` if S3 returns any other unexpected error.
         """
         ...
 

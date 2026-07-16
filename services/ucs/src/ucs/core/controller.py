@@ -115,8 +115,12 @@ class UploadController(UploadControllerPort):
         error is re-raised. The associated S3 multipart upload is left for the cleanup
         job to handle.
 
-        Raises `FileUploadAlreadyExists` if an active FileUpload already exists for
-        this alias and box_id (and is not failed or cancelled).
+        Raises:
+        - `FileUploadAlreadyExists` if an active FileUpload already exists for this
+          alias and box_id (and is not failed or cancelled).
+        - `BoxNotFoundError` if the box no longer exists during the stats refresh.
+        - `BoxVersionError` if the box version changed before stats could be updated.
+        - `BoxStatsCalcError` if there's a problem calculating box size and file count.
         """
         box_id = box.id
         alias = file_upload.alias
@@ -524,7 +528,7 @@ class UploadController(UploadControllerPort):
             initiated=initiated,
         )
 
-        # Extensive recovery/error handling occurs here:
+        # Extensive recovery/error handling occurs here, mostly around race conditions:
         await self._insert_file_upload(box=box, file_upload=file_upload)
 
         # Create upload activity entry (overwrite if one unexpectedly exists)
@@ -851,6 +855,8 @@ class UploadController(UploadControllerPort):
 
         Files in 'init' state have their S3 multipart upload aborted.
         Files in 'inbox' state have their S3 object deleted.
+        Files in 'failed' state that completed upload verification have their
+        retained S3 object deleted.
         Files in other states require no S3 interaction.
         Files in 'awaiting_archival' or 'archived' state cause a FileUploadStateError
         (invariant violation: these states require the box to be archived).
@@ -1323,12 +1329,12 @@ class UploadController(UploadControllerPort):
     async def process_interrogation_failure(
         self, *, report: InterrogationFailure
     ) -> None:
-        """Update a FileUpload state to 'failed' and remove it from the inbox bucket.
+        """Update a FileUpload state to 'failed'.
+
+        The file object is intentionally retained for manual resolution.
 
         Raises:
         - `FileUploadNotFound` if the FileUpload isn't found.
-        - `UnknownStorageAliasError` if the storage alias is not known.
-        - `UploadAbortError` if there's an error instructing S3 to abort the upload.
         """
         file_id = report.file_id
         try:
@@ -1347,7 +1353,7 @@ class UploadController(UploadControllerPort):
                 )
                 return
             case "inbox":
-                await self._remove_completed_file_upload(file_upload=file_upload)
+                # Update the FileUpload but leave the S3 object in the inbox
                 file_upload.state = "failed"
                 file_upload.state_updated = now_utc_ms_prec()
                 file_upload.failure_reason = report.reason
