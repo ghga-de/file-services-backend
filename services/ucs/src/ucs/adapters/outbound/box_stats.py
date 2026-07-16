@@ -38,11 +38,15 @@ class MongoDbBoxStatsAggregator(BoxStatsAggregatorPort):
         """Return `(file_count, total_decrypted_size)` for the counted FileUploads in
         the box. Returns `(0, 0)` when the box has no counted files.
         """
+        # This match must be kept in sync with FileUpload.include_in_stats
         pipeline: list[dict] = [
             {
                 "$match": {
                     "box_id": box_id,
-                    "state": {"$in": list(COUNTED_UPLOAD_STATES)},
+                    "$or": [
+                        {"state": {"$in": list(COUNTED_UPLOAD_STATES)}},
+                        {"state": "failed", "completed": {"$ne": None}},
+                    ],
                 }
             },
             {
