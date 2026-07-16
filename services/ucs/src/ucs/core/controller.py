@@ -170,6 +170,10 @@ class UploadController(UploadControllerPort):
                 error = self.FileUploadAlreadyExists(alias=alias)
                 log.info(error, extra=logging_extras)  # intentionally set to INFO
                 raise error from None  # don't need Unique* error in the trace
+
+            # If the replaced upload counted toward the box stats, refresh the stats
+            if existing_upload.include_in_stats:
+                await self._update_box_stats(box_id=box_id, version=box.version)
         except Exception as err:
             # This branch handles all other errors that *don't* signify an existing file
             # If, e.g. kafka raises an error, delete the FileUpload so user can retry.
