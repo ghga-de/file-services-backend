@@ -15,7 +15,6 @@
 
 """Integration tests for the UploadController"""
 
-import hashlib
 from contextlib import asynccontextmanager, nullcontext
 from datetime import timedelta
 from tempfile import NamedTemporaryFile
@@ -41,16 +40,6 @@ pytestmark = pytest.mark.asyncio()
 CONTENT = "a" * 10 * 1024 * 1024  # 10 MiB
 ENCRYPTED_SIZE = len(CONTENT)
 DECRYPTED_SIZE = ENCRYPTED_SIZE - 124
-
-
-def calc_expected_encrypted_checksum(content: str) -> str:
-    """Calculate the expected checksum for 'encrypted' (test) data in S3.
-
-    This assumes only one object part for simplicity.
-    """
-    part_md5 = hashlib.md5(content.encode(), usedforsecurity=False).digest()
-    object_md5 = hashlib.md5(part_md5, usedforsecurity=False).hexdigest()
-    return object_md5 + "-1"  # only one part
 
 
 async def test_integrated_aspects(joint_fixture: JointFixture):
@@ -100,7 +89,7 @@ async def test_integrated_aspects(joint_fixture: JointFixture):
         temp_file.write(CONTENT.encode())
         temp_file.flush()
 
-        expected_encrypted_checksum = calc_expected_encrypted_checksum(CONTENT)
+        expected_encrypted_checksum = utils.calc_expected_encrypted_checksum(CONTENT)
 
         # Create a FileUpload
         async with kafka.record_events(
@@ -274,7 +263,7 @@ async def test_s3_upload_completed_but_db_not_updated(joint_fixture: JointFixtur
     close_token_header = utils.close_file_token_header(
         box_id=box_id, file_id=file_id, jwk=joint_fixture.wps_jwk
     )
-    expected_encrypted_checksum = calc_expected_encrypted_checksum(CONTENT)
+    expected_encrypted_checksum = utils.calc_expected_encrypted_checksum(CONTENT)
     body = {
         "decrypted_sha256": "abc123",
         "encrypted_md5": expected_encrypted_checksum,
@@ -399,7 +388,7 @@ async def test_s3_upload_complete_fails(joint_fixture: JointFixture):
     # Upload the content again
     response = httpx.put(part_url, content=CONTENT)
     assert response.status_code == 200
-    expected_encrypted_checksum = calc_expected_encrypted_checksum(CONTENT)
+    expected_encrypted_checksum = utils.calc_expected_encrypted_checksum(CONTENT)
 
     # Now complete the file
     close_token_header2 = utils.close_file_token_header(
@@ -551,7 +540,7 @@ async def test_file_interrogation_report_happy(joint_fixture: JointFixture):
     # Get upload URL and upload the file content
     url = await controller.get_part_upload_url(file_id=file_id, part_no=1)
     response = httpx.put(url, content=CONTENT)
-    expected_encrypted_checksum = calc_expected_encrypted_checksum(CONTENT)
+    expected_encrypted_checksum = utils.calc_expected_encrypted_checksum(CONTENT)
     assert response.status_code == 200
 
     # Complete the file upload
