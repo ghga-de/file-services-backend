@@ -19,6 +19,8 @@ from ghga_event_schemas import pydantic_ as event_schemas
 from ghga_service_commons.utils.utc_dates import UTCDatetime
 from pydantic import UUID4, BaseModel, Field
 
+from ucs.constants import COUNTED_UPLOAD_STATES
+
 
 class FileUploadBasics(BaseModel):
     """Holds the fields of a FileUpload that are known before S3 upload initiation."""
@@ -80,6 +82,22 @@ class FileUpload(event_schemas.FileUpload):
     completed: UTCDatetime | None = Field(
         default=None, description="When the S3 multipart upload was completed"
     )
+
+    @property
+    def include_in_stats(self) -> bool:
+        """Whether this upload counts toward its box's file count and size.
+
+        This should return True when the state is any of the ones defined in the
+        constant, as well as files that were set to `failed` due to the re-encryption
+        process. This is determined by whether the `completed` field is set.
+
+        Note: This property needs to agree with MongoDbBoxStatsAggregator. I.e. if this
+        property evaluates to True, then we should also see the aggregator taking it
+        into account.
+        """
+        return self.state in COUNTED_UPLOAD_STATES or (
+            self.state == "failed" and self.completed is not None
+        )
 
 
 class UploadActivity(BaseModel):
