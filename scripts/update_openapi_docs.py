@@ -17,8 +17,6 @@
 
 """Updates OpenAPI-based documentation"""
 
-from __future__ import annotations
-
 import json
 import subprocess
 import sys
@@ -66,24 +64,26 @@ def set_service_specific_vars(service: str):
 
 def get_openapi_spec() -> str:
     """Get an OpenAPI spec in YAML format from the main FastAPI app as defined in the
-    fastapi_app_location.py file.
+    service's app_openapi.py file.
     """
+
     with subprocess.Popen(
         args=[app_openapi_script],
         stdout=subprocess.PIPE,
         stderr=subprocess.DEVNULL,
     ) as process:
-        assert process.wait() == 0 and process.stdout is not None, (
-            "Failed to get openapi."
-        )
-        raw_openapi = process.stdout.read().decode("utf-8").strip("\n")
+        # communicate() rather than wait(), which deadlocks as soon as the spec
+        # exceeds the OS pipe buffer
+        raw_openapi, _ = process.communicate()
+        if process.returncode != 0:
+            raise ValidationError("Failed to get openapi from file.")
 
-    openapi_spec = json.loads(raw_openapi)
+    openapi_spec = json.loads(raw_openapi.decode("utf-8").strip("\n"))
     return yaml.safe_dump(openapi_spec)
 
 
 def update_docs():
-    """Update the OpenAPI YAML file located in the repository's root dir."""
+    """Update the OpenAPI YAML file located in the service's dir."""
 
     openapi_spec = get_openapi_spec()
     with open(openapi_yaml, "w", encoding="utf-8") as openapi_file:
@@ -103,7 +103,7 @@ def print_diff(expected: str, observed: str):
 
 
 def check_docs():
-    """Checks whether the OpenAPI YAML file located in the repository's root dir is up
+    """Checks whether the OpenAPI YAML file located in the service's dir is up
     to date.
 
     Raises:

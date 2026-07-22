@@ -23,11 +23,11 @@ SERVICES_DIR = Path(__file__).parent.parent.parent.resolve() / "services"
 
 def list_service_dirs() -> list[Path]:
     """Return a list of directories under the services folder."""
-    service_dirs = []
-    for folder in [SERVICES_DIR / path for path in os.listdir(SERVICES_DIR)]:
-        if folder.is_dir():
-            service_dirs.append(folder)
-    return service_dirs
+    return [
+        folder
+        for folder in (SERVICES_DIR / path for path in os.listdir(SERVICES_DIR))
+        if folder.is_dir()
+    ]
 
 
 def validate_folder_name(folder_name: str) -> str:

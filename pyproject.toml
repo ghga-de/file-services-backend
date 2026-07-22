@@ -4,9 +4,9 @@ version = "16.0.0"
 description = "File Services Backend - monorepo housing file services"
 dependencies = [
     "typer >= 0.25",
-    "ghga-service-commons[api, auth, crypt, transports] >= 7.0.1",
+    "ghga-service-commons[api, auth, crypt, transports] >= 7.1.0",
     "ghga-event-schemas >= 13.0.0",
-    "hexkit[akafka, s3, mongodb, opentelemetry] >= 8.5.0",
+    "hexkit[akafka, s3, mongodb, opentelemetry] >= 8.6.0",
     "crypt4gh >= 1.7",
     "hvac >= 2",
     "httpx >= 0.28",
@@ -62,6 +62,9 @@ ignore = [
     "E111",
     "E114",
     "E116",
+    "E117",
+    "E501",
+    "W191",
     "PLW",
     "RUF001",
     "RUF010",
@@ -90,6 +93,13 @@ select = [
     "RUF",
     "SIM",
     "D",
+    "E",
+    "W",
+    "ASYNC",
+    "LOG",
+    "PERF",
+    "RET",
+    "C4",
 ]
 
 [tool.ruff.lint.mccabe]
@@ -101,6 +111,7 @@ max-complexity = 10
     "S",
     "SIM",
     "D",
+    "E402",
 ]
 "services/**/tests_*" = [
     "S",
@@ -137,7 +148,7 @@ no_site_packages = false
 explicit_package_bases = true
 
 [tool.pytest.ini_options]
-minversion = "8.4"
+minversion = "9.0"
 asyncio_mode = "strict"
 asyncio_default_fixture_loop_scope = "function"
 
