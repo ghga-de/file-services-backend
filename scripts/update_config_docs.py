@@ -77,9 +77,8 @@ def get_config_class(service: str):
     """
     package_name = get_package_name(service)
     config_module: Any = importlib.import_module(f"{package_name}.config")
-    config_class = config_module.Config
 
-    return config_class
+    return config_module.Config
 
 
 def get_dev_config(service: str):
