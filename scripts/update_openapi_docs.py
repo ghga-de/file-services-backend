@@ -75,7 +75,8 @@ def get_openapi_spec() -> str:
         # communicate() rather than wait(), which deadlocks as soon as the spec
         # exceeds the OS pipe buffer
         raw_openapi, _ = process.communicate()
-        assert process.returncode == 0, "Failed to get openapi."
+        if process.returncode != 0:
+            raise ValidationError("Failed to get openapi from file.")
 
     openapi_spec = json.loads(raw_openapi.decode("utf-8").strip("\n"))
     return yaml.safe_dump(openapi_spec)
