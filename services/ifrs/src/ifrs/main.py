@@ -25,6 +25,10 @@ from ifrs.migrations import run_db_migrations
 DB_VERSION = 3
 
 
+# `configure_opentelemetry()` installs the autoinstrumentation, which pymongo only
+# picks up for clients built afterwards - reordering silently drops spans.
+
+
 async def consume_events(run_forever: bool = True):
     """Run an event consumer listening to the specified topics."""
     config = Config()

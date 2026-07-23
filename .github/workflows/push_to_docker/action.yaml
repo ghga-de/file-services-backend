@@ -63,7 +63,7 @@ runs:
       id: prepare-dockerfile
       if: ${{ inputs.push_regular == 'true' }}
       shell: bash
-      run: cp Dockerfile services/${{ inputs.service }}/ && sed -i "s/\(ENTRYPOINT \)\[\]/\1[\"opentelemetry-instrument\", \"${{ inputs.service }}\"]/" services/${{ inputs.service }}/Dockerfile
+      run: cp Dockerfile services/${{ inputs.service }}/ && sed -i "s/\(ENTRYPOINT \)\[\]/\1[\"${{ inputs.service }}\"]/" services/${{ inputs.service }}/Dockerfile
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v3
@@ -112,7 +112,7 @@ runs:
       run: |
         cp Dockerfile.dhi services/${{ inputs.service }}/
         sed -i "s/my-microservice/${{ inputs.service }}/g" services/${{ inputs.service }}/Dockerfile.dhi
-        sed -i "s/\(ENTRYPOINT \)\[\]/\1[\"opentelemetry-instrument\", \"${{ inputs.service }}\"]/" services/${{ inputs.service }}/Dockerfile.dhi
+        sed -i "s/\(ENTRYPOINT \)\[\]/\1[\"${{ inputs.service }}\"]/" services/${{ inputs.service }}/Dockerfile.dhi
 
     - name: Build and push DHI image
       uses: docker/build-push-action@v5

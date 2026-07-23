@@ -18,7 +18,7 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Query, status
+from fastapi import APIRouter, BackgroundTasks, Path, Query, status
 from pydantic import UUID4
 
 from ucs.adapters.inbound.fastapi_ import (
@@ -27,7 +27,7 @@ from ucs.adapters.inbound.fastapi_ import (
     http_exceptions,
     rest_models,
 )
-from ucs.constants import TRACER
+from ucs.constants import MAX_PART_COUNT, TRACER
 from ucs.ports.inbound.controller import UploadControllerPort
 
 router = APIRouter(tags=["UploadControllerService"])
@@ -490,7 +490,7 @@ async def create_file_upload(  # noqa: C901
 async def get_part_upload_url(  # noqa: PLR0913
     box_id: UUID4,
     file_id: UUID4,
-    part_no: int,
+    part_no: Annotated[int, Path(ge=1, le=MAX_PART_COUNT)],
     work_order: Annotated[
         rest_models.UploadFileWorkOrder,
         http_authorization.require_upload_file_work_order,

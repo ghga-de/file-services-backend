@@ -1379,6 +1379,8 @@ paths:
         name: part_no
         required: true
         schema:
+          maximum: 10000
+          minimum: 1
           title: Part No
           type: integer
       responses:

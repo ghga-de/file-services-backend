@@ -31,6 +31,10 @@ from dcs.migrations import run_db_migrations
 DB_VERSION = 3
 
 
+# `configure_opentelemetry()` installs the autoinstrumentation, which FastAPI and
+# pymongo only pick up for objects built afterwards - reordering drops spans.
+
+
 async def run_rest_app():
     """Run the HTTP REST API."""
     config = Config()
