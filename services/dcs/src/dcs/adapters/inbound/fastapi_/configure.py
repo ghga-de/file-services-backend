@@ -51,8 +51,9 @@ def get_openapi_schema(app: FastAPI, *, config: DrsApiConfig) -> dict[str, Any]:
 
 def get_configured_app(*, config: DrsApiConfig) -> FastAPI:
     """Create and configure a REST API application."""
-    # Looked up at call time: autoinstrumentation swaps `fastapi.FastAPI` for an
-    # instrumented subclass, which a name bound at import time would miss.
+    # When using OpenTelemetry, FastAPI is replaced with an instrumented version on the
+    # module level. Instantiating directly from the imported `FastAPI` would create an
+    # uninstrumented version based on the original class
     app = fastapi.FastAPI()
     app.include_router(router)
     configure_app(app, config=config)

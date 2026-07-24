@@ -26,8 +26,8 @@ from pcs.migrations import run_db_migrations
 DB_VERSION = 2
 
 
-# `configure_opentelemetry()` installs the autoinstrumentation, which FastAPI and
-# pymongo only pick up for objects built afterwards - reordering drops spans.
+# `configure_opentelemetry()` sets up autoinstrumentation and needs to be called before
+# any FastAPI and pymongo objects are created for those to be instrumented correctly
 
 
 async def run_rest_app():

@@ -22,8 +22,8 @@ from hexkit.opentelemetry import configure_opentelemetry
 from ekss.config import Config
 from ekss.inject import prepare_rest_app
 
-# `configure_opentelemetry()` installs the autoinstrumentation, which FastAPI only
-# picks up for apps built afterwards - reordering silently drops spans.
+# `configure_opentelemetry()` sets up autoinstrumentation and needs to be called before
+# any FastAPI and pymongo objects are created for those to be instrumented correctly
 
 
 async def run_rest_app():
