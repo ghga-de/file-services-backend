@@ -17,16 +17,20 @@
 
 import base64
 import inspect
+import json
 import re
 from collections import Counter
+from uuid import uuid4
 
 import httpx
 import pytest
+from ghga_event_schemas.pydantic_ import FileInternallyRegistered
 from hexkit.opentelemetry.testutils import (  # noqa: F401
     otel_fixture,
     otel_provider_fixture,
 )
 from hexkit.providers.s3.testutils import FileObject, tmp_file  # noqa: F401
+from hexkit.utils import now_utc_ms_prec
 from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
 from opentelemetry.trace import SpanKind
 from pytest_httpx import HTTPXMock, httpx_mock  # noqa: F401
@@ -81,9 +85,35 @@ def _authorize(populated_fixture: PopulatedFixture) -> None:
 
 async def test_file_registration_records_spans(
     otel,  # first, so OpenTelemetry is configured before the fixtures below
-    populated_fixture: PopulatedFixture,
+    joint_fixture: JointFixture,
 ):
-    """`populated_fixture` publishes a registration event and runs the subscriber."""
+    """Consuming a registration event stores the DRS object and republishes it.
+
+    The event is published before the reset, so only the consume-register-publish
+    flow is captured - not the fixture's one-off bucket and collection setup.
+    """
+    registration_event = FileInternallyRegistered(
+        file_id=uuid4(),
+        storage_alias=joint_fixture.endpoint_aliases.valid_node,
+        bucket_id=joint_fixture.bucket_id,
+        archive_date=now_utc_ms_prec(),
+        decrypted_size=1234,
+        decrypted_sha256="0" * 64,
+        encrypted_size=1234567,
+        part_size=1,
+        encrypted_parts_md5=["some", "checksum"],
+        encrypted_parts_sha256=["some", "checksum"],
+        secret_id="some-secret",
+    )
+    await joint_fixture.kafka.publish_event(
+        payload=json.loads(registration_event.model_dump_json()),
+        type_=joint_fixture.config.file_internally_registered_type,
+        topic=joint_fixture.config.file_internally_registered_topic,
+    )
+
+    otel.reset()
+    await joint_fixture.event_subscriber.run(forever=False)
+
     assert_recorded_spans(
         otel,
         [
@@ -92,20 +122,13 @@ async def test_file_registration_records_spans(
             "EventPubTranslator.file_registered",
             "KafkaEventSubscriber._consume_event",
             # Autoinstrumented MongoDB access (pymongo)
-            "test.listCollections",
             "test.find",
             "test.insert",
             "test.update",
             "test.update",
-            # Autoinstrumented object storage bucket setup (botocore)
-            "S3.ListBuckets",
-            "S3.HeadBucket",
-            "S3.CreateBucket",
             # Autoinstrumented Kafka consumer and producer (aiokafka)
-            "internal-file-registry send",
             "internal-file-registry receive",
             "file-downloads send",
-            "file-downloads receive",
         ],
     )
 
