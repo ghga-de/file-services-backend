@@ -193,7 +193,7 @@ async def test_get_object_metadata_strips_etag_quotes(
     async def quoted_etag(*, bucket_id: str, object_id: str) -> dict:
         return {"ETag": '"quoted-etag"', "ContentLength": 1024}
 
-    storage.get_object_metadata = quoted_etag
+    storage.get_object_metadata = quoted_etag  # type: ignore[method-assign]
 
     metadata = await s3_client.get_object_metadata(
         file_upload=file_upload, object_id=file_upload.object_id
@@ -214,7 +214,7 @@ async def test_get_object_metadata_incomplete(
     async def incomplete_metadata(*, bucket_id: str, object_id: str) -> dict:
         return metadata
 
-    storage.get_object_metadata = incomplete_metadata
+    storage.get_object_metadata = incomplete_metadata  # type: ignore[method-assign]
 
     with pytest.raises(S3ClientPort.S3OperationError):
         await s3_client.get_object_metadata(
@@ -424,7 +424,7 @@ async def test_object_not_found_raises_s3_object_not_found_error(
             bucket_id=file_upload.bucket_id, object_id=str(file_upload.object_id)
         )
 
-    storage.get_object_metadata = do_error
+    storage.get_object_metadata = do_error  # type: ignore[method-assign]
 
     with pytest.raises(S3ClientPort.S3ObjectNotFoundError):
         await s3_client.get_object_metadata(

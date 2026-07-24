@@ -30,6 +30,7 @@ from hexkit.utils import now_utc_ms_prec
 from tests_ucs.fixtures import utils
 from tests_ucs.fixtures.joint import JointFixture
 from ucs import main
+from ucs.inject import prepare_outbox_publisher
 
 pytestmark = pytest.mark.asyncio()
 
@@ -144,6 +145,58 @@ async def test_consumed_event_records_spans(
     db_name = joint_fixture.config.db_name
     assert [name for name in span_names if name.startswith(f"{db_name}.")], (
         f"No autoinstrumented MongoDB spans recorded. Captured: {span_names}"
+    )
+
+
+async def test_publish_events_records_spans(
+    otel,  # first, so OpenTelemetry is configured before the fixtures below
+    joint_fixture: JointFixture,
+):
+    """The outbox-publisher entrypoint reads stored records back from MongoDB and
+    re-emits them to Kafka - both autoinstrumented.
+    """
+    await _create_box(joint_fixture)  # persists a FileUploadBox via the outbox
+
+    topic = joint_fixture.config.file_upload_box_topic
+    otel.reset()
+    async with prepare_outbox_publisher(config=joint_fixture.config) as publisher:
+        box_dao = await publisher.get_file_upload_box_dao()
+        await box_dao.republish()
+
+    span_names = otel.get_span_names()
+
+    # pymongo spans are named "<collection>.<command>"
+    db_name = joint_fixture.config.db_name
+    assert [name for name in span_names if name.startswith(f"{db_name}.")], (
+        f"No autoinstrumented MongoDB spans recorded. Captured: {span_names}"
+    )
+
+    # aiokafka producer spans are named "<topic> send"
+    assert f"{topic} send" in span_names, (
+        f"No autoinstrumented Kafka span for topic {topic!r}. Captured: {span_names}"
+    )
+
+
+async def test_stale_upload_cleanup_records_spans(
+    otel,  # first, so OpenTelemetry is configured before the fixtures below
+    joint_fixture: JointFixture,
+):
+    """The stale-upload cleanup entrypoint reaches both MongoDB and object storage."""
+    otel.reset()
+    async with set_correlation_id(new_correlation_id()):
+        await joint_fixture.upload_controller.cleanup_stale_uploads()
+
+    span_names = otel.get_span_names()
+
+    # pymongo spans are named "<collection>.<command>"
+    db_name = joint_fixture.config.db_name
+    assert [name for name in span_names if name.startswith(f"{db_name}.")], (
+        f"No autoinstrumented MongoDB spans recorded. Captured: {span_names}"
+    )
+
+    # botocore spans are named "S3.<operation>"
+    assert [name for name in span_names if name.startswith("S3.")], (
+        f"No autoinstrumented S3 spans recorded. Captured: {span_names}"
     )
 
 

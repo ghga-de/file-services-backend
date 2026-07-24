@@ -26,6 +26,7 @@ from hexkit.opentelemetry.testutils import (  # noqa: F401
 from httpx import Headers
 
 from pcs import main
+from pcs.inject import get_persistent_publisher
 from tests_pcs.fixtures.joint import JointFixture
 
 pytestmark = pytest.mark.asyncio()
@@ -66,6 +67,34 @@ async def test_deletion_request_records_spans_for_all_backends(
 
     # aiokafka producer spans are named "<topic> send"
     topic = joint_fixture.config.file_deletion_request_topic
+    assert f"{topic} send" in span_names, (
+        f"No autoinstrumented Kafka span for topic {topic!r}. Captured: {span_names}"
+    )
+
+
+async def test_publish_events_records_spans(otel, joint_fixture: JointFixture):
+    """The outbox-publisher entrypoint reads stored events back from MongoDB and
+    re-emits them to Kafka - both autoinstrumented.
+    """
+    topic = joint_fixture.config.file_deletion_request_topic
+    async with get_persistent_publisher(config=joint_fixture.config) as publisher:
+        # Seed one stored event so republishing has something to read and re-publish.
+        await publisher.publish(
+            payload={"test": "event"}, type_="upserted", key="test", topic=topic
+        )
+
+        otel.reset()
+        await publisher.republish()
+
+    span_names = otel.get_span_names()
+
+    # pymongo spans are named "<collection>.<command>"
+    db_name = joint_fixture.config.db_name
+    assert [name for name in span_names if name.startswith(f"{db_name}.")], (
+        f"No autoinstrumented MongoDB spans recorded. Captured: {span_names}"
+    )
+
+    # aiokafka producer spans are named "<topic> send"
     assert f"{topic} send" in span_names, (
         f"No autoinstrumented Kafka span for topic {topic!r}. Captured: {span_names}"
     )

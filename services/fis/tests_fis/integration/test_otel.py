@@ -36,7 +36,12 @@ from hexkit.providers.mongodb.testutils import MongoDbFixture
 from fis import main
 from fis.config import Config
 from fis.constants import DHFS_USER_AGENT_PREFIX, GHGA
-from fis.inject import prepare_core, prepare_event_subscriber, prepare_rest_app
+from fis.inject import (
+    get_persistent_publisher,
+    prepare_core,
+    prepare_event_subscriber,
+    prepare_rest_app,
+)
 from tests_fis.fixtures.config import get_config
 from tests_fis.fixtures.utils import create_file_under_interrogation
 
@@ -142,6 +147,34 @@ async def test_outbox_consumption_records_spans(
     db_name = rig.config.db_name
     assert [name for name in span_names if name.startswith(f"{db_name}.")], (
         f"No autoinstrumented MongoDB spans recorded. Captured: {span_names}"
+    )
+
+
+async def test_publish_events_records_spans(otel, rig: OtelRig):
+    """The outbox-publisher entrypoint reads stored events back from MongoDB and
+    re-emits them to Kafka - both autoinstrumented.
+    """
+    topic = rig.config.file_interrogations_topic
+    async with get_persistent_publisher(config=rig.config) as publisher:
+        # Seed one stored event so republishing has something to read and re-publish.
+        await publisher.publish(
+            payload={"test": "event"}, type_="upserted", key="test", topic=topic
+        )
+
+        otel.reset()
+        await publisher.republish()
+
+    span_names = otel.get_span_names()
+
+    # pymongo spans are named "<collection>.<command>"
+    db_name = rig.config.db_name
+    assert [name for name in span_names if name.startswith(f"{db_name}.")], (
+        f"No autoinstrumented MongoDB spans recorded. Captured: {span_names}"
+    )
+
+    # aiokafka producer spans are named "<topic> send"
+    assert f"{topic} send" in span_names, (
+        f"No autoinstrumented Kafka span for topic {topic!r}. Captured: {span_names}"
     )
 
 

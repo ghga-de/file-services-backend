@@ -15,6 +15,7 @@
 
 """Tests that real service operations record spans across all instrumented backends."""
 
+import base64
 import inspect
 import re
 
@@ -25,10 +26,15 @@ from hexkit.opentelemetry.testutils import (  # noqa: F401
     otel_provider_fixture,
 )
 from hexkit.providers.s3.testutils import FileObject, tmp_file  # noqa: F401
+from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+from opentelemetry.trace import SpanKind
 from pytest_httpx import HTTPXMock, httpx_mock  # noqa: F401
 
 from dcs import main
-from tests_dcs.fixtures.joint import PopulatedFixture
+from dcs.adapters.outbound.http.api_calls import get_configured_httpx_client
+from dcs.adapters.outbound.http.secrets import SecretsClient
+from dcs.inject import get_persistent_publisher
+from tests_dcs.fixtures.joint import CleanupFixture, JointFixture, PopulatedFixture
 from tests_dcs.fixtures.mock_api.app import router
 from tests_dcs.fixtures.utils import generate_work_order_token
 
@@ -159,6 +165,114 @@ async def test_envelope_request_records_outbound_http_spans(
     otel.assert_has_span("GET /objects/{object_id}/envelopes")
 
     # No httpx span here: the mock replaces the transport the instrumentation wraps.
+
+
+async def test_outbound_ekss_call_records_httpx_client_span(
+    otel,  # first, so OpenTelemetry is configured before the fixtures below
+    populated_fixture: PopulatedFixture,
+    httpx_mock: HTTPXMock,  # noqa: F811
+):
+    """The outbound EKSS call is autoinstrumented at the client level.
+
+    The global httpx autoinstrumentation only wraps the real network transport, which
+    the HTTP mock swaps out - so the test above cannot see the outbound span. Here the
+    client instance is instrumented directly, the same wrapping hexkit's
+    autoinstrumentation applies to the real transport in production, which lets the
+    span surface even against the mock.
+    """
+    config = populated_fixture.joint_fixture.config
+    httpx_mock.add_callback(
+        callback=router.handle_request,
+        url=re.compile(rf"^{config.ekss_base_url}.*"),
+    )
+    receiver_public_key = base64.b64encode(b"test-public-key").decode()
+
+    async with get_configured_httpx_client(config=config) as client:
+        HTTPXClientInstrumentor.instrument_client(client)
+        try:
+            secrets_client = SecretsClient(config=config, httpx_client=client)
+
+            otel.reset()
+            envelope = await secrets_client.get_envelope(
+                secret_id="some-secret", receiver_public_key=receiver_public_key
+            )
+        finally:
+            HTTPXClientInstrumentor.uninstrument_client(client)
+
+    assert envelope  # the mocked EKSS really answered
+
+    manual_span = otel.assert_has_span("api_calls.get_envelope_from_ekss")
+
+    # The autoinstrumented outbound HTTP client span (named after the method).
+    client_span = otel.assert_has_span("GET")
+    assert client_span.kind == SpanKind.CLIENT
+
+    # It nests under the manual span, so both belong to the same trace.
+    assert client_span.parent is not None
+    assert client_span.parent.span_id == manual_span.context.span_id
+    assert client_span.context.trace_id == manual_span.context.trace_id
+
+
+async def test_publish_events_records_spans(
+    otel,  # first, so OpenTelemetry is configured before the fixtures below
+    joint_fixture: JointFixture,
+):
+    """The outbox-publisher entrypoint reads stored events back from MongoDB and
+    re-emits them to Kafka - both autoinstrumented.
+    """
+    topic = joint_fixture.config.file_registered_for_download_topic
+    async with get_persistent_publisher(config=joint_fixture.config) as publisher:
+        # Seed one stored event so republishing has something to read and re-publish.
+        await publisher.publish(
+            payload={"test": "event"}, type_="upserted", key="test", topic=topic
+        )
+
+        otel.reset()
+        await publisher.republish()
+
+    span_names = otel.get_span_names()
+
+    # pymongo spans are named "<collection>.<command>"
+    db_name = joint_fixture.config.db_name
+    assert [name for name in span_names if name.startswith(f"{db_name}.")], (
+        f"No autoinstrumented MongoDB spans recorded. Captured: {span_names}"
+    )
+
+    # aiokafka producer spans are named "<topic> send"
+    assert f"{topic} send" in span_names, (
+        f"No autoinstrumented Kafka span for topic {topic!r}. Captured: {span_names}"
+    )
+
+
+async def test_download_bucket_cleaner_records_spans(
+    otel,  # first, so OpenTelemetry is configured before the fixtures below
+    cleanup_fixture: CleanupFixture,
+):
+    """The bucket-cleaner entrypoint reaches both object storage and MongoDB."""
+    otel.reset()
+    await cleanup_fixture.bucket_cleaner.cleanup_download_buckets(
+        object_storages_config=cleanup_fixture.config
+    )
+
+    span_names = otel.get_span_names()
+
+    assert [name for name in span_names if name.startswith("S3.")], (
+        f"No autoinstrumented S3 spans recorded. Captured: {span_names}"
+    )
+
+    # pymongo spans are named "<collection>.<command>"
+    db_name = cleanup_fixture.config.db_name
+    assert [name for name in span_names if name.startswith(f"{db_name}.")], (
+        f"No autoinstrumented MongoDB spans recorded. Captured: {span_names}"
+    )
+
+    # The expired object really was removed, so the flow did its work.
+    expired_object = await cleanup_fixture.mongodb_dao.get_by_id(
+        cleanup_fixture.expired_file_id
+    )
+    assert not await cleanup_fixture.s3.storage.does_object_exist(
+        bucket_id=cleanup_fixture.bucket_id, object_id=str(expired_object.object_id)
+    )
 
 
 async def test_long_running_entrypoints_configure_otel():
