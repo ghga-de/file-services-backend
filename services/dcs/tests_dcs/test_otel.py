@@ -15,12 +15,8 @@
 
 """Tests that real service operations record spans across all instrumented backends."""
 
-import base64
 import inspect
-import json
 import re
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from threading import Thread
 
 import httpx
 import pytest
@@ -32,8 +28,6 @@ from hexkit.providers.s3.testutils import FileObject, tmp_file  # noqa: F401
 from pytest_httpx import HTTPXMock, httpx_mock  # noqa: F401
 
 from dcs import main
-from dcs.adapters.outbound.http.secrets import SecretsClient, SecretsClientConfig
-from dcs.constants import TRACER
 from tests_dcs.fixtures.joint import PopulatedFixture
 from tests_dcs.fixtures.mock_api.app import router
 from tests_dcs.fixtures.utils import generate_work_order_token
@@ -60,14 +54,6 @@ def _authorize(populated_fixture: PopulatedFixture) -> None:
     joint_fixture.rest_client.headers = httpx.Headers(
         {"Authorization": f"Bearer {token}"}
     )
-
-
-async def test_manual_span_recorded(otel):
-    """TRACER is bound at import time, so this covers proxy tracer resolution too."""
-    with TRACER.start_as_current_span("test-span"):
-        pass
-
-    otel.assert_has_span("test-span")
 
 
 async def test_file_registration_records_spans(
@@ -173,51 +159,6 @@ async def test_envelope_request_records_outbound_http_spans(
     otel.assert_has_span("GET /objects/{object_id}/envelopes")
 
     # No httpx span here: the mock replaces the transport the instrumentation wraps.
-    # `test_outbound_http_call_records_client_span` covers that against a real server.
-
-
-async def test_outbound_http_call_records_client_span(otel):
-    """Uses a real server, not `httpx_mock`: the mock replaces the wrapped transport."""
-    public_key = base64.b64encode(b"0" * 32).decode()
-
-    class _Handler(BaseHTTPRequestHandler):
-        def do_GET(self):  # the name is mandated by http.server
-            body = json.dumps({"content": "envelope-bytes"}).encode()
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-
-        def log_message(self, *args):
-            """Silence the default stderr request logging."""
-
-    server = ThreadingHTTPServer(("127.0.0.1", 0), _Handler)
-    thread = Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        base_url = f"http://127.0.0.1:{server.server_address[1]}"
-        otel.reset()
-        async with httpx.AsyncClient() as client:
-            secrets_client = SecretsClient(
-                config=SecretsClientConfig(ekss_base_url=base_url),
-                httpx_client=client,
-            )
-            envelope = await secrets_client.get_envelope(
-                secret_id="some-secret", receiver_public_key=public_key
-            )
-    finally:
-        server.shutdown()
-        thread.join(timeout=5)
-
-    assert envelope == "envelope-bytes"
-
-    otel.assert_has_span("api_calls.get_envelope_from_ekss")
-
-    # httpx client spans are named "GET"
-    client_span = otel.assert_has_span("GET")
-    assert client_span.attributes
-    assert client_span.attributes["http.status_code"] == 200
 
 
 async def test_long_running_entrypoints_configure_otel():

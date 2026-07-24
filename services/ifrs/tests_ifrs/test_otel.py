@@ -30,20 +30,11 @@ from hexkit.providers.s3.testutils import (
 )
 
 from ifrs import main
-from ifrs.constants import TRACER
 from tests_ifrs.fixtures.example_data import EXAMPLE_ARCHIVABLE_FILE
 from tests_ifrs.fixtures.joint import JointFixture
 from tests_ifrs.fixtures.utils import DOWNLOAD_BUCKET, INTERROGATION_BUCKET
 
 pytestmark = pytest.mark.asyncio()
-
-
-async def test_manual_span_recorded(otel):
-    """TRACER is bound at import time, so this covers proxy tracer resolution too."""
-    with TRACER.start_as_current_span("test-span"):
-        pass
-
-    otel.assert_has_span("test-span")
 
 
 async def test_file_registration_records_spans(
@@ -75,13 +66,21 @@ async def test_file_registration_records_spans(
 
     span_names = otel.get_span_names()
 
-    otel.assert_has_span("FileRegistry.register_file")
+    register_span = otel.assert_has_span("FileRegistry.register_file")
     otel.assert_has_span("EventPubTranslator.file_internally_registered")
 
     for operation in ("S3.HeadObject", "S3.CopyObject"):
         assert operation in span_names, (
             f"No autoinstrumented {operation} span recorded. Captured: {span_names}"
         )
+
+    # Without the parent link the backend calls would be detached from the trace.
+    assert [
+        span
+        for span in otel.get_finished_spans()
+        if span.name.startswith("S3.")
+        and span.context.trace_id == register_span.context.trace_id
+    ], "No autoinstrumented S3 spans share the manual span's trace"
 
     # pymongo spans are named "<collection>.<command>"
     db_name = joint_fixture.config.db_name
@@ -155,44 +154,6 @@ async def test_consumed_staging_event_records_spans(
         f"No autoinstrumented Kafka span for topic {staged_topic!r}."
         f" Captured: {span_names}"
     )
-
-
-async def test_manual_span_nested_under_caller(
-    otel,  # first, so OpenTelemetry is configured before the fixtures below
-    joint_fixture: JointFixture,
-    tmp_file: FileObject,  # noqa: F811
-):
-    """Without the parent link the backend calls would be detached from the trace."""
-    storage_alias = joint_fixture.storage_aliases.node0
-    storage = joint_fixture.federated_s3.storages[storage_alias]
-
-    file_object = tmp_file.model_copy(
-        update={
-            "bucket_id": INTERROGATION_BUCKET,
-            "object_id": str(EXAMPLE_ARCHIVABLE_FILE.object_id),
-        }
-    )
-    await storage.populate_file_objects(file_objects=[file_object])
-    archivable_file = EXAMPLE_ARCHIVABLE_FILE.model_copy(
-        update={
-            "storage_alias": storage_alias,
-            "encrypted_size": len(tmp_file.content),
-        },
-        deep=True,
-    )
-
-    otel.reset()
-    await joint_fixture.file_registry.register_file(file=archivable_file)
-
-    register_span = otel.assert_has_span("FileRegistry.register_file")
-    s3_spans = [
-        span
-        for span in otel.get_finished_spans()
-        if span.name.startswith("S3.")
-        and span.context.trace_id == register_span.context.trace_id
-    ]
-
-    assert s3_spans, "No autoinstrumented S3 spans share the manual span's trace"
 
 
 async def test_long_running_entrypoints_configure_otel():

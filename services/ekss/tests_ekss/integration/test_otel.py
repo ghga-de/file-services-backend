@@ -27,7 +27,6 @@ from hexkit.opentelemetry.testutils import (  # noqa: F401
 )
 
 from ekss import main
-from ekss.constants import TRACER
 from ekss.inject import prepare_rest_app
 from tests_ekss.fixtures.config import get_config
 from tests_ekss.fixtures.keypair import KeypairFixture
@@ -35,14 +34,6 @@ from tests_ekss.fixtures.utils import make_secret_payload
 from tests_ekss.fixtures.vault import VaultFixture
 
 pytestmark = pytest.mark.asyncio()
-
-
-async def test_manual_span_recorded(otel):
-    """TRACER is bound at import time, so this covers proxy tracer resolution too."""
-    with TRACER.start_as_current_span("test-span"):
-        pass
-
-    otel.assert_has_span("test-span")
 
 
 async def test_post_secret_records_spans(

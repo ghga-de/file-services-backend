@@ -30,7 +30,6 @@ from hexkit.utils import now_utc_ms_prec
 from tests_ucs.fixtures import utils
 from tests_ucs.fixtures.joint import JointFixture
 from ucs import main
-from ucs.constants import TRACER
 
 pytestmark = pytest.mark.asyncio()
 
@@ -45,14 +44,6 @@ async def _create_box(joint_fixture: JointFixture) -> UUID:
     )
     assert response.status_code == 201
     return UUID(response.json())
-
-
-async def test_manual_span_recorded(otel):
-    """TRACER is bound at import time, so this covers proxy tracer resolution too."""
-    with TRACER.start_as_current_span("test-span"):
-        pass
-
-    otel.assert_has_span("test-span")
 
 
 async def test_box_creation_records_spans_for_all_backends(

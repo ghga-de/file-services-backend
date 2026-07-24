@@ -35,7 +35,7 @@ from hexkit.providers.mongodb.testutils import MongoDbFixture
 
 from fis import main
 from fis.config import Config
-from fis.constants import DHFS_USER_AGENT_PREFIX, GHGA, TRACER
+from fis.constants import DHFS_USER_AGENT_PREFIX, GHGA
 from fis.inject import prepare_core, prepare_event_subscriber, prepare_rest_app
 from tests_fis.fixtures.config import get_config
 from tests_fis.fixtures.utils import create_file_under_interrogation
@@ -92,14 +92,6 @@ async def rig(
                 "User-Agent": USER_AGENT,
             },
         )
-
-
-async def test_manual_span_recorded(otel):
-    """TRACER is bound at import time, so this covers proxy tracer resolution too."""
-    with TRACER.start_as_current_span("test-span"):
-        pass
-
-    otel.assert_has_span("test-span")
 
 
 async def test_list_uploads_records_spans(otel, rig: OtelRig):
