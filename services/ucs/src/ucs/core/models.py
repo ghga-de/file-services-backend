@@ -60,13 +60,10 @@ class FileUploadBasics(BaseModel):
 
 
 class ObjectMetadata(BaseModel):
-    """S3 object metadata the service acts upon, from one `head_object` call."""
+    """S3 object metadata the service acts upon."""
 
-    etag: str = Field(
-        default=...,
-        description="The object's ETag as reported by S3, with quotes stripped",
-    )
-    size: int = Field(default=..., description="The size of the object in bytes")
+    etag: str = Field(default=..., description="The object's ETag as reported by S3.")
+    size: int = Field(default=..., description="The size of the object in bytes.")
 
 
 class FileUploadBox(event_schemas.FileUploadBox):

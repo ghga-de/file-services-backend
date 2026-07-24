@@ -167,8 +167,6 @@ class S3ClientPort(ABC):
     ) -> ObjectMetadata:
         """Return the ETag and size of an object in the inbox bucket.
 
-        Both values are obtained with a single request to S3.
-
         Raises:
             `UnknownStorageAliasError` if the storage alias is not known.
             `BucketNotFoundError` if the configured bucket does not exist in S3.
