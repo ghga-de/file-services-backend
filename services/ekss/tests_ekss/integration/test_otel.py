@@ -18,6 +18,7 @@
 import base64
 import inspect
 import os
+from collections import Counter
 
 import pytest
 from ghga_service_commons.api.testing import AsyncTestClient
@@ -34,6 +35,22 @@ from tests_ekss.fixtures.utils import make_secret_payload
 from tests_ekss.fixtures.vault import VaultFixture
 
 pytestmark = pytest.mark.asyncio()
+
+
+def assert_recorded_spans(otel, expected: list[str]) -> None:
+    """Assert the recorded spans match `expected` exactly, counts included.
+
+    MongoDB connection housekeeping (`admin.*`) is emitted on a pool- and
+    timing-dependent basis, so it is filtered out before comparing.
+    """
+    recorded = Counter(
+        name for name in otel.get_span_names() if not name.startswith("admin.")
+    )
+    expected_counts = Counter(expected)
+    assert recorded == expected_counts, (
+        f"Unexpected spans: {dict(recorded - expected_counts)}; "
+        f"missing spans: {dict(expected_counts - recorded)}"
+    )
 
 
 async def test_post_secret_records_spans(
@@ -55,14 +72,27 @@ async def test_post_secret_records_spans(
     assert response.status_code == 201
     assert response.json()["secret_id"]
 
-    otel.assert_has_span("routes.post_encryption_secret")
-
-    vault_span = otel.assert_has_span("VaultClient.store_secret")
+    assert_recorded_spans(
+        otel,
+        [
+            # REST server span plus its ASGI receive/send sub-spans
+            "POST /secrets",
+            "POST /secrets http receive",
+            "POST /secrets http receive",
+            "POST /secrets http send",
+            "POST /secrets http send",
+            # Manual spans wrapping the route handler and the Vault call
+            "routes.post_encryption_secret",
+            "VaultClient.store_secret",
+        ],
+    )
 
     server_span = otel.assert_has_span("POST /secrets")
     assert server_span.attributes
     assert server_span.attributes["http.status_code"] == 201
 
+    # The Vault span belongs to the same trace as the request.
+    vault_span = otel.assert_has_span("VaultClient.store_secret")
     assert vault_span.context.trace_id == server_span.context.trace_id
 
 
@@ -86,11 +116,22 @@ async def test_get_envelope_records_spans(
 
     assert response.status_code == 200
 
+    assert_recorded_spans(
+        otel,
+        [
+            # REST server span plus its ASGI send sub-spans
+            "GET /secrets/{secret_id}/envelopes/{client_pk}",
+            "GET /secrets/{secret_id}/envelopes/{client_pk} http send",
+            "GET /secrets/{secret_id}/envelopes/{client_pk} http send",
+            # Manual spans wrapping the route handler and the Vault call
+            "routes.get_header_envelope",
+            "VaultClient.get_secret",
+        ],
+    )
+
+    # Without the parent link the manual span would be detached from the trace.
     route_span = otel.assert_has_span("routes.get_header_envelope")
-    otel.assert_has_span("VaultClient.get_secret")
-
     server_span = otel.assert_has_span("GET /secrets/{secret_id}/envelopes/{client_pk}")
-
     assert route_span.parent is not None
     assert route_span.parent.span_id == server_span.context.span_id
 
@@ -113,9 +154,18 @@ async def test_delete_secret_records_spans(
 
     assert response.status_code == 204
 
-    otel.assert_has_span("routes.delete_secret")
-    otel.assert_has_span("VaultClient.delete_secret")
-    otel.assert_has_span("DELETE /secrets/{secret_id}")
+    assert_recorded_spans(
+        otel,
+        [
+            # REST server span plus its ASGI send sub-spans
+            "DELETE /secrets/{secret_id}",
+            "DELETE /secrets/{secret_id} http send",
+            "DELETE /secrets/{secret_id} http send",
+            # Manual spans wrapping the route handler and the Vault call
+            "routes.delete_secret",
+            "VaultClient.delete_secret",
+        ],
+    )
 
 
 async def test_long_running_entrypoints_configure_otel():

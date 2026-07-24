@@ -16,6 +16,7 @@
 """Tests that real service operations record spans across all instrumented backends."""
 
 import inspect
+from collections import Counter
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass
 
@@ -49,6 +50,22 @@ pytestmark = pytest.mark.asyncio()
 
 HUB = "HUB1"
 USER_AGENT = f"{DHFS_USER_AGENT_PREFIX}/2.0.0"
+
+
+def assert_recorded_spans(otel, expected: list[str]) -> None:
+    """Assert the recorded spans match `expected` exactly, counts included.
+
+    MongoDB connection housekeeping (`admin.*`) is emitted on a pool- and
+    timing-dependent basis, so it is filtered out before comparing.
+    """
+    recorded = Counter(
+        name for name in otel.get_span_names() if not name.startswith("admin.")
+    )
+    expected_counts = Counter(expected)
+    assert recorded == expected_counts, (
+        f"Unexpected spans: {dict(recorded - expected_counts)}; "
+        f"missing spans: {dict(expected_counts - recorded)}"
+    )
 
 
 @dataclass
@@ -107,20 +124,25 @@ async def test_list_uploads_records_spans(otel, rig: OtelRig):
     )
     assert response.status_code == 200
 
-    span_names = otel.get_span_names()
-
-    otel.assert_has_span("routes.list_uploads")
+    assert_recorded_spans(
+        otel,
+        [
+            # Manual span wrapping the route handler
+            "routes.list_uploads",
+            # REST server span plus its ASGI send sub-spans
+            "GET /storages/{storage_alias}/uploads",
+            "GET /storages/{storage_alias}/uploads http send",
+            "GET /storages/{storage_alias}/uploads http send",
+            # Autoinstrumented MongoDB lookup (pymongo)
+            "test.find",
+        ],
+    )
 
     server_span = otel.assert_has_span("GET /storages/{storage_alias}/uploads")
     assert server_span.attributes
     assert server_span.attributes["http.status_code"] == 200
 
-    # pymongo spans are named "<collection>.<command>"
-    db_name = rig.config.db_name
-    assert [name for name in span_names if name.startswith(f"{db_name}.")], (
-        f"No autoinstrumented MongoDB spans recorded. Captured: {span_names}"
-    )
-
+    # Without the parent link the manual span would be detached from the trace.
     route_span = otel.assert_has_span("routes.list_uploads")
     assert route_span.parent is not None
     assert route_span.parent.span_id == server_span.context.span_id
@@ -142,11 +164,16 @@ async def test_outbox_consumption_records_spans(
     otel.reset()
     await rig.outbox_consumer.run(forever=False)  # type: ignore[attr-defined]
 
-    span_names = otel.get_span_names()
-
-    db_name = rig.config.db_name
-    assert [name for name in span_names if name.startswith(f"{db_name}.")], (
-        f"No autoinstrumented MongoDB spans recorded. Captured: {span_names}"
+    assert_recorded_spans(
+        otel,
+        [
+            # Manual span wrapping the subscriber
+            "KafkaEventSubscriber._consume_event",
+            # Autoinstrumented Kafka consumer (aiokafka)
+            "file-uploads receive",
+            # Autoinstrumented MongoDB write (pymongo)
+            "test.insert",
+        ],
     )
 
 
@@ -164,17 +191,14 @@ async def test_publish_events_records_spans(otel, rig: OtelRig):
         otel.reset()
         await publisher.republish()
 
-    span_names = otel.get_span_names()
-
-    # pymongo spans are named "<collection>.<command>"
-    db_name = rig.config.db_name
-    assert [name for name in span_names if name.startswith(f"{db_name}.")], (
-        f"No autoinstrumented MongoDB spans recorded. Captured: {span_names}"
-    )
-
-    # aiokafka producer spans are named "<topic> send"
-    assert f"{topic} send" in span_names, (
-        f"No autoinstrumented Kafka span for topic {topic!r}. Captured: {span_names}"
+    assert_recorded_spans(
+        otel,
+        [
+            # Autoinstrumented MongoDB read (pymongo)
+            "test.find",
+            # Autoinstrumented Kafka producer (aiokafka)
+            "file-interrogations send",
+        ],
     )
 
 

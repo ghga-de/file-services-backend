@@ -16,6 +16,7 @@
 """Tests that spans are recorded. No REST API here, so MongoDB, S3 and Kafka."""
 
 import inspect
+from collections import Counter
 from uuid import uuid4
 
 import pytest
@@ -36,6 +37,22 @@ from tests_ifrs.fixtures.joint import JointFixture
 from tests_ifrs.fixtures.utils import DOWNLOAD_BUCKET, INTERROGATION_BUCKET
 
 pytestmark = pytest.mark.asyncio()
+
+
+def assert_recorded_spans(otel, expected: list[str]) -> None:
+    """Assert the recorded spans match `expected` exactly, counts included.
+
+    MongoDB connection housekeeping (`admin.*`) is emitted on a pool- and
+    timing-dependent basis, so it is filtered out before comparing.
+    """
+    recorded = Counter(
+        name for name in otel.get_span_names() if not name.startswith("admin.")
+    )
+    expected_counts = Counter(expected)
+    assert recorded == expected_counts, (
+        f"Unexpected spans: {dict(recorded - expected_counts)}; "
+        f"missing spans: {dict(expected_counts - recorded)}"
+    )
 
 
 async def test_file_registration_records_spans(
@@ -65,35 +82,37 @@ async def test_file_registration_records_spans(
     otel.reset()
     await joint_fixture.file_registry.register_file(file=archivable_file)
 
-    span_names = otel.get_span_names()
-
-    register_span = otel.assert_has_span("FileRegistry.register_file")
-    otel.assert_has_span("EventPubTranslator.file_internally_registered")
-
-    for operation in ("S3.HeadObject", "S3.CopyObject"):
-        assert operation in span_names, (
-            f"No autoinstrumented {operation} span recorded. Captured: {span_names}"
-        )
+    assert_recorded_spans(
+        otel,
+        [
+            # Manual spans wrapping the core and the event publisher
+            "FileRegistry.register_file",
+            "EventPubTranslator.file_internally_registered",
+            # Autoinstrumented MongoDB access (pymongo)
+            "test.find",
+            "test.insert",
+            "test.update",
+            "test.update",
+            # Autoinstrumented object storage (botocore)
+            "S3.HeadObject",
+            "S3.HeadObject",
+            "S3.HeadObject",
+            "S3.HeadObject",
+            "S3.HeadBucket",
+            "S3.CopyObject",
+            # Autoinstrumented Kafka producer (aiokafka)
+            "internal-file-registry send",
+        ],
+    )
 
     # Without the parent link the backend calls would be detached from the trace.
+    register_span = otel.assert_has_span("FileRegistry.register_file")
     assert [
         span
         for span in otel.get_finished_spans()
         if span.name.startswith("S3.")
         and span.context.trace_id == register_span.context.trace_id
     ], "No autoinstrumented S3 spans share the manual span's trace"
-
-    # pymongo spans are named "<collection>.<command>"
-    db_name = joint_fixture.config.db_name
-    assert [name for name in span_names if name.startswith(f"{db_name}.")], (
-        f"No autoinstrumented MongoDB spans recorded. Captured: {span_names}"
-    )
-
-    # aiokafka producer spans are named "<topic> send"
-    topic = joint_fixture.config.file_internally_registered_topic
-    assert f"{topic} send" in span_names, (
-        f"No autoinstrumented Kafka spans recorded. Captured: {span_names}"
-    )
 
 
 async def test_consumed_staging_event_records_spans(
@@ -138,22 +157,26 @@ async def test_consumed_staging_event_records_spans(
     otel.reset()
     await joint_fixture.event_subscriber.run(forever=False)
 
-    span_names = otel.get_span_names()
-
-    otel.assert_has_span("EventSubTranslator._consume_file_staging_request")
-    otel.assert_has_span("FileRegistry.stage_registered_file")
-    otel.assert_has_span("EventPubTranslator.file_staged_for_download")
-
-    for operation in ("S3.HeadObject", "S3.CopyObject"):
-        assert operation in span_names, (
-            f"No autoinstrumented {operation} span recorded. Captured: {span_names}"
-        )
-
-    # aiokafka producer spans are named "<topic> send"
-    staged_topic = joint_fixture.config.file_staged_topic
-    assert f"{staged_topic} send" in span_names, (
-        f"No autoinstrumented Kafka span for topic {staged_topic!r}."
-        f" Captured: {span_names}"
+    assert_recorded_spans(
+        otel,
+        [
+            # Manual spans wrapping the subscriber, translators and core
+            "KafkaEventSubscriber._consume_event",
+            "EventSubTranslator._consume_file_staging_request",
+            "FileRegistry.stage_registered_file",
+            "EventPubTranslator.file_staged_for_download",
+            # Autoinstrumented Kafka consumer and producer (aiokafka)
+            "file-downloads receive",
+            "file-stagings send",
+            # Autoinstrumented MongoDB lookup (pymongo)
+            "test.find",
+            # Autoinstrumented object storage (botocore)
+            "S3.HeadObject",
+            "S3.HeadObject",
+            "S3.HeadObject",
+            "S3.HeadBucket",
+            "S3.CopyObject",
+        ],
     )
 
 
@@ -171,17 +194,14 @@ async def test_publish_events_records_spans(otel, joint_fixture: JointFixture):
         otel.reset()
         await publisher.republish()
 
-    span_names = otel.get_span_names()
-
-    # pymongo spans are named "<collection>.<command>"
-    db_name = joint_fixture.config.db_name
-    assert [name for name in span_names if name.startswith(f"{db_name}.")], (
-        f"No autoinstrumented MongoDB spans recorded. Captured: {span_names}"
-    )
-
-    # aiokafka producer spans are named "<topic> send"
-    assert f"{topic} send" in span_names, (
-        f"No autoinstrumented Kafka span for topic {topic!r}. Captured: {span_names}"
+    assert_recorded_spans(
+        otel,
+        [
+            # Autoinstrumented MongoDB read (pymongo)
+            "test.find",
+            # Autoinstrumented Kafka producer (aiokafka)
+            "internal-file-registry send",
+        ],
     )
 
 

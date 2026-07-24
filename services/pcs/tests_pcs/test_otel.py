@@ -16,6 +16,7 @@
 """Tests that real service operations record spans across all instrumented backends."""
 
 import inspect
+from collections import Counter
 from uuid import UUID
 
 import pytest
@@ -34,6 +35,22 @@ pytestmark = pytest.mark.asyncio()
 TEST_FILE_ID = UUID("70a7e795-fe0c-4a03-9af4-a758f5b5464b")
 
 
+def assert_recorded_spans(otel, expected: list[str]) -> None:
+    """Assert the recorded spans match `expected` exactly, counts included.
+
+    MongoDB connection housekeeping (`admin.*`) is emitted on a pool- and
+    timing-dependent basis, so it is filtered out before comparing.
+    """
+    recorded = Counter(
+        name for name in otel.get_span_names() if not name.startswith("admin.")
+    )
+    expected_counts = Counter(expected)
+    assert recorded == expected_counts, (
+        f"Unexpected spans: {dict(recorded - expected_counts)}; "
+        f"missing spans: {dict(expected_counts - recorded)}"
+    )
+
+
 async def test_deletion_request_records_spans_for_all_backends(
     otel,  # first, so OpenTelemetry is configured before the fixtures below
     joint_fixture: JointFixture,
@@ -46,30 +63,32 @@ async def test_deletion_request_records_spans_for_all_backends(
     )
     assert response.status_code == 202
 
-    span_names = otel.get_span_names()
-
-    route_span = otel.assert_has_span("routes.delete_file")
+    assert_recorded_spans(
+        otel,
+        [
+            # REST server span plus its ASGI send sub-spans (no body, so no receive)
+            "DELETE /files/{file_id}",
+            "DELETE /files/{file_id} http send",
+            "DELETE /files/{file_id} http send",
+            # Manual span wrapping the route handler
+            "routes.delete_file",
+            # Autoinstrumented MongoDB writes (pymongo)
+            "test.update",
+            "test.update",
+            # Autoinstrumented Kafka producer (aiokafka)
+            "file-deletion-requests send",
+        ],
+    )
 
     server_span = otel.assert_has_span("DELETE /files/{file_id}")
     assert server_span.attributes
     assert server_span.attributes["http.status_code"] == 202
 
     # Without the parent link the manual span would be detached from the trace.
+    route_span = otel.assert_has_span("routes.delete_file")
     assert route_span.parent is not None
     assert route_span.parent.span_id == server_span.context.span_id
     assert route_span.context.trace_id == server_span.context.trace_id
-
-    # pymongo spans are named "<collection>.<command>"
-    db_name = joint_fixture.config.db_name
-    assert [name for name in span_names if name.startswith(f"{db_name}.")], (
-        f"No autoinstrumented MongoDB spans recorded. Captured: {span_names}"
-    )
-
-    # aiokafka producer spans are named "<topic> send"
-    topic = joint_fixture.config.file_deletion_request_topic
-    assert f"{topic} send" in span_names, (
-        f"No autoinstrumented Kafka span for topic {topic!r}. Captured: {span_names}"
-    )
 
 
 async def test_publish_events_records_spans(otel, joint_fixture: JointFixture):
@@ -86,17 +105,14 @@ async def test_publish_events_records_spans(otel, joint_fixture: JointFixture):
         otel.reset()
         await publisher.republish()
 
-    span_names = otel.get_span_names()
-
-    # pymongo spans are named "<collection>.<command>"
-    db_name = joint_fixture.config.db_name
-    assert [name for name in span_names if name.startswith(f"{db_name}.")], (
-        f"No autoinstrumented MongoDB spans recorded. Captured: {span_names}"
-    )
-
-    # aiokafka producer spans are named "<topic> send"
-    assert f"{topic} send" in span_names, (
-        f"No autoinstrumented Kafka span for topic {topic!r}. Captured: {span_names}"
+    assert_recorded_spans(
+        otel,
+        [
+            # Autoinstrumented MongoDB read (pymongo)
+            "test.find",
+            # Autoinstrumented Kafka producer (aiokafka)
+            "file-deletion-requests send",
+        ],
     )
 
 

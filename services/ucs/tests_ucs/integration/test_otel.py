@@ -16,6 +16,7 @@
 """Tests that real service operations record spans across all instrumented backends."""
 
 import inspect
+from collections import Counter
 from uuid import UUID
 
 import pytest
@@ -33,6 +34,22 @@ from ucs import main
 from ucs.inject import prepare_outbox_publisher
 
 pytestmark = pytest.mark.asyncio()
+
+
+def assert_recorded_spans(otel, expected: list[str]) -> None:
+    """Assert the recorded spans match `expected` exactly, counts included.
+
+    MongoDB connection housekeeping (`admin.*`) is emitted on a pool- and
+    timing-dependent basis, so it is filtered out before comparing.
+    """
+    recorded = Counter(
+        name for name in otel.get_span_names() if not name.startswith("admin.")
+    )
+    expected_counts = Counter(expected)
+    assert recorded == expected_counts, (
+        f"Unexpected spans: {dict(recorded - expected_counts)}; "
+        f"missing spans: {dict(expected_counts - recorded)}"
+    )
 
 
 async def _create_box(joint_fixture: JointFixture) -> UUID:
@@ -54,28 +71,30 @@ async def test_box_creation_records_spans_for_all_backends(
     """One request should produce REST, MongoDB and Kafka spans, plus the manual one."""
     otel.reset()
     box_id = await _create_box(joint_fixture)
-    span_names = otel.get_span_names()
+    assert box_id  # the flow really did complete
 
-    otel.assert_has_span("routes.create_box")
+    assert_recorded_spans(
+        otel,
+        [
+            # REST server span plus its ASGI receive/send sub-spans
+            "POST /boxes",
+            "POST /boxes http receive",
+            "POST /boxes http receive",
+            "POST /boxes http send",
+            "POST /boxes http send",
+            # Manual span wrapping the route handler
+            "routes.create_box",
+            # Autoinstrumented MongoDB writes (pymongo)
+            "test.insert",
+            "test.update",
+            # Autoinstrumented Kafka producer (aiokafka)
+            "file-upload-boxes send",
+        ],
+    )
 
     server_span = otel.assert_has_span("POST /boxes")
     assert server_span.attributes
     assert server_span.attributes["http.status_code"] == 201
-
-    # pymongo spans are named "<collection>.<command>"
-    db_name = joint_fixture.config.db_name
-    assert [name for name in span_names if name.startswith(f"{db_name}.")], (
-        f"No autoinstrumented MongoDB spans recorded. Captured: {span_names}"
-    )
-
-    # aiokafka producer spans are named "<topic> send"
-    box_topic = joint_fixture.config.file_upload_box_topic
-    assert f"{box_topic} send" in span_names, (
-        f"No autoinstrumented Kafka span for topic {box_topic!r}."
-        f" Captured: {span_names}"
-    )
-
-    assert box_id  # the flow really did complete
 
     # Without the parent link the manual span would be detached from the trace.
     route_span = otel.assert_has_span("routes.create_box")
@@ -107,14 +126,29 @@ async def test_file_upload_creation_records_s3_spans(
     )
     assert response.status_code == 201
 
-    span_names = otel.get_span_names()
-
-    otel.assert_has_span("routes.create_file_upload")
-
-    otel.assert_has_span("POST /boxes/{box_id}/uploads")
-
-    assert "S3.CreateMultipartUpload" in span_names, (
-        f"No autoinstrumented S3 span for the multipart upload. Captured: {span_names}"
+    assert_recorded_spans(
+        otel,
+        [
+            # REST server span plus its ASGI receive/send sub-spans
+            "POST /boxes/{box_id}/uploads",
+            "POST /boxes/{box_id}/uploads http receive",
+            "POST /boxes/{box_id}/uploads http receive",
+            "POST /boxes/{box_id}/uploads http send",
+            "POST /boxes/{box_id}/uploads http send",
+            # Manual span wrapping the route handler
+            "routes.create_file_upload",
+            # Autoinstrumented MongoDB access (pymongo)
+            "test.find",
+            "test.find",
+            "test.insert",
+            "test.update",
+            "test.update",
+            # Autoinstrumented object storage (botocore)
+            "S3.ListMultipartUploads",
+            "S3.CreateMultipartUpload",
+            # Autoinstrumented Kafka producer (aiokafka)
+            "file-uploads send",
+        ],
     )
 
 
@@ -137,14 +171,17 @@ async def test_consumed_event_records_spans(
     async with set_correlation_id(new_correlation_id()):
         await joint_fixture.event_subscriber.run(forever=False)
 
-    span_names = otel.get_span_names()
-
-    otel.assert_has_span("EventSubTranslator._consume_file_deletion_requested")
-
-    # Autoinstrumented MongoDB spans from the resulting lookups
-    db_name = joint_fixture.config.db_name
-    assert [name for name in span_names if name.startswith(f"{db_name}.")], (
-        f"No autoinstrumented MongoDB spans recorded. Captured: {span_names}"
+    assert_recorded_spans(
+        otel,
+        [
+            # Manual spans wrapping the subscriber and the translator
+            "KafkaEventSubscriber._consume_event",
+            "EventSubTranslator._consume_file_deletion_requested",
+            # Autoinstrumented Kafka consumer (aiokafka)
+            "file-deletion-requests receive",
+            # Autoinstrumented MongoDB lookup (pymongo)
+            "test.find",
+        ],
     )
 
 
@@ -157,23 +194,20 @@ async def test_publish_events_records_spans(
     """
     await _create_box(joint_fixture)  # persists a FileUploadBox via the outbox
 
-    topic = joint_fixture.config.file_upload_box_topic
     otel.reset()
     async with prepare_outbox_publisher(config=joint_fixture.config) as publisher:
         box_dao = await publisher.get_file_upload_box_dao()
         await box_dao.republish()
 
-    span_names = otel.get_span_names()
-
-    # pymongo spans are named "<collection>.<command>"
-    db_name = joint_fixture.config.db_name
-    assert [name for name in span_names if name.startswith(f"{db_name}.")], (
-        f"No autoinstrumented MongoDB spans recorded. Captured: {span_names}"
-    )
-
-    # aiokafka producer spans are named "<topic> send"
-    assert f"{topic} send" in span_names, (
-        f"No autoinstrumented Kafka span for topic {topic!r}. Captured: {span_names}"
+    assert_recorded_spans(
+        otel,
+        [
+            # Autoinstrumented MongoDB read (pymongo)
+            "test.find",
+            "test.update",
+            # Autoinstrumented Kafka producer (aiokafka)
+            "file-upload-boxes send",
+        ],
     )
 
 
@@ -186,17 +220,16 @@ async def test_stale_upload_cleanup_records_spans(
     async with set_correlation_id(new_correlation_id()):
         await joint_fixture.upload_controller.cleanup_stale_uploads()
 
-    span_names = otel.get_span_names()
-
-    # pymongo spans are named "<collection>.<command>"
-    db_name = joint_fixture.config.db_name
-    assert [name for name in span_names if name.startswith(f"{db_name}.")], (
-        f"No autoinstrumented MongoDB spans recorded. Captured: {span_names}"
-    )
-
-    # botocore spans are named "S3.<operation>"
-    assert [name for name in span_names if name.startswith("S3.")], (
-        f"No autoinstrumented S3 spans recorded. Captured: {span_names}"
+    assert_recorded_spans(
+        otel,
+        [
+            # Autoinstrumented MongoDB access (pymongo)
+            "test.find",
+            "test.find",
+            # Autoinstrumented object storage (botocore)
+            "S3.ListMultipartUploads",
+            "S3.ListObjects",
+        ],
     )
 
 

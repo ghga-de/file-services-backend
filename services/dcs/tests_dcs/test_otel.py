@@ -18,6 +18,7 @@
 import base64
 import inspect
 import re
+from collections import Counter
 
 import httpx
 import pytest
@@ -48,6 +49,22 @@ pytestmark = [
 ACCESSION = "GHGA001"
 
 
+def assert_recorded_spans(otel, expected: list[str]) -> None:
+    """Assert the recorded spans match `expected` exactly, counts included.
+
+    MongoDB connection housekeeping (`admin.*`) is emitted on a pool- and
+    timing-dependent basis, so it is filtered out before comparing.
+    """
+    recorded = Counter(
+        name for name in otel.get_span_names() if not name.startswith("admin.")
+    )
+    expected_counts = Counter(expected)
+    assert recorded == expected_counts, (
+        f"Unexpected spans: {dict(recorded - expected_counts)}; "
+        f"missing spans: {dict(expected_counts - recorded)}"
+    )
+
+
 def _authorize(populated_fixture: PopulatedFixture) -> None:
     """Put a valid work order token on the fixture's REST client."""
     joint_fixture = populated_fixture.joint_fixture
@@ -67,22 +84,29 @@ async def test_file_registration_records_spans(
     populated_fixture: PopulatedFixture,
 ):
     """`populated_fixture` publishes a registration event and runs the subscriber."""
-    joint_fixture = populated_fixture.joint_fixture
-    span_names = otel.get_span_names()
-
-    otel.assert_has_span("EventSubTranslator._consume_files_to_register")
-    otel.assert_has_span("EventPubTranslator.file_registered")
-
-    db_name = joint_fixture.config.db_name
-    assert [name for name in span_names if name.startswith(f"{db_name}.")], (
-        f"No autoinstrumented MongoDB spans recorded. Captured: {span_names}"
-    )
-
-    # aiokafka producer spans are named "<topic> send"
-    registered_topic = joint_fixture.config.file_registered_for_download_topic
-    assert f"{registered_topic} send" in span_names, (
-        f"No autoinstrumented Kafka span for topic {registered_topic!r}."
-        f" Captured: {span_names}"
+    assert_recorded_spans(
+        otel,
+        [
+            # Manual spans wrapping the subscriber, translator and publisher
+            "EventSubTranslator._consume_files_to_register",
+            "EventPubTranslator.file_registered",
+            "KafkaEventSubscriber._consume_event",
+            # Autoinstrumented MongoDB access (pymongo)
+            "test.listCollections",
+            "test.find",
+            "test.insert",
+            "test.update",
+            "test.update",
+            # Autoinstrumented object storage bucket setup (botocore)
+            "S3.ListBuckets",
+            "S3.HeadBucket",
+            "S3.CreateBucket",
+            # Autoinstrumented Kafka consumer and producer (aiokafka)
+            "internal-file-registry send",
+            "internal-file-registry receive",
+            "file-downloads send",
+            "file-downloads receive",
+        ],
     )
 
 
@@ -102,11 +126,26 @@ async def test_drs_object_access_records_spans(
     response = await joint_fixture.rest_client.get(f"/objects/{ACCESSION}", timeout=5)
     assert response.status_code == 202
 
-    otel.assert_has_span("routes.get_drs_object")
-    staging_topic = joint_fixture.config.files_to_stage_topic
-    assert f"{staging_topic} send" in otel.get_span_names(), (
-        "No autoinstrumented Kafka span for the staging request."
-        f" Captured: {otel.get_span_names()}"
+    # The object is not staged yet, so this request publishes a staging request.
+    assert_recorded_spans(
+        otel,
+        [
+            # Manual spans wrapping the route handler, core and publisher
+            "routes.get_drs_object",
+            "DataRepository._get_access_model",
+            "EventPubTranslator.nonstaged_file_requested",
+            # REST server span plus its ASGI send sub-spans
+            "GET /objects/{object_id}",
+            "GET /objects/{object_id} http send",
+            "GET /objects/{object_id} http send",
+            # Autoinstrumented MongoDB lookup (pymongo)
+            "test.find",
+            # Autoinstrumented object storage existence check (botocore)
+            "S3.HeadObject",
+            "S3.HeadBucket",
+            # Autoinstrumented Kafka producer (aiokafka)
+            "staging-requests send",
+        ],
     )
 
     # Stage the object so the retry actually builds a presigned URL
@@ -122,21 +161,28 @@ async def test_drs_object_access_records_spans(
     response = await joint_fixture.rest_client.get(f"/objects/{ACCESSION}")
     assert response.status_code == 200
 
-    span_names = otel.get_span_names()
-
-    otel.assert_has_span("routes.get_drs_object")
-    otel.assert_has_span("DataRepository._get_access_model")
-
-    otel.assert_has_span("GET /objects/{object_id}")
-
-    # Presigning is local-only; the span comes from the existence check behind it.
-    assert "S3.HeadObject" in span_names, (
-        f"No autoinstrumented S3 span for the object lookup. Captured: {span_names}"
-    )
-
-    db_name = joint_fixture.config.db_name
-    assert [name for name in span_names if name.startswith(f"{db_name}.")], (
-        f"No autoinstrumented MongoDB spans recorded. Captured: {span_names}"
+    # The object is staged now, so this request builds a presigned URL and serves it.
+    assert_recorded_spans(
+        otel,
+        [
+            # Manual spans wrapping the route handler, core and publisher
+            "routes.get_drs_object",
+            "DataRepository._get_access_model",
+            "EventPubTranslator.download_served",
+            # REST server span plus its ASGI send sub-spans
+            "GET /objects/{object_id}",
+            "GET /objects/{object_id} http send",
+            "GET /objects/{object_id} http send",
+            # Autoinstrumented MongoDB access (pymongo)
+            "test.find",
+            "test.update",
+            "test.update",
+            "test.update",
+            # Autoinstrumented object storage existence check (botocore)
+            "S3.HeadObject",
+            # Autoinstrumented Kafka producer (aiokafka)
+            "file-downloads send",
+        ],
     )
 
 
@@ -159,12 +205,22 @@ async def test_envelope_request_records_outbound_http_spans(
     )
     assert response.status_code == 200
 
-    otel.assert_has_span("routes.get_envelope")
-    otel.assert_has_span("api_calls.get_envelope_from_ekss")
-
-    otel.assert_has_span("GET /objects/{object_id}/envelopes")
-
-    # No httpx span here: the mock replaces the transport the instrumentation wraps.
+    # No httpx client span here: the mock replaces the transport the instrumentation
+    # wraps (see test_outbound_ekss_call_records_httpx_client_span for that span).
+    assert_recorded_spans(
+        otel,
+        [
+            # Manual spans wrapping the route handler and the outbound call
+            "routes.get_envelope",
+            "api_calls.get_envelope_from_ekss",
+            # REST server span plus its ASGI send sub-spans
+            "GET /objects/{object_id}/envelopes",
+            "GET /objects/{object_id}/envelopes http send",
+            "GET /objects/{object_id}/envelopes http send",
+            # Autoinstrumented MongoDB lookup (pymongo)
+            "test.find",
+        ],
+    )
 
 
 async def test_outbound_ekss_call_records_httpx_client_span(
@@ -201,9 +257,17 @@ async def test_outbound_ekss_call_records_httpx_client_span(
 
     assert envelope  # the mocked EKSS really answered
 
-    manual_span = otel.assert_has_span("api_calls.get_envelope_from_ekss")
+    assert_recorded_spans(
+        otel,
+        [
+            # Manual span wrapping the outbound call
+            "api_calls.get_envelope_from_ekss",
+            # Autoinstrumented outbound HTTP client span (named after the method)
+            "GET",
+        ],
+    )
 
-    # The autoinstrumented outbound HTTP client span (named after the method).
+    manual_span = otel.assert_has_span("api_calls.get_envelope_from_ekss")
     client_span = otel.assert_has_span("GET")
     assert client_span.kind == SpanKind.CLIENT
 
@@ -230,17 +294,14 @@ async def test_publish_events_records_spans(
         otel.reset()
         await publisher.republish()
 
-    span_names = otel.get_span_names()
-
-    # pymongo spans are named "<collection>.<command>"
-    db_name = joint_fixture.config.db_name
-    assert [name for name in span_names if name.startswith(f"{db_name}.")], (
-        f"No autoinstrumented MongoDB spans recorded. Captured: {span_names}"
-    )
-
-    # aiokafka producer spans are named "<topic> send"
-    assert f"{topic} send" in span_names, (
-        f"No autoinstrumented Kafka span for topic {topic!r}. Captured: {span_names}"
+    assert_recorded_spans(
+        otel,
+        [
+            # Autoinstrumented MongoDB read (pymongo)
+            "test.find",
+            # Autoinstrumented Kafka producer (aiokafka)
+            "file-downloads send",
+        ],
     )
 
 
@@ -254,16 +315,16 @@ async def test_download_bucket_cleaner_records_spans(
         object_storages_config=cleanup_fixture.config
     )
 
-    span_names = otel.get_span_names()
-
-    assert [name for name in span_names if name.startswith("S3.")], (
-        f"No autoinstrumented S3 spans recorded. Captured: {span_names}"
-    )
-
-    # pymongo spans are named "<collection>.<command>"
-    db_name = cleanup_fixture.config.db_name
-    assert [name for name in span_names if name.startswith(f"{db_name}.")], (
-        f"No autoinstrumented MongoDB spans recorded. Captured: {span_names}"
+    assert_recorded_spans(
+        otel,
+        [
+            # Autoinstrumented MongoDB access (pymongo)
+            "test.find",
+            "test.find",
+            # Autoinstrumented object storage (botocore)
+            "S3.ListObjects",
+            "S3.DeleteObject",
+        ],
     )
 
     # The expired object really was removed, so the flow did its work.
