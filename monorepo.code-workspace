@@ -28,5 +28,8 @@
 			"name": "File Ingest",
 			"path": "services/fis"
 		},
-	]
+	],
+	"settings": {
+		"chat.disableAIFeatures": true
+	}
 }
