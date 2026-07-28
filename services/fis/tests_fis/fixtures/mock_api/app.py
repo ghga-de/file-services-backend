@@ -12,24 +12,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
-
-"""
-Adds wrapper classes to translate httpyexpect errors and check against
-provided exception specs for all API endpoints
-"""
+"""Mock EKSS endpoints"""
 
 import httpx2
-from ghga_service_commons.httpyexpect.client import ExceptionMapping, ResponseTranslator
+from fastapi import status
+from ghga_service_commons.api.mock_router import MockRouter
+
+DEPOSITED_SECRET_ID = "some-secret-id"
+
+router = MockRouter()
 
 
-class ResponseExceptionTranslator:
-    """Base class providing behaviour and injection point for spec"""
+@router.post("/ekss/secrets")
+def ekss_deposit_secret_mock():
+    """Mock API call to the EKSS to deposit a file secret"""
+    return httpx2.Response(
+        status_code=status.HTTP_201_CREATED, json={"secret_id": DEPOSITED_SECRET_ID}
+    )
 
-    def __init__(self, *, spec: dict[int, object]) -> None:
-        self._exception_map = ExceptionMapping(spec)
 
-    def handle(self, response: httpx2.Response):
-        """Translate and raise error, if defined by spec"""
-        translator = ResponseTranslator(response, exception_map=self._exception_map)
-        translator.raise_for_error()
+@router.delete("/ekss/secrets/{secret_id}")
+def ekss_delete_secret_mock(secret_id: str):
+    """Mock API call to the EKSS to delete a file secret"""
+    return httpx2.Response(status_code=status.HTTP_204_NO_CONTENT)

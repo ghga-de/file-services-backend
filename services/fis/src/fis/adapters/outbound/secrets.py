@@ -17,7 +17,7 @@
 
 import logging
 
-import httpx
+import httpx2
 import tenacity
 from pydantic import Field, HttpUrl, SecretBytes
 from pydantic_settings import BaseSettings
@@ -40,7 +40,9 @@ class SecretsClientConfig(BaseSettings):
 class SecretsClient(SecretsClientPort):
     """A class that interfaces with the Secrets API"""
 
-    def __init__(self, *, config: SecretsClientConfig, httpx_client: httpx.AsyncClient):
+    def __init__(
+        self, *, config: SecretsClientConfig, httpx_client: httpx2.AsyncClient
+    ):
         """Initialize the SecretsClient"""
         self._api_base_url = str(config.ekss_api_url).rstrip("/")
         self._httpx_client = httpx_client
@@ -64,8 +66,8 @@ class SecretsClient(SecretsClientPort):
                 "Failed to deposit secret because of the following reason: %s", reason
             )
             raise self.SecretsApiError() from err
-        except httpx.HTTPError as err:
-            # Catch any httpx errors that weren't wrapped in RetryError
+        except httpx2.HTTPError as err:
+            # Catch any httpx2 errors that weren't wrapped in RetryError
             reason = str(err.args[0]) if err.args else str(err)
             log.error(
                 "Failed to deposit secret because of the following reason: %s", reason
@@ -101,7 +103,7 @@ class SecretsClient(SecretsClientPort):
                 "Failed to delete secret because of the following reason: %s", reason
             )
             raise self.SecretsApiError() from err
-        except httpx.HTTPError as err:
+        except httpx2.HTTPError as err:
             reason = str(err.args[0]) if err.args else str(err)
             log.error(
                 "Failed to delete secret because of the following reason: %s", reason

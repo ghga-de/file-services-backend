@@ -31,7 +31,7 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 from uuid import UUID, uuid4
 
-import httpx
+import httpx2
 import pytest_asyncio
 from ghga_event_schemas.pydantic_ import (
     FileInternallyRegistered,
@@ -64,6 +64,7 @@ from dcs.ports.inbound.bucket_cleanup import BucketCleanerPort
 from dcs.ports.inbound.data_repository import DataRepositoryPort
 from dcs.ports.outbound.dao import DrsObjectDaoPort
 from tests_dcs.fixtures.config import get_config
+from tests_dcs.fixtures.mock_api.app import router as ekss_router
 from tests_dcs.fixtures.utils import (
     generate_token_signing_keys,
     generate_work_order_token,
@@ -101,7 +102,7 @@ class JointFixture:
     config: Config
     bucket_id: str
     data_repository: DataRepositoryPort
-    rest_client: httpx.AsyncClient
+    rest_client: httpx2.AsyncClient
     event_subscriber: KafkaEventSubscriber
     mongodb: MongoDbFixture
     s3: S3Fixture
@@ -141,9 +142,14 @@ async def joint_fixture(
     # create storage entities:
     await s3.populate_buckets(buckets=[bucket_id])
 
-    # prepare everything
+    # prepare everything, serving the EKSS API from the mock router instead of the
+    # network (the retry and rate limiting layers stay in place above it)
     async with (
-        prepare_core(config=config) as data_repository,
+        prepare_core(
+            config=config,
+            http_base_transport=ekss_router.as_transport(),
+            http_mount_env_proxies=False,
+        ) as data_repository,
         prepare_rest_app(config=config, data_repo_override=data_repository) as app,
         prepare_event_subscriber(
             config=config, data_repo_override=data_repository

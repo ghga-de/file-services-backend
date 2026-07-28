@@ -14,7 +14,7 @@
 # limitations under the License.
 """Mock EKSS endpoints"""
 
-import httpx
+import httpx2
 from fastapi import status
 from ghga_service_commons.api.mock_router import MockRouter
 from ghga_service_commons.httpyexpect.server.exceptions import (
@@ -37,9 +37,9 @@ class HttpSecretNotFoundError(HttpCustomExceptionBase):
         )
 
 
-def httpy_exception_handler(request: httpx.Request, exc: HttpException):
+def httpy_exception_handler(request: httpx2.Request, exc: HttpException):
     """Transform HttpException data into a proper response object"""
-    return httpx.Response(
+    return httpx2.Response(
         status_code=exc.status_code,
         json={
             "exception_id": exc.body.exception_id,
@@ -67,7 +67,7 @@ def ekss_get_envelope_mock(secret_id: str, receiver_public_key: str):
         + "8jBF73IyszJzVezDokPe8AJIEFG18luo/ZRI9mDSEI/GFy2EtNdflqW+CBSgUEWiQjkRAwS3V+dVeFsVQ=="
     )
 
-    return httpx.Response(status_code=status.HTTP_200_OK, json={"content": envelope})
+    return httpx2.Response(status_code=status.HTTP_200_OK, json={"content": envelope})
 
 
 @router.delete("/ekss/secrets/{secret_id}")
@@ -78,4 +78,4 @@ def ekss_delete_secret_mock(secret_id: str):
     if secret_id != valid_secret:
         raise HttpSecretNotFoundError()
 
-    return httpx.Response(status_code=status.HTTP_204_NO_CONTENT)
+    return httpx2.Response(status_code=status.HTTP_204_NO_CONTENT)

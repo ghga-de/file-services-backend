@@ -18,11 +18,10 @@
 import base64
 import inspect
 import json
-import re
 from collections import Counter
 from uuid import uuid4
 
-import httpx
+import httpx2
 import pytest
 from ghga_event_schemas.pydantic_ import FileInternallyRegistered
 from hexkit.opentelemetry.testutils import (  # noqa: F401
@@ -31,9 +30,8 @@ from hexkit.opentelemetry.testutils import (  # noqa: F401
 )
 from hexkit.providers.s3.testutils import FileObject, tmp_file  # noqa: F401
 from hexkit.utils import now_utc_ms_prec
-from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+from opentelemetry.instrumentation.httpx import HTTPX2ClientInstrumentor
 from opentelemetry.trace import SpanKind
-from pytest_httpx import HTTPXMock, httpx_mock  # noqa: F401
 
 from dcs import main
 from dcs.adapters.outbound.http.api_calls import get_configured_httpx_client
@@ -43,12 +41,7 @@ from tests_dcs.fixtures.joint import CleanupFixture, JointFixture, PopulatedFixt
 from tests_dcs.fixtures.mock_api.app import router
 from tests_dcs.fixtures.utils import generate_work_order_token
 
-pytestmark = [
-    pytest.mark.asyncio,
-    pytest.mark.httpx_mock(
-        should_mock=lambda request: request.url.path.startswith("/ekss"),
-    ),
-]
+pytestmark = pytest.mark.asyncio
 
 ACCESSION = "GHGA001"
 
@@ -78,7 +71,7 @@ def _authorize(populated_fixture: PopulatedFixture) -> None:
         jwk=joint_fixture.jwk,
         valid_seconds=120,
     )
-    joint_fixture.rest_client.headers = httpx.Headers(
+    joint_fixture.rest_client.headers = httpx2.Headers(
         {"Authorization": f"Bearer {token}"}
     )
 
@@ -212,14 +205,9 @@ async def test_drs_object_access_records_spans(
 async def test_envelope_request_records_outbound_http_spans(
     otel,  # first, so OpenTelemetry is configured before the fixtures below
     populated_fixture: PopulatedFixture,
-    httpx_mock: HTTPXMock,  # noqa: F811
 ):
     """The only flow that leaves the service over HTTP."""
     joint_fixture = populated_fixture.joint_fixture
-    httpx_mock.add_callback(
-        callback=router.handle_request,
-        url=re.compile(rf"^{joint_fixture.config.ekss_base_url}.*"),
-    )
     _authorize(populated_fixture)
 
     otel.reset()
@@ -228,7 +216,7 @@ async def test_envelope_request_records_outbound_http_spans(
     )
     assert response.status_code == 200
 
-    # No httpx client span here: the mock replaces the transport the instrumentation
+    # No httpx2 client span here: the mock replaces the transport the instrumentation
     # wraps (see test_outbound_ekss_call_records_httpx_client_span for that span).
     assert_recorded_spans(
         otel,
@@ -249,25 +237,22 @@ async def test_envelope_request_records_outbound_http_spans(
 async def test_outbound_ekss_call_records_httpx_client_span(
     otel,  # first, so OpenTelemetry is configured before the fixtures below
     populated_fixture: PopulatedFixture,
-    httpx_mock: HTTPXMock,  # noqa: F811
 ):
     """The outbound EKSS call is autoinstrumented at the client level.
 
-    The global httpx autoinstrumentation only wraps the real network transport, which
+    The global httpx2 autoinstrumentation only wraps the real network transport, which
     the HTTP mock swaps out - so the test above cannot see the outbound span. Here the
     client instance is instrumented directly, the same wrapping hexkit's
     autoinstrumentation applies to the real transport in production, which lets the
     span surface even against the mock.
     """
     config = populated_fixture.joint_fixture.config
-    httpx_mock.add_callback(
-        callback=router.handle_request,
-        url=re.compile(rf"^{config.ekss_base_url}.*"),
-    )
     receiver_public_key = base64.b64encode(b"test-public-key").decode()
 
-    async with get_configured_httpx_client(config=config) as client:
-        HTTPXClientInstrumentor.instrument_client(client)
+    async with get_configured_httpx_client(
+        config=config, base_transport=router.as_transport(), mount_env_proxies=False
+    ) as client:
+        HTTPX2ClientInstrumentor.instrument_client(client)
         try:
             secrets_client = SecretsClient(config=config, httpx_client=client)
 
@@ -276,7 +261,7 @@ async def test_outbound_ekss_call_records_httpx_client_span(
                 secret_id="some-secret", receiver_public_key=receiver_public_key
             )
         finally:
-            HTTPXClientInstrumentor.uninstrument_client(client)
+            HTTPX2ClientInstrumentor.uninstrument_client(client)
 
     assert envelope  # the mocked EKSS really answered
 

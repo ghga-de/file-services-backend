@@ -15,23 +15,20 @@
 
 """Tests edge cases not covered by the typical journey test."""
 
-import re
 from dataclasses import dataclass
 from uuid import uuid4
 
-import httpx
+import httpx2
 import pytest
 import pytest_asyncio
 from fastapi import status
 from hexkit.utils import now_utc_ms_prec
 from pydantic import UUID4
-from pytest_httpx import HTTPXMock, httpx_mock  # noqa: F401
 
 from dcs.core import models
 from dcs.core.errors import StorageAliasNotConfiguredError
 from dcs.ports.outbound.dao import DrsObjectDaoPort
 from tests_dcs.fixtures.joint import EXAMPLE_FILE, JointFixture, PopulatedFixture
-from tests_dcs.fixtures.mock_api.app import router
 from tests_dcs.fixtures.utils import (
     generate_token_signing_keys,
     generate_work_order_token,
@@ -125,31 +122,17 @@ async def test_access_non_existing(joint_fixture: JointFixture):
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
-@pytest.mark.httpx_mock(
-    assert_all_responses_were_requested=False, can_send_already_matched_responses=True
-)
 async def test_deletion_config_error(
     storage_unavailable_fixture: StorageUnavailableFixture,
-    httpx_mock: HTTPXMock,  # noqa: F811
 ):
     """Simulate a deletion request for a file with an unconfigured storage alias."""
-    # explicitly handle ekss API calls (and name unintercepted hosts above)
-    httpx_mock.add_callback(
-        callback=router.handle_request,
-        url=re.compile(rf"^{storage_unavailable_fixture.joint.config.ekss_base_url}.*"),
-    )
-
     data_repository = storage_unavailable_fixture.joint.data_repository
     with pytest.raises(StorageAliasNotConfiguredError):
         await data_repository.delete_file(file_id=storage_unavailable_fixture.file_id)
 
 
-@pytest.mark.httpx_mock(
-    assert_all_responses_were_requested=False, can_send_already_matched_responses=True
-)
 async def test_drs_config_error(
     storage_unavailable_fixture: StorageUnavailableFixture,
-    httpx_mock: HTTPXMock,  # noqa: F811
 ):
     """Test DRS endpoint for a storage alias that is not configured"""
     # generate work order token
@@ -162,14 +145,8 @@ async def test_drs_config_error(
     )
 
     # modify default headers:
-    storage_unavailable_fixture.joint.rest_client.headers = httpx.Headers(
+    storage_unavailable_fixture.joint.rest_client.headers = httpx2.Headers(
         {"Authorization": f"Bearer {work_order_token}"}
-    )
-
-    # explicitly handle ekss API calls (and name unintercepted hosts above)
-    httpx_mock.add_callback(
-        callback=router.handle_request,
-        url=re.compile(rf"^{storage_unavailable_fixture.joint.config.ekss_base_url}.*"),
     )
 
     response = await storage_unavailable_fixture.joint.rest_client.get(

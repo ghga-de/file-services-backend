@@ -18,7 +18,7 @@
 import base64
 import logging
 
-import httpx
+import httpx2
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
@@ -47,7 +47,9 @@ class SecretsClientConfig(BaseSettings):
 class SecretsClient(SecretsClientPort):
     """A class to communicate with the Secrets API regarding file encryption secrets"""
 
-    def __init__(self, *, config: SecretsClientConfig, httpx_client: httpx.AsyncClient):
+    def __init__(
+        self, *, config: SecretsClientConfig, httpx_client: httpx2.AsyncClient
+    ):
         """Initialize the SecretsClient"""
         self._httpx_client = httpx_client
         self._api_base = config.ekss_base_url
@@ -69,7 +71,7 @@ class SecretsClient(SecretsClientPort):
         api_url = f"{self._api_base}/secrets/{secret_id}/envelopes/{receiver_public_key_base64}"
         try:
             response = await self._httpx_client.get(url=api_url)
-        except httpx.RequestError as err:
+        except httpx2.RequestError as err:
             request_failed_error = exceptions.RequestFailedError(url=api_url)
             log.error(
                 request_failed_error,
@@ -118,7 +120,7 @@ class SecretsClient(SecretsClientPort):
 
         try:
             response = await self._httpx_client.delete(url=api_url)
-        except httpx.RequestError as err:
+        except httpx2.RequestError as err:
             request_failed_error = exceptions.RequestFailedError(url=api_url)
             log.error(
                 request_failed_error,

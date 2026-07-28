@@ -16,8 +16,9 @@ ruff>=0.15.13
 click>=8.4
 typer>=0.26
 
+# httpx 0.x is only kept for `scripts/list_outdated_dependencies.py`; the services
+# themselves talk httpx2 (see `httpx2` in pyproject.toml)
 httpx>=0.28.1
-pytest-httpx>=0.36
 
 urllib3>=2.7
 requests>=2.34.2
