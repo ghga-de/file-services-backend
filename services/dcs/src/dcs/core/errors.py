@@ -25,3 +25,14 @@ class StorageAliasNotConfiguredError(RuntimeError):
             + "Check íf your multi node configuration contains a corresponding entry."
         )
         super().__init__(message)
+
+
+class StorageUnavailableError(RuntimeError):
+    """Raised when the object storage for a given alias could not be reached."""
+
+    def __init__(self, *, alias: str, reason: str):
+        message = (
+            f"Could not reach the object storage for alias {alias}: {reason}\n"
+            + "Skipping download bucket cleanup for this storage."
+        )
+        super().__init__(message)
