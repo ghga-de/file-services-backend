@@ -504,18 +504,21 @@ async def test_bucket_cleanup_continues_with_remaining_aliases(
         cleanup_fixture.config.object_storages[unreachable_alias],
     )
 
-    object_storages = cleanup_fixture.bucket_cleaner._object_storages
-    real_for_alias = object_storages.for_alias
     connection_error = SimulatedConnectionError(
         'Could not connect to the endpoint URL: "https://localhost:1"'
     )
+    real_list = S3ObjectStorage.list_all_object_ids
+    listed_buckets = 0
 
-    def failing_for_alias(alias: str):
-        if alias == unreachable_alias:
+    async def failing_first_list(self, *, bucket_id: str):
+        """Fail the listing for the first alias only, then behave normally."""
+        nonlocal listed_buckets
+        listed_buckets += 1
+        if listed_buckets == 1:
             raise connection_error
-        return real_for_alias(alias)
+        return await real_list(self, bucket_id=bucket_id)
 
-    monkeypatch.setattr(object_storages, "for_alias", failing_for_alias)
+    monkeypatch.setattr(S3ObjectStorage, "list_all_object_ids", failing_first_list)
 
     caplog.clear()
     with caplog.at_level(logging.WARNING, logger="dcs.core.bucket_cleanup"):
@@ -529,6 +532,9 @@ async def test_bucket_cleanup_continues_with_remaining_aliases(
     warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
     assert len(warnings) == 1
     assert expected_warning in warnings[0].getMessage()
+
+    # The second alias was reached despite the first one being skipped
+    assert listed_buckets == 2
 
     expired_object = await cleanup_fixture.mongodb_dao.get_by_id(
         cleanup_fixture.expired_file_id
