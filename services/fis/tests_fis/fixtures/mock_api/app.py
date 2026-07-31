@@ -20,7 +20,7 @@ from ghga_service_commons.api.mock_router import MockRouter
 
 DEPOSITED_SECRET_ID = "some-secret-id"
 
-router = MockRouter()
+router: MockRouter[Exception] = MockRouter()
 
 
 @router.post("/ekss/secrets")
