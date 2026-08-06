@@ -37,8 +37,8 @@ from dcs import main
 from dcs.adapters.outbound.http.api_calls import get_configured_httpx_client
 from dcs.adapters.outbound.http.secrets import SecretsClient
 from dcs.inject import get_persistent_publisher
+from tests_dcs.fixtures.ekss_api import SECRET_ID, EkssApiMock
 from tests_dcs.fixtures.joint import CleanupFixture, JointFixture, PopulatedFixture
-from tests_dcs.fixtures.mock_api.app import router
 from tests_dcs.fixtures.utils import generate_work_order_token
 
 pytestmark = pytest.mark.asyncio
@@ -96,7 +96,7 @@ async def test_file_registration_records_spans(
         part_size=1,
         encrypted_parts_md5=["some", "checksum"],
         encrypted_parts_sha256=["some", "checksum"],
-        secret_id="some-secret",
+        secret_id=SECRET_ID,
     )
     await joint_fixture.kafka.publish_event(
         payload=json.loads(registration_event.model_dump_json()),
@@ -248,9 +248,10 @@ async def test_outbound_ekss_call_records_httpx_client_span(
     """
     config = populated_fixture.joint_fixture.config
     receiver_public_key = base64.b64encode(b"test-public-key").decode()
+    ekss = EkssApiMock(config=config)
 
     async with get_configured_httpx_client(
-        config=config, base_transport=router.as_transport(), mount_env_proxies=False
+        config=config, base_transport=ekss.as_transport(), mount_env_proxies=False
     ) as client:
         HTTPX2ClientInstrumentor.instrument_client(client)
         try:
@@ -258,7 +259,7 @@ async def test_outbound_ekss_call_records_httpx_client_span(
 
             otel.reset()
             envelope = await secrets_client.get_envelope(
-                secret_id="some-secret", receiver_public_key=receiver_public_key
+                secret_id=SECRET_ID, receiver_public_key=receiver_public_key
             )
         finally:
             HTTPX2ClientInstrumentor.uninstrument_client(client)

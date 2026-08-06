@@ -15,7 +15,6 @@
 
 """Unit tests for the secrets client."""
 
-from collections import deque
 from collections.abc import AsyncGenerator
 
 import httpx2
@@ -25,6 +24,12 @@ from pydantic import HttpUrl, SecretBytes
 
 from fis.adapters.outbound.http import HttpClientConfig, get_configured_httpx_client
 from fis.adapters.outbound.secrets import SecretsClient, SecretsClientConfig
+from tests_fis.fixtures.ekss_api import (
+    EkssApiMock,
+    ResponseHandler,
+    fail_to_connect,
+    respond,
+)
 
 pytestmark = pytest.mark.asyncio
 
@@ -35,109 +40,92 @@ HTTP_CONFIG = HttpClientConfig(client_num_retries=0)
 SECRETS_CONFIG = SecretsClientConfig(ekss_api_url=HttpUrl(BASE_URL))
 
 
-class QueuedTransport(httpx2.MockTransport):
-    """Answers each request with the next queued outcome and records what it received.
+def bad_json(status_code: int) -> ResponseHandler:
+    """Make a handler answering with a body that is not valid JSON."""
 
-    A queued exception is raised instead of returned, which stands in for a network
-    level failure.
-    """
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(status_code=status_code, content=b"not valid json")
 
-    def __init__(self) -> None:
-        """Start out with an empty queue."""
-        self.requests: list[httpx2.Request] = []
-        self._outcomes: deque[httpx2.Response | Exception] = deque()
-        super().__init__(self._handle)
-
-    def queue(self, outcome: httpx2.Response | Exception) -> None:
-        """Answer the next request with the given response or exception."""
-        self._outcomes.append(outcome)
-
-    def _handle(self, request: httpx2.Request) -> httpx2.Response:
-        """Record the request and play back the next queued outcome."""
-        self.requests.append(request)
-        outcome = self._outcomes.popleft()
-        if isinstance(outcome, Exception):
-            raise outcome
-        return outcome
+    return handler
 
 
 @pytest.fixture
-def transport() -> QueuedTransport:
-    """Provide the transport the secrets client talks to."""
-    return QueuedTransport()
+def ekss() -> EkssApiMock:
+    """Provide the mocked EKSS API the secrets client talks to."""
+    return EkssApiMock(config=SECRETS_CONFIG)
 
 
 @pytest_asyncio.fixture
-async def client(transport: QueuedTransport) -> AsyncGenerator[SecretsClient]:
+async def client(ekss: EkssApiMock) -> AsyncGenerator[SecretsClient]:
     """Construct a SecretsClient backed by the configured httpx2 client."""
     async with get_configured_httpx_client(
-        config=HTTP_CONFIG, base_transport=transport, mount_env_proxies=False
+        config=HTTP_CONFIG, base_transport=ekss.as_transport(), mount_env_proxies=False
     ) as httpx_client:
         yield SecretsClient(config=SECRETS_CONFIG, httpx_client=httpx_client)
 
 
-async def test_happy_deposition(transport: QueuedTransport, client: SecretsClient):
+async def test_happy_deposition(ekss: EkssApiMock, client: SecretsClient):
     """Test that a secret is sent to the right URL and that a str is returned"""
-    transport.queue(httpx2.Response(status_code=201, json={"secret_id": SECRET_ID}))
+    ekss.on_deposit_secret = respond(201, json={"secret_id": SECRET_ID})
 
     result = await client.deposit_secret(secret=SECRET_BYTES)
 
     assert result == SECRET_ID
-    assert len(transport.requests) == 1
-    request = transport.requests[0]
+    assert len(ekss.requests) == 1
+    request = ekss.requests[0]
     assert request.method == "POST"
     assert str(request.url) == f"{BASE_URL}/secrets"
 
 
-async def test_deposition_errors(transport: QueuedTransport, client: SecretsClient):
+async def test_deposition_errors(ekss: EkssApiMock, client: SecretsClient):
     """Test the various error handling when depositing secrets"""
     # Non-201 status code should raise SecretsApiError
-    transport.queue(httpx2.Response(status_code=500))
+    ekss.on_deposit_secret = respond(500)
 
     with pytest.raises(SecretsClient.SecretsApiError):
         await client.deposit_secret(secret=SECRET_BYTES)
 
     # Network-level error should also raise SecretsApiError
-    transport.queue(httpx2.ConnectError("Connection refused"))
+    ekss.on_deposit_secret = fail_to_connect("Connection refused")
 
     with pytest.raises(SecretsClient.SecretsApiError):
         await client.deposit_secret(secret=SECRET_BYTES)
 
     # Invalid JSON response body should raise SecretsApiError
-    transport.queue(httpx2.Response(status_code=201, content=b"not valid json"))
+    ekss.on_deposit_secret = bad_json(201)
 
     with pytest.raises(SecretsClient.SecretsApiError):
         await client.deposit_secret(secret=SECRET_BYTES)
 
 
-async def test_happy_deletion(transport: QueuedTransport, client: SecretsClient):
+async def test_happy_deletion(ekss: EkssApiMock, client: SecretsClient):
     """Test that a secret ID is sent to the right URL/HTTP method"""
     # 204 No Content is the normal success response
-    transport.queue(httpx2.Response(status_code=204))
+    ekss.on_delete_secret = respond(204)
 
     await client.delete_secret(secret_id=SECRET_ID)
 
-    assert len(transport.requests) == 1
-    request = transport.requests[0]
+    assert len(ekss.requests) == 1
+    request = ekss.requests[0]
     assert request.method == "DELETE"
     assert str(request.url) == f"{BASE_URL}/secrets/{SECRET_ID}"
 
     # 404 should also be treated as success (already gone)
-    transport.queue(httpx2.Response(status_code=404))
+    ekss.on_delete_secret = respond(404)
 
     await client.delete_secret(secret_id=SECRET_ID)  # should not raise
 
 
-async def test_deletion_errors(transport: QueuedTransport, client: SecretsClient):
+async def test_deletion_errors(ekss: EkssApiMock, client: SecretsClient):
     """Test the various error handling when deleting secrets"""
     # Non-204/404 status code should raise SecretsApiError
-    transport.queue(httpx2.Response(status_code=500))
+    ekss.on_delete_secret = respond(500)
 
     with pytest.raises(SecretsClient.SecretsApiError):
         await client.delete_secret(secret_id=SECRET_ID)
 
     # Network-level error should also raise SecretsApiError
-    transport.queue(httpx2.ConnectError("Connection refused"))
+    ekss.on_delete_secret = fail_to_connect("Connection refused")
 
     with pytest.raises(SecretsClient.SecretsApiError):
         await client.delete_secret(secret_id=SECRET_ID)

@@ -28,6 +28,11 @@ from pydantic import UUID4
 from dcs.core import models
 from dcs.core.errors import StorageAliasNotConfiguredError
 from dcs.ports.outbound.dao import DrsObjectDaoPort
+from tests_dcs.fixtures.ekss_api import (
+    ResponseHandler,
+    fail_to_connect,
+    secret_not_found,
+)
 from tests_dcs.fixtures.joint import EXAMPLE_FILE, JointFixture, PopulatedFixture
 from tests_dcs.fixtures.utils import (
     generate_token_signing_keys,
@@ -153,6 +158,38 @@ async def test_drs_config_error(
         f"/objects/{accession}", timeout=5
     )
     assert response.status_code == 500
+
+
+@pytest.mark.parametrize(
+    "on_get_envelope",
+    [fail_to_connect(), secret_not_found()],
+    ids=["unreachable", "secret_not_found"],
+)
+async def test_envelope_request_with_failing_ekss(
+    populated_fixture: PopulatedFixture,
+    on_get_envelope: ResponseHandler,
+):
+    """Both an unreachable EKSS and an unknown secret surface as a 500."""
+    joint_fixture = populated_fixture.joint_fixture
+    joint_fixture.ekss.on_get_envelope = on_get_envelope
+
+    accession = "GHGA001"
+    work_order_token = generate_work_order_token(
+        accession=accession,
+        file_id=populated_fixture.example_file.file_id,
+        jwk=joint_fixture.jwk,
+        valid_seconds=120,
+    )
+    joint_fixture.rest_client.headers = httpx2.Headers(
+        {"Authorization": f"Bearer {work_order_token}"}
+    )
+
+    response = await joint_fixture.rest_client.get(
+        f"/objects/{accession}/envelopes", timeout=5
+    )
+
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert joint_fixture.ekss.requests, "the EKSS mock was never called"
 
 
 async def test_register_file_twice(populated_fixture: PopulatedFixture, caplog):

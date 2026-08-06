@@ -29,6 +29,10 @@ from dcs.ports.outbound.secrets import SecretsClientPort
 
 log = logging.getLogger(__name__)
 
+# Paths of the Secrets API endpoints, relative to the configured base URL.
+ENVELOPE_PATH = "/secrets/{secret_id}/envelopes/{receiver_public_key}"
+DELETION_PATH = "/secrets/{secret_id}"
+
 
 class SecretsClientConfig(BaseSettings):
     """Configuration for the Secrets Client"""
@@ -54,6 +58,10 @@ class SecretsClient(SecretsClientPort):
         self._httpx_client = httpx_client
         self._api_base = config.ekss_base_url
 
+    def _url_for(self, path: str, **path_params: str) -> str:
+        """Build the full URL for one of the Secrets API path templates above."""
+        return self._api_base + path.format(**path_params)
+
     # The method name no longer references EKSS, but we'll leave it in the span name
     @TRACER.start_as_current_span("api_calls.get_envelope_from_ekss")
     async def get_envelope(self, *, secret_id: str, receiver_public_key: str) -> str:
@@ -68,7 +76,11 @@ class SecretsClient(SecretsClientPort):
         receiver_public_key_base64 = base64.urlsafe_b64encode(
             base64.b64decode(receiver_public_key)
         ).decode()
-        api_url = f"{self._api_base}/secrets/{secret_id}/envelopes/{receiver_public_key_base64}"
+        api_url = self._url_for(
+            ENVELOPE_PATH,
+            secret_id=secret_id,
+            receiver_public_key=receiver_public_key_base64,
+        )
         try:
             response = await self._httpx_client.get(url=api_url)
         except httpx2.RequestError as err:
@@ -116,7 +128,7 @@ class SecretsClient(SecretsClientPort):
             BadResponseCodeError: if a response is received but the status code
                 indicates that the request was unsuccessful.
         """
-        api_url = f"{self._api_base}/secrets/{secret_id}"
+        api_url = self._url_for(DELETION_PATH, secret_id=secret_id)
 
         try:
             response = await self._httpx_client.delete(url=api_url)

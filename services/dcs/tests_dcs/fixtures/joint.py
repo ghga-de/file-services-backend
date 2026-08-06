@@ -64,7 +64,7 @@ from dcs.ports.inbound.bucket_cleanup import BucketCleanerPort
 from dcs.ports.inbound.data_repository import DataRepositoryPort
 from dcs.ports.outbound.dao import DrsObjectDaoPort
 from tests_dcs.fixtures.config import get_config
-from tests_dcs.fixtures.mock_api.app import router as ekss_router
+from tests_dcs.fixtures.ekss_api import SECRET_ID, EkssApiMock
 from tests_dcs.fixtures.utils import (
     generate_token_signing_keys,
     generate_work_order_token,
@@ -82,7 +82,7 @@ EXAMPLE_FILE = models.AccessTimeDrsObject(
     decrypted_sha256="0677de3685577a06862f226bb1bfa8f889e96e59439d915543929fb4f011d096",
     creation_date=now_utc_ms_prec(),
     decrypted_size=12345,
-    secret_id="some-secret",
+    secret_id=SECRET_ID,
     encrypted_size=23456,
     storage_alias=STORAGE_ALIAS,
     last_accessed=now_utc_ms_prec(),
@@ -109,6 +109,7 @@ class JointFixture:
     kafka: KafkaFixture
     jwk: JWK
     endpoint_aliases: EndpointAliases
+    ekss: EkssApiMock
 
 
 @pytest_asyncio.fixture
@@ -142,12 +143,13 @@ async def joint_fixture(
     # create storage entities:
     await s3.populate_buckets(buckets=[bucket_id])
 
-    # prepare everything, serving the EKSS API from the mock router instead of the
-    # network (the retry and rate limiting layers stay in place above it)
+    # prepare everything, serving the EKSS API from the mock instead of the network
+    # (the retry and rate limiting layers stay in place above it)
+    ekss = EkssApiMock(config=config)
     async with (
         prepare_core(
             config=config,
-            http_base_transport=ekss_router.as_transport(),
+            http_base_transport=ekss.as_transport(),
             http_mount_env_proxies=False,
         ) as data_repository,
         prepare_rest_app(config=config, data_repo_override=data_repository) as app,
@@ -167,6 +169,7 @@ async def joint_fixture(
             kafka=kafka,
             jwk=jwk,
             endpoint_aliases=endpoint_aliases,
+            ekss=ekss,
         )
 
 
@@ -198,7 +201,7 @@ async def populated_fixture(
         part_size=1,
         encrypted_parts_md5=["some", "checksum"],
         encrypted_parts_sha256=["some", "checksum"],
-        secret_id="some-secret",
+        secret_id=SECRET_ID,
     )
 
     await joint_fixture.kafka.publish_event(

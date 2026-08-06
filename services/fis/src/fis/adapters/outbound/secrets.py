@@ -26,6 +26,10 @@ from fis.ports.outbound.secrets import SecretsClientPort
 
 log = logging.getLogger(__name__)
 
+# Paths of the Secrets API endpoints, relative to the configured base URL.
+DEPOSIT_PATH = "/secrets"
+DELETION_PATH = "/secrets/{secret_id}"
+
 
 class SecretsClientConfig(BaseSettings):
     """Configuration required for interfacing with the Secrets API"""
@@ -47,6 +51,10 @@ class SecretsClient(SecretsClientPort):
         self._api_base_url = str(config.ekss_api_url).rstrip("/")
         self._httpx_client = httpx_client
 
+    def _url_for(self, path: str, **path_params: str) -> str:
+        """Build the full URL for one of the Secrets API path templates above."""
+        return self._api_base_url + path.format(**path_params)
+
     async def deposit_secret(self, *, secret: SecretBytes) -> str:
         """Deposit an encrypted file encryption secret with the Secrets API
 
@@ -54,7 +62,7 @@ class SecretsClient(SecretsClientPort):
         """
         try:
             response = await self._httpx_client.post(
-                f"{self._api_base_url}/secrets",
+                self._url_for(DEPOSIT_PATH),
                 content=secret.get_secret_value(),  # still encrypted
             )
         except tenacity.RetryError as err:
@@ -92,7 +100,7 @@ class SecretsClient(SecretsClientPort):
         """Delete a file encryption secret from the Secrets API"""
         try:
             response = await self._httpx_client.delete(
-                f"{self._api_base_url}/secrets/{secret_id}",
+                self._url_for(DELETION_PATH, secret_id=secret_id),
             )
         except tenacity.RetryError as err:
             exception = err.last_attempt.exception()
