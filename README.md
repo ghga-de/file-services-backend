@@ -3,6 +3,17 @@
 
 # File Services Backend
 
+> [!IMPORTANT]
+> **This repository is archived and no longer maintained.**
+>
+> Development of the file services continues in the GHGA monorepo at
+> [ghga-de/ghga](https://github.com/ghga-de/ghga).
+> Please open issues and pull requests there.
+>
+> This repository is kept read-only for its history. Version 17.0.0 (August 2026) was the
+> last release made here; everything after that has been developed in the monorepo.
+> The documentation below describes the state of the code as of that version.
+
 File Services Backend - monorepo housing file services
 
 ## Description
